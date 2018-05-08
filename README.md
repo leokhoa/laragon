@@ -28,9 +28,9 @@ Enjoy!
   - Wanna enable/disable a PHP extension? Just 1 click.
 
 
-{% note info Note %}
+```
 Laragon is trully isolated & portable. However, you may need to use the installer as it will detect and install missing run-time components that are required to run C++ applications built using Visual Studio such as `PHP, Apache` for you.
-{% endnote %}
+```
 
 ## How fast?
 Laragon starts instantly. You can set Laragon autorun when Windows starts. When running, Laragon uses just a little amount of your RAM.
