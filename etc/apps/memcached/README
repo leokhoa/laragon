@@ -1,0 +1,149 @@
+memcached module for PHP
+------------------------
+This module requires zlib library, used for on-the-fly data (de)compression.
+Also, you'll need memcached to use it =)
+
+The memcached website is here:
+    http://www.danga.com/memcached/
+
+You will probably need libevent to install memcached:
+You can download it here: http://www.monkey.org/~provos/libevent/
+
+How to run tests:
+1. sh tests/memcache.sh
+2. TEST_PHP_EXECUTABLE=/usr/local/bin/php php -dextension=modules/memcache.so run-tests.php -d extension=modules/memcache.so
+
+
+New API in 3.0
+------------------------
+
+ Version 3 introduces a new class "MemcachePool" which implements the new API, the 
+ old class "Memcache" is still retained (but is deprecated) with the same interface 
+ for backwards compatibility. Please note that you need a new memcached version to
+ use the CAS, default value to increment/decrement, append and prepend, and binary 
+ protocol features.
+
+ New INI directives are available to allow control over protocol, redundancy and hash
+ strategy selection. These are
+ 
+	# The binary protocol results in less traffic and is more efficient
+	# for the client and server to generate/parse
+
+	memcache.protocol = {ascii, binary}		# default ascii
+
+	# When enabled the client sends requests to N servers in parallel, resulting in
+	# a somewhat crude reduncancy or mirroring, suitable when used as a session 
+	# storage. 
+	#
+	# If data integrity is of greater importance a real replicating memcached 
+	# backend such as "repcached" (http://sourceforge.net/projects/repcached/) is 
+	# recommended
+
+	memcache.redundancy = <int>			# default 1
+	memcache.session_redundancy = <int>		# default 2
+
+	# Hash strategy and function selection. The consistent hashing strategy
+	# is now the default as it allows servers to be added and removed from
+	# the pool without resulting in all or most keys being re-mapped to 
+	# other server (ie. voiding the cache)
+
+	memcache.hash_strategy = {standard, consistent}	# default consistent
+	memcache.hash_function = {crc32, fnv}			# default crc32
+	
+	# Compression is enabled by default, the threshold which control the minimum 
+	# string length which triggers compresssion can be changed as
+	
+	memcache.compress_threshold = <int>		# default 20000
+
+
+ The directives are used by the MemcachePool constructor so you can instantiate 
+ several pools with different settings by using ini_set() creativly. For example
+ 
+	ini_set('memcache.protocol', 'binary');
+
+	$binarypool = new MemcachePool();
+	$binarypool->addServer(...)
+
+	ini_set('memcache.protocol', 'ascii');
+	ini_set('memcache.redundancy', '2');
+
+	$redundantpool = new MemcachePool();
+	$redundantpool->addServer(...)
+
+	ini_set('memcache.redundancy', '1');
+ 
+
+ The new interface looks like 
+
+class MemcachePool() {
+	bool connect(string host, int tcp_port = 11211, int udp_port = 0, bool persistent = true, int weight = 1, int timeout = 1, int retry_interval = 15)
+	bool addServer(string host, int tcp_port = 11211, int udp_port = 0, bool persistent = true, int weight = 1, int timeout = 1, int retry_interval = 15, bool status = true)
+	bool setServerParams(string host, int tcp_port = 11211, int timeout = 1, int retry_interval = 15, bool status = true)
+	
+	/**
+	 * Supports fetching flags and CAS values
+	 */
+	mixed get(mixed key, mixed &flags = null, mixed &cas = null)
+	
+	/**
+	 * Supports multi-set, for example
+	 *  $memcache->set(array('key1' => 'val1', 'key2' => 'val1'), null, 0, 60)
+	 */
+	bool add(mixed key, mixed var = null, int flag = 0, int exptime = 0)
+	bool set(mixed key, mixed var = null, int flag = 0, int exptime = 0)
+	bool replace(mixed key, mixed var = null, int flag = 0, int exptime = 0)
+	
+	/**
+	 * Compare-and-Swap, uses the CAS param from MemcachePool::get() 
+	 */
+	bool cas(mixed key, mixed var = null, int flag = 0, int exptime = 0, int cas = 0)
+	
+	/**
+	 * Prepends/appends a value to an existing one
+	 */
+	bool append(mixed key, mixed var = null, int flag = 0, int exptime = 0)
+	bool prepend(mixed key, mixed var = null, int flag = 0, int exptime = 0)
+	
+	/**
+	 * Supports multi-key operations, for example
+	 *  $memcache->delete(array('key1', 'key2'))
+	 */
+	bool delete(mixed key, int exptime = 0)
+
+	/**
+	 * Supports multi-key operations, for example
+	 *  $memcache->increment(array('key1', 'key2'), 1, 0, 0)
+	 *
+	 * The new defval (default value) and exptime (expiration time) are used
+	 * if the key doesn't already exist. They must be supplied (even if 0) for
+	 * this to be enabled.
+	 *
+	 * Returns an integer with the new value if key is a string
+	 * Returns an array of integers if the key is an array
+	 */
+	mixed increment(mixed key, int value = 1, int defval = 0, int exptime = 0)
+	mixed decrement(mixed key, int value = 1, int defval = 0, int exptime = 0)
+	
+	/**
+	 * Assigns a pool-specific failure callback which will be called when 
+	 * a request fails. May be null in order to disable callbacks. The callback
+	 * receive arguments like
+	 *
+	 *  function mycallback($host, $tcp_port, $udp_port, $error, $errnum)
+	 *
+	 * Where $host and $error are strings or null, the other params are integers.
+	 */
+	bool setFailureCallback(function callback)
+	
+	/**
+	 * Locates the server a given would be hashed to
+	 * 
+	 * Returns a string "hostname:port" on success
+	 * Returns false on failure such as invalid key
+	 */
+	string findServer(string key)
+}
+
+
+Maintainers:
+Herman J. Radtke III	hradtke at php dot net
