@@ -1,4 +1,4 @@
-# Laragon - The Development Environment for Innovators
+# Laragon - The Dev Environment for Web Artisans
 
 ## What is Laragon?
 
