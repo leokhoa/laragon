@@ -2,13 +2,8 @@ define ROOT "<<PROJECT_DIR>>"
 define SITE "<<HOSTNAME>>"
 
 <VirtualHost *:<<PORT>>> 
-    DocumentRoot "${ROOT}"
     ServerName ${SITE}
-    ServerAlias *.${SITE}
-    <Directory "${ROOT}">
-        AllowOverride All
-        Require all granted
-    </Directory>
+	Redirect / https://${SITE}
 </VirtualHost>
 
 <VirtualHost *:<<SSL_PORT>>>
@@ -25,3 +20,6 @@ define SITE "<<HOSTNAME>>"
     SSLCertificateKeyFile   <<SSL_DIR>>/<<HOSTNAME>>.key
  
 </VirtualHost>
+
+# This file is auto-generated.
+# If you want Laragon to respect your changes, just remove the [auto.] prefix
