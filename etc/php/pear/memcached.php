@@ -530,6 +530,29 @@ class Memcached
     }
 
     /**
+     * Flush the cache
+     *
+     * @return  boolean
+     */
+    public function flush()
+    {
+        $this->writeSocket('flush_all') ;
+
+        $s = $this->readSocket();
+
+        if ('OK' == $s) {
+            $this->resultCode = Memcached::RES_SUCCESS;
+            $this->resultMessage = '';
+            return true;
+
+        } else {
+            $this->resultCode = Memcached::RES_FAILURE;
+            $this->resultMessage = 'Flush fail.';
+            return false;
+        }
+    }
+
+    /**
      * Write data to socket
      *
      * @param   string  $cmd
