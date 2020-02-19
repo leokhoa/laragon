@@ -443,6 +443,36 @@ class Memcached
     }
 
 
+    /**
+     * Store an item. 
+     * Fails if $key already exists
+     *
+     * @param   string  $key
+     * @param   mixed   $val
+     * @param   int     $expt
+     * @return  boolean
+     */
+    public function add($key, $val, $expt = 0)
+    {
+        $valueString = serialize($val);
+        $keyString = $this->getKey($key);
+
+        $this->writeSocket(
+            "add $keyString 0 $expt " . strlen($valueString)
+        );
+        $s = $this->writeSocket($valueString, true);
+
+        if ('STORED' == $s) {
+            $this->resultCode = Memcached::RES_SUCCESS;
+            $this->resultMessage = '';            
+            return true;
+
+        } else {
+            $this->resultCode = Memcached::RES_FAILURE;
+            $this->resultMessage = 'Add fail.';
+            return false;
+        }
+    }
 
 
     /**
