@@ -9,7 +9,7 @@ if (!empty($_GET['q'])) {
 }
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
   <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
@@ -28,7 +28,7 @@ if (!empty($_GET['q'])) {
       margin: 0;
       min-height: 100vh;
       font-weight: 100;
-      font-family: 'Karla';
+        font-family: 'Karla', sans-serif;
       font-size: 18px;
     }
 
@@ -125,7 +125,7 @@ if (!empty($_GET['q'])) {
       <?php print($_SERVER['SERVER_SOFTWARE']); ?>
     </p>
     <p>
-      PHP version: <?php print phpversion(); ?> <span><a title="phpinfo()" href="/?q=info">info</a></span>
+      PHP version: <?php print PHP_VERSION; ?> <span><a title="phpinfo()" href="/?q=info">info</a></span>
     </p>
     <p>
       Document Root: <?php print($_SERVER['DOCUMENT_ROOT']); ?>
@@ -136,7 +136,7 @@ if (!empty($_GET['q'])) {
   </main>
   <?php
   $dirList = glob('*', GLOB_ONLYDIR);
-  if ($dirList != NULL) :
+  if (!empty($dirList)) :  
   ?>
     <nav>
       <ul>
