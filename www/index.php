@@ -28,7 +28,7 @@ if (!empty($_GET['q'])) {
       margin: 0;
       min-height: 100vh;
       font-weight: 100;
-      font-family: 'Karla';
+        font-family: 'Karla', sans-serif;
       font-size: 18px;
     }
 
