@@ -125,7 +125,7 @@ if (!empty($_GET['q'])) {
       <?php print($_SERVER['SERVER_SOFTWARE']); ?>
     </p>
     <p>
-      PHP version: <?php print phpversion(); ?> <span><a title="phpinfo()" href="/?q=info">info</a></span>
+      PHP version: <?php print PHP_VERSION; ?> <span><a title="phpinfo()" href="/?q=info">info</a></span>
     </p>
     <p>
       Document Root: <?php print($_SERVER['DOCUMENT_ROOT']); ?>
