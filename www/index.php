@@ -136,7 +136,7 @@ if (!empty($_GET['q'])) {
   </main>
   <?php
   $dirList = glob('*', GLOB_ONLYDIR);
-  if ($dirList != NULL) :
+  if (!empty($dirList)) :  
   ?>
     <nav>
       <ul>
