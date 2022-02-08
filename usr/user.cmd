@@ -3,3 +3,5 @@
 
 :: call %GIT_INSTALL_ROOT%\cmd\start-ssh-agent.cmd
 :: set PATH=%USER_DIR%\bin\whatever;%PATH%
+
+set OPENSSL_CONF=
