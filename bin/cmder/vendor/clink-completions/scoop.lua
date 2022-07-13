@@ -9,12 +9,13 @@ local w = require("tables").wrap
 local concat = require("funclib").concat
 
 local parser = clink.arg.new_parser
+local profile = os.getenv("home") or os.getenv("USERPROFILE")
 
 local function scoop_folder()
     local folder = os.getenv("SCOOP")
 
     if not folder then
-        folder = os.getenv("home") .. "\\scoop"
+        folder = profile .. "\\scoop"
     end
 
     return folder
@@ -31,7 +32,7 @@ local function scoop_global_folder()
 end
 
 local function scoop_load_config() -- luacheck: no unused args
-    local file = io.open(os.getenv("home") .. "\\.config\\scoop\\config.json")
+    local file = io.open(profile .. "\\.config\\scoop\\config.json")
     -- If there is no such file, then close handle and return
     if file == nil then
         return w()

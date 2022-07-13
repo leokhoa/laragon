@@ -1,0 +1,262 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>pkcs11.conf: p11-kit</title>
+<meta name="generator" content="DocBook XSL Stylesheets Vsnapshot">
+<link rel="home" href="index.html" title="p11-kit">
+<link rel="up" href="tools.html" title="Manual Pages">
+<link rel="prev" href="p11-kit.html" title="p11-kit">
+<link rel="next" href="trust.html" title="trust">
+<meta name="generator" content="GTK-Doc V1.33.1 (XML mode)">
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table class="navigation" id="top" width="100%" summary="Navigation header" cellpadding="2" cellspacing="5"><tr valign="middle">
+<td width="100%" align="left" class="shortcuts"></td>
+<td><a accesskey="h" href="index.html"><img src="home.png" width="16" height="16" border="0" alt="Home"></a></td>
+<td><a accesskey="u" href="tools.html"><img src="up.png" width="16" height="16" border="0" alt="Up"></a></td>
+<td><a accesskey="p" href="p11-kit.html"><img src="left.png" width="16" height="16" border="0" alt="Prev"></a></td>
+<td><a accesskey="n" href="trust.html"><img src="right.png" width="16" height="16" border="0" alt="Next"></a></td>
+</tr></table>
+<div class="refentry">
+<a name="pkcs11-conf"></a><div class="titlepage"></div>
+<div class="refnamediv"><table width="100%"><tr>
+<td valign="top">
+<h2><span class="refentrytitle">pkcs11.conf</span></h2>
+<p>pkcs11.conf — Configuration files for PKCS#11 modules</p>
+</td>
+<td class="gallery_image" valign="top" align="right"></td>
+</tr></table></div>
+<div class="refsect1">
+<a name="pkcs11-conf-description"></a><h2>Description</h2>
+<p>The <span class="command"><strong>pkcs11.conf</strong></span> configuration files are a standard
+	way to configure PKCS#11 modules.</p>
+</div>
+<div class="refsect1">
+<a name="config-format"></a><h2>File format</h2>
+<p>A complete configuration consists of several files. These files are
+	text files. Since <code class="literal">p11-kit</code> is built to be used in all
+	sorts of environments and at very low levels of the software stack, we
+	cannot make use of high level configuration APIs that you may find on a
+	modern desktop.</p>
+<p>Each setting in the config file is specified consists of a name and
+	a value. The name is a simple string consisting of characters and dashes.
+	The name consists of alpha numeric characters, dot, hyphen and
+	underscore.</p>
+<p>The value is specified after the name on the same line, separated
+	from it by a <code class="literal">:</code> (colon). White space between the
+	name and value is ignored.</p>
+<p>Blank lines are ignored. White space at the beginning or end of
+	lines is stripped. Lines that begin with a <code class="literal">#</code> character
+	are ignored as comments. Comments are not recognized when they come after
+	a value on a line.</p>
+<p>A fictitious module configuration file might look like:</p>
+<pre class="programlisting">
+module: module.so
+# Here is a comment
+
+managed: true
+setting.2: A long value with text.
+x-custom : text
+</pre>
+</div>
+<div class="refsect1">
+<a name="config-module"></a><h2>Module Configuration</h2>
+<p>Each configured PKCS#11 module has its own config file. These files
+	can be <a class="link" href="pkcs11-conf.html#config-locations" title="Configuration Files">placed in various locations</a>.</p>
+<p>The filename of the configuration file may consist of upper and lowercase letters
+	underscore, comma, dash and dots. The first characters needs to be an alphanumeric,
+	the filename should end with a <code class="literal">.module</code> extension.</p>
+<p>Most importantly each config file specifies the path of the PKCS#11 module to
+	load. A module config file has the following fields:</p>
+<div class="variablelist"><table border="0" class="variablelist">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="option">module:</code></span></p></td>
+<td>
+<p>The filename of the PKCS#11 module to load.
+			This should include an extension like <code class="literal">.so</code></p>
+<p>If this value is blank, then the module will be ignored.
+			This can be used in the user configs to override loading of a module
+			specified in the system configuration.</p>
+<p>If this is a relative path, then the module will be loaded
+			from the <a class="link" href="devel-paths.html#devel-paths-modules" title="Default path for modules with relative paths">default module directory</a>.</p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="option">critical:</code></span></p></td>
+<td>
+<p>Set to <code class="literal">yes</code> if the module is critical and
+			required to load. If a critical module fails to load or initialize,
+			then the loading process for all registered modules will abort and
+			return an error code.</p>
+<p>This argument is optional and defaults to <code class="literal">no</code>.</p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="option">enable-in:</code></span></p></td>
+<td>
+<p>A comma and/or space separated list of names of programs that
+			this module should only be loaded in. The module will not be loaded
+			for other programs using p11-kit. The base name of the process executable
+			should be used here, for example
+			<code class="literal">seahorse, ssh</code>.</p>
+<p>This option can also be used to control whether the module will be loaded by <a class="link" href="sharing.html" title="Sharing PKCS#11 modules">the proxy module</a>.  To enable loading only from the proxy module, specify <code class="literal">p11-kit-proxy</code> as the value.</p>
+<p>This is not a security feature. The argument is optional. If
+			not present, then any process will load the module.</p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="option">disable-in:</code></span></p></td>
+<td>
+<p>A comma and/or space separated list of names of programs that
+			this module should not be loaded in. The module will be loaded for any
+			other programs using p11-kit. The base name of the process
+			executable should be used here, for example
+			<code class="literal">firefox, thunderbird-bin</code>.</p>
+<p>This option can also be used to control whether the module will be loaded by <a class="link" href="sharing.html" title="Sharing PKCS#11 modules">the proxy module</a>.  To disable loading from the proxy module, specify <code class="literal">p11-kit-proxy</code> as the value.</p>
+<p>This is not a security feature. The argument is optional. If
+			not present, then any process will load the module.</p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="option">managed:</code></span></p></td>
+<td>
+<p>Set to <code class="literal">no</code> if the module is not to be managed by
+			p11-kit. Making a module unmanaged is not recommended, and will cause
+			problems if multiple callers in a single process share a PKCS#11 module.</p>
+<p>This argument is optional and defaults to <code class="literal">yes</code>.</p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="option">priority:</code></span></p></td>
+<td>
+<p>The value should be an integer. When lists of modules are
+			returned to a caller of p11-kit, modules with a higher number are sorted
+			first. When applications search modules for certificates, keys and
+			trust policy information, this setting will affect what find
+			first.</p>
+<p>This argument is optional, and defaults to zero. Modules
+			with the same <code class="option">priority</code> option will be sorted
+			alphabetically.</p>
+</td>
+</tr>
+<tr>
+<td><p><a name="option-remote"></a><span class="term"><code class="option">remote:</code></span></p></td>
+<td>
+<p>Instead of loading the PKCS#11 module locally, run the module
+			remotely.</p>
+<p>Specify a command to run, prefixed with <code class="literal">|</code> a pipe.
+			The command must speak the p11-kit remoting protocol on its standard in
+			and standard out. For example:</p>
+<pre class="programlisting">
+remote: |ssh user@remote p11-kit remote /path/to/module.so
+</pre>
+<p>Other forms of remoting will appear in later p11-kit releases.</p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="option">trust-policy:</code></span></p></td>
+<td><p>Set to <code class="literal">yes</code> to use use this module as a source
+			of trust policy information such as certificate anchors and black lists.</p></td>
+</tr>
+<tr>
+<td><p><a name="option-log-calls"></a><span class="term"><code class="option">log-calls:</code></span></p></td>
+<td>
+<p>Set to <code class="literal">yes</code> to write a log to stderr of all the
+			calls into the module. This is only supported for managed modules.</p>
+<p>This argument is optional and defaults to <code class="literal">no</code>.</p>
+</td>
+</tr>
+</tbody>
+</table></div>
+<p>Do not specify both <code class="literal">enable-in</code> and <code class="literal">disable-in</code>
+	for the same module.</p>
+<p>Other fields may be present, but it is recommended that field names
+	that are not specified in this document start with a <code class="literal">x-</code>
+	prefix.</p>
+</div>
+<div class="refsect1">
+<a name="config-global"></a><h2>Global Configuration</h2>
+<p>A global configuration may also be present. This file contains settings
+	that are not related to a single PKCS#11 module. The location(s) of the
+	global configuration are described below. The global configuration file
+	can contain the following fields:</p>
+<div class="variablelist"><table border="0" class="variablelist">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="option">user-config:</code></span></p></td>
+<td><p>This will be equal to one of the following values:
+		<code class="literal">none</code>, <code class="literal">merge</code>,
+		<code class="literal">only</code>.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="option">managed:</code></span></p></td>
+<td>
+<p>Set to <code class="literal">yes</code> or <code class="literal">no</code> to
+			force all modules to be managed or unmanaged by p11-kit. Setting this
+			setting in a global configuration file will override the
+			<code class="literal">managed</code> setting in the individual module configuration
+			files. Making modules unmanaged is not recommended, and will cause
+			problems if multiple callers in a single process share a PKCS#11
+			module.</p>
+<p>This argument is optional.</p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="option">log-calls:</code></span></p></td>
+<td>
+<p>Set to <code class="literal">yes</code> to write a log to stderr of all the
+			calls into all configured modules. This is only supported for managed
+			modules.</p>
+<p>This argument is optional.</p>
+</td>
+</tr>
+</tbody>
+</table></div>
+<p>Other fields may be present, but it is recommended that field names
+	that are not specified in this document start with a <code class="literal">x-</code>
+	prefix.</p>
+</div>
+<div class="refsect1">
+<a name="config-locations"></a><h2>Configuration Files</h2>
+<p>Each configured PKCS#11 module has its own config file. These
+	files are placed in a directory. In addition a global config file exists.
+	There is a system configuration consisting of the various module config
+	files and a file for global configuration. Optionally each user can provide
+	additional configuration or override the system configuration.</p>
+<p>The system global configuration file is usually in
+	<code class="literal">/etc/pkcs11/pkcs11.conf</code> and the user global
+	configuration file is in <code class="literal">~/.config/pkcs11/pkcs11.conf</code> in the
+	user's home directory.</p>
+<p>The module config files are usually located in the
+	<code class="literal">/etc/pkcs11/modules</code> directory, with one configuration
+	file per module. In addition the <code class="literal">~/.config/pkcs11/modules</code> directory
+	can be used for modules installed by the user.</p>
+<p>Note that user configuration files are not loaded from the home
+	directory if running inside a setuid or setgid program.</p>
+<p>The default system config file and module directory can be changed
+	when building p11-kit. Always
+	<a class="link" href="devel-paths.html" title="Packaging PKCS#11 module configs">lookup these paths</a> using
+	<code class="literal">pkg-config</code>.</p>
+</div>
+<div class="refsect1">
+<a name="pkcs11-conf-see-also"></a><h2>See also</h2>
+<span class="simplelist"><span class="citerefentry"><span class="refentrytitle">p11-kit</span>(8)</span></span><p>Further details available in the p11-kit online documentation at
+	<a class="ulink" href="https://p11-glue.github.io/p11-glue/p11-kit/manual/" target="_top">https://p11-glue.github.io/p11-glue/p11-kit/manual/</a>.
+	</p>
+</div>
+</div>
+<div class="footer">
+<hr>Generated by GTK-Doc V1.33.1</div>
+</body>
+</html>

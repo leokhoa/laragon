@@ -2,6 +2,8 @@
 :: License: http://opensource.org/licenses/MIT
 
 @echo off
+set clink_profile_arg=
+set clink_quiet_arg=
 
 :: Mimic cmd.exe's behaviour when starting from the start menu.
 if /i "%1"=="startmenu" (
@@ -13,6 +15,12 @@ if /i "%1"=="startmenu" (
 if /i "%1"=="--profile" (
     set clink_profile_arg=--profile "%~2"
     shift /1
+    shift /1
+)
+
+:: Check for the --quiet option.
+if /i "%1"=="--quiet" (
+    set clink_quiet_arg= --quiet
     shift /1
 )
 
@@ -35,9 +43,10 @@ if /i "%processor_architecture%"=="x86" (
 
 :end
 set clink_profile_arg=
+set clink_quiet_arg=
 goto :eof
 
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 :launch
-start "Clink" cmd.exe /s /k ""%~dpnx0" inject %clink_profile_arg%"
+start "Clink" cmd.exe /s /k ""%~dpnx0" inject %clink_profile_arg%%clink_quiet_arg%"
 exit /b 0

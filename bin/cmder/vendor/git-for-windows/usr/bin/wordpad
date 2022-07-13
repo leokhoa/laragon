@@ -1,0 +1,33 @@
+#!/bin/sh
+
+die () {
+	echo "$*" >&2
+	exit 1
+}
+
+WORDPAD="$(ls {"$PROGRAMFILES/Windows NT","$SYSTEMROOT"}/*/wordpad.exe 2>&- | head -1)"
+
+test $# = 1 ||
+die "Usage: $0 <file>"
+
+case "$1" in
+\\*|/*|?:*) ;; # do nothing
+*) set "$(pwd -W)/$1";;
+esac
+
+case "$1" in
+*/.git/*) ;; # needs LF line endings
+*) exec "$WORDPAD" "$1" || die "Could not launch $WORDPAD";;
+esac
+
+"$WORDPAD" "$1" &&
+dos2unix.exe "$1" &&
+case "$1" in
+*/COMMIT_EDITMSG|*\\COMMIT_EDITMSG)
+	! columns="$(git config format.commitmessagecolumns)" || {
+		msg="$(fmt.exe -s -w "$columns" "$1" -p '#' | \
+			fmt.exe -s -w "$columns" -)" &&
+		printf "%s" "$msg" >"$1"
+	}
+	;;
+esac

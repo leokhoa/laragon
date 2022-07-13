@@ -61,6 +61,8 @@ git.get_config = function (git_dir, section, param)
 end
 
 local function git_prompt_filter()
+    -- Check for Cmder configured Git Status Opt In/Out - See: https://github.com/cmderdev/cmder/issues/2484
+    if cmderGitStatusOptIn == false then return false end  -- luacheck: globals cmderGitStatusOptIn
 
     local git_dir = gitutil.get_git_dir()
     if not git_dir then return false end

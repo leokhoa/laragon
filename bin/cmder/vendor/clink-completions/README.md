@@ -5,7 +5,7 @@
 clink-completions
 =================
 
-Completion files to [clink](https://github.com/mridgers/clink) util
+Completion files to [clink](https://github.com/mridgers/clink) util. Bundled with [Cmder](https://github.com/cmderdev/cmder).
 
 Notes
 =====

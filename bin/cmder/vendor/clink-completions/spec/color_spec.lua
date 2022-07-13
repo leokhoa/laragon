@@ -18,6 +18,7 @@ describe("color module", function()
 
     it("should export methods", function()
         assert.are.equal(type(color.set_color), 'function')
+        assert.are.equal(type(color.get_clink_color), 'function')
         assert.are.equal(type(color.color_text), 'function')
     end)
 
@@ -53,6 +54,13 @@ describe("color module", function()
             assert.are.equals(fore, "39");
             assert.are.equals(back, "49");
             assert.are.equals(bold, "22");
+        end)
+    end)
+
+    describe("'get_clink_color' method", function ()
+
+        it("should do nothing since Clink support is only available in actual Clink", function ()
+            assert.are.equals(color.get_clink_color('color.git.star'), "")
         end)
     end)
 

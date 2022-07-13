@@ -1,0 +1,455 @@
+#! /bin/sh
+
+#############################################################################
+# mintty theme switcher
+# features:
+#	list themes from config directories
+#	set a theme from config directories
+#	set a theme from a file
+#	query current colour configuration as theme
+# possible future features:
+#	set a theme from a URL
+#	load theme from a URL into config directory
+#	store current theme into config directory
+
+help() {
+	echo "Usage:"
+	echo "  `basename $0` [-h|-l]"
+	echo "  `basename $0` THEME"
+	echo "  `basename $0` -f THEMEFILE"
+	echo "  `basename $0` --save [THEME|THEMEFILE]"
+	echo "  `basename $0` [-t|-p|-%] IMAGE"
+	echo "  `basename $0` [-s|-S] [PATTERNS]"
+	echo "  `basename $0` [-d] -q > THEMEFILE"
+	echo "List/set/query mintty themes in current mintty window."
+	echo "A theme is a colour scheme to configure the 8 ANSI colours, their "
+	echo "bright versions, and optionally the foreground/background/cursor colours."
+	echo
+	echo "Arguments:"
+	echo "  THEME                     set theme from config resources"
+	echo "  -f, --file THEMEFILE      set theme from themefile"
+	echo "  --save [THEME|THEMEFILE]  save theme also in config file"
+	echo "  -t, --texture FILE[,DIM]  set background texture (dim 1..255)"
+	echo "  -p, --picture FILE[,DIM]  set background picture (dim 1..255)"
+	echo "  -%, --picscale FILE[,DIM] like -p and scale window"
+	echo "  -q, --query               query current colour configuration as theme"
+	echo "  -d, --decimal             decimal query output"
+	echo "  -l, --list                list available themes"
+	echo "  -s, --show [PATTERN...]   show (visualize) themes [matching PATTERNs]"
+	echo "  -S, --Show [PATTERN...]   show themes double-lined [matching PATTERNs]"
+	echo "  -h, --help                show this"
+	echo
+	echo "The following directories are considered for locating configured themes:"
+	echo '  ~/.mintty'
+	echo '  ~/.config/mintty'
+	echo '  $APPDATA/mintty'
+	echo '  /usr/share/mintty'
+	echo "Note that the command-line option --configdir cannot be considered."
+}
+
+terminaltype () {
+case "$BASH" in
+?*)	# try simplified query as suggested by Brian Inglis:
+	# https://github.com/mintty/mintty/issues/776#issuecomment-475761566
+	read -s -dc -p $'\E[>c' da < /dev/tty
+	da=${da##$'\E'[>}
+	set - ${da//;/ }
+	;;
+*)	# other shells do not have flexible read and string operations
+	# so it's a bit more tricky...
+	test -t 0 && stty=`stty -g`
+	test -t 0 && stty raw -echo min 0 time 5
+
+	echo -n "[>c" > /dev/tty
+	da=`dd < /dev/tty 2> /dev/null`
+
+	test -t 0 && stty "$stty"
+	da=${da#??}
+	type="${da%%;*}"
+	rest="${da#*;}"
+	vers="${rest%%;*}"
+	rest="${rest#*;}"
+	rest="${rest%%c}"
+	set - $type $vers $rest
+;;
+esac
+echo $1
+}
+
+showtheme() {
+	theme="$1"
+	export theme
+	sed \
+	    -e 's/^\(ForegroundColour\)[ 	]*=/\1=/' \
+	    -e 's/^\(BackgroundColour\)[ 	]*=/\1=/' \
+	    -e 's/^\(CursorColour\)[ 	]*=/\1=/' \
+	    -e 's/^\(Black\)[ 	]*=/\1=/' \
+	    -e 's/^\(Red\)[ 	]*=/\1=/' \
+	    -e 's/^\(Green\)[ 	]*=/\1=/' \
+	    -e 's/^\(Yellow\)[ 	]*=/\1=/' \
+	    -e 's/^\(Blue\)[ 	]*=/\1=/' \
+	    -e 's/^\(Magenta\)[ 	]*=/\1=/' \
+	    -e 's/^\(Cyan\)[ 	]*=/\1=/' \
+	    -e 's/^\(White\)[ 	]*=/\1=/' \
+	    -e 's/^\(BoldBlack\)[ 	]*=/\1=/' \
+	    -e 's/^\(BoldRed\)[ 	]*=/\1=/' \
+	    -e 's/^\(BoldGreen\)[ 	]*=/\1=/' \
+	    -e 's/^\(BoldYellow\)[ 	]*=/\1=/' \
+	    -e 's/^\(BoldBlue\)[ 	]*=/\1=/' \
+	    -e 's/^\(BoldMagenta\)[ 	]*=/\1=/' \
+	    -e 's/^\(BoldCyan\)[ 	]*=/\1=/' \
+	    -e 's/^\(BoldWhite\)[ 	]*=/\1=/' \
+	    -e 't ok' -e d -e ': ok' -e 's/[ 	]//g' \
+	    "$1" |
+	(
+cat <<\/EOS
+xrgb() {
+	sed -e "s,	, ,g" /usr/share/X11/rgb.txt |
+	sed -e "s/ *\([0-9][0-9]*\) *\([0-9][0-9]*\) *\([0-9][0-9]*\) *$1 *$/\1;\2;\3/" -e t -e d
+}
+ForegroundColour=39
+BackgroundColour=49
+CursorColour=49
+Black=40
+Red=41
+Green=42
+Yellow=43
+Blue=44
+Magenta=45
+Cyan=46
+White=47
+BoldBlack=100
+BoldRed=101
+BoldGreen=102
+BoldYellow=103
+BoldBlue=104
+BoldMagenta=105
+BoldCyan=106
+BoldWhite=107
+/EOS
+	# transform colour specs:
+	# d,d,d
+	#	d;d;d
+	# #RRGGBB
+	#	0xRR
+	# rgb:RR/GG/BB
+	#	0xRR
+	# rgb:RRRR/GGGG/BBBB
+	#	0xRR
+	# cmy:C.C/M.M/Y.Y
+	#	r = (1 - c) * 255;
+	#	g = (1 - m) * 255;
+	#	b = (1 - y) * 255;
+	# cmyk:C.C/M.M/Y.Y/K.K
+	#	r = (1 - c) * (1 - k) * 255;
+	#	g = (1 - m) * (1 - k) * 255;
+	#	b = (1 - y) * (1 - k) * 255;
+	# X11 color names
+	sed -e 's%=\([0-9]*\),\([0-9]*\),\([0-9]*\)%="\1;\2;\3"%' \
+	    -e 's%=#\([0-9A-Fa-f][0-9A-Fa-f]\)\([0-9A-Fa-f][0-9A-Fa-f]\)\([0-9A-Fa-f][0-9A-Fa-f]\)%="$((0x\1));$((0x\2));$((0x\3))"%' \
+	    -e 's%=rgb:\([0-9A-Fa-f][0-9A-Fa-f]\)/\([0-9A-Fa-f][0-9A-Fa-f]\)/\([0-9A-Fa-f][0-9A-Fa-f]\)%="$((0x\1));$((0x\2));$((0x\3))"%' \
+	    -e 's%=rgb:\([0-9A-Fa-f][0-9A-Fa-f]\)[0-9A-Fa-f][0-9A-Fa-f]/\([0-9A-Fa-f][0-9A-Fa-f]\)[0-9A-Fa-f][0-9A-Fa-f]/\([0-9A-Fa-f][0-9A-Fa-f]\)[0-9A-Fa-f][0-9A-Fa-f]%="$((0x\1));$((0x\2));$((0x\3))"%' \
+	    -e '/=cmy/ s%\([01]\)\.\([0-9]*\)%\1.\2000%g' \
+	    -e '/=cmy/ s%\([01]\)\.\([0-9][0-9][0-9]\)[0-9]*%\1\2%g' \
+	    -e '/=cmy:/ s%cmy:\([0-9/]*\)%cmyk:\1/0000%' \
+	    -e 's%=cmyk:\([01][0-9][0-9][0-9]\)/\([01][0-9][0-9][0-9]\)/\([01][0-9][0-9][0-9]\)/\([01][0-9][0-9][0-9]\)%=cmyk:"$(( (1000 - \1) * (1000 - \4) * 255 / 1000000 ));$(( (1000 - \2) * (1000 - \4) * 255 / 1000000 ));$(( (1000 - \3) * (1000 - \4) * 255 / 1000000 ))"%' \
+	    -e '/=cmyk:/ s%\([^0-9]\)0*\([0-9]\)%\1\2%g' -e 's%=cmyk:%=%' \
+	    -e 's%=\([a-zA-Z][a-zA-Z ]*\)%=`xrgb "\1"`%' \
+	    -e 't ok' -e d -e ': ok' -e 's%="%="48;2;%'
+if $show2
+then cat <<\/EOS
+	echo -en "\e[37;${Black}mblk"
+	echo -en "\e[30;${Red}mred"
+	echo -en "\e[30;${Green}mgrn"
+	echo -en "\e[30;${Yellow}mylw"
+	echo -en "\e[30;${Blue}mblu"
+	echo -en "\e[30;${Magenta}mmag"
+	echo -en "\e[30;${Cyan}mcyn"
+	echo -en "\e[30;${White}mwht"
+	echo -en "\e[39;${CursorColour}m "
+	echo -e "\e[m${theme}"
+	echo -en "\e[37;${BoldBlack}mBLK"
+	echo -en "\e[30;${BoldRed}mRED"
+	echo -en "\e[30;${BoldGreen}mGRN"
+	echo -en "\e[30;${BoldYellow}mYLW"
+	echo -en "\e[30;${BoldBlue}mBLU"
+	echo -en "\e[30;${BoldMagenta}mMAG"
+	echo -en "\e[30;${BoldCyan}mCYN"
+	echo -en "\e[30;${BoldWhite}mWHT"
+	echo -en "\e[39;${CursorColour}m "
+	echo -e "\e[${ForegroundColour};${BackgroundColour}m${theme}\e[m"
+/EOS
+else cat <<\/EOS
+	echo -en "\e[${ForegroundColour};${BackgroundColour}mfgbg"
+	echo -en "\e[39;${CursorColour}mC"
+	echo -en "\e[37;${Black}mbk"
+	echo -en "\e[30;${Red}mrd"
+	echo -en "\e[30;${Green}mgn"
+	echo -en "\e[30;${Yellow}myl"
+	echo -en "\e[30;${Blue}mbl"
+	echo -en "\e[30;${Magenta}mmg"
+	echo -en "\e[30;${Cyan}mcy"
+	echo -en "\e[30;${White}mwh"
+	echo -en "\e[37;${BoldBlack}mBK"
+	echo -en "\e[30;${BoldRed}mRD"
+	echo -en "\e[30;${BoldGreen}mGN"
+	echo -en "\e[30;${BoldYellow}mYL"
+	echo -en "\e[30;${BoldBlue}mBL"
+	echo -en "\e[30;${BoldMagenta}mMG"
+	echo -en "\e[30;${BoldCyan}mCY"
+	echo -en "\e[30;${BoldWhite}mWH"
+	echo -e "\e[m $theme"
+/EOS
+fi
+	) | sh
+}
+
+showthemes() {
+	for confdir in ~/.mintty ~/.config/mintty "$APPDATA"/mintty /usr/share/mintty
+	do	if [ -d "$confdir/themes" -a -x "$confdir/themes"  -a -r "$confdir/themes" ]
+		then	echo "[4;53;7mthemes in '$confdir':[m"
+			(
+				cd "$confdir/themes"
+				for th in *[!~]
+				do	for pat in "${@-}"
+					do	case "$th" in
+						*$pat*)	showtheme "$th";;
+						esac
+					done
+				done
+			)
+		fi
+	done
+}
+
+settheme() {
+	case `terminaltype` in
+	83)	# screen
+		pre='P'
+		post='\\'
+		;;
+	*)	pre=
+		post=
+		;;
+	esac
+	sed \
+	    -e 's/^\(ForegroundColour\)[ 	]*=/10;/' \
+	    -e 's/^\(BackgroundColour\)[ 	]*=/11;/' \
+	    -e 's/^\(CursorColour\)[ 	]*=/12;/' \
+	    -e 's/^\(Black\)[ 	]*=/4;0;/' \
+	    -e 's/^\(Red\)[ 	]*=/4;1;/' \
+	    -e 's/^\(Green\)[ 	]*=/4;2;/' \
+	    -e 's/^\(Yellow\)[ 	]*=/4;3;/' \
+	    -e 's/^\(Blue\)[ 	]*=/4;4;/' \
+	    -e 's/^\(Magenta\)[ 	]*=/4;5;/' \
+	    -e 's/^\(Cyan\)[ 	]*=/4;6;/' \
+	    -e 's/^\(White\)[ 	]*=/4;7;/' \
+	    -e 's/^\(BoldBlack\)[ 	]*=/4;8;/' \
+	    -e 's/^\(BoldRed\)[ 	]*=/4;9;/' \
+	    -e 's/^\(BoldGreen\)[ 	]*=/4;10;/' \
+	    -e 's/^\(BoldYellow\)[ 	]*=/4;11;/' \
+	    -e 's/^\(BoldBlue\)[ 	]*=/4;12;/' \
+	    -e 's/^\(BoldMagenta\)[ 	]*=/4;13;/' \
+	    -e 's/^\(BoldCyan\)[ 	]*=/4;14;/' \
+	    -e 's/^\(BoldWhite\)[ 	]*=/4;15;/' \
+	    -e 't ok' -e d -e ': ok' -e 's/[ 	]//g' \
+	    -e "s/^/$pre]/" -e "s/$/$post/" "$1" |
+	tr -d '\012'
+	#]4;A;colour	set ANSI colour A=0..15
+	#]10;colour	set foreground colour
+	#]11;colour	set background colour
+	#]12;colour	set cursor colour
+	# unused:
+	#]104;A	reset ANSI colour A=0..15
+	#]104		reset colour palette
+	#]110		reset foreground colour
+	#]111		reset background colour
+	#]112		reset cursor colour
+}
+
+query() {
+	len=$(( $1 + 3 ))
+	echo -n "]$2;?" > /dev/tty
+	read -s -n$len -t 2 esc < /dev/tty # read ESC ] prefix and colour index
+	read -s -n18 colour < /dev/tty	 # read rgb:colour spec
+	read -s -n1 -t 2 esc < /dev/tty # read ^G suffix
+
+	if $decimal
+	then
+		eval $( echo $colour | sed -e "s@rgb:\(..\)../\(..\)../\(..\)..@printf '$3=%d,%d,%d' 0x\1 0x\2 0x\3@" -e t -e "s,^,printf $3=," )
+		echo
+	else
+		# 4-digit hex
+		echo $3=$colour
+		# 2-digit hex
+		#echo $3=$colour | sed -e "s,rgb:\(..\)../\(..\)../\(..\)..,rgb:\1/\2/\3,"
+	fi
+}
+
+conftheme() {
+	if [ `uname` = "Linux" ] && type wslpath 2> /dev/null 1>&2
+	then
+		themefile=`wslpath -ma "$1"`
+	elif type cygpath 2> /dev/null 1>&2
+	then
+		themefile=`cygpath -wa "$1"`
+	else
+		echo "cannot save to config file in this system environment"
+		exit
+	fi
+	if [ `uname` = "Linux" ] && type wslpath 1>&2
+	then
+		ls "$APPDATA/mintty/config"
+	elif type cygpath 1>&2
+	then
+		ls ~/.minttyrc ~/.config/mintty/config "$APPDATA/mintty/config" /etc/minttyrc
+	fi 2> /dev/null |
+	while read conffile
+	do	if [ -w "$conffile" ]
+		then
+			newconf=/tmp/minttyrc.$$
+			# create new config file with modified entry
+			sed -n -e "/^ThemeFile[	 ]*=/ q" -e p "$conffile" > "$newconf"
+			echo "ThemeFile=$themefile" >> "$newconf"
+			sed -e "1,/^ThemeFile[	 ]*=/ d" "$conffile" >> "$newconf"
+			# copy new config file back
+			/bin/cp "$newconf" "$conffile"
+			/bin/rm "$newconf"
+			# feedback
+			echo "saved theme '$themefile'"
+			echo "in config file '$conffile'"
+			return
+		fi
+	done
+}
+
+decimal=false
+show2=false
+case "$1" in
+-d|--decimal)
+	decimal=true
+	shift;;
+esac
+
+case `uname` in
+Linux)	if [ -n "$APPDATA" ]
+	then	APPDATA=`wslpath "$APPDATA"`
+	else	echo APPDATA not set >&2
+		exit
+	fi;;
+esac
+
+case "$1" in
+-h|--help|'')
+	help
+	;;
+-l|--list)
+	for confdir in ~/.mintty ~/.config/mintty "$APPDATA"/mintty /usr/share/mintty
+	do	if [ -d "$confdir/themes" -a -x "$confdir/themes"  -a -r "$confdir/themes" ]
+		then	echo "[4;53;7mthemes in '$confdir':[m"
+			(cd "$confdir/themes"; ls *[!~])
+		fi
+	done;;
+-s|--show)
+	shift
+	showthemes "$@";;
+-S|--Show|--SHOW)
+	shift
+	show2=true
+	export show2
+	showthemes "$@";;
+-f|--file)
+	if [ -z "$2" ]
+	then	help
+	elif [ -r "$2" ]
+	then	settheme "$2"
+	else	echo cannot read theme file
+	fi;;
+--save)
+	if [ -z "$2" ]
+	then	help
+	elif [ -r "$2" ]
+	then
+		settheme "$2"
+		conftheme "$2"
+	else
+		for confdir in ~/.mintty ~/.config/mintty "$APPDATA"/mintty /usr/share/mintty
+		do	if [ -r "$confdir/themes/$2" ]
+			then
+				echo setting theme from config dir "$confdir"
+				settheme "$confdir/themes/$2"
+				conftheme "$confdir/themes/$2"
+				exit
+			fi
+		done
+		echo theme not found
+	fi;;
+-p|--picture)
+	if [ -z "$2" ]
+	then	help
+	elif [ -r "${2/,*/}" ]
+	then	echo "]11;_$2"
+	else	echo cannot read picture file
+	fi;;
+-%|--picscale)
+	if [ -z "$2" ]
+	then	help
+	elif [ -r "${2/,*/}" ]
+	then	echo "]11;%$2"
+	else	echo cannot read picture file
+	fi;;
+-t|--texture)
+	if [ -z "$2" ]
+	then	help
+	elif [ -r "${2/,*/}" ]
+	then	echo "]11;*$2"
+	else	echo cannot read texture file
+	fi;;
+-q|--query)
+#	echo "]10;?]11;?]12;?"
+	test -t 0 && stty=`stty -g`
+	test -t 0 && stty -echo min 0 time 5 # raw
+
+	query 2 "10"	ForegroundColour
+	query 2 "11"	BackgroundColour
+	query 2 "12"	CursorColour
+	query 3 "4;0"	Black
+	query 3 "4;1"	Red
+	query 3 "4;2"	Green
+	query 3 "4;3"	Yellow
+	query 3 "4;4"	Blue
+	query 3 "4;5"	Magenta
+	query 3 "4;6"	Cyan
+	query 3 "4;7"	White
+	query 3 "4;8"	BoldBlack
+	query 3 "4;9"	BoldRed
+	query 4 "4;10"	BoldGreen
+	query 4 "4;11"	BoldYellow
+	query 4 "4;12"	BoldBlue
+	query 4 "4;13"	BoldMagenta
+	query 4 "4;14"	BoldCyan
+	query 4 "4;15"	BoldWhite
+	read -s -n1 -t 1 esc < /dev/tty # swallow final bogus '\'
+
+	test -t 0 && stty "$stty"
+	;;
+-*)	echo unknown argument;;
+*)
+	if [ -r "$1" ]
+	then	echo setting theme from config dir "$confdir"
+		settheme "$1"
+		exit
+	fi
+	for confdir in ~/.mintty ~/.config/mintty "$APPDATA"/mintty /usr/share/mintty
+	do	if [ -r "$confdir/themes/$1" ]
+		then
+			echo setting theme from config dir "$confdir"
+			settheme "$confdir/themes/$1"
+			exit
+		fi
+	done
+	echo theme not found;;
+esac
+
+#############################################################################
+# end

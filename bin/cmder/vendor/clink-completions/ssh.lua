@@ -24,7 +24,7 @@ end
 local function list_known_hosts()
     return read_lines(clink.get_env("userprofile") .. "/.ssh/known_hosts")
         :map(function (line)
-            return line:match('^([%w.]*).*')
+            return line:match('^([%w-.]*).*')
         end)
         :filter()
 end

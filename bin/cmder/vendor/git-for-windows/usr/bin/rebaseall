@@ -1,0 +1,279 @@
+#!/usr/bin/dash
+
+#
+# Copyright (c) 2003, 2005, 2006, 2008, 2011, 2012 Jason Tishler
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# See the COPYING file for full license information.
+#
+# Written by Jason Tishler <jason@tishler.net>
+#
+# $Id$
+#
+
+# Define constants
+tp1=${0%/*}
+tp2=${tp1:-.}
+PATH=$(cd $tp2 && pwd):/usr/bin:/bin
+
+ProgramName=${0##*/}
+ProgramOptions='48b:io:ps:tT:v'
+DefaultBaseAddress=0x70000000
+DefaultOffset=0
+DefaultTouch=
+DefaultNoDyn=
+DefaultVerbose=
+DefaultFileList=
+DefaultSuffixes='dll|so|oct'
+DatabaseFlag=-s
+
+# Define functions
+usage()
+{
+    echo "usage: ${ProgramName} [-b BaseAddress] [-o Offset] [-s DllSuffix] [-T FileList | -] [-4|-8] [-p] [-t] [-i] [-v]"
+    exit 1
+}
+
+cleanup()
+{
+    rm -f "${TmpFile}"
+    exit ${ExitCode}
+}
+
+# Set traps
+trap cleanup 1 2 15
+
+# Set defaults
+BaseAddress=""
+Offset="${DefaultOffset}"
+Touch="${DefaultTouch}"
+NoDyn="${DefaultNoDyn}"
+Verbose="${DefaultVerbose}"
+FileList="${DefaultFileList}"
+Suffixes="${DefaultSuffixes}"
+db_file_i386="/etc/rebase.db.i386"
+db_file_x86_64="/etc/rebase.db.x86_64"
+check_for_dash_only="yes"
+case `uname -m` in
+    i[3456]86)
+	db_file="${db_file_i386}";
+	Mach="-4"
+	;;
+    x86_64)
+	Mach="-8"
+	db_file="${db_file_x86_64}"
+	;;
+esac
+
+# Determine platform
+Platform=`uname -s`
+case $Platform in
+ *MINGW*  | *mingw*  ) Platform=mingw  ;;
+ *CYGWIN* | *cygwin* ) Platform=cygwin ;;
+ *MSYS*   | *msys*   ) Platform=msys   ;;
+ * )
+    echo "Unsupported platform: $Platform" 1>&2
+    exit 1
+    ;;
+esac
+
+# On x86_64 Cygwin, set DefaultAddressBase to 0x4:00000000
+case $Platform in
+  cygwin | msys )
+    [ `uname -m` = "x86_64" ] && DefaultBaseAddress=0x400000000
+    ;;
+  * )
+    ;;
+esac
+  
+# Parse command line arguments
+while getopts "${ProgramOptions}" Option "$@"
+do
+    case "${Option}" in
+    4)
+	db_file="${db_file_i386}";
+	Mach="-4"
+	;;
+    8)
+	Mach="-8"
+	db_file="${db_file_x86_64}"
+	;;
+    b)
+	BaseAddress="${OPTARG}";;
+    o)
+	Offset="${OPTARG}";;
+    p)
+	check_for_dash_only="no";;
+    s)
+	Suffixes="${Suffixes}|${OPTARG}";;
+    t)
+    	Touch="-t";;
+    T)
+	FileList="${OPTARG}";;
+    i)
+	DatabaseFlag=;;
+    v)
+	Verbose="-v";;
+    \?)
+	usage;;
+    esac
+done
+
+# Verify only ash or dash processes are running
+if [ "${check_for_dash_only}" != "no" ]
+then
+  ProcessResult=0
+  case $Platform in
+    mingw|msys )
+      /usr/bin/ps -s | /usr/bin/gawk '\
+	# Count number of running ash or dash. \
+	/\/usr\/bin\/(d)?ash(\.exe)?$/{ ash_cnt++; } \
+	# Count number of ps and gawk. \
+	/\/usr\/bin\/ps(\.exe)?$/{ cnt++; } \
+	/\/usr\/bin\/gawk(\.exe)?$/{ cnt++; } \
+	END{ \
+	  # Uncomment for testing: \
+	  # printf "TOTAL: %d CNT: %d ASH_CNT: %d\n", NR, cnt, ash_cnt; \
+	  # Only one of ps and gawk each may run. \
+	  if (cnt > 2) \
+	    exit 0; \
+	  # The total number of allowed processes is one less than the \
+	  # number of input lines.  The extra line is the ps header output. \
+	  if (NR - cnt - ash_cnt > 1) \
+	    exit 0; \
+	  # All is well. \
+	  exit 1; \
+	}'
+      ProcessResult=$?
+      ;;
+    cygwin )
+      grep -E -q -i -v '/d?ash(.exe)?$' /proc/[0-9]*/exename
+      ProcessResult=$?
+      ;;
+  esac
+  if [ $ProcessResult -eq 0 -a -z "${RebaseDebug}" ]
+  then
+      echo "${ProgramName}: only ash or dash processes are allowed during rebasing"
+      echo "    Exit all Cygwin processes and stop all Cygwin services."
+      echo "    Execute ash (or dash) from Start/Run... or a cmd or command window."
+      echo "    Execute '/usr/bin/rebaseall' from ash (or dash)."
+      exit 2
+  fi
+fi
+
+# Check if rebase database already exists.
+database_exists="no"
+[ -f "${db_file}" ] && database_exists="yes"
+
+# If BaseAddress has not been specified, and the rebase database doesn't exist
+# yet, set BaseAddress to default, unless ignore database has been specified.
+if [ -z "${BaseAddress}" -a "${database_exists}" != "yes" -a -n "${DatabaseFlag}" ]
+then
+  BaseAddress=$DefaultBaseAddress
+fi
+
+# Set temp directory
+TmpDir="${TMP:-${TEMP:-/tmp}}"
+
+# Validate temp directory
+if [ ! -d "$TmpDir" ]
+then
+    echo "$ProgramName: '$TmpDir' is not a directory"
+    exit 2
+fi
+if [ ! -w "$TmpDir" ]
+then
+    echo "$ProgramName: '$TmpDir' is not writable"
+    exit 2
+fi
+
+# Validate user supplied file list, if necessary
+if [ -n "$FileList" -a ! -r "$FileList" -a "$FileList" != - ]
+then
+    echo "$ProgramName: '$FileList' is not readable"
+    exit 2
+fi
+
+# Set temp file
+TmpFile="$TmpDir/rebase.lst"
+# Prepend user supplied file list, if any
+if [ -n "${FileList}" ]
+then
+    cat "${FileList}" >"${TmpFile}"
+else
+    [ -f "${TmpFile}" ] && rm -f "${TmpFile}"
+    touch "${TmpFile}"
+fi
+
+# Create rebase list
+case $Platform in
+  cygwin)
+    find /etc/setup -name '*.lst.gz' | xargs gzip -d -c |
+      grep -E "\.($Suffixes)\$" |
+      sed -e '/\/cygwin1\.dll$/d' -e '/\/cyglsa.*\.dll$/d' \
+          -e '/sys-root\/mingw/d' -e 's/^/\//' \
+          -e '/\/d\?ash\.exe$/d' -e '/\/rebase\.exe$/d' >>"${TmpFile}"
+    # some interpreters include a method for installing addons outside of the
+    # package manager, such as CPAN and RubyGems.
+    for d in /usr/lib/perl5/site_perl /usr/lib/py*/site-packages \
+             /usr/lib/py*/lib-dynload \
+             /usr/lib/php /usr/lib/R/site-library /usr/lib/rub*/gems \
+             /usr/lib/octave/site
+    do
+      if [ -d $d ]
+      then
+        find $d -type f | grep -E "\.($Suffixes)\$" >>"${TmpFile}"
+      fi
+    done
+    # Unconditionally add the -n flag so rebased DLLs get the
+    # dynamicbase flag removed.
+    NoDyn='-n'
+    ;;
+  mingw|msys)
+    for f in /usr/bin /usr/lib
+    do
+      find $f -type f |
+        grep -E "\.($Suffixes)\$" |
+	sed -e '/\/msys-2\.0.*\.dll$/d' -e '/\/cygwin1\.dll$/d' \
+	    -e '/\/cyglsa.*\.dll$/d' -e '/\/d\?ash\.exe$/d' \
+	    -e '/\/rebase\.exe$/d' >>"$TmpFile"
+    done
+	# some interpreters include a method for installing addons outside of the
+    # package manager, such as CPAN and RubyGems.
+    for d in /usr/lib/perl5/site_perl /usr/lib/py*/site-packages \
+             /usr/lib/php /usr/lib/R/site-library /usr/lib/rub*/gems \
+             /usr/lib/octave/site
+    do
+      if [ -d $d ]
+      then
+        find $d -type f | grep -E "\.($Suffixes)\$" >>"${TmpFile}"
+      fi
+    done
+    # Unconditionally add the -n flag so rebased DLLs get the
+    # dynamicbase flag removed.
+    NoDyn='-n'
+    ;;
+esac
+
+if [ -z "${BaseAddress}" ]
+then
+  rebase "${Verbose}" "${Touch}" "${NoDyn}" "${DatabaseFlag}" "${Mach}" -T "${TmpFile}"
+else
+  rebase "${Verbose}" "${Touch}" "${NoDyn}" "${DatabaseFlag}" "${Mach}" -b "${BaseAddress}" -o "${Offset}" -T "${TmpFile}"
+fi
+ExitCode=$?
+
+# Clean up
+cleanup

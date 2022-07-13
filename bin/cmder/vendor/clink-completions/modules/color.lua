@@ -1,3 +1,5 @@
+local clink_version = require('clink_version')
+
 local exports = {}
 
 exports.BLACK   = 0
@@ -21,6 +23,15 @@ exports.set_color = function (fore, back, bold)
     bold = bold and exports.BOLD or 22
 
     return "\x1b[3"..fore..";"..bold..";".."4"..back.."m"
+end
+
+exports.get_clink_color = function (setting_name)
+	-- Clink's settings.get() returns SGR parameters for a CSI SGR escape code.
+    local sgr = clink_version.supports_color_settings and settings.get(setting_name) or ""
+    if sgr ~= "" then
+        sgr = "\x1b["..sgr.."m"
+    end
+    return sgr
 end
 
 exports.color_text = function (text, fore, back, bold)

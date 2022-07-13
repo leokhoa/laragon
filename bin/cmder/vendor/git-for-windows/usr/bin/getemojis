@@ -1,0 +1,206 @@
+#! /bin/bash
+
+trace () {
+#	echo $* >&2
+	true
+}
+
+case "$1" in
+-sh)	postproc=cat
+	shift;;
+*)	postproc=bash;;
+esac
+
+case `basename "$PWD"` in
+mintty)
+	echo "You seem to be in a mintty config directory:" >&2
+	echo "	$PWD" >&2
+	echo "For direct emoji deployment, run this script from its subdirectory 'emojis'." >&2
+	exit;;
+esac
+
+emojisurl0=http://www.unicode.org/emoji/charts/full-emoji-list.html
+emojisurl1=http://www.unicode.org/emoji/charts/full-emoji-modifiers.html
+
+download () {
+	if type curl
+	then	curl -RO -z `basename $1` $1
+	else	wget -N -t 1 $1
+	fi
+}
+
+case "$1" in
+""|-h|--help)
+	echo "Usage: `basename $0` [-d | DIR | .../full-emoji-list.html] [EMOJI_STYLE]..." >&2
+	echo >&2
+	echo "This script extracts emojis graphics (.png format) from a downloaded copy of" >&2
+	echo "	$emojisurl0" >&2
+	echo "	$emojisurl1" >&2
+	echo "for the selected emoji style sets, or (if none selected) all of them:" >&2
+	echo "	apple google facebook windows twitter emojione samsung" >&2
+	echo "and always extracts common emoji graphics." >&2
+	echo >&2
+	echo "Options:" >&2
+	echo "	-d	Download the chart files" >&2
+	echo "	DIR	Expect the chart files in given directory" >&2
+	echo >&2
+	echo "Warning: with all styles selected, this may take a while." >&2
+	echo >&2
+	echo "Note: for direct deployment, first go into subdirectory 'emojis' of one of the" >&2
+	echo "mintty config directories:" >&2
+	echo '  ~/.mintty' >&2
+	echo '  ~/.config/mintty' >&2
+	echo '  $APPDATA/mintty' >&2
+	echo '  /usr/share/mintty' >&2
+	exit;;
+-d|--download)
+	if download $emojisurl0 && download $emojisurl1
+	then	emojis0=full-emoji-list.html
+		emojis1=full-emoji-modifiers.html
+	else	echo Download failed >&2
+		exit
+	fi
+	shift;;
+*.html)	emojis1=`dirname "$1"`/full-emoji-modifiers.html
+	if [ -r "$1" -a -r "$emojis1" ]
+	then	emojis0="$1"
+	else	echo Not readable: "$1" "$emojis1" >&2
+		exit
+	fi
+	shift;;
+*)	if [ -d "$1" ]
+	then	emojis0="$1"/full-emoji-list.html
+		emojis1="$1"/full-emoji-modifiers.html
+		if [ -r "$emojis0" -a -r "$emojis1" ]
+		then	true
+		else	echo Not readable: "$emojis0" "$emojis1" >&2
+			exit
+		fi
+		shift
+	else	echo Missing file name of full emoji list >&2
+		exit
+	fi;;
+esac
+
+echo -n "Using " >&2
+cat "$emojis0" | sed -e "s,<title>\(.*\)</title>,\1," -e t -e d >&2
+
+#cat "$emojis0" |
+#sed -e "/^<\/tr/ q" -e "s/.*<th.*#col-vendor.>\([^.<]*\).*/\1/" -e t -e d |
+#pr -t -n | sed -e "s,^,vendor ," -e 7q
+# 11.0:
+#	vendor     1    Appl
+#	vendor     2    Goog
+#	vendor     3    Twtr
+#	vendor     4    One
+#	vendor     5    FB
+#	vendor     6    Sams
+#	vendor     7    Wind
+# 12.0:
+#	vendor     1    Appl
+#	vendor     2    Goog
+#	vendor     3    FB
+#	vendor     4    Wind
+#	vendor     5    Twtr
+#	vendor     6    Joy
+#	vendor     7    Sams
+
+seli=0
+styles=(common)
+for vendor in `cat "$emojis0" |
+  sed -e "/^<\/tr/ q" -e "s/.*<th.*#col-vendor.>\([^.<]*\).*/\1/" -e t -e d |
+  sed -e 7q`
+do	seli=`expr $seli + 1`
+	case "$vendor" in
+	Appl)	st=apple; apple=$seli;;
+	Goog)	st=google; google=$seli;;
+	FB)	st=facebook; facebook=$seli;;
+	Wind)	st=windows; windows=$seli;;
+	Twtr)	st=twitter; twitter=$seli;;
+	One|Joy) st=emojione; emojione=$seli;;
+	Sams)	st=samsung; samsung=$seli;;
+	esac
+	styles[$seli]=$st
+done
+
+case "$1" in
+"")	set - apple google facebook windows twitter emojione samsung;;
+esac
+sel=
+while	case "$1" in
+	apple)		seli="$apple";;
+	google)		seli="$google";;
+	facebook)	seli="$facebook";;
+	windows)	seli="$windows";;
+	twitter)	seli="$twitter";;
+	joy|emojione)	seli="$emojione";;
+	samsung)	seli="$samsung";;
+	"")	false;;
+	*)	echo emoji set "$1" not known; exit;;
+	esac
+do	sel="$sel$seli"
+	mkdir -p "$1"
+	shift
+done
+mkdir -p common
+
+export sel
+
+echo "Warning: this may take a while on Cygwin" >&2
+
+LC_ALL=C
+export LC_ALL
+
+total=`grep -e "name='\([^']*\)'.*U+" "$emojis0" "$emojis1" | wc -l`
+export total
+
+(
+echo "Extracting $total emojis " >&2
+
+echo LC_ALL=C
+echo export LC_ALL
+echo total=$total
+echo sel=$sel
+echo "styles=(${styles[*]})"
+
+cat <<\/EOS
+n=0
+
+name () {
+  ename=$1
+  style=0
+  n=$(( $n + 1 ))
+  p=$(( ${n}00 / $total ))
+  echo "emoji $ename (${p}%)" >&2
+}
+
+img0 () {
+  echo " common $ename.png" >&2
+  echo "$1" | base64 -d > common/$ename.png
+}
+
+img () {
+  style=$(( $style + 1 ))
+  case $sel in
+  *$style*)	echo "$1" | base64 -d > ${styles[$style]}/$ename.png;;
+  esac
+}
+
+imgskip () {
+  style=$(( $style + 1 ))
+  case $sel in
+  *$style*)	echo " skip ${styles[$style]}/$ename.png" >&2;;
+  esac
+}
+
+/EOS
+
+cat "$emojis0" "$emojis1" |
+sed -e "s/^.*name='\([^']*\)'.*U+.*/name \1/" -e "t name" \
+    -e "s/.*—.*/imgskip/" -e t \
+    -e "s@^.*….*src='data:image/png;base64,\([^']*\)'.*@img0 \1@" -e t \
+    -e "s@^.*src='data:image/png;base64,\([^']*\)'.*@img \1@" -e t \
+    -e d \
+    -e ": name" \
+    -e "s,_,-,g"
+) | $postproc

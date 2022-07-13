@@ -1,5 +1,13 @@
 # Release Notes
 
+## 0.3.7 (Apr 10, 2021)
+
+  * 0a9ea6b [ssh] Allow - in known hosts (#139)
+  * e2784e0 [cmder] Check for global cmderGitStatusOptIn var (#141)
+  * dc590e8 [git] Colored completions for `git checkout ...` with Clink v1.1.12 popup list (#135)
+  * a9b3134 [common] Update JSON.lua (#137)
+  * 4cf49eb [scoop] Fix scoop config discovery (#134)
+
 ## 0.3.6 (Dec 16, 2020)
 
   * c9ed54d [git] Fix stash completions (0 based). (#133)

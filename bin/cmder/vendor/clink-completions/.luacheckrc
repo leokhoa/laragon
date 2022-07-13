@@ -3,5 +3,5 @@ return {
     files = {
         spec = { std = "+busted" },
     },
-    globals = { "clink", "rl_state" }
+    globals = { "clink", "rl_state", "rl", "settings", "log", "path" }
 }
