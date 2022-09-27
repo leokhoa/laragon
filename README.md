@@ -21,9 +21,9 @@ Enjoy!
 - **Isolated**
   Laragon has an isolated environment with your OS - it will keep your system clean.
 - **Easy Operation**
-  Unlike others which pre-config for you, Laragon **`auto-configs`** all the complicated things. That why you can add another versions of PHP, Python, Ruby, Java, Go, Apache, Nginx, MySQL, PostgreSQL, MongoDB,... effortlessly.
+  Unlike others which pre-config for you, Laragon **`auto-configs`** all the complicated things. That way you can add another versions of PHP, Python, Ruby, Java, Go, Apache, Nginx, MySQL, PostgreSQL, MongoDB,... effortlessly.
 - **Modern & Powerful**
-  Laragon comes with modern architect which is suitable to build modern web apps. You can work with both Apache & Nginx as they are fully-managed.
+  Laragon comes with modern architecture which is suitable to build modern web apps. You can work with both Apache & Nginx as they are fully-managed.
   Also, Laragon makes things a lot easier:
   - Wanna have a Wordpress CMS? Just 1 click.
   - Wanna show your local project to customers? Just 1 click.  
