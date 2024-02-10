@@ -14,8 +14,9 @@ if (!empty($_GET['q'])) {
 <head>
   <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Laragon</title>
+  <title>Welcome to Laragon !</title>
   <link href="https://fonts.googleapis.com/css?family=Karla:400" rel="stylesheet" type="text/css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" integrity="sha512-b2QcS5SsA8tZodcDtGRELiGv5SaKSk1vDHDaQRda0htPYWZ6046lr3kJ5bAAQdpV2mmA/4v0wQF9MyU6/pDIAg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="shortcut icon" href="https://i.imgur.com/ky9oqct.png" type="image/png">
   <style>
     *,
@@ -120,6 +121,14 @@ if (!empty($_GET['q'])) {
     <img class="header__item header--logo" src="https://i.imgur.com/ky9oqct.png" alt="Offline">
     <h1 class="header__item header--title" title="Laragon">Laragon</h1>
   </header>
+    <main>
+    <h4>
+     Congratulations, you have successfully installed Laragon!
+    </h4>
+    <p>
+      Now you can create a new project with Laragon. Or you can also install several additional packages to support your project.
+    </p>
+  </main>
   <main>
     <p>
       <?php print($_SERVER['SERVER_SOFTWARE']); ?>
@@ -133,12 +142,16 @@ if (!empty($_GET['q'])) {
     <p>
       <a title="Getting Started" href="https://laragon.org/docs">Getting Started</a>
     </p>
+    <p>
+      <a title="Forum" href="https://github.com/leokhoa/laragon/discussions">Forum</a>
+    </p>
   </main>
   <?php
   $dirList = glob('*', GLOB_ONLYDIR);
   if (!empty($dirList)) :  
   ?>
     <nav>
+      <h4>Your Project</h4>
       <ul>
         <?php
         foreach ($dirList as $key => $value) :
