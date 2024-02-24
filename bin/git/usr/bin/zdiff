@@ -1,0 +1,199 @@
+#!/bin/sh
+# sh is buggy on RS/6000 AIX 3.2. Replace above line with #!/bin/ksh
+
+# Copyright (C) 1998, 2002, 2006-2007, 2009-2022 Free Software Foundation, Inc.
+# Copyright (C) 1993 Jean-loup Gailly
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+case $1 in
+  --__cmp) shift
+        prog=cmp;  cmp='${CMP-cmp}'  ;;
+  *)    prog=diff; cmp='${DIFF-diff}';;
+esac
+
+version="z$prog (gzip) 1.12
+Copyright (C) 2009, 2011-2018 Free Software Foundation, Inc.
+This is free software.  You may redistribute copies of it under the terms of
+the GNU General Public License <https://www.gnu.org/licenses/gpl.html>.
+There is NO WARRANTY, to the extent permitted by law.
+
+Written by Jean-loup Gailly."
+
+usage="Usage: $0 [OPTION]... FILE1 [FILE2]
+Compare FILE1 to FILE2, using their uncompressed contents if they are
+compressed.  If FILE2 is omitted, compare FILE1 to the uncompressed
+contents of FILE1.gz.  Do comparisons like '$prog' does.
+
+OPTIONs are the same as for '$prog'.
+
+Report bugs to <bug-gzip@gnu.org>."
+
+# sed script to escape all ' for the shell, and then (to handle trailing
+# newlines correctly) turn trailing X on last line into '.
+escape='
+  s/'\''/'\''\\'\'''\''/g
+  $s/X$/'\''/
+'
+
+filesonly=
+file1=
+file2=
+needop=
+
+for arg
+do
+  case $filesonly$needop$arg in
+  --h*) printf '%s\n' "$usage"   || exit 2; exit;;
+  --v*) printf '%s\n' "$version" || exit 2; exit;;
+  --) filesonly=t;;
+  -*\'*) cmp="$cmp '"`printf '%sX\n' "$arg" | LC_ALL=C sed "$escape"`;;
+  -[CDFISUWXx]) needop="'$arg'";;
+  -?*) cmp="$cmp '$arg'";;
+  *) case $needop in
+     '') case $arg in
+         '') printf >&2 '%s\n' "$0: empty file name"; exit 2;;
+         esac
+         case $file1 in
+         '') file1=$arg;;
+         *) case $file2 in
+            '') file2=$arg;;
+            *) printf >&2 '%s\n' "$0: extra operand '$arg'"; exit 2;;
+            esac;;
+         esac;;
+     *) cmp="$cmp $needop '$arg'"
+        needop=;;
+     esac;;
+  esac
+done
+case $needop in
+'') ;;
+*) printf >&2 '%s\n' "$0: $prevarg: option requires an argument -- $needop"
+   exit 2;;
+esac
+
+cmp="$cmp --"
+
+case $file1 in
+'') printf >&2 '%s\n' "$0: missing operand"; exit 2;;
+-) ;;
+*) <"$file1" || exit 2;;
+esac
+case $file2 in
+''|-) ;;
+*) <"$file2" || exit 2;;
+esac
+
+gzip_status=0
+exec 3>&1
+
+case $file2 in
+'')
+  case $file1 in
+  *[-.]gz* | *[-.][zZ] | *.t[ga]z)
+    FILE=`LC_ALL=C expr "X$file1" : 'X\(.*\)[-.][zZtga]*$'`
+    gzip_status=$(
+      exec 4>&1
+      (gzip -cd -- "$file1" 4>&-; echo $? >&4) 3>&- |
+        eval "$cmp" - '"$FILE"' >&3
+    );;
+  *)
+    printf >&2 '%s\n' "$0: $file1: unknown compressed file extension"
+    exit 2;;
+  esac;;
+*)
+  case $file1,$file2 in
+  -,-)
+        gzip_status=$(
+          exec 4>&1
+          (gzip -cdfq - 4>&-; echo $? >&4) 3>&- |
+            eval "$cmp" - - >&3
+        );;
+  *)
+        case $file1 in
+        *[-.]gz* | *[-.][zZ] | *.t[ga]z | -)
+                case $file2 in
+                *[-.]gz* | *[-.][zZ] | *.t[ga]z | -)
+                    if
+                        # Reject Solaris 8's buggy /bin/bash 2.03.
+                        echo X |
+                         (echo X | eval "$cmp" /dev/fd/5 - >/dev/null 2>&1) \
+                                5<&0
+                    then
+                        gzip_status=$(
+                          exec 4>&1
+                          (gzip -cdfq -- "$file1" 4>&-; echo $? >&4) 3>&- |
+                              ((gzip -cdfq -- "$file2" 4>&-
+                                echo $? >&4) 3>&- 5<&- </dev/null |
+                               eval "$cmp" /dev/fd/5 - >&3) 5<&0
+                        )
+                        cmp_status=$?
+                        case $gzip_status in
+                          *[1-9]*) gzip_status=1;;
+                          *) gzip_status=0;;
+                        esac
+                        (exit $cmp_status)
+                    else
+                        tmp=
+                        trap '
+                          test -n "$tmp" && rm -f "$tmp"
+                          (exit 2); exit 2
+                        ' HUP INT PIPE TERM 0
+                        case $TMPDIR in
+                          / | /*/) ;;
+                          /*) TMPDIR=$TMPDIR/;;
+                          *) TMPDIR=/tmp/;;
+                        esac
+                        if type mktemp >/dev/null 2>&1; then
+                          tmp=`mktemp "${TMPDIR}zdiffXXXXXXXXX"` ||
+                            exit 2
+                        else
+                          set -C
+                          tmp=${TMPDIR}zdiff$$
+                        fi
+                        gzip -cdfq -- "$file2" > "$tmp" || exit 2
+                        gzip_status=$(
+                          exec 4>&1
+                          (gzip -cdfq -- "$file1" 4>&-; echo $? >&4) 3>&- |
+                            eval "$cmp" - '"$tmp"' >&3
+                        )
+                        cmp_status=$?
+                        rm -f "$tmp" || gzip_status=$?
+                        trap - HUP INT PIPE TERM 0
+                        (exit $cmp_status)
+                    fi;;
+                *)
+                    gzip_status=$(
+                      exec 4>&1
+                      (gzip -cdfq -- "$file1" 4>&-; echo $? >&4) 3>&- |
+                        eval "$cmp" - '"$file2"' >&3
+                    );;
+                esac;;
+        *)      case $file2 in
+                *[-.]gz* | *[-.][zZ] | *.t[ga]z | -)
+                        gzip_status=$(
+                          exec 4>&1
+                          (gzip -cdfq -- "$file2" 4>&-; echo $? >&4) 3>&- |
+                            eval "$cmp" '"$file1"' - >&3
+                        );;
+                *)	eval "$cmp" '"$file1"' '"$file2"';;
+                esac;;
+        esac;;
+  esac;;
+esac
+
+cmp_status=$?
+test "$gzip_status" -eq 0 || exit 2
+exit $cmp_status

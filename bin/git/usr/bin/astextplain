@@ -1,0 +1,33 @@
+#!/bin/sh -e
+# minimalistic replacement for `run-mailcap --action=cat <file>`
+
+if test "$#" != 1 ; then
+	echo "Usage: astextplain <file>" 1>&2
+	exit 1
+fi
+
+# XXX output encoding (UTF-8) hardcoded
+case "$1" in
+	*.ods | *.ODS | *.odf |*.ODF | *.odt | *.ODT)
+		odt2txt "$1" || cat "$1"
+		;;
+	*.doc | *.DOC | *.dot | *.DOT)
+		out=$(antiword -m UTF-8 "$1") && sed "s/\^M$//" <<<$out || cat "$1"
+		;;
+	*.docx | *.DOCX | *.dotx | *.DOTX | *.docm | *.DOCM | *.dotm | *.DOTM)
+		docx2txt.pl "$1" - || cat "$1"
+		;;
+	*.pdf | *.PDF)
+		out=$(pdftotext -q -layout -enc UTF-8 "$1" -) && sed "s/(\^M$)|(^\^L)//" <<<$out || cat "$1"
+		;;
+	# TODO add rtf support
+	*.rtf | *.RTF)
+		cat "$1"
+		;;
+	*)
+		echo "E: unsupported filetype $1" 1>&2
+		exit 1
+		;;
+esac
+
+exit 0

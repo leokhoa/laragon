@@ -8,7 +8,7 @@ password:
 
 ----------------------------------------------------
 Document Root:
-C:\laragon\www
+C:/laragon/www
 
 
 
