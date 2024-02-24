@@ -2,9 +2,8 @@ package overload;
 
 use strict;
 no strict 'refs';
-no warnings 'experimental::builtin';
 
-our $VERSION = '1.35';
+our $VERSION = '1.37';
 
 our %ops = (
     with_assign         => "+ - * / % ** << >> x .",
@@ -30,152 +29,151 @@ my %ops_seen;
 sub nil {}
 
 sub OVERLOAD {
-  my $package = shift;
-  my %arg = @_;
-  my $sub;
-  *{$package . "::(("} = \&nil; # Make it findable via fetchmethod.
-  for (keys %arg) {
-    if ($_ eq 'fallback') {
-      for my $sym (*{$package . "::()"}) {
-	*$sym = \&nil; # Make it findable via fetchmethod.
-	$$sym = $arg{$_};
-      }
-    } else {
-      warnings::warnif("overload arg '$_' is invalid")
-        unless exists $ops_seen{$_};
-      $sub = $arg{$_};
-      if (not ref $sub) {
-	$ {$package . "::(" . $_} = $sub;
-	$sub = \&nil;
-      }
-      #print STDERR "Setting '$ {'package'}::\cO$_' to \\&'$sub'.\n";
-      *{$package . "::(" . $_} = \&{ $sub };
+    my $package = shift;
+    my %arg = @_;
+    my $sub;
+    *{$package . "::(("} = \&nil; # Make it findable via fetchmethod.
+    for (keys %arg) {
+        if ($_ eq 'fallback') {
+            for my $sym (*{$package . "::()"}) {
+              *$sym = \&nil; # Make it findable via fetchmethod.
+              $$sym = $arg{$_};
+            }
+        } else {
+            warnings::warnif("overload arg '$_' is invalid")
+                unless exists $ops_seen{$_};
+            $sub = $arg{$_};
+            if (not ref $sub) {
+                $ {$package . "::(" . $_} = $sub;
+                $sub = \&nil;
+            }
+            #print STDERR "Setting '$ {'package'}::\cO$_' to \\&'$sub'.\n";
+            *{$package . "::(" . $_} = \&{ $sub };
+        }
     }
-  }
 }
 
 sub import {
-  my $package = (caller())[0];
-  # *{$package . "::OVERLOAD"} = \&OVERLOAD;
-  shift;
-  $package->overload::OVERLOAD(@_);
+    my $package = caller();
+    # *{$package . "::OVERLOAD"} = \&OVERLOAD;
+    shift;
+    $package->overload::OVERLOAD(@_);
 }
 
 sub unimport {
-  my $package = (caller())[0];
-  shift;
-  *{$package . "::(("} = \&nil;
-  for (@_) {
-      warnings::warnif("overload arg '$_' is invalid")
-        unless exists $ops_seen{$_};
-      delete $ {$package . "::"}{$_ eq 'fallback' ? '()' : "(" .$_};
-  }
+    my $package = caller();
+    shift;
+    *{$package . "::(("} = \&nil;
+    for (@_) {
+        warnings::warnif("overload arg '$_' is invalid")
+            unless exists $ops_seen{$_};
+        delete $ {$package . "::"}{$_ eq 'fallback' ? '()' : "(" .$_};
+    }
 }
 
 sub Overloaded {
-  my $package = shift;
-  $package = ref $package if ref $package;
-  mycan ($package, '()') || mycan ($package, '((');
+    my $package = shift;
+    $package = ref $package if ref $package;
+    mycan ($package, '()') || mycan ($package, '((');
 }
 
 sub ov_method {
-  my $globref = shift;
-  return undef unless $globref;
-  my $sub = \&{*$globref};
-  no overloading;
-  return $sub if $sub != \&nil;
-  return shift->can($ {*$globref});
+    my $globref = shift;
+    return undef unless $globref;
+    my $sub = \&{*$globref};
+    no overloading;
+    return $sub if $sub != \&nil;
+    return shift->can($ {*$globref});
 }
 
 sub OverloadedStringify {
-  my $package = shift;
-  $package = ref $package if ref $package;
-  #$package->can('(""')
-  ov_method mycan($package, '(""'), $package
-    or ov_method mycan($package, '(0+'), $package
-    or ov_method mycan($package, '(bool'), $package
-    or ov_method mycan($package, '(nomethod'), $package;
+    my $package = shift;
+    $package = ref $package if ref $package;
+    #$package->can('(""')
+    ov_method mycan($package, '(""'), $package
+        or ov_method mycan($package, '(0+'), $package
+        or ov_method mycan($package, '(bool'), $package
+        or ov_method mycan($package, '(nomethod'), $package;
 }
 
 sub Method {
-  my $package = shift;
-  if(ref $package) {
-    local $@;
-    local $!;
-    $package = builtin::blessed($package);
-    return undef if !defined $package;
-  }
-  #my $meth = $package->can('(' . shift);
-  ov_method mycan($package, '(' . shift), $package;
-  #return $meth if $meth ne \&nil;
-  #return $ {*{$meth}};
+    my $package = shift;
+    if (ref $package) {
+        no warnings 'experimental::builtin';
+        $package = builtin::blessed($package);
+        return undef if !defined $package;
+    }
+    #my $meth = $package->can('(' . shift);
+    ov_method mycan($package, '(' . shift), $package;
+    #return $meth if $meth ne \&nil;
+    #return $ {*{$meth}};
 }
 
 sub AddrRef {
-  no overloading;
-  "$_[0]";
+    no overloading;
+    "$_[0]";
 }
 
 *StrVal = *AddrRef;
 
-sub mycan {				# Real can would leave stubs.
-  my ($package, $meth) = @_;
+sub mycan {                   # Real can would leave stubs.
+    my ($package, $meth) = @_;
 
-  local $@;
-  local $!;
-  require mro;
+    local $@;
+    local $!;
+    require mro;
 
-  my $mro = mro::get_linear_isa($package);
-  foreach my $p (@$mro) {
-    my $fqmeth = $p . q{::} . $meth;
-    return \*{$fqmeth} if defined &{$fqmeth};
-  }
+    my $mro = mro::get_linear_isa($package);
+    foreach my $p (@$mro) {
+        my $fqmeth = $p . q{::} . $meth;
+        return \*{$fqmeth} if defined &{$fqmeth};
+    }
 
-  return undef;
+    return undef;
 }
 
 my %constants = (
-	      'integer'	  =>  0x1000, # HINT_NEW_INTEGER
-	      'float'	  =>  0x2000, # HINT_NEW_FLOAT
-	      'binary'	  =>  0x4000, # HINT_NEW_BINARY
-	      'q'	  =>  0x8000, # HINT_NEW_STRING
-	      'qr'	  => 0x10000, # HINT_NEW_RE
-	     );
+    'integer'   =>  0x1000, # HINT_NEW_INTEGER
+    'float'     =>  0x2000, # HINT_NEW_FLOAT
+    'binary'    =>  0x4000, # HINT_NEW_BINARY
+    'q'         =>  0x8000, # HINT_NEW_STRING
+    'qr'        => 0x10000, # HINT_NEW_RE
+);
 
 use warnings::register;
 sub constant {
-  # Arguments: what, sub
-  while (@_) {
-    if (@_ == 1) {
-        warnings::warnif ("Odd number of arguments for overload::constant");
-        last;
-    }
-    elsif (!exists $constants {$_ [0]}) {
-        warnings::warnif ("'$_[0]' is not an overloadable type");
-    }
-    elsif (!ref $_ [1] || "$_[1]" !~ /(^|=)CODE\(0x[0-9a-f]+\)$/) {
-        # Can't use C<ref $_[1] eq "CODE"> above as code references can be
-        # blessed, and C<ref> would return the package the ref is blessed into.
-        if (warnings::enabled) {
-            $_ [1] = "undef" unless defined $_ [1];
-            warnings::warn ("'$_[1]' is not a code reference");
+    # Arguments: what, sub
+    while (@_) {
+        if (@_ == 1) {
+            warnings::warnif ("Odd number of arguments for overload::constant");
+            last;
         }
+        elsif (!exists $constants {$_ [0]}) {
+            warnings::warnif ("'$_[0]' is not an overloadable type");
+        }
+        elsif (!ref $_ [1] || "$_[1]" !~ /(^|=)CODE\(0x[0-9a-f]+\)$/) {
+            # Can't use C<ref $_[1] eq "CODE"> above as code references can be
+            # blessed, and C<ref> would return the package the ref is blessed into.
+            if (warnings::enabled) {
+                $_ [1] = "undef" unless defined $_ [1];
+                warnings::warn ("'$_[1]' is not a code reference");
+            }
+        }
+        else {
+            $^H{$_[0]} = $_[1];
+            $^H |= $constants{$_[0]};
+        }
+        shift, shift;
     }
-    else {
-        $^H{$_[0]} = $_[1];
-        $^H |= $constants{$_[0]};
-    }
-    shift, shift;
-  }
 }
 
 sub remove_constant {
-  # Arguments: what, sub
-  while (@_) {
-    delete $^H{$_[0]};
-    $^H &= ~ $constants{$_[0]};
-    shift, shift;
-  }
+    # Arguments: what, sub
+    while (@_) {
+        delete $^H{$_[0]};
+        $^H &= ~ $constants{$_[0]};
+        shift, shift;
+    }
 }
 
 1;
@@ -191,9 +189,9 @@ overload - Package for overloading Perl operations
     package SomeThing;
 
     use overload
-	'+' => \&myadd,
-	'-' => \&mysub;
-	# etc
+        '+' => \&myadd,
+        '-' => \&mysub;
+        # etc
     ...
 
     package main;
@@ -365,21 +363,21 @@ The complete list of keys that can be specified in the C<use overload>
 directive are given, separated by spaces, in the values of the
 hash C<%overload::ops>:
 
- with_assign	  => '+ - * / % ** << >> x .',
- assign		  => '+= -= *= /= %= **= <<= >>= x= .=',
- num_comparison	  => '< <= > >= == !=',
- '3way_comparison'=> '<=> cmp',
- str_comparison	  => 'lt le gt ge eq ne',
- binary		  => '& &= | |= ^ ^= &. &.= |. |.= ^. ^.=',
- unary		  => 'neg ! ~ ~.',
- mutators	  => '++ --',
- func		  => 'atan2 cos sin exp abs log sqrt int',
- conversion	  => 'bool "" 0+ qr',
- iterators	  => '<>',
- filetest         => '-X',
- dereferencing	  => '${} @{} %{} &{} *{}',
- matching	  => '~~',
- special	  => 'nomethod fallback ='
+    with_assign         => '+ - * / % ** << >> x .',
+    assign              => '+= -= *= /= %= **= <<= >>= x= .=',
+    num_comparison      => '< <= > >= == !=',
+    '3way_comparison'   => '<=> cmp',
+    str_comparison      => 'lt le gt ge eq ne',
+    binary              => '& &= | |= ^ ^= &. &.= |. |.= ^. ^.=',
+    unary               => 'neg ! ~ ~.',
+    mutators            => '++ --',
+    func                => 'atan2 cos sin exp abs log sqrt int',
+    conversion          => 'bool "" 0+ qr',
+    iterators           => '<>',
+    filetest            => '-X',
+    dereferencing       => '${} @{} %{} &{} *{}',
+    matching            => '~~',
+    special             => 'nomethod fallback =',
 
 Most of the overloadable operators map one-to-one to these keys.
 Exceptions, including additional overloadable operations not
@@ -922,7 +920,7 @@ Inheritance interacts with overloading in two ways.
 
 If C<value> in
 
-  use overload key => value;
+    use overload key => value;
 
 is a string, it is interpreted as a method name - which may
 (in the usual way) be inherited from another class.
@@ -943,7 +941,7 @@ be called to implement operation C<+> for an object in package C<A>.
 =back
 
 Note that in Perl version prior to 5.18 inheritance of the C<fallback> key
-was not governed by the above rules.  The value of C<fallback> in the first 
+was not governed by the above rules.  The value of C<fallback> in the first
 overloaded ancestor was used.  This was fixed in 5.18 to follow the usual
 rules of inheritance.
 
@@ -1044,10 +1042,10 @@ and overload::remove_constant() from anywhere but import() and unimport() method
 From these methods they may be called as
 
     sub import {
-       shift;
-       return unless @_;
-       die "unknown import: @_" unless @_ == 1 and $_[0] eq ':constant';
-       overload::constant integer => sub {Math::BigInt->new(shift)};
+        shift;
+        return unless @_;
+        die "unknown import: @_" unless @_ == 1 and $_[0] eq ':constant';
+        overload::constant integer => sub {Math::BigInt->new(shift)};
     }
 
 =head1 IMPLEMENTATION
@@ -1085,66 +1083,66 @@ Please add examples to what follows!
 
 Put this in F<two_face.pm> in your Perl library directory:
 
-  package two_face;		# Scalars with separate string and
-                                # numeric values.
-  sub new { my $p = shift; bless [@_], $p }
-  use overload '""' => \&str, '0+' => \&num, fallback => 1;
-  sub num {shift->[1]}
-  sub str {shift->[0]}
+    package two_face;             # Scalars with separate string and
+                                  # numeric values.
+    sub new { my $p = shift; bless [@_], $p }
+    use overload '""' => \&str, '0+' => \&num, fallback => 1;
+    sub num {shift->[1]}
+    sub str {shift->[0]}
 
 Use it as follows:
 
-  require two_face;
-  my $seven = two_face->new("vii", 7);
-  printf "seven=$seven, seven=%d, eight=%d\n", $seven, $seven+1;
-  print "seven contains 'i'\n" if $seven =~ /i/;
+    require two_face;
+    my $seven = two_face->new("vii", 7);
+    printf "seven=$seven, seven=%d, eight=%d\n", $seven, $seven+1;
+    print "seven contains 'i'\n" if $seven =~ /i/;
 
 (The second line creates a scalar which has both a string value, and a
 numeric value.)  This prints:
 
-  seven=vii, seven=7, eight=8
-  seven contains 'i'
+    seven=vii, seven=7, eight=8
+    seven contains 'i'
 
 =head2 Two-face References
 
 Suppose you want to create an object which is accessible as both an
 array reference and a hash reference.
 
-  package two_refs;
-  use overload '%{}' => \&gethash, '@{}' => sub { $ {shift()} };
-  sub new {
-    my $p = shift;
-    bless \ [@_], $p;
-  }
-  sub gethash {
-    my %h;
-    my $self = shift;
-    tie %h, ref $self, $self;
-    \%h;
-  }
+    package two_refs;
+    use overload '%{}' => \&gethash, '@{}' => sub { $ {shift()} };
+    sub new {
+        my $p = shift;
+        bless \ [@_], $p;
+    }
+    sub gethash {
+        my %h;
+        my $self = shift;
+        tie %h, ref $self, $self;
+        \%h;
+    }
 
-  sub TIEHASH { my $p = shift; bless \ shift, $p }
-  my %fields;
-  my $i = 0;
-  $fields{$_} = $i++ foreach qw{zero one two three};
-  sub STORE {
-    my $self = ${shift()};
-    my $key = $fields{shift()};
-    defined $key or die "Out of band access";
-    $$self->[$key] = shift;
-  }
-  sub FETCH {
-    my $self = ${shift()};
-    my $key = $fields{shift()};
-    defined $key or die "Out of band access";
-    $$self->[$key];
-  }
+    sub TIEHASH { my $p = shift; bless \ shift, $p }
+    my %fields;
+    my $i = 0;
+    $fields{$_} = $i++ foreach qw{zero one two three};
+    sub STORE {
+        my $self = ${shift()};
+        my $key = $fields{shift()};
+        defined $key or die "Out of band access";
+        $$self->[$key] = shift;
+    }
+    sub FETCH {
+        my $self = ${shift()};
+        my $key = $fields{shift()};
+        defined $key or die "Out of band access";
+        $$self->[$key];
+    }
 
 Now one can access an object using both the array and hash syntax:
 
-  my $bar = two_refs->new(3,4,5,6);
-  $bar->[2] = 11;
-  $bar->{two} == 11 or die 'bad hash fetch';
+    my $bar = two_refs->new(3,4,5,6);
+    $bar->[2] = 11;
+    $bar->{two} == 11 or die 'bad hash fetch';
 
 Note several important features of this example.  First of all, the
 I<actual> type of $bar is a scalar reference, and we do not overload
@@ -1163,51 +1161,53 @@ hash itself, the only problem one has to circumvent is how to access
 this I<actual> hash (as opposed to the I<virtual> hash exhibited by the
 overloaded dereference operator).  Here is one possible fetching routine:
 
-  sub access_hash {
-    my ($self, $key) = (shift, shift);
-    my $class = ref $self;
-    bless $self, 'overload::dummy'; # Disable overloading of %{}
-    my $out = $self->{$key};
-    bless $self, $class;	# Restore overloading
-    $out;
-  }
+    sub access_hash {
+        my ($self, $key) = (shift, shift);
+        my $class = ref $self;
+        bless $self, 'overload::dummy'; # Disable overloading of %{}
+        my $out = $self->{$key};
+        bless $self, $class;            # Restore overloading
+        $out;
+    }
 
 To remove creation of the tied hash on each access, one may an extra
 level of indirection which allows a non-circular structure of references:
 
-  package two_refs1;
-  use overload '%{}' => sub { ${shift()}->[1] },
-               '@{}' => sub { ${shift()}->[0] };
-  sub new {
-    my $p = shift;
-    my $a = [@_];
-    my %h;
-    tie %h, $p, $a;
-    bless \ [$a, \%h], $p;
-  }
-  sub gethash {
-    my %h;
-    my $self = shift;
-    tie %h, ref $self, $self;
-    \%h;
-  }
+    package two_refs1;
+    use overload
+        '%{}' => sub { ${shift()}->[1] },
+        '@{}' => sub { ${shift()}->[0] };
 
-  sub TIEHASH { my $p = shift; bless \ shift, $p }
-  my %fields;
-  my $i = 0;
-  $fields{$_} = $i++ foreach qw{zero one two three};
-  sub STORE {
-    my $a = ${shift()};
-    my $key = $fields{shift()};
-    defined $key or die "Out of band access";
-    $a->[$key] = shift;
-  }
-  sub FETCH {
-    my $a = ${shift()};
-    my $key = $fields{shift()};
-    defined $key or die "Out of band access";
-    $a->[$key];
-  }
+    sub new {
+        my $p = shift;
+        my $a = [@_];
+        my %h;
+        tie %h, $p, $a;
+        bless \ [$a, \%h], $p;
+    }
+    sub gethash {
+        my %h;
+        my $self = shift;
+        tie %h, ref $self, $self;
+        \%h;
+    }
+
+    sub TIEHASH { my $p = shift; bless \ shift, $p }
+    my %fields;
+    my $i = 0;
+    $fields{$_} = $i++ foreach qw{zero one two three};
+    sub STORE {
+        my $a = ${shift()};
+        my $key = $fields{shift()};
+        defined $key or die "Out of band access";
+        $a->[$key] = shift;
+    }
+    sub FETCH {
+        my $a = ${shift()};
+        my $key = $fields{shift()};
+        defined $key or die "Out of band access";
+        $a->[$key];
+    }
 
 Now if $baz is overloaded like this, then C<$baz> is a reference to a
 reference to the intermediate array, which keeps a reference to an
@@ -1233,15 +1233,15 @@ overloaded operations.
 
 Put this in F<symbolic.pm> in your Perl library directory:
 
-  package symbolic;		# Primitive symbolic calculator
-  use overload nomethod => \&wrap;
+    package symbolic;           # Primitive symbolic calculator
+    use overload nomethod => \&wrap;
 
-  sub new { shift; bless ['n', @_] }
-  sub wrap {
-    my ($obj, $other, $inv, $meth) = @_;
-    ($obj, $other) = ($other, $obj) if $inv;
-    bless [$meth, $obj, $other];
-  }
+    sub new { shift; bless ['n', @_] }
+    sub wrap {
+        my ($obj, $other, $inv, $meth) = @_;
+        ($obj, $other) = ($other, $obj) if $inv;
+        bless [$meth, $obj, $other];
+    }
 
 This module is very unusual as overloaded modules go: it does not
 provide any usual overloaded operators, instead it provides an
@@ -1253,20 +1253,20 @@ symbolic->new(3) >> contains C<['+', 2, ['n', 3]]>.
 Here is an example of the script which "calculates" the side of
 circumscribed octagon using the above package:
 
-  require symbolic;
-  my $iter = 1;			# 2**($iter+2) = 8
-  my $side = symbolic->new(1);
-  my $cnt = $iter;
+    require symbolic;
+    my $iter = 1;                   # 2**($iter+2) = 8
+    my $side = symbolic->new(1);
+    my $cnt = $iter;
 
-  while ($cnt--) {
-    $side = (sqrt(1 + $side**2) - 1)/$side;
-  }
-  print "OK\n";
+    while ($cnt--) {
+        $side = (sqrt(1 + $side**2) - 1)/$side;
+    }
+    print "OK\n";
 
 The value of $side is
 
-  ['/', ['-', ['sqrt', ['+', 1, ['**', ['n', 1], 2]],
-	               undef], 1], ['n', 1]]
+    ['/', ['-', ['sqrt', ['+', 1, ['**', ['n', 1], 2]],
+                        undef], 1], ['n', 1]]
 
 Note that while we obtained this value using a nice little script,
 there is no simple way to I<use> this value.  In fact this value may
@@ -1280,18 +1280,18 @@ again of type C<symbolic>, which will lead to an infinite loop.
 
 Add a pretty-printer method to the module F<symbolic.pm>:
 
-  sub pretty {
-    my ($meth, $a, $b) = @{+shift};
-    $a = 'u' unless defined $a;
-    $b = 'u' unless defined $b;
-    $a = $a->pretty if ref $a;
-    $b = $b->pretty if ref $b;
-    "[$meth $a $b]";
-  }
+    sub pretty {
+        my ($meth, $a, $b) = @{+shift};
+        $a = 'u' unless defined $a;
+        $b = 'u' unless defined $b;
+        $a = $a->pretty if ref $a;
+        $b = $b->pretty if ref $b;
+        "[$meth $a $b]";
+    }
 
 Now one can finish the script by
 
-  print "side = ", $side->pretty, "\n";
+    print "side = ", $side->pretty, "\n";
 
 The method C<pretty> is doing object-to-string conversion, so it
 is natural to overload the operator C<""> using this method.  However,
@@ -1302,21 +1302,21 @@ and $b.  If these components use overloading, the catenation operator
 will look for an overloaded operator C<.>; if not present, it will
 look for an overloaded operator C<"">.  Thus it is enough to use
 
-  use overload nomethod => \&wrap, '""' => \&str;
-  sub str {
-    my ($meth, $a, $b) = @{+shift};
-    $a = 'u' unless defined $a;
-    $b = 'u' unless defined $b;
-    "[$meth $a $b]";
-  }
+    use overload nomethod => \&wrap, '""' => \&str;
+    sub str {
+        my ($meth, $a, $b) = @{+shift};
+        $a = 'u' unless defined $a;
+        $b = 'u' unless defined $b;
+        "[$meth $a $b]";
+    }
 
 Now one can change the last line of the script to
 
-  print "side = $side\n";
+    print "side = $side\n";
 
 which outputs
 
-  side = [/ [- [sqrt [+ 1 [** [n 1 u] 2]] u] 1] [n 1 u]]
+    side = [/ [- [sqrt [+ 1 [** [n 1 u] 2]] u] 1] [n 1 u]]
 
 and one can inspect the value in debugger using all the possible
 methods.
@@ -1335,41 +1335,42 @@ conversion routine.
 Here is the text of F<symbolic.pm> with such a routine added (and
 slightly modified str()):
 
-  package symbolic;		# Primitive symbolic calculator
-  use overload
-    nomethod => \&wrap, '""' => \&str, '0+' => \&num;
+    package symbolic;           # Primitive symbolic calculator
+    use overload
+        nomethod => \&wrap, '""' => \&str, '0+' => \&num;
 
-  sub new { shift; bless ['n', @_] }
-  sub wrap {
-    my ($obj, $other, $inv, $meth) = @_;
-    ($obj, $other) = ($other, $obj) if $inv;
-    bless [$meth, $obj, $other];
-  }
-  sub str {
-    my ($meth, $a, $b) = @{+shift};
-    $a = 'u' unless defined $a;
-    if (defined $b) {
-      "[$meth $a $b]";
-    } else {
-      "[$meth $a]";
+    sub new { shift; bless ['n', @_] }
+    sub wrap {
+        my ($obj, $other, $inv, $meth) = @_;
+        ($obj, $other) = ($other, $obj) if $inv;
+        bless [$meth, $obj, $other];
     }
-  }
-  my %subr = ( n => sub {$_[0]},
-	       sqrt => sub {sqrt $_[0]},
-	       '-' => sub {shift() - shift()},
-	       '+' => sub {shift() + shift()},
-	       '/' => sub {shift() / shift()},
-	       '*' => sub {shift() * shift()},
-	       '**' => sub {shift() ** shift()},
-	     );
-  sub num {
-    my ($meth, $a, $b) = @{+shift};
-    my $subr = $subr{$meth}
-      or die "Do not know how to ($meth) in symbolic";
-    $a = $a->num if ref $a eq __PACKAGE__;
-    $b = $b->num if ref $b eq __PACKAGE__;
-    $subr->($a,$b);
-  }
+    sub str {
+        my ($meth, $a, $b) = @{+shift};
+        $a = 'u' unless defined $a;
+        if (defined $b) {
+            "[$meth $a $b]";
+        } else {
+            "[$meth $a]";
+        }
+    }
+    my %subr = (
+        n => sub {$_[0]},
+        sqrt => sub {sqrt $_[0]},
+        '-' => sub {shift() - shift()},
+        '+' => sub {shift() + shift()},
+        '/' => sub {shift() / shift()},
+        '*' => sub {shift() * shift()},
+        '**' => sub {shift() ** shift()},
+    );
+    sub num {
+        my ($meth, $a, $b) = @{+shift};
+        my $subr = $subr{$meth}
+        or die "Do not know how to ($meth) in symbolic";
+        $a = $a->num if ref $a eq __PACKAGE__;
+        $b = $b->num if ref $b eq __PACKAGE__;
+        $subr->($a,$b);
+    }
 
 All the work of numeric conversion is done in %subr and num().  Of
 course, %subr is not complete, it contains only operators used in the
@@ -1378,24 +1379,24 @@ explicit recursion in num()?  (Answer is at the end of this section.)
 
 Use this module like this:
 
-  require symbolic;
-  my $iter = symbolic->new(2);	# 16-gon
-  my $side = symbolic->new(1);
-  my $cnt = $iter;
+    require symbolic;
+    my $iter = symbolic->new(2);        # 16-gon
+    my $side = symbolic->new(1);
+    my $cnt = $iter;
 
-  while ($cnt) {
-    $cnt = $cnt - 1;		# Mutator '--' not implemented
-    $side = (sqrt(1 + $side**2) - 1)/$side;
-  }
-  printf "%s=%f\n", $side, $side;
-  printf "pi=%f\n", $side*(2**($iter+2));
+    while ($cnt) {
+        $cnt = $cnt - 1;                # Mutator '--' not implemented
+        $side = (sqrt(1 + $side**2) - 1)/$side;
+    }
+    printf "%s=%f\n", $side, $side;
+    printf "pi=%f\n", $side*(2**($iter+2));
 
 It prints (without so many line breaks)
 
-  [/ [- [sqrt [+ 1 [** [/ [- [sqrt [+ 1 [** [n 1] 2]]] 1]
-			  [n 1]] 2]]] 1]
-     [/ [- [sqrt [+ 1 [** [n 1] 2]]] 1] [n 1]]]=0.198912
-  pi=3.182598
+    [/ [- [sqrt [+ 1 [** [/ [- [sqrt [+ 1 [** [n 1] 2]]] 1]
+                            [n 1]] 2]]] 1]
+    [/ [- [sqrt [+ 1 [** [n 1] 2]]] 1] [n 1]]]=0.198912
+    pi=3.182598
 
 The above module is very primitive.  It does not implement
 mutator methods (C<++>, C<-=> and so on), does not do deep copying
@@ -1405,18 +1406,18 @@ operations which are used in the example.
 To implement most arithmetic operations is easy; one should just use
 the tables of operations, and change the code which fills %subr to
 
-  my %subr = ( 'n' => sub {$_[0]} );
-  foreach my $op (split " ", $overload::ops{with_assign}) {
-    $subr{$op} = $subr{"$op="} = eval "sub {shift() $op shift()}";
-  }
-  my @bins = qw(binary 3way_comparison num_comparison str_comparison);
-  foreach my $op (split " ", "@overload::ops{ @bins }") {
-    $subr{$op} = eval "sub {shift() $op shift()}";
-  }
-  foreach my $op (split " ", "@overload::ops{qw(unary func)}") {
-    print "defining '$op'\n";
-    $subr{$op} = eval "sub {$op shift()}";
-  }
+    my %subr = ( 'n' => sub {$_[0]} );
+    foreach my $op (split " ", $overload::ops{with_assign}) {
+        $subr{$op} = $subr{"$op="} = eval "sub {shift() $op shift()}";
+    }
+    my @bins = qw(binary 3way_comparison num_comparison str_comparison);
+    foreach my $op (split " ", "@overload::ops{ @bins }") {
+        $subr{$op} = eval "sub {shift() $op shift()}";
+    }
+    foreach my $op (split " ", "@overload::ops{qw(unary func)}") {
+        print "defining '$op'\n";
+        $subr{$op} = eval "sub {$op shift()}";
+    }
 
 Since subroutines implementing assignment operators are not required
 to modify their operands (see L</Overloadable Operations> above),
@@ -1430,42 +1431,42 @@ To implement a copy constructor, add C<< '=' => \&cpy >> to C<use overload>
 line, and code (this code assumes that mutators change things one level
 deep only, so recursive copying is not needed):
 
-  sub cpy {
-    my $self = shift;
-    bless [@$self], ref $self;
-  }
+    sub cpy {
+        my $self = shift;
+        bless [@$self], ref $self;
+    }
 
 To make C<++> and C<--> work, we need to implement actual mutators,
 either directly, or in C<nomethod>.  We continue to do things inside
 C<nomethod>, thus add
 
     if ($meth eq '++' or $meth eq '--') {
-      @$obj = ($meth, (bless [@$obj]), 1); # Avoid circular reference
-      return $obj;
+        @$obj = ($meth, (bless [@$obj]), 1); # Avoid circular reference
+        return $obj;
     }
 
 after the first line of wrap().  This is not a most effective
 implementation, one may consider
 
-  sub inc { $_[0] = bless ['++', shift, 1]; }
+    sub inc { $_[0] = bless ['++', shift, 1]; }
 
 instead.
 
 As a final remark, note that one can fill %subr by
 
-  my %subr = ( 'n' => sub {$_[0]} );
-  foreach my $op (split " ", $overload::ops{with_assign}) {
-    $subr{$op} = $subr{"$op="} = eval "sub {shift() $op shift()}";
-  }
-  my @bins = qw(binary 3way_comparison num_comparison str_comparison);
-  foreach my $op (split " ", "@overload::ops{ @bins }") {
-    $subr{$op} = eval "sub {shift() $op shift()}";
-  }
-  foreach my $op (split " ", "@overload::ops{qw(unary func)}") {
-    $subr{$op} = eval "sub {$op shift()}";
-  }
-  $subr{'++'} = $subr{'+'};
-  $subr{'--'} = $subr{'-'};
+    my %subr = ( 'n' => sub {$_[0]} );
+    foreach my $op (split " ", $overload::ops{with_assign}) {
+        $subr{$op} = $subr{"$op="} = eval "sub {shift() $op shift()}";
+    }
+    my @bins = qw(binary 3way_comparison num_comparison str_comparison);
+    foreach my $op (split " ", "@overload::ops{ @bins }") {
+        $subr{$op} = eval "sub {shift() $op shift()}";
+    }
+    foreach my $op (split " ", "@overload::ops{qw(unary func)}") {
+        $subr{$op} = eval "sub {$op shift()}";
+    }
+    $subr{'++'} = $subr{'+'};
+    $subr{'--'} = $subr{'-'};
 
 This finishes implementation of a primitive symbolic calculator in
 50 lines of Perl code.  Since the numeric values of subexpressions
@@ -1494,21 +1495,21 @@ until the value is I<used>.
 
 To see it in action, add a method
 
-  sub STORE {
-    my $obj = shift;
-    $#$obj = 1;
-    @$obj->[0,1] = ('=', shift);
-  }
+    sub STORE {
+        my $obj = shift;
+        $#$obj = 1;
+        @$obj->[0,1] = ('=', shift);
+    }
 
 to the package C<symbolic>.  After this change one can do
 
-  my $a = symbolic->new(3);
-  my $b = symbolic->new(4);
-  my $c = sqrt($a**2 + $b**2);
+    my $a = symbolic->new(3);
+    my $b = symbolic->new(4);
+    my $c = sqrt($a**2 + $b**2);
 
 and the numeric value of $c becomes 5.  However, after calling
 
-  $a->STORE(12);  $b->STORE(5);
+    $a->STORE(12);  $b->STORE(5);
 
 the numeric value of $c becomes 13.  There is no doubt now that the module
 symbolic provides a I<symbolic> calculator indeed.
@@ -1516,35 +1517,35 @@ symbolic provides a I<symbolic> calculator indeed.
 To hide the rough edges under the hood, provide a tie()d interface to the
 package C<symbolic>.  Add methods
 
-  sub TIESCALAR { my $pack = shift; $pack->new(@_) }
-  sub FETCH { shift }
-  sub nop {  }		# Around a bug
+    sub TIESCALAR { my $pack = shift; $pack->new(@_) }
+    sub FETCH { shift }
+    sub nop {  }                # Around a bug
 
 (the bug, fixed in Perl 5.14, is described in L<"BUGS">).  One can use this
 new interface as
 
-  tie $a, 'symbolic', 3;
-  tie $b, 'symbolic', 4;
-  $a->nop;  $b->nop;	# Around a bug
+    tie $a, 'symbolic', 3;
+    tie $b, 'symbolic', 4;
+    $a->nop;  $b->nop;          # Around a bug
 
-  my $c = sqrt($a**2 + $b**2);
+    my $c = sqrt($a**2 + $b**2);
 
 Now numeric value of $c is 5.  After C<$a = 12; $b = 5> the numeric value
 of $c becomes 13.  To insulate the user of the module add a method
 
-  sub vars { my $p = shift; tie($_, $p), $_->nop foreach @_; }
+    sub vars { my $p = shift; tie($_, $p), $_->nop foreach @_; }
 
 Now
 
-  my ($a, $b);
-  symbolic->vars($a, $b);
-  my $c = sqrt($a**2 + $b**2);
+    my ($a, $b);
+    symbolic->vars($a, $b);
+    my $c = sqrt($a**2 + $b**2);
 
-  $a = 3; $b = 4;
-  printf "c5  %s=%f\n", $c, $c;
+    $a = 3; $b = 4;
+    printf "c5  %s=%f\n", $c, $c;
 
-  $a = 12; $b = 5;
-  printf "c13  %s=%f\n", $c, $c;
+    $a = 12; $b = 5;
+    printf "c13  %s=%f\n", $c, $c;
 
 shows that the numeric value of $c follows changes to the values of $a
 and $b.
@@ -1607,11 +1608,11 @@ A pitfall when fallback is TRUE and Perl resorts to a built-in
 implementation of an operator is that some operators have more
 than one semantic, for example C<|>:
 
-        use overload '0+' => sub { $_[0]->{n}; },
-            fallback => 1;
-        my $x = bless { n => 4 }, "main";
-        my $y = bless { n => 8 }, "main";
-        print $x | $y, "\n";
+    use overload '0+' => sub { $_[0]->{n}; },
+        fallback => 1;
+    my $x = bless { n => 4 }, "main";
+    my $y = bless { n => 8 }, "main";
+    print $x | $y, "\n";
 
 You might expect this to output "12".
 In fact, it prints "<": the ASCII result of treating "|"
@@ -1697,3 +1698,4 @@ The range operator C<..> cannot be overloaded.
 
 =cut
 
+# ex: set ts=8 sts=4 sw=4 et:

@@ -7,7 +7,7 @@ use parent 'URI::_generic';
 
 use URI::Escape qw(uri_unescape);
 
-our $VERSION = '5.10';
+our $VERSION = '5.21';
 
 sub _uric_escape {
     my($class, $str) = @_;
@@ -23,7 +23,8 @@ sub _uric_escape {
 }
 
 sub _host_escape {
-    return unless $_[0] =~ /[^$URI::uric]/;
+  return if  URI::HAS_RESERVED_SQUARE_BRACKETS  and  $_[0] !~ /[^$URI::uric]/;
+  return if !URI::HAS_RESERVED_SQUARE_BRACKETS  and  $_[0] !~ /[^$URI::uric4host]/;
     eval {
 	require URI::_idna;
 	$_[0] = URI::_idna::encode($_[0]);
@@ -59,8 +60,8 @@ sub userinfo
 	$new =~ s/.*@//;  # remove old stuff
 	my $ui = shift;
 	if (defined $ui) {
-	    $ui =~ s/@/%40/g;   # protect @
-	    $new = "$ui\@$new";
+          $ui =~ s/([^$URI::uric4user])/ URI::Escape::escape_char($1)/ego;
+          $new = "$ui\@$new";
 	}
 	$self->authority($new);
     }

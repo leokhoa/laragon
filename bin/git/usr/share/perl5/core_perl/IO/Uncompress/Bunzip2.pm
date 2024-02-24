@@ -4,15 +4,15 @@ use strict ;
 use warnings;
 use bytes;
 
-use IO::Compress::Base::Common 2.106 qw(:Status );
+use IO::Compress::Base::Common 2.204 qw(:Status );
 
-use IO::Uncompress::Base 2.106 ;
-use IO::Uncompress::Adapter::Bunzip2 2.106 ;
+use IO::Uncompress::Base 2.204 ;
+use IO::Uncompress::Adapter::Bunzip2 2.204 ;
 
 require Exporter ;
 our ($VERSION, @ISA, @EXPORT_OK, %EXPORT_TAGS, $Bunzip2Error);
 
-$VERSION = '2.106';
+$VERSION = '2.204';
 $Bunzip2Error = '';
 
 @ISA    = qw(IO::Uncompress::Base Exporter);
@@ -909,7 +909,7 @@ See the Changes file.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2005-2022 Paul Marquess. All rights reserved.
+Copyright (c) 2005-2023 Paul Marquess. All rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

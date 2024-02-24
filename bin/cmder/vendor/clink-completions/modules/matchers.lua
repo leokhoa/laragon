@@ -1,9 +1,14 @@
+local clink_version = require('clink_version')
 
 local exports = {}
 
 local path = require('path')
 local w = require('tables').wrap
 
+-- A function to generate directory matches.
+--
+--  local matchers = require("matchers")
+--  clink.argmatcher():addarg(matchers.dirs)
 exports.dirs = function(word)
     -- Strip off any path components that may be on text.
     local prefix = ""
@@ -33,7 +38,16 @@ exports.dirs = function(word)
     return matches
 end
 
+-- A function to generate file matches.
+--
+--  local matchers = require("matchers")
+--  clink.argmatcher():addarg(matchers.files)
 exports.files = function (word)
+    if clink_version.supports_display_filter_description then
+        local matches = w(clink.filematches(word))
+        return matches
+    end
+
     -- Strip off any path components that may be on text.
     local prefix = ""
     local i = word:find("[\\/:][^\\/:]*$")
@@ -56,6 +70,64 @@ exports.files = function (word)
     end
 
     return matches
+end
+
+-- Returns a function that generates matches for the specified wildcards.
+--
+--  local matchers = require("matchers")
+--  clink.argmatcher():addarg(matchers.ext_files("*.json"))
+exports.ext_files = function (...)
+    local wildcards = {...}
+
+    if clink.argmatcher then
+        return function (word)
+            local matches = clink.dirmatches(word.."*")
+            for _, wild in ipairs(wildcards) do
+                for _, m in ipairs(clink.filematches(word..wild)) do
+                    table.insert(matches, m)
+                end
+            end
+            return matches
+        end
+    end
+
+    return function (word)
+
+        -- Strip off any path components that may be on text.
+        local prefix = ""
+        local i = word:find("[\\/:][^\\/:]*$")
+        if i then
+            prefix = word:sub(1, i)
+        end
+
+        -- Find directories.
+        local matches = w(clink.find_dirs(word.."*", true))
+        :filter(function (dir)
+            return clink.is_match(word, prefix..dir) and path.is_real_dir(dir)
+        end)
+        :map(function(dir)
+            return prefix..dir
+        end)
+
+        -- Find wildcard matches (e.g. *.dll).
+        for _, wild in ipairs(wildcards) do
+            local filematches = w(clink.find_files(word..wild, true))
+            :filter(function (file)
+                return clink.is_match(word, prefix..file)
+            end)
+            :map(function(file)
+                return prefix..file
+            end)
+            matches = matches:concat(filematches)
+        end
+
+        -- Tell readline that matches are files and it will do magic.
+        if #matches ~= 0 then
+            clink.matches_are_files()
+        end
+
+        return matches
+    end
 end
 
 exports.create_dirs_matcher = function (dir_pattern, show_dotfiles)

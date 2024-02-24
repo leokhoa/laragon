@@ -6,15 +6,15 @@
 # See http://www.ietf.org/rfc/rfc2831.txt for details
 
 package Authen::SASL::Perl::DIGEST_MD5;
-
+$Authen::SASL::Perl::DIGEST_MD5::VERSION = '2.1700';
 use strict;
-use vars qw($VERSION @ISA $CNONCE $NONCE);
+use warnings;
+use vars qw(@ISA $CNONCE $NONCE);
 use Digest::MD5 qw(md5_hex md5);
 use Digest::HMAC_MD5 qw(hmac_md5);
 
 # TODO: complete qop support in server, should be configurable
 
-$VERSION = "2.14";
 @ISA = qw(Authen::SASL::Perl);
 
 my %secflags = (
@@ -208,7 +208,7 @@ sub server_start {
   my $qop = [ sort keys %{$self->{supported_qop}} ];
 
   ## get the realm using callbacks but default to the host specified
-  ## during the instanciation of the SASL object
+  ## during the instantiation of the SASL object
   my $realm = $self->_call('realm');
   $realm  ||= $self->host;
 
@@ -748,6 +748,10 @@ __END__
 
 Authen::SASL::Perl::DIGEST_MD5 - Digest MD5 Authentication class
 
+=head1 VERSION
+
+version 2.1700
+
 =head1 SYNOPSIS
 
   use Authen::SASL qw(Perl);
@@ -802,7 +806,7 @@ in the initial response.
 
 =head3 server
 
-=over4
+=over 4
 
 =item realm
 

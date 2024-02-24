@@ -17,7 +17,7 @@ our @EXPORT_OK = qw(
   dualvar isdual isvstring looks_like_number openhandle readonly set_prototype
   tainted
 );
-our $VERSION    = "1.62";
+our $VERSION    = "1.63";
 $VERSION =~ tr/_//d;
 
 require List::Util; # List::Util loads the XS
@@ -145,7 +145,7 @@ on these but C<reftype()> will return the underlying C structure type of
 C<"REGEXP"> in all capitals.
 
 I<Since Perl version 5.35.7> an equivalent function is available as
-C<builtin::refaddr>.
+C<builtin::reftype>.
 
 =head2 weaken
 
@@ -230,7 +230,7 @@ B<NOTE>: Copying a weak reference creates a normal, strong, reference.
     $weak = isweak($copy);              # false
 
 I<Since Perl version 5.35.7> an equivalent function is available as
-C<builtin::isweak>.
+C<builtin::is_weak>.
 
 =head1 OTHER FUNCTIONS
 

@@ -4,7 +4,7 @@ package re;
 use strict;
 use warnings;
 
-our $VERSION     = "0.43";
+our $VERSION     = "0.44";
 our @ISA         = qw(Exporter);
 our @EXPORT_OK   = qw{
 	is_regexp regexp_pattern

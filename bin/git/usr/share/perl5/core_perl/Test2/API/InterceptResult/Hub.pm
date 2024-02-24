@@ -2,7 +2,7 @@ package Test2::API::InterceptResult::Hub;
 use strict;
 use warnings;
 
-our $VERSION = '1.302190';
+our $VERSION = '1.302194';
 
 BEGIN { require Test2::Hub; our @ISA = qw(Test2::Hub) }
 use Test2::Util::HashBase;

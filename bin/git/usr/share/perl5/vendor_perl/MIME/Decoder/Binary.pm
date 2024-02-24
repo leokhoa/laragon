@@ -47,7 +47,7 @@ use vars qw(@ISA $VERSION);
 @ISA = qw(MIME::Decoder);
 
 ### The package version, both in 1.23 style *and* usable by MakeMaker:
-$VERSION = "5.509";
+$VERSION = "5.510";
 
 ### Buffer length:
 my $BUFLEN = 8192;

@@ -29,8 +29,6 @@ switch [tk windowingsystem] {
     x11 {
         lappend eventList <Button-4> <Button-5> \
                 <Shift-Button-4> <Shift-Button-5>
-        # For tk 8.7, the event list will be extended by
-        # <Button-6> <Button-7>
     }
 }
 foreach event $eventList {

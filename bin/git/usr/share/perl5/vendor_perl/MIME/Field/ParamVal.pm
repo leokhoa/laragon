@@ -80,7 +80,7 @@ use MIME::Tools qw(:config :msgs);
 #------------------------------
 
 # The package version, both in 1.23 style *and* usable by MakeMaker:
-$VERSION = "5.509";
+$VERSION = "5.510";
 
 
 #------------------------------
@@ -256,8 +256,10 @@ sub parse_params {
 	    # cut it off at the first non-token char.  CPAN RT #105455
 	    $badtoken =~ /^($TOKEN)*/;
 	    $badtoken = $1;
-	    # Cut it off at first whitespace too
-	    $badtoken =~ s/\s.*//;
+	    if (defined($badtoken)) {
+		    # Cut it off at first whitespace too
+		    $badtoken =~ s/\s.*//;
+	    }
 	}
 	$val = defined($qstr) ? $qstr :
 	    (defined($enctoken) ? $enctoken :

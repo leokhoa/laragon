@@ -3,11 +3,11 @@
 # modify it under the same terms as Perl itself.
 
 package Authen::SASL::Perl::ANONYMOUS;
-
+$Authen::SASL::Perl::ANONYMOUS::VERSION = '2.1700';
 use strict;
-use vars qw($VERSION @ISA);
+use warnings;
+use vars qw(@ISA);
 
-$VERSION = "2.14";
 @ISA	 = qw(Authen::SASL::Perl);
 
 my %secflags = (
@@ -37,6 +37,10 @@ __END__
 =head1 NAME
 
 Authen::SASL::Perl::ANONYMOUS - Anonymous Authentication class
+
+=head1 VERSION
+
+version 2.1700
 
 =head1 SYNOPSIS
 

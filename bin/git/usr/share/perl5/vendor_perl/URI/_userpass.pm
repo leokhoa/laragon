@@ -5,7 +5,7 @@ use warnings;
 
 use URI::Escape qw(uri_unescape);
 
-our $VERSION = '5.10';
+our $VERSION = '5.21';
 
 sub user
 {
@@ -39,8 +39,8 @@ sub password
 	my $user = defined($info) ? $info : "";
 	$user =~ s/:.*//;
 
-	if (!defined($new) && !length($user)) {
-	    $self->userinfo(undef);
+	if (!defined($new)) {
+	    $self->userinfo(length $user ? $user : undef);
 	} else {
 	    $new = "" unless defined($new);
 	    $new =~ s/%/%25/g;

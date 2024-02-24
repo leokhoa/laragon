@@ -14,7 +14,7 @@ use Exporter;
 use Errno;
 
 our @ISA = qw(IO::Socket);
-our $VERSION = "1.49";
+our $VERSION = "1.52";
 
 my $EINVAL = exists(&Errno::EINVAL) ? Errno::EINVAL() : 1;
 
@@ -330,7 +330,7 @@ inherits all the methods defined by L<IO::Socket>.
 =item new ( [ARGS] )
 
 Creates an C<IO::Socket::INET> object, which is a reference to a
-newly created symbol (see the C<Symbol> package). C<new>
+newly created symbol (see the L<Symbol> package). C<new>
 optionally takes arguments, these arguments are in key-value pairs.
 
 In addition to the key-value pairs accepted by L<IO::Socket>,

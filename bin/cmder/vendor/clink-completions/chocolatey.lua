@@ -2,14 +2,17 @@ local w = require('tables').wrap
 local path = require('path')
 
 local packages = function (token)
-    return w(clink.find_dirs(clink.get_env('chocolateyinstall')..'/lib/*'))
-    :filter(function(dir)
-        return path.is_real_dir(dir) and clink.is_match(token, dir)
-    end)
-    :map(function (dir)
-        local package_name = dir:match("^(%w%.*)%.")
-        return package_name or dir
-    end)
+    local install = clink.get_env('chocolateyinstall')
+    if install then
+        return w(clink.find_dirs(clink.get_env('chocolateyinstall')..'/lib/*'))
+        :filter(function(dir)
+            return path.is_real_dir(dir) and clink.is_match(token, dir)
+        end)
+        :map(function (dir)
+            local package_name = dir:match("^(%w%.*)%.")
+            return package_name or dir
+        end)
+    end
 end
 
 local parser = clink.arg.new_parser

@@ -2,7 +2,7 @@ package Encode::MIME::Header;
 use strict;
 use warnings;
 
-our $VERSION = do { my @r = ( q$Revision: 2.28 $ =~ /\d+/g ); sprintf "%d." . "%02d" x $#r, @r };
+our $VERSION = do { my @r = ( q$Revision: 2.29 $ =~ /\d+/g ); sprintf "%d." . "%02d" x $#r, @r };
 
 use Carp ();
 use Encode ();
@@ -55,7 +55,7 @@ my $re_capture_encoded_word_split = qr/=\?($re_charset)((?:\*$re_language)?)\?($
 # in strict mode check also for valid base64 characters and also for valid quoted printable codes
 my $re_encoding_strict_b = qr/[Bb]/;
 my $re_encoding_strict_q = qr/[Qq]/;
-my $re_encoded_text_strict_b = qr/[0-9A-Za-z\+\/]*={0,2}/;
+my $re_encoded_text_strict_b = qr/(?:[0-9A-Za-z\+\/]{4})*(?:[0-9A-Za-z\+\/]{2}==|[0-9A-Za-z\+\/]{3}=|)/;
 my $re_encoded_text_strict_q = qr/(?:[\x21-\x3C\x3E\x40-\x7E]|=[0-9A-Fa-f]{2})*/; # NOTE: first part are printable US-ASCII except ?, =, SPACE and TAB
 my $re_encoded_word_strict = qr/=\?$re_charset(?:\*$re_language)?\?(?:$re_encoding_strict_b\?$re_encoded_text_strict_b|$re_encoding_strict_q\?$re_encoded_text_strict_q)\?=/;
 my $re_capture_encoded_word_strict = qr/=\?($re_charset)((?:\*$re_language)?)\?($re_encoding_strict_b\?$re_encoded_text_strict_b|$re_encoding_strict_q\?$re_encoded_text_strict_q)\?=/;
@@ -93,6 +93,10 @@ sub decode($$;$) {
         my $sep = defined $2 ? $2 : '';
 
         $stop = 1 unless length($line) or length($sep);
+
+        # in non strict mode append missing '=' padding characters for b words
+        # fixes below concatenation of consecutive encoded mime words
+        1 while not $STRICT_DECODE and $line =~ s/(=\?$re_charset(?:\*$re_language)?\?[Bb]\?)((?:[^\?]{4})*[^\?]{1,3})(\?=)/$1.$2.('='x(4-length($2)%4)).$3/se;
 
         # NOTE: this code partially could break $chk support
         # in non strict mode concat consecutive encoded mime words with same charset, language and encoding

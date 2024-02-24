@@ -28,6 +28,8 @@
 # completion style.  For example '!f() { : git commit ; ... }; f' will
 # tell the completion to use commit completion.  This also works with aliases
 # of form "!sh -c '...'".  For example, "!sh -c ': git commit ; ... '".
+# Note that "git" is optional --- '!f() { : commit; ...}; f' would complete
+# just like the 'git commit' command.
 #
 # If you have a command that is not part of git, but you would still
 # like completion, you can use __git_complete:
@@ -58,6 +60,12 @@
 #
 #     When set to "1" suggest all options, including options which are
 #     typically hidden (e.g. '--allow-empty' for 'git commit').
+#
+#   GIT_COMPLETION_IGNORE_CASE
+#
+#     When set, uses for-each-ref '--ignore-case' to find refs that match
+#     case insensitively, even on systems with case sensitive file systems
+#     (e.g., completing tag name "FOO" on "git checkout f<TAB>").
 
 case "$COMP_WORDBREAKS" in
 *:*) : great ;;
@@ -112,6 +120,40 @@ __git ()
 {
 	git ${__git_C_args:+"${__git_C_args[@]}"} \
 		${__git_dir:+--git-dir="$__git_dir"} "$@" 2>/dev/null
+}
+
+# Helper function to read the first line of a file into a variable.
+# __git_eread requires 2 arguments, the file path and the name of the
+# variable, in that order.
+#
+# This is taken from git-prompt.sh.
+__git_eread ()
+{
+	test -r "$1" && IFS=$'\r\n' read -r "$2" <"$1"
+}
+
+# Runs git in $__git_repo_path to determine whether a pseudoref exists.
+# 1: The pseudo-ref to search
+__git_pseudoref_exists ()
+{
+	local ref=$1
+	local head
+
+	__git_find_repo_path
+
+	# If the reftable is in use, we have to shell out to 'git rev-parse'
+	# to determine whether the ref exists instead of looking directly in
+	# the filesystem to determine whether the ref exists. Otherwise, use
+	# Bash builtins since executing Git commands are expensive on some
+	# platforms.
+	if __git_eread "$__git_repo_path/HEAD" head; then
+		if [ "$head" == "ref: refs/heads/.invalid" ]; then
+			__git show-ref --exists "$ref"
+			return $?
+		fi
+	fi
+
+	[ -f "$__git_repo_path/$ref" ]
 }
 
 # Removes backslash escaping, single quotes and double quotes from a word,
@@ -646,6 +688,7 @@ __git_heads ()
 	local pfx="${1-}" cur_="${2-}" sfx="${3-}"
 
 	__git for-each-ref --format="${pfx//\%/%%}%(refname:strip=2)$sfx" \
+			${GIT_COMPLETION_IGNORE_CASE+--ignore-case} \
 			"refs/heads/$cur_*" "refs/heads/$cur_*/**"
 }
 
@@ -659,6 +702,7 @@ __git_remote_heads ()
 	local pfx="${1-}" cur_="${2-}" sfx="${3-}"
 
 	__git for-each-ref --format="${pfx//\%/%%}%(refname:strip=2)$sfx" \
+			${GIT_COMPLETION_IGNORE_CASE+--ignore-case} \
 			"refs/remotes/$cur_*" "refs/remotes/$cur_*/**"
 }
 
@@ -669,6 +713,7 @@ __git_tags ()
 	local pfx="${1-}" cur_="${2-}" sfx="${3-}"
 
 	__git for-each-ref --format="${pfx//\%/%%}%(refname:strip=2)$sfx" \
+			${GIT_COMPLETION_IGNORE_CASE+--ignore-case} \
 			"refs/tags/$cur_*" "refs/tags/$cur_*/**"
 }
 
@@ -688,6 +733,7 @@ __git_dwim_remote_heads ()
 	# but only output if the branch name is unique
 	__git for-each-ref --format="$fer_pfx%(refname:strip=3)$sfx" \
 		--sort="refname:strip=3" \
+		${GIT_COMPLETION_IGNORE_CASE+--ignore-case} \
 		"refs/remotes/*/$cur_*" "refs/remotes/*/$cur_*/**" | \
 	uniq -u
 }
@@ -712,6 +758,7 @@ __git_refs ()
 	local format refs
 	local pfx="${3-}" cur_="${4-$cur}" sfx="${5-}"
 	local match="${4-}"
+	local umatch="${4-}"
 	local fer_pfx="${pfx//\%/%%}" # "escape" for-each-ref format specifiers
 
 	__git_find_repo_path
@@ -735,12 +782,19 @@ __git_refs ()
 		fi
 	fi
 
+	if test "${GIT_COMPLETION_IGNORE_CASE:+1}" = "1"
+	then
+		# uppercase with tr instead of ${match,^^} for bash 3.2 compatibility
+		umatch=$(echo "$match" | tr a-z A-Z 2>/dev/null || echo "$match")
+	fi
+
 	if [ "$list_refs_from" = path ]; then
 		if [[ "$cur_" == ^* ]]; then
 			pfx="$pfx^"
 			fer_pfx="$fer_pfx^"
 			cur_=${cur_#^}
 			match=${match#^}
+			umatch=${umatch#^}
 		fi
 		case "$cur_" in
 		refs|refs/*)
@@ -749,9 +803,9 @@ __git_refs ()
 			track=""
 			;;
 		*)
-			for i in HEAD FETCH_HEAD ORIG_HEAD MERGE_HEAD REBASE_HEAD CHERRY_PICK_HEAD; do
+			for i in HEAD FETCH_HEAD ORIG_HEAD MERGE_HEAD REBASE_HEAD CHERRY_PICK_HEAD REVERT_HEAD BISECT_HEAD AUTO_MERGE; do
 				case "$i" in
-				$match*)
+				$match*|$umatch*)
 					if [ -e "$dir/$i" ]; then
 						echo "$pfx$i$sfx"
 					fi
@@ -765,6 +819,7 @@ __git_refs ()
 			;;
 		esac
 		__git_dir="$dir" __git for-each-ref --format="$fer_pfx%($format)$sfx" \
+			${GIT_COMPLETION_IGNORE_CASE+--ignore-case} \
 			"${refs[@]}"
 		if [ -n "$track" ]; then
 			__git_dwim_remote_heads "$pfx" "$match" "$sfx"
@@ -784,15 +839,16 @@ __git_refs ()
 	*)
 		if [ "$list_refs_from" = remote ]; then
 			case "HEAD" in
-			$match*)	echo "${pfx}HEAD$sfx" ;;
+			$match*|$umatch*)	echo "${pfx}HEAD$sfx" ;;
 			esac
 			__git for-each-ref --format="$fer_pfx%(refname:strip=3)$sfx" \
+				${GIT_COMPLETION_IGNORE_CASE+--ignore-case} \
 				"refs/remotes/$remote/$match*" \
 				"refs/remotes/$remote/$match*/**"
 		else
 			local query_symref
 			case "HEAD" in
-			$match*)	query_symref="HEAD" ;;
+			$match*|$umatch*)	query_symref="HEAD" ;;
 			esac
 			__git ls-remote "$remote" $query_symref \
 				"refs/tags/$match*" "refs/heads/$match*" \
@@ -1162,7 +1218,7 @@ __git_aliased_command ()
 			:)	: skip null command ;;
 			\'*)	: skip opening quote after sh -c ;;
 			*)
-				cur="$word"
+				cur="${word%;}"
 				break
 			esac
 		done
@@ -1427,12 +1483,32 @@ _git_bisect ()
 {
 	__git_has_doubledash && return
 
-	local subcommands="start bad good skip reset visualize replay log run"
-	local subcommand="$(__git_find_on_cmdline "$subcommands")"
+	__git_find_repo_path
+
+	# If a bisection is in progress get the terms being used.
+	local term_bad term_good
+	if [ -f "$__git_repo_path"/BISECT_TERMS ]; then
+		term_bad=$(__git bisect terms --term-bad)
+		term_good=$(__git bisect terms --term-good)
+	fi
+
+	# We will complete any custom terms, but still always complete the
+	# more usual bad/new/good/old because git bisect gives a good error
+	# message if these are given when not in use, and that's better than
+	# silent refusal to complete if the user is confused.
+	#
+	# We want to recognize 'view' but not complete it, because it overlaps
+	# with 'visualize' too much and is just an alias for it.
+	#
+	local completable_subcommands="start bad new $term_bad good old $term_good terms skip reset visualize replay log run help"
+	local all_subcommands="$completable_subcommands view"
+
+	local subcommand="$(__git_find_on_cmdline "$all_subcommands")"
+
 	if [ -z "$subcommand" ]; then
 		__git_find_repo_path
 		if [ -f "$__git_repo_path"/BISECT_START ]; then
-			__gitcomp "$subcommands"
+			__gitcomp "$completable_subcommands"
 		else
 			__gitcomp "replay start"
 		fi
@@ -1440,7 +1516,26 @@ _git_bisect ()
 	fi
 
 	case "$subcommand" in
-	bad|good|reset|skip|start)
+	start)
+		case "$cur" in
+		--*)
+			__gitcomp "--first-parent --no-checkout --term-new --term-bad --term-old --term-good"
+			return
+			;;
+		*)
+			__git_complete_refs
+			;;
+		esac
+		;;
+	terms)
+		__gitcomp "--term-good --term-old --term-bad --term-new"
+		return
+		;;
+	visualize|view)
+		__git_complete_log_opts
+		return
+		;;
+	bad|new|"$term_bad"|good|old|"$term_good"|reset|skip)
 		__git_complete_refs
 		;;
 	*)
@@ -1587,7 +1682,7 @@ _git_checkout ()
 
 		if [ -n "$(__git_find_on_cmdline "-b -B -d --detach --orphan")" ]; then
 			__git_complete_refs --mode="refs"
-		elif [ -n "$(__git_find_on_cmdline "--track")" ]; then
+		elif [ -n "$(__git_find_on_cmdline "-t --track")" ]; then
 			__git_complete_refs --mode="remote-heads"
 		else
 			__git_complete_refs $dwim_opt --mode="refs"
@@ -1602,8 +1697,7 @@ __git_cherry_pick_inprogress_options=$__git_sequencer_inprogress_options
 
 _git_cherry_pick ()
 {
-	__git_find_repo_path
-	if [ -f "$__git_repo_path"/CHERRY_PICK_HEAD ]; then
+	if __git_pseudoref_exists CHERRY_PICK_HEAD; then
 		__gitcomp "$__git_cherry_pick_inprogress_options"
 		return
 	fi
@@ -1657,6 +1751,11 @@ _git_clone ()
 
 __git_untracked_file_modes="all no normal"
 
+__git_trailer_tokens ()
+{
+	__git config --name-only --get-regexp '^trailer\..*\.key$' | cut -d. -f 2- | rev | cut -d. -f2- | rev
+}
+
 _git_commit ()
 {
 	case "$prev" in
@@ -1679,6 +1778,10 @@ _git_commit ()
 		;;
 	--untracked-files=*)
 		__gitcomp "$__git_untracked_file_modes" "" "${cur##--untracked-files=}"
+		return
+		;;
+	--trailer=*)
+		__gitcomp_nl "$(__git_trailer_tokens)" "" "${cur##--trailer=}" ":"
 		return
 		;;
 	--*)
@@ -1713,32 +1816,44 @@ __git_color_moved_opts="no default plain blocks zebra dimmed-zebra"
 __git_color_moved_ws_opts="no ignore-space-at-eol ignore-space-change
 			ignore-all-space allow-indentation-change"
 
+__git_ws_error_highlight_opts="context old new all default"
+
+# Options for the diff machinery (diff, log, show, stash, range-diff, ...)
 __git_diff_common_options="--stat --numstat --shortstat --summary
 			--patch-with-stat --name-only --name-status --color
 			--no-color --color-words --no-renames --check
 			--color-moved --color-moved= --no-color-moved
 			--color-moved-ws= --no-color-moved-ws
 			--full-index --binary --abbrev --diff-filter=
+			--find-copies --find-object --find-renames
+			--no-relative --relative
 			--find-copies-harder --ignore-cr-at-eol
 			--text --ignore-space-at-eol --ignore-space-change
 			--ignore-all-space --ignore-blank-lines --exit-code
-			--quiet --ext-diff --no-ext-diff
+			--quiet --ext-diff --no-ext-diff --unified=
 			--no-prefix --src-prefix= --dst-prefix=
-			--inter-hunk-context=
+			--inter-hunk-context= --function-context
 			--patience --histogram --minimal
 			--raw --word-diff --word-diff-regex=
 			--dirstat --dirstat= --dirstat-by-file
 			--dirstat-by-file= --cumulative
-			--diff-algorithm=
+			--diff-algorithm= --default-prefix
 			--submodule --submodule= --ignore-submodules
 			--indent-heuristic --no-indent-heuristic
-			--textconv --no-textconv
-			--patch --no-patch
-			--anchored=
+			--textconv --no-textconv --break-rewrites
+			--patch --no-patch --cc --combined-all-paths
+			--anchored= --compact-summary --ignore-matching-lines=
+			--irreversible-delete --line-prefix --no-stat
+			--output= --output-indicator-context=
+			--output-indicator-new= --output-indicator-old=
+			--ws-error-highlight=
+			--pickaxe-all --pickaxe-regex --patch-with-raw
 "
 
-__git_diff_difftool_options="--cached --staged --pickaxe-all --pickaxe-regex
-			--base --ours --theirs --no-index --relative --merge-base
+# Options for diff/difftool
+__git_diff_difftool_options="--cached --staged
+			--base --ours --theirs --no-index --merge-base
+			--ita-invisible-in-index --ita-visible-in-index
 			$__git_diff_common_options"
 
 _git_diff ()
@@ -1760,6 +1875,10 @@ _git_diff ()
 		;;
 	--color-moved-ws=*)
 		__gitcomp "$__git_color_moved_ws_opts" "" "${cur##--color-moved-ws=}"
+		return
+		;;
+	--ws-error-highlight=*)
+		__gitcomp "$__git_ws_error_highlight_opts" "" "${cur##--ws-error-highlight=}"
 		return
 		;;
 	--*)
@@ -1992,6 +2111,16 @@ __git_log_common_options="
 	--min-age= --until= --before=
 	--min-parents= --max-parents=
 	--no-min-parents --no-max-parents
+	--alternate-refs --ancestry-path
+	--author-date-order --basic-regexp
+	--bisect --boundary --exclude-first-parent-only
+	--exclude-hidden --extended-regexp
+	--fixed-strings --grep-reflog
+	--ignore-missing --left-only --perl-regexp
+	--reflog --regexp-ignore-case --remove-empty
+	--right-only --show-linear-break
+	--show-notes-by-default --show-pulls
+	--since-as-filter --single-worktree
 "
 # Options that go well for log and gitk (not shortlog)
 __git_log_gitk_options="
@@ -2004,17 +2133,26 @@ __git_log_shortlog_options="
 	--author= --committer= --grep=
 	--all-match --invert-grep
 "
+# Options accepted by log and show
+__git_log_show_options="
+	--diff-merges --diff-merges= --no-diff-merges --dd --remerge-diff
+	--encoding=
+"
+
+__git_diff_merges_opts="off none on first-parent 1 separate m combined c dense-combined cc remerge r"
 
 __git_log_pretty_formats="oneline short medium full fuller reference email raw format: tformat: mboxrd"
 __git_log_date_formats="relative iso8601 iso8601-strict rfc2822 short local default human raw unix auto: format:"
 
-_git_log ()
+# Complete porcelain (i.e. not git-rev-list) options and at least some
+# option arguments accepted by git-log.  Note that this same set of options
+# are also accepted by some other git commands besides git-log.
+__git_complete_log_opts ()
 {
-	__git_has_doubledash && return
-	__git_find_repo_path
+	COMPREPLY=()
 
 	local merge=""
-	if [ -f "$__git_repo_path/MERGE_HEAD" ]; then
+	if __git_pseudoref_exists MERGE_HEAD; then
 		merge="--merge"
 	fi
 	case "$prev,$cur" in
@@ -2052,15 +2190,24 @@ _git_log ()
 		__gitcomp "$__git_diff_submodule_formats" "" "${cur##--submodule=}"
 		return
 		;;
+	--ws-error-highlight=*)
+		__gitcomp "$__git_ws_error_highlight_opts" "" "${cur##--ws-error-highlight=}"
+		return
+		;;
 	--no-walk=*)
 		__gitcomp "sorted unsorted" "" "${cur##--no-walk=}"
 		return
 		;;
+	--diff-merges=*)
+                __gitcomp "$__git_diff_merges_opts" "" "${cur##--diff-merges=}"
+                return
+                ;;
 	--*)
 		__gitcomp "
 			$__git_log_common_options
 			$__git_log_shortlog_options
 			$__git_log_gitk_options
+			$__git_log_show_options
 			--root --topo-order --date-order --reverse
 			--follow --full-diff
 			--abbrev-commit --no-abbrev-commit --abbrev=
@@ -2075,9 +2222,10 @@ _git_log ()
 			--no-walk --no-walk= --do-walk
 			--parents --children
 			--expand-tabs --expand-tabs= --no-expand-tabs
+			--clear-decorations --decorate-refs=
+			--decorate-refs-exclude=
 			$merge
 			$__git_diff_common_options
-			--pickaxe-all --pickaxe-regex
 			"
 		return
 		;;
@@ -2097,6 +2245,16 @@ _git_log ()
 		return
 		;;
 	esac
+}
+
+_git_log ()
+{
+	__git_has_doubledash && return
+	__git_find_repo_path
+
+	__git_complete_log_opts
+        [ ${#COMPREPLY[@]} -eq 0 ] || return
+
 	__git_complete_revlist
 }
 
@@ -2464,7 +2622,7 @@ _git_switch ()
 
 		if [ -n "$(__git_find_on_cmdline "-c -C -d --detach")" ]; then
 			__git_complete_refs --mode="refs"
-		elif [ -n "$(__git_find_on_cmdline "--track")" ]; then
+		elif [ -n "$(__git_find_on_cmdline "-t --track")" ]; then
 			__git_complete_refs --mode="remote-heads"
 		else
 			__git_complete_refs $dwim_opt --mode="heads"
@@ -2500,6 +2658,31 @@ __git_compute_config_vars ()
 {
 	test -n "$__git_config_vars" ||
 	__git_config_vars="$(git help --config-for-completion)"
+}
+
+__git_config_vars_all=
+__git_compute_config_vars_all ()
+{
+	test -n "$__git_config_vars_all" ||
+	__git_config_vars_all="$(git --no-pager help --config)"
+}
+
+__git_compute_first_level_config_vars_for_section ()
+{
+	local section="$1"
+	__git_compute_config_vars
+	local this_section="__git_first_level_config_vars_for_section_${section}"
+	test -n "${!this_section}" ||
+	printf -v "__git_first_level_config_vars_for_section_${section}" %s "$(echo "$__git_config_vars" | grep -E "^${section}\.[a-z]" | awk -F. '{print $2}')"
+}
+
+__git_compute_second_level_config_vars_for_section ()
+{
+	local section="$1"
+	__git_compute_config_vars_all
+	local this_section="__git_second_level_config_vars_for_section_${section}"
+	test -n "${!this_section}" ||
+	printf -v "__git_second_level_config_vars_for_section_${section}" %s "$(echo "$__git_config_vars_all" | grep -E "^${section}\.<" | awk -F. '{print $3}')"
 }
 
 __git_config_sections=
@@ -2646,73 +2829,50 @@ __git_complete_config_variable_name ()
 	done
 
 	case "$cur_" in
-	branch.*.*)
+	branch.*.*|guitool.*.*|difftool.*.*|man.*.*|mergetool.*.*|remote.*.*|submodule.*.*|url.*.*)
 		local pfx="${cur_%.*}."
 		cur_="${cur_##*.}"
-		__gitcomp "remote pushRemote merge mergeOptions rebase" "$pfx" "$cur_" "$sfx"
+		local section="${pfx%.*.}"
+		__git_compute_second_level_config_vars_for_section "${section}"
+		local this_section="__git_second_level_config_vars_for_section_${section}"
+		__gitcomp "${!this_section}" "$pfx" "$cur_" "$sfx"
 		return
 		;;
 	branch.*)
 		local pfx="${cur_%.*}."
 		cur_="${cur_#*.}"
+		local section="${pfx%.}"
 		__gitcomp_direct "$(__git_heads "$pfx" "$cur_" ".")"
-		__gitcomp_nl_append $'autoSetupMerge\nautoSetupRebase\n' "$pfx" "$cur_" "${sfx- }"
-		return
-		;;
-	guitool.*.*)
-		local pfx="${cur_%.*}."
-		cur_="${cur_##*.}"
-		__gitcomp "
-			argPrompt cmd confirm needsFile noConsole noRescan
-			prompt revPrompt revUnmerged title
-			" "$pfx" "$cur_" "$sfx"
-		return
-		;;
-	difftool.*.*)
-		local pfx="${cur_%.*}."
-		cur_="${cur_##*.}"
-		__gitcomp "cmd path" "$pfx" "$cur_" "$sfx"
-		return
-		;;
-	man.*.*)
-		local pfx="${cur_%.*}."
-		cur_="${cur_##*.}"
-		__gitcomp "cmd path" "$pfx" "$cur_" "$sfx"
-		return
-		;;
-	mergetool.*.*)
-		local pfx="${cur_%.*}."
-		cur_="${cur_##*.}"
-		__gitcomp "cmd path trustExitCode" "$pfx" "$cur_" "$sfx"
+		__git_compute_first_level_config_vars_for_section "${section}"
+		local this_section="__git_first_level_config_vars_for_section_${section}"
+		__gitcomp_nl_append "${!this_section}" "$pfx" "$cur_" "${sfx:- }"
 		return
 		;;
 	pager.*)
 		local pfx="${cur_%.*}."
 		cur_="${cur_#*.}"
 		__git_compute_all_commands
-		__gitcomp_nl "$__git_all_commands" "$pfx" "$cur_" "${sfx- }"
-		return
-		;;
-	remote.*.*)
-		local pfx="${cur_%.*}."
-		cur_="${cur_##*.}"
-		__gitcomp "
-			url proxy fetch push mirror skipDefaultUpdate
-			receivepack uploadpack tagOpt pushurl
-			" "$pfx" "$cur_" "$sfx"
+		__gitcomp_nl "$__git_all_commands" "$pfx" "$cur_" "${sfx:- }"
 		return
 		;;
 	remote.*)
 		local pfx="${cur_%.*}."
 		cur_="${cur_#*.}"
+		local section="${pfx%.}"
 		__gitcomp_nl "$(__git_remotes)" "$pfx" "$cur_" "."
-		__gitcomp_nl_append "pushDefault" "$pfx" "$cur_" "${sfx- }"
+		__git_compute_first_level_config_vars_for_section "${section}"
+		local this_section="__git_first_level_config_vars_for_section_${section}"
+		__gitcomp_nl_append "${!this_section}" "$pfx" "$cur_" "${sfx:- }"
 		return
 		;;
-	url.*.*)
+	submodule.*)
 		local pfx="${cur_%.*}."
-		cur_="${cur_##*.}"
-		__gitcomp "insteadOf pushInsteadOf" "$pfx" "$cur_" "$sfx"
+		cur_="${cur_#*.}"
+		local section="${pfx%.}"
+		__gitcomp_nl "$(__git config -f "$(__git rev-parse --show-toplevel)/.gitmodules" --get-regexp 'submodule.*.path' | awk -F. '{print $2}')" "$pfx" "$cur_" "."
+		__git_compute_first_level_config_vars_for_section "${section}"
+		local this_section="__git_first_level_config_vars_for_section_${section}"
+		__gitcomp_nl_append "${!this_section}" "$pfx" "$cur_" "${sfx:- }"
 		return
 		;;
 	*.*)
@@ -2891,7 +3051,7 @@ _git_restore ()
 		__gitcomp_builtin restore
 		;;
 	*)
-		if __git rev-parse --verify --quiet HEAD >/dev/null; then
+		if __git_pseudoref_exists HEAD; then
 			__git_complete_index_file "--modified"
 		fi
 	esac
@@ -2901,8 +3061,7 @@ __git_revert_inprogress_options=$__git_sequencer_inprogress_options
 
 _git_revert ()
 {
-	__git_find_repo_path
-	if [ -f "$__git_repo_path"/REVERT_HEAD ]; then
+	if __git_pseudoref_exists REVERT_HEAD; then
 		__gitcomp "$__git_revert_inprogress_options"
 		return
 	fi
@@ -2972,10 +3131,19 @@ _git_show ()
 		__gitcomp "$__git_color_moved_ws_opts" "" "${cur##--color-moved-ws=}"
 		return
 		;;
+	--ws-error-highlight=*)
+		__gitcomp "$__git_ws_error_highlight_opts" "" "${cur##--ws-error-highlight=}"
+		return
+		;;
+	--diff-merges=*)
+                __gitcomp "$__git_diff_merges_opts" "" "${cur##--diff-merges=}"
+                return
+                ;;
 	--*)
 		__gitcomp "--pretty= --format= --abbrev-commit --no-abbrev-commit
 			--oneline --show-signature
 			--expand-tabs --expand-tabs= --no-expand-tabs
+			$__git_log_show_options
 			$__git_diff_common_options
 			"
 		return
@@ -3014,12 +3182,119 @@ __gitcomp_directories ()
 			COMPREPLY+=("$c/")
 			_found=1
 		fi
-	done < <(git ls-tree -z -d --name-only HEAD $_tmp_dir)
+	done < <(__git ls-tree -z -d --name-only HEAD $_tmp_dir)
 
 	if [[ $_found == 0 ]] && [[ "$cur" =~ /$ ]]; then
 		# No possible further completions any deeper, so assume we're at
 		# a leaf directory and just consider it complete
 		__gitcomp_direct_append "$cur "
+	elif [[ $_found == 0 ]]; then
+		# No possible completions found.  Avoid falling back to
+		# bash's default file and directory completion, because all
+		# valid completions have already been searched and the
+		# fallbacks can do nothing but mislead.  In fact, they can
+		# mislead in three different ways:
+		#    1) Fallback file completion makes no sense when asking
+		#       for directory completions, as this function does.
+		#    2) Fallback directory completion is bad because
+		#       e.g. "/pro" is invalid and should NOT complete to
+		#       "/proc".
+		#    3) Fallback file/directory completion only completes
+		#       on paths that exist in the current working tree,
+		#       i.e. which are *already* part of their
+		#       sparse-checkout.  Thus, normal file and directory
+		#       completion is always useless for "git
+		#       sparse-checkout add" and is also probelmatic for
+		#       "git sparse-checkout set" unless using it to
+		#       strictly narrow the checkout.
+		COMPREPLY=( "" )
+	fi
+}
+
+# In non-cone mode, the arguments to {set,add} are supposed to be
+# patterns, relative to the toplevel directory.  These can be any kind
+# of general pattern, like 'subdir/*.c' and we can't complete on all
+# of those.  However, if the user presses Tab to get tab completion, we
+# presume that they are trying to provide a pattern that names a specific
+# path.
+__gitcomp_slash_leading_paths ()
+{
+	local dequoted_word pfx="" cur_ toplevel
+
+	# Since we are dealing with a sparse-checkout, subdirectories may not
+	# exist in the local working copy.  Therefore, we want to run all
+	# ls-files commands relative to the repository toplevel.
+	toplevel="$(git rev-parse --show-toplevel)/"
+
+	__git_dequote "$cur"
+
+	# If the paths provided by the user already start with '/', then
+	# they are considered relative to the toplevel of the repository
+	# already.  If they do not start with /, then we need to adjust
+	# them to start with the appropriate prefix.
+	case "$cur" in
+	/*)
+		cur="${cur:1}"
+		;;
+	*)
+		pfx="$(__git rev-parse --show-prefix)"
+	esac
+
+	# Since sparse-index is limited to cone-mode, in non-cone-mode the
+	# list of valid paths is precisely the cached files in the index.
+	#
+	# NEEDSWORK:
+	#   1) We probably need to take care of cases where ls-files
+	#      responds with special quoting.
+	#   2) We probably need to take care of cases where ${cur} has
+	#      some kind of special quoting.
+	#   3) On top of any quoting from 1 & 2, we have to provide an extra
+	#      level of quoting for any paths that contain a '*', '?', '\',
+	#      '[', ']', or leading '#' or '!' since those will be
+	#      interpreted by sparse-checkout as something other than a
+	#      literal path character.
+	# Since there are two types of quoting here, this might get really
+	# complex.  For now, just punt on all of this...
+	completions="$(__git -C "${toplevel}" -c core.quotePath=false \
+			 ls-files --cached -- "${pfx}${cur}*" \
+			 | sed -e s%^%/% -e 's%$% %')"
+	# Note, above, though that we needed all of the completions to be
+	# prefixed with a '/', and we want to add a space so that bash
+	# completion will actually complete an entry and let us move on to
+	# the next one.
+
+	# Return what we've found.
+	if test -n "$completions"; then
+		# We found some completions; return them
+		local IFS=$'\n'
+		COMPREPLY=($completions)
+	else
+		# Do NOT fall back to bash-style all-local-files-and-dirs
+		# when we find no match.  Such options are worse than
+		# useless:
+		#     1. "git sparse-checkout add" needs paths that are NOT
+		#        currently in the working copy.  "git
+		#        sparse-checkout set" does as well, except in the
+		#        special cases when users are only trying to narrow
+		#        their sparse checkout to a subset of what they
+		#        already have.
+		#
+		#     2. A path like '.config' is ambiguous as to whether
+		#        the user wants all '.config' files throughout the
+		#        tree, or just the one under the current directory.
+		#        It would result in a warning from the
+		#        sparse-checkout command due to this.  As such, all
+		#        completions of paths should be prefixed with a
+		#        '/'.
+		#
+		#     3. We don't want paths prefixed with a '/' to
+		#        complete files in the system root directory, we
+		#        want it to complete on files relative to the
+		#        repository root.
+		#
+		# As such, make sure that NO completions are offered rather
+		# than falling back to bash's default completions.
+		COMPREPLY=( "" )
 	fi
 }
 
@@ -3027,6 +3302,7 @@ _git_sparse_checkout ()
 {
 	local subcommands="list init set disable add reapply"
 	local subcommand="$(__git_find_on_cmdline "$subcommands")"
+	local using_cone=true
 	if [ -z "$subcommand" ]; then
 		__gitcomp "$subcommands"
 		return
@@ -3037,9 +3313,18 @@ _git_sparse_checkout ()
 		__gitcomp_builtin sparse-checkout_$subcommand "" "--"
 		;;
 	set,*|add,*)
-		if [ "$(__git config core.sparseCheckoutCone)" == "true" ] ||
-		[ -n "$(__git_find_on_cmdline --cone)" ]; then
+		if [[ "$(__git config core.sparseCheckout)" == "true" &&
+		      "$(__git config core.sparseCheckoutCone)" == "false" &&
+		      -z "$(__git_find_on_cmdline --cone)" ]]; then
+			using_cone=false
+		fi
+		if [[ -n "$(__git_find_on_cmdline --no-cone)" ]]; then
+			using_cone=false
+		fi
+		if [[ "$using_cone" == "true" ]]; then
 			__gitcomp_directories
+		else
+			 __gitcomp_slash_leading_paths
 		fi
 	esac
 }
@@ -3522,7 +3807,7 @@ __gitk_main ()
 	__git_find_repo_path
 
 	local merge=""
-	if [ -f "$__git_repo_path/MERGE_HEAD" ]; then
+	if __git_pseudoref_exists MERGE_HEAD; then
 		merge="--merge"
 	fi
 	case "$cur" in

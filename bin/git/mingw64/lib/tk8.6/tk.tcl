@@ -11,7 +11,7 @@
 # this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
 # Verify that we have Tk binary and script components from the same release
-package require -exact Tk  8.6.11
+package require -exact Tk  8.6.12
 
 # Create a ::tk namespace
 namespace eval ::tk {
@@ -460,7 +460,7 @@ switch -exact -- [tk windowingsystem] {
 	event add <<ContextMenu>>	<Button-2>
 
 	# Official bindings
-	# See http://support.apple.com/kb/HT1343
+	# See https://support.apple.com/en-us/HT201236
 	event add <<SelectAll>>		<Command-Key-a>
 	event add <<Undo>>		<Command-Key-z> <Command-Lock-Key-Z>
 	event add <<Redo>>		<Shift-Command-Key-z> <Shift-Command-Lock-Key-z>

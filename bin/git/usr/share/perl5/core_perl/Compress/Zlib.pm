@@ -7,17 +7,17 @@ use Carp ;
 use IO::Handle ;
 use Scalar::Util qw(dualvar);
 
-use IO::Compress::Base::Common 2.106 ;
-use Compress::Raw::Zlib 2.103 ;
-use IO::Compress::Gzip 2.106 ;
-use IO::Uncompress::Gunzip 2.106 ;
+use IO::Compress::Base::Common 2.204 ;
+use Compress::Raw::Zlib 2.204 ;
+use IO::Compress::Gzip 2.204 ;
+use IO::Uncompress::Gunzip 2.204 ;
 
 use strict ;
 use warnings ;
 use bytes ;
 our ($VERSION, $XS_VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 
-$VERSION = '2.106';
+$VERSION = '2.204';
 $XS_VERSION = $VERSION;
 $VERSION = eval $VERSION;
 
@@ -461,7 +461,7 @@ sub inflate
 
 package Compress::Zlib ;
 
-use IO::Compress::Gzip::Constants 2.106 ;
+use IO::Compress::Gzip::Constants 2.204 ;
 
 sub memGzip($)
 {
@@ -1494,6 +1494,9 @@ C<gzip@prep.ai.mit.edu> and Mark Adler C<madler@alumni.caltech.edu>.
 The primary site for the I<zlib> compression library is
 L<http://www.zlib.org>.
 
+The primary site for the I<zlib-ng> compression library is
+L<https://github.com/zlib-ng/zlib-ng>.
+
 The primary site for gzip is L<http://www.gzip.org>.
 
 =head1 AUTHOR
@@ -1506,7 +1509,7 @@ See the Changes file.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 1995-2022 Paul Marquess. All rights reserved.
+Copyright (c) 1995-2023 Paul Marquess. All rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

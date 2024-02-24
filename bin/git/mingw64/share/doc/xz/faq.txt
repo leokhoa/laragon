@@ -33,7 +33,7 @@ A:  7-Zip and LZMA SDK are the original projects. LZMA SDK is roughly
     LZMA Utils.
 
     There are several other projects using LZMA. Most are more or less
-    based on LZMA SDK. See <http://7-zip.org/links.html>.
+    based on LZMA SDK. See <https://7-zip.org/links.html>.
 
 
 Q:  Why is liblzma named liblzma if its primary file format is .xz?
@@ -115,7 +115,6 @@ Q:  I cannot find BCJ and BCJ2 filters. Don't they exist in liblzma?
 
 A:  BCJ filter is called "x86" in liblzma. BCJ2 is not included,
     because it requires using more than one encoded output stream.
-    A streamable version of BCJ2-style filtering is planned.
 
 
 Q:  I need to use a script that runs "xz -9". On a system with 256 MiB
@@ -154,19 +153,15 @@ A:  See the documentation in XZ Embedded. In short, something like
     dictionary doesn't increase memory usage.
 
 
-Q:  Will xz support threaded compression?
+Q:  How is multi-threaded compression implemented in XZ Utils?
 
-A:  It is planned and has been taken into account when designing
-    the .xz file format. Eventually there will probably be three types
-    of threading, each method having its own advantages and disadvantages.
-
-    The simplest method is splitting the uncompressed data into blocks
+A:  The simplest method is splitting the uncompressed data into blocks
     and compressing them in parallel independent from each other.
+    This is currently the only threading method supported in XZ Utils.
     Since the blocks are compressed independently, they can also be
     decompressed independently. Together with the index feature in .xz,
     this allows using threads to create .xz files for random-access
-    reading. This also makes threaded decompression possible, although
-    it is not clear if threaded decompression will ever be implemented.
+    reading. This also makes threaded decompression possible.
 
     The independent blocks method has a couple of disadvantages too. It
     will compress worse than a single-block method. Often the difference
@@ -174,15 +169,17 @@ A:  It is planned and has been taken into account when designing
     the memory usage of the compressor increases linearly when adding
     threads.
 
-    Match finder parallelization is another threading method. It has
-    been in 7-Zip for ages. It doesn't affect compression ratio or
-    memory usage significantly. Among the three threading methods, only
-    this is useful when compressing small files (files that are not
-    significantly bigger than the dictionary). Unfortunately this method
-    scales only to about two CPU cores.
+    At least two other threading methods are possible but these haven't
+    been implemented in XZ Utils:
+
+    Match finder parallelization has been in 7-Zip for ages. It doesn't
+    affect compression ratio or memory usage significantly. Among the
+    three threading methods, only this is useful when compressing small
+    files (files that are not significantly bigger than the dictionary).
+    Unfortunately this method scales only to about two CPU cores.
 
     The third method is pigz-style threading (I use that name, because
-    pigz <http://www.zlib.net/pigz/> uses that method). It doesn't
+    pigz <https://www.zlib.net/pigz/> uses that method). It doesn't
     affect compression ratio significantly and scales to many cores.
     The memory usage scales linearly when threads are added. This isn't
     significant with pigz, because Deflate uses only a 32 KiB dictionary,
@@ -193,12 +190,35 @@ A:  It is planned and has been taken into account when designing
     cores the overhead is not a big deal anymore.
 
     Combining the threading methods will be possible and also useful.
-    E.g. combining match finder parallelization with pigz-style threading
-    can cut the memory usage by 50 %.
+    For example, combining match finder parallelization with pigz-style
+    threading or independent-blocks-threading can cut the memory usage
+    by 50 %.
 
-    It is possible that the single-threaded method will be modified to
-    create files identical to the pigz-style method. We'll see once
-    pigz-style threading has been implemented in liblzma.
+
+Q:  I told xz to use many threads but it is using only one or two
+    processor cores. What is wrong?
+
+A:  Since multi-threaded compression is done by splitting the data into
+    blocks that are compressed individually, if the input file is too
+    small for the block size, then many threads cannot be used. The
+    default block size increases when the compression level is
+    increased. For example, xz -6 uses 8 MiB LZMA2 dictionary and
+    24 MiB blocks, and xz -9 uses 64 MiB LZMA dictionary and 192 MiB
+    blocks. If the input file is 100 MiB, xz -6 can use five threads
+    of which one will finish quickly as it has only 4 MiB to compress.
+    However, for the same file, xz -9 can only use one thread.
+
+    One can adjust block size with --block-size=SIZE but making the
+    block size smaller than LZMA2 dictionary is waste of RAM: using
+    xz -9 with 6 MiB blocks isn't any better than using xz -6 with
+    6 MiB blocks. The default settings use a block size bigger than
+    the LZMA2 dictionary size because this was seen as a reasonable
+    compromise between RAM usage and compression ratio.
+
+    When decompressing, the ability to use threads depends on how the
+    file was created. If it was created in multi-threaded mode then
+    it can be decompressed in multi-threaded mode too if there are
+    multiple blocks in the file.
 
 
 Q:  How do I build a program that needs liblzmadec (lzmadec.h)?
@@ -220,5 +240,5 @@ A:  Give --enable-small to the configure script. Use also appropriate
     If the result is still too big, take a look at XZ Embedded. It is
     a separate project, which provides a limited but significantly
     smaller XZ decoder implementation than XZ Utils. You can find it
-    at <https://tukaani.org/xz/embedded.html>.
+    at <https://xz.tukaani.org/xz-embedded/>.
 

@@ -94,7 +94,7 @@ use MIME::QuotedPrint;
 #------------------------------
 
 ### The package version, both in 1.23 style *and* usable by MakeMaker:
-$VERSION = "5.509";
+$VERSION = "5.510";
 
 ### Nonprintables (controls + x7F + 8bit):
 my $NONPRINT = "\\x00-\\x1F\\x7F-\\xFF";
@@ -338,7 +338,7 @@ MIME::Base64 and MIME::QuotedPrint.
 =head1 AUTHOR
 
 Eryq (F<eryq@zeegee.com>), ZeeGee Software Inc (F<http://www.zeegee.com>).
-Dianne Skoll (dfs@roaringpenguin.com) http://www.roaringpenguin.com
+Dianne Skoll (dianne@skoll.ca)
 
 All rights reserved.  This program is free software; you can redistribute
 it and/or modify it under the same terms as Perl itself.

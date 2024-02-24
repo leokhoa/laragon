@@ -7,7 +7,7 @@ use warnings;
 use Carp qw< carp croak >;
 use Math::BigInt::Lib;
 
-our $VERSION = '1.999830';
+our $VERSION = '1.999837';
 $VERSION =~ tr/_//d;
 
 our @ISA = ('Math::BigInt::Lib');
@@ -2248,6 +2248,7 @@ sub _from_bin {
 # special modulus functions
 
 sub _modinv {
+
     # modular multiplicative inverse
     my ($c, $x, $y) = @_;
 

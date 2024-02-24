@@ -1,7 +1,7 @@
 # Call.pm
 #
 # Copyright (c) 1995-2011 Paul Marquess. All rights reserved.
-# Copyright (c) 2011-2014 Reini Urban. All rights reserved.
+# Copyright (c) 2011-2014, 2018-2022 Reini Urban. All rights reserved.
 # Copyright (c) 2014-2017 cPanel Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or
@@ -18,7 +18,7 @@ use warnings;
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw( filter_add filter_del filter_read filter_read_exact) ;
-our $VERSION = "1.60" ;
+our $VERSION = "1.64" ;
 our $XS_VERSION = $VERSION;
 $VERSION = eval $VERSION;
 
@@ -528,7 +528,7 @@ Paul Marquess
 =head1 LICENSE
 
 Copyright (c) 1995-2011 Paul Marquess. All rights reserved.
-Copyright (c) 2011-2014 Reini Urban. All rights reserved.
+Copyright (c) 2011-2014, 2018-2022 Reini Urban. All rights reserved.
 Copyright (c) 2014-2017 cPanel Inc. All rights reserved.
 
 This program is free software; you can redistribute it and/or

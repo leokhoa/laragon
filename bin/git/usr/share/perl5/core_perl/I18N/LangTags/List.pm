@@ -4,7 +4,7 @@ package I18N::LangTags::List;
 #  Time-stamp: "2004-10-06 23:26:21 ADT"
 use strict;
 our (%Name, %Is_Disrec, $Debug);
-our $VERSION = '0.40';
+our $VERSION = '0.41';
 # POD at the end.
 
 #----------------------------------------------------------------------
@@ -353,9 +353,9 @@ eq Zend
 eq Azeri
 
 Notable forms:
-{az-Arab} Azerbaijani in Arabic script;
-{az-Cyrl} Azerbaijani in Cyrillic script;
-{az-Latn} Azerbaijani in Latin script.
+{az-arab} Azerbaijani in Arabic script;
+{az-cyrl} Azerbaijani in Cyrillic script;
+{az-latn} Azerbaijani in Latin script.
 
 =item {ban} : Balinese
 
@@ -473,8 +473,8 @@ eq Nyanja.  eq Chinyanja.
 
 Many forms are mutually un-intelligible in spoken media.
 Notable forms:
-{zh-Hans} Chinese, in simplified script;
-{zh-Hant} Chinese, in traditional script;
+{zh-hans} Chinese, in simplified script;
+{zh-hant} Chinese, in traditional script;
 {zh-tw} Taiwan Chinese;
 {zh-cn} PRC Chinese;
 {zh-sg} Singapore Chinese;
@@ -1370,8 +1370,8 @@ NOT Scots Gaelic!
 eq Serb.  NOT Sorbian.
 
 Notable forms:
-{sr-Cyrl} : Serbian in Cyrillic script;
-{sr-Latn} : Serbian in Latin script.
+{sr-cyrl} : Serbian in Cyrillic script;
+{sr-latn} : Serbian in Latin script.
 
 =item {srr} : Serer
 
@@ -1612,8 +1612,8 @@ Not a tag for normal use.
 eq E<Ouml>zbek
 
 Notable forms:
-{uz-Cyrl} Uzbek in Cyrillic script;
-{uz-Latn} Uzbek in Latin script.
+{uz-cyrl} Uzbek in Cyrillic script;
+{uz-latn} Uzbek in Latin script.
 
 =item {vai} : Vai
 

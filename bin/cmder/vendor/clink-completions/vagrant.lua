@@ -36,7 +36,7 @@ end
 local function delete_ruby_comment(line)
   if line == nil then return nil end
     local index = string.find(line, '#')
-    if (not (index == nil) and index > 0) then
+    if index and index > 0 then
         return string.sub(line, 0, index-1)
     end
   return line

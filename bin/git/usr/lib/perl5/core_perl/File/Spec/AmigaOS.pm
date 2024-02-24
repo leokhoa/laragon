@@ -3,7 +3,7 @@ package File::Spec::AmigaOS;
 use strict;
 require File::Spec::Unix;
 
-our $VERSION = '3.84';
+our $VERSION = '3.88';
 $VERSION =~ tr/_//d;
 
 our @ISA = qw(File::Spec::Unix);

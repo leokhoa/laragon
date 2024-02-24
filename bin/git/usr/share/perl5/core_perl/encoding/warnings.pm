@@ -1,5 +1,5 @@
 package encoding::warnings;
-$encoding::warnings::VERSION = '0.13';
+$encoding::warnings::VERSION = '0.14';
 
 use strict;
 use 5.007;
@@ -32,7 +32,7 @@ thereafter.
     use encoding::warnings; # or 'FATAL' to raise fatal exceptions
 
     utf8::encode($a = chr(20000));  # a byte-string (raw bytes)
-    $b = chr(20000);		    # a unicode-string (wide characters)
+    $b = chr(20000);                # a unicode-string (wide characters)
 
     # "Bytes implicitly upgraded into wide characters as iso-8859-1"
     $c = $a . $b;
@@ -133,9 +133,9 @@ some people:
     use encoding 'big5';
 
     my $byte_string = pack("C*", 0xA4, 0x40);
-    print length $a;	# 2 here.
-    $a .= "";		# concatenating with a unicode string...
-    print length $a;	# 1 here!
+    print length $a;    # 2 here.
+    $a .= "";           # concatenating with a unicode string...
+    print length $a;    # 1 here!
 
 In other words, do not C<use encoding> unless you are certain that the
 program will not deal with any raw, 8-bit binary data at all.
@@ -162,11 +162,11 @@ sub FATAL  () { 2 }
 
 sub import {
     if ($] >= 5.025003) {
-	require Carp;
-	Carp::cluck(
-	    "encoding::warnings is not supported on Perl 5.26.0 and later"
-	);
-	return;
+        require Carp;
+        Carp::cluck(
+            "encoding::warnings is not supported on Perl 5.26.0 and later"
+        );
+        return;
     }
 
     # Install a ${^ENCODING} handler if no other one are already in place.
@@ -185,11 +185,11 @@ sub import {
 
     # Install a warning handler for decode()
     my $decoder = bless(
-	[
-	    $ascii,
-	    $latin1,
-	    (($fatal eq 'FATAL') ? 'Carp::croak' : 'Carp::carp'),
-	], $class,
+        [
+            $ascii,
+            $latin1,
+            (($fatal eq 'FATAL') ? 'Carp::croak' : 'Carp::carp'),
+        ], $class,
     );
 
     no warnings 'deprecated';

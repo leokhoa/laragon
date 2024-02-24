@@ -2,7 +2,7 @@ package HTTP::Date;
 
 use strict;
 
-our $VERSION = '6.05';
+our $VERSION = '6.06';
 
 require Exporter;
 our @ISA       = qw(Exporter);
@@ -179,7 +179,7 @@ sub parse_date ($) {
 
         ||
 
-        # Windows 'dir' 11-12-96  03:52PM
+        # Windows 'dir': '11-12-96  03:52PM' and four-digit year variant
         (
         ( $mon, $day, $yr, $hr, $min, $ampm )
         = /^
@@ -187,7 +187,7 @@ sub parse_date ($) {
              -
           (\d{2})                # day
              -
-          (\d{2})                # year
+          (\d{2,4})              # year
              \s+
           (\d\d?):(\d\d)([APap][Mm])  # hour:min AM or PM
              \s*$
@@ -289,7 +289,7 @@ HTTP::Date - HTTP::Date - date conversion routines
 
 =head1 VERSION
 
-version 6.05
+version 6.06
 
 =head1 SYNOPSIS
 
@@ -378,7 +378,8 @@ The function is able to parse the following formats:
  "Feb  3  1994"      -- Unix 'ls -l' format
  "Feb  3 17:03"      -- Unix 'ls -l' format
 
- "11-15-96  03:52PM" -- Windows 'dir' format
+ "11-15-96  03:52PM"   -- Windows 'dir' format
+ "11-15-1996  03:52PM" -- Windows 'dir' format with four-digit year
 
 The parser ignores leading and trailing whitespace.  It also allow the
 seconds to be missing and the month to be numerical in most formats.
@@ -410,7 +411,7 @@ Gisle Aas <gisle@activestate.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 1995-2019 by Gisle Aas.
+This software is copyright (c) 1995 by Gisle Aas.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

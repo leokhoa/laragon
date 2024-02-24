@@ -12,7 +12,7 @@ BEGIN {
     our @ISA = qw< Math::BigInt::Calc >;
 }
 
-our $VERSION = '0.5012';
+our $VERSION = '0.5013';
 
 my $MAX_EXP_F;      # the maximum possible base 10 exponent with "no integer"
 my $MAX_EXP_I;      # the maximum possible base 10 exponent with "use integer"

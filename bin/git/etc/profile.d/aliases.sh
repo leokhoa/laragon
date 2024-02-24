@@ -10,7 +10,7 @@ xterm*)
 	# The following programs are known to require a Win32 Console
 	# for interactive usage, therefore let's launch them through winpty
 	# when run inside `mintty`.
-	for name in node ipython php php5 psql python2.7
+	for name in node ipython php php5 psql python2.7 winget
 	do
 		case "$(type -p "$name".exe 2>/dev/null)" in
 		''|/usr/bin/*) continue;;

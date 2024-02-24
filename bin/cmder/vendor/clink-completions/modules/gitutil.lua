@@ -2,6 +2,57 @@ local path = require('path')
 
 local exports = {}
 
+local function can_take_optional_locks(command) -- luacheck: no unused
+    local var = string.lower(os.getenv("GITUTIL_TAKE_OPTIONAL_LOCKS") or "")
+    if var == "" then
+        return false
+    end
+
+    if var == "true" or var == "1" then
+        return true
+    end
+
+    var = " " .. var:gsub("[ ;,]", " ") .. " "
+
+    local words = string.explode(string.lower(command))
+    if not words or not words[1] then
+        return false
+    end
+
+    local commands = string.explode(var)
+    for _, c in ipairs(commands) do
+        if words[1] == c then
+            return true
+        end
+    end
+
+    return false
+end
+
+---
+ -- Return a command line string to run the specified git command.  It will
+ -- include relevant global flags such as "--no-optional-locks", and also
+ -- "2>nul" to suppress stderr.
+ --
+ -- Currently it is just "git", but this function makes it possible in the
+ -- future to specify "git.exe" (bypass any git.bat or git.cmd scripts) and/or
+ -- add a fully qualified path.
+exports.make_command = function(command, dont_suppress_stderr)
+    command = command or ""
+
+    if not can_take_optional_locks(command) then
+        command = "--no-optional-locks " .. command
+    end
+
+    command = "git " .. command
+
+    if not dont_suppress_stderr then
+        command = "2>nul " .. command
+    end
+
+    return command
+end
+
 ---
  -- Resolves closest .git directory location.
  -- Navigates subsequently up one level and tries to find .git directory
@@ -42,7 +93,7 @@ exports.get_git_dir = function (start_dir)
     return has_git_dir(start_dir)
         or has_git_file(start_dir)
         -- Otherwise go up one level and make a recursive call
-        or (parent_path ~= start_dir and exports.get_git_dir(parent_path) or nil)
+        or (parent_path ~= '' and parent_path ~= start_dir and exports.get_git_dir(parent_path) or nil)
 end
 
 exports.get_git_common_dir = function (start_dir)

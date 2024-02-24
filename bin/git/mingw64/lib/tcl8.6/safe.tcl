@@ -131,7 +131,7 @@ proc ::safe::interpConfigure {args} {
 		[list -accessPath $state(access_path)] \
 		[list -statics    $state(staticsok)]   \
 		[list -nested     $state(nestedok)]    \
-	        [list -deleteHook $state(cleanupHook)]]]
+		[list -deleteHook $state(cleanupHook)]]]
 	}
 	2 {
 	    # If we have exactly 2 arguments the semantic is a "configure
@@ -982,7 +982,7 @@ proc ::safe::AliasSource {child args} {
     set replacementMsg "script error"
     set code [catch {
 	set f [open $realfile]
-	fconfigure $f -eofchar \032
+	fconfigure $f -eofchar "\032 {}"
 	if {$encoding ne ""} {
 	    fconfigure $f -encoding $encoding
 	}

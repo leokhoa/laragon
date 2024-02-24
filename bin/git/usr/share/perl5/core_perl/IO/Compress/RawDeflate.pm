@@ -6,16 +6,16 @@ use strict ;
 use warnings;
 use bytes;
 
-use IO::Compress::Base 2.106 ;
-use IO::Compress::Base::Common  2.106 qw(:Status :Parse);
-use IO::Compress::Adapter::Deflate 2.106 ;
-use Compress::Raw::Zlib  2.103 qw(Z_DEFLATED Z_DEFAULT_COMPRESSION Z_DEFAULT_STRATEGY);
+use IO::Compress::Base 2.204 ;
+use IO::Compress::Base::Common  2.204 qw(:Status :Parse);
+use IO::Compress::Adapter::Deflate 2.204 ;
+use Compress::Raw::Zlib  2.204 qw(Z_DEFLATED Z_DEFAULT_COMPRESSION Z_DEFAULT_STRATEGY);
 
 require Exporter ;
 
 our ($VERSION, @ISA, @EXPORT_OK, %DEFLATE_CONSTANTS, %EXPORT_TAGS, $RawDeflateError);
 
-$VERSION = '2.106';
+$VERSION = '2.204';
 $RawDeflateError = '';
 
 @ISA = qw(IO::Compress::Base Exporter);
@@ -995,6 +995,9 @@ C<gzip@prep.ai.mit.edu> and Mark Adler C<madler@alumni.caltech.edu>.
 The primary site for the I<zlib> compression library is
 L<http://www.zlib.org>.
 
+The primary site for the I<zlib-ng> compression library is
+L<https://github.com/zlib-ng/zlib-ng>.
+
 The primary site for gzip is L<http://www.gzip.org>.
 
 =head1 AUTHOR
@@ -1007,7 +1010,7 @@ See the Changes file.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2005-2022 Paul Marquess. All rights reserved.
+Copyright (c) 2005-2023 Paul Marquess. All rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

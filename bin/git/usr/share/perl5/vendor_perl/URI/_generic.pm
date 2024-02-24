@@ -8,12 +8,32 @@ use parent qw(URI URI::_query);
 use URI::Escape qw(uri_unescape);
 use Carp ();
 
-our $VERSION = '5.10';
+our $VERSION = '5.21';
 
-my $ACHAR = $URI::uric;  $ACHAR =~ s,\\[/?],,g;
-my $PCHAR = $URI::uric;  $PCHAR =~ s,\\[?],,g;
+my $ACHAR = URI::HAS_RESERVED_SQUARE_BRACKETS ? $URI::uric : $URI::uric4host;  $ACHAR =~ s,\\[/?],,g;
+my $PCHAR = $URI::uric;                                                        $PCHAR =~ s,\\[?],,g;
 
 sub _no_scheme_ok { 1 }
+
+our $IPv6_re;
+
+sub _looks_like_raw_ip6_address {
+  my $addr = shift;
+
+  if ( !$IPv6_re ) { #-- lazy / runs once / use Regexp::IPv6 if installed
+    eval {
+      require Regexp::IPv6;
+      Regexp::IPv6->import( qw($IPv6_re) );
+      1;
+    }  ||  do { $IPv6_re = qr/[:0-9a-f]{3,}/; }; #-- fallback: unambitious guess
+  }
+
+  return 0 unless $addr;
+  return 0 if $addr =~ tr/:/:/ < 2;  #-- fallback must not create false positive for IPv4:Port = 0:0
+  return 1 if $addr =~ /^$IPv6_re$/i;
+  return 0;
+}
+
 
 sub authority
 {
@@ -26,6 +46,13 @@ sub authority
 	my $rest = $3;
 	if (defined $auth) {
 	    $auth =~ s/([^$ACHAR])/ URI::Escape::escape_char($1)/ego;
+            if ( my ($user, $host) = $auth =~ /^(.*@)?([^@]+)$/ ) { #-- special escape userinfo part
+              $user ||= '';
+              $user =~ s/([^$URI::uric4user])/ URI::Escape::escape_char($1)/ego;
+              $user =~ s/%40$/\@/; # recover final '@'
+              $host = "[$host]" if _looks_like_raw_ip6_address( $host );
+              $auth = $user . $host;
+            }
 	    utf8::downgrade($auth);
 	    $$self .= "//$auth";
 	}

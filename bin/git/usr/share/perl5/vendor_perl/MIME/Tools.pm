@@ -28,7 +28,7 @@ $ME = "MIME-tools";
 Exporter::export_ok_tags('config', 'msgs', 'msgtypes', 'utils');
 
 # The TOOLKIT version, both in 1.23 style *and* usable by MakeMaker:
-$VERSION = "5.509";
+$VERSION = "5.510";
 
 # Configuration (do NOT alter this directly)...
 # All legal CONFIG vars *must* be in here, even if only to be set to undef:
@@ -988,10 +988,11 @@ See ChangeLog file for full details.
 =head1 AUTHOR
 
 Eryq (F<eryq@zeegee.com>), ZeeGee Software Inc (F<http://www.zeegee.com>).
-Dianne Skoll (F<dfs@roaringpenguin.com>) F<http://www.roaringpenguin.com>.
+Dianne Skoll (F<dianne@skoll.ca>)
 
 Copyright (c) 1998, 1999 by ZeeGee Software Inc (www.zeegee.com).
-Copyright (c) 2004 by Roaring Penguin Software Inc (www.roaringpenguin.com)
+Copyright (c) 2004 by Roaring Penguin Software Inc
+Copyright (c) 2022 by Dianne Skoll
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

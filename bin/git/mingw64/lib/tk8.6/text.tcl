@@ -499,7 +499,7 @@ if {[tk windowingsystem] eq "x11"} {
     # Support for mousewheels on Linux/Unix commonly comes through mapping
     # the wheel to the extended buttons.  If you have a mousewheel, find
     # Linux configuration info at:
-    #	http://linuxreviews.org/howtos/xfree/mouse/
+    #	https://linuxreviews.org/HOWTO_change_the_mouse_speed_in_X
     bind Text <4> {
 	if {!$tk_strictMotif} {
 	    %W yview scroll -50 pixels

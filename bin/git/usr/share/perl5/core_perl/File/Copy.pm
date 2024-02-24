@@ -23,7 +23,7 @@ sub syscopy;
 sub cp;
 sub mv;
 
-$VERSION = '2.39';
+$VERSION = '2.41';
 
 require Exporter;
 @ISA = qw(Exporter);
@@ -339,14 +339,14 @@ File::Copy - Copy files or filehandles
 
 	use File::Copy;
 
-	copy("sourcefile","destinationfile") or die "Copy failed: $!";
-	copy("Copy.pm",\*STDOUT);
-	move("/dev1/sourcefile","/dev2/destinationfile");
+	copy("sourcefile", "destinationfile") or die "Copy failed: $!";
+	copy("Copy.pm", \*STDOUT);
+	move("/dev1/sourcefile", "/dev2/destinationfile");
 
 	use File::Copy "cp";
 
-	$n = FileHandle->new("/a/file","r");
-	cp($n,"x");
+	my $n = FileHandle->new("/a/file", "r");
+	cp($n, "x");
 
 =head1 DESCRIPTION
 
@@ -395,9 +395,12 @@ You may use the syntax C<use File::Copy "cp"> to get at the C<cp>
 alias for this function. The syntax is I<exactly> the same.  The
 behavior is nearly the same as well: as of version 2.15, C<cp> will
 preserve the source file's permission bits like the shell utility
-C<cp(1)> would do, while C<copy> uses the default permissions for the
-target file (which may depend on the process' C<umask>, file
-ownership, inherited ACLs, etc.).  If an error occurs in setting
+C<cp(1)> would do with default options, while C<copy> uses the default
+permissions for the target file (which may depend on the process'
+C<umask>, file ownership, inherited ACLs, etc.).  That is, if the
+destination file already exists, C<cp> will leave its permissions
+unchanged; otherwise the permissions are taken from the source file
+and modified by the C<umask>.  If an error occurs in setting
 permissions, C<cp> will return 0, regardless of whether the file was
 successfully copied.
 

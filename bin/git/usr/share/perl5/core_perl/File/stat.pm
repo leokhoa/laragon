@@ -11,7 +11,7 @@ BEGIN { *warnif = \&warnings::warnif }
 
 our(@EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 
-our $VERSION = '1.12';
+our $VERSION = '1.13';
 
 our @fields;
 our ( $st_dev, $st_ino, $st_mode,
@@ -233,7 +233,7 @@ File::stat - by-name interface to Perl's built-in stat() functions
 =head1 SYNOPSIS
 
  use File::stat;
- $st = stat($file) or die "No $file: $!";
+ my $st = stat($file) or die "No $file: $!";
  if ( ($st->mode & 0111) && ($st->nlink > 1) ) {
      print "$file is executable with lotsa links\n";
  } 

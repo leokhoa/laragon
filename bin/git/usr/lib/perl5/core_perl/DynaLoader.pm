@@ -18,7 +18,7 @@ package DynaLoader;
 # Tim.Bunce@ig.co.uk, August 1994
 
 BEGIN {
-    our $VERSION = '1.52';
+    our $VERSION = '1.54';
 }
 
 # Note: in almost any other piece of code "our" would have been a better

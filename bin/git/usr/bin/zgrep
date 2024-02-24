@@ -3,7 +3,7 @@
 # zgrep -- a wrapper around a grep program that decompresses files as needed
 # Adapted from a version sent by Charles Levert <charles@comm.polymtl.ca>
 
-# Copyright (C) 1998, 2001-2002, 2006-2007, 2009-2022 Free Software Foundation,
+# Copyright (C) 1998, 2001-2002, 2006-2007, 2009-2023 Free Software Foundation,
 # Inc.
 
 # Copyright (C) 1993 Jean-loup Gailly
@@ -25,8 +25,8 @@
 grep='${GREP-'\''/usr/bin/grep'\''}'
 args=
 
-version='zgrep (gzip) 1.12
-Copyright (C) 2010-2018 Free Software Foundation, Inc.
+version='zgrep (gzip) 1.13
+Copyright (C) 2023 Free Software Foundation, Inc.
 This is free software.  You may redistribute copies of it under the terms of
 the GNU General Public License <https://www.gnu.org/licenses/gpl.html>.
 There is NO WARRANTY, to the extent permitted by law.
@@ -235,7 +235,8 @@ do
       (*'
 '* | *'&'* | *'\'* | *'|'*)
           icolon=$(printf '%s\n' "$i:" |
-                     LC_ALL=C sed -e 's/[&\|]/\\&/g' -e '$!s/$/\\/');;
+                     LC_ALL=C sed -e 's/[&\|]/\\&/g' -e '$!s/$/\\/') ||
+             icolon='(unknown filename):';;
       (*) icolon="$i:";;
       esac
       sed_script="s|^|$icolon|"
@@ -252,9 +253,9 @@ do
   )
   r=$?
 
-  # Ignore gzip status 2, as it is just a warning.
+  # Ignore gzip status 2 or 141, as it is just a warning or broken pipe.
   # gzip status 1 is an error, like grep status 2.
-  test $gzip_status -eq 2 && gzip_status=0
+  { test $gzip_status -eq 2 || test $gzip_status -eq 141; } && gzip_status=0
   test $gzip_status -eq 1 && gzip_status=2
 
   # Use the more serious of the grep and gzip statuses.

@@ -134,6 +134,8 @@ menu $m -tearoff 0
 foreach i {{An entry} {Another entry} {Does nothing} {Does almost nothing} {Make life meaningful}} {
     $m add command -label $i -command [list puts "You invoked \"$i\""]
 }
+set emojiLabel [encoding convertfrom utf-8 "\xF0\x9F\x98\x8D Make friends"]
+$m add command -label $emojiLabel -command [list puts "Menu labels can include non-BMP characters."]
 $m entryconfigure "Does almost nothing" -bitmap questhead -compound left \
 	-command [list \
 	tk_dialog $w.compound {Compound Menu Entry} \

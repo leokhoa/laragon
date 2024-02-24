@@ -532,7 +532,7 @@ BEGIN {
 use vars qw($VERSION $header);
 
 # bump to X.XX in blead, only use X.XX_XX in maint
-$VERSION = '1.73';
+$VERSION = '1.77';
 
 $header = "perl5db.pl version $VERSION";
 
@@ -3258,7 +3258,7 @@ deal with them instead of processing them in-line.
 =head4 C<y> - List lexicals in higher scope
 
 Uses C<PadWalker> to find the lexicals supplied as arguments in a scope
-above the current one and then displays then using C<dumpvar.pl>.
+above the current one and then displays them using F<dumpvar.pl>.
 
 =head3 COMMANDS NOT WORKING AFTER PROGRAM ENDS
 
@@ -3490,7 +3490,9 @@ again.
 =cut
 
         # No more commands? Quit.
-        $fall_off_end = 1 unless defined $cmd;    # Emulate 'q' on EOF
+        unless (defined $cmd) {
+            DB::Obj::_do_quit();
+        }
 
         # Evaluate post-prompt commands.
         foreach $evalarg (@$post) {
@@ -4294,13 +4296,17 @@ sub _handle_x_command {
     return;
 }
 
+sub _do_quit {
+    $fall_off_end = 1;
+    DB::clean_ENV();
+    exit $?;
+}
+
 sub _handle_q_command {
     my $self = shift;
 
     if ($self->_is_full('q')) {
-        $fall_off_end = 1;
-        DB::clean_ENV();
-        exit $?;
+        _do_quit();
     }
 
     return;
@@ -8184,7 +8190,7 @@ B<|>I<dbcmd>        Run debugger command, piping DB::OUT to current pager.
 B<||>I<dbcmd>        Same as B<|>I<dbcmd> but DB::OUT is temporarily select()ed as well.
 B<\=> [I<alias> I<value>]    Define a command alias, or list current aliases.
 I<command>        Execute as a perl statement in current package.
-B<R>        Pure-man-restart of debugger, some of debugger state
+B<R>        Poor man's restart of the debugger, some of debugger state
         and command-line options may be lost.
         Currently the following settings are preserved:
         history, breakpoints and actions, debugger B<O>ptions
@@ -8360,7 +8366,7 @@ B<||>I<dbcmd>        Same as B<|>I<dbcmd> but DB::OUT is temporarilly select()ed
 B<\=> [I<alias> I<value>]    Define a command alias, or list current aliases.
 I<command>        Execute as a perl statement in current package.
 B<v>        Show versions of loaded modules.
-B<R>        Pure-man-restart of debugger, some of debugger state
+B<R>        Poor man's restart of the debugger, some of debugger state
         and command-line options may be lost.
         Currently the following settings are preserved:
         history, breakpoints and actions, debugger B<O>ptions
@@ -10370,7 +10376,8 @@ sub cmd_prepost {
 
 Contains the C<at_exit> routine that the debugger uses to issue the
 C<Debugged program terminated ...> message after the program completes. See
-the C<END> block documentation for more details.
+the L<C<END>|/END PROCESSING - THE END BLOCK> block documentation for more
+details.
 
 =cut
 

@@ -105,7 +105,8 @@ sub clone_cert {
 	    } @$ext;
 	}
 	my ($clone,$key) = CERT_create(
-	    %$hash,
+	    %$hash, 
+	    ignore_invalid_args => 1,
 	    issuer_cert => $self->{cacert},
 	    issuer_key => $self->{cakey},
 	    key => $self->{certkey},

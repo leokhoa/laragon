@@ -247,6 +247,7 @@ proc ::tk::fontchooser::Create {} {
         grid $S(W).lfonts x $S(W).lstyles x $S(W).lsizes x ^     -in $outer -sticky news
         grid $WE          x $WS           - -            x ^     -in $outer -sticky news -pady {15 30}
         grid configure $bbox -sticky n
+        grid rowconfigure $outer 2 -weight 1
         grid columnconfigure $outer {1 3 5} -minsize $minsize(gap)
         grid columnconfigure $outer {0 2 4} -weight 1
         grid columnconfigure $outer 0 -minsize $minsize(fonts)

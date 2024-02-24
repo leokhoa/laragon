@@ -153,7 +153,7 @@ use MIME::Parser::Results;
 #------------------------------
 
 ### The package version, both in 1.23 style *and* usable by MakeMaker:
-$VERSION = "5.509";
+$VERSION = "5.510";
 
 ### How to catenate:
 $CAT = '/bin/cat';
@@ -635,6 +635,10 @@ sub process_header {
     }
     ($hdr_rdr->eos_type eq 'DONE') or
 	$self->error("unexpected end of header\n");
+
+
+    ### If header line begins with a UTF-8 Byte-Order mark, remove it.
+    $headstr =~ s/^\x{EF}\x{BB}\x{BF}//;
 
     ### Extract the header (note that zero-size headers are admissible!):
     open(my $readfh, '<:scalar', \$headstr) or die $!;
@@ -2001,7 +2005,7 @@ L<MIME::Tools>, L<MIME::Head>, L<MIME::Body>, L<MIME::Entity>, L<MIME::Decoder>
 =head1 AUTHOR
 
 Eryq (F<eryq@zeegee.com>), ZeeGee Software Inc (F<http://www.zeegee.com>).
-Dianne Skoll (dfs@roaringpenguin.com) http://www.roaringpenguin.com
+Dianne Skoll (dianne@skoll.ca)
 
 All rights reserved.  This program is free software; you can redistribute
 it and/or modify it under the same terms as Perl itself.

@@ -2,7 +2,7 @@ package File::Spec;
 
 use strict;
 
-our $VERSION = '3.84';
+our $VERSION = '3.88';
 $VERSION =~ tr/_//d;
 
 my %module = (
@@ -34,13 +34,13 @@ File::Spec - portably perform operations on file names
 
 	use File::Spec;
 
-	$x=File::Spec->catfile('a', 'b', 'c');
+	my $x = File::Spec->catfile('a', 'b', 'c');
 
 which returns 'a/b/c' under Unix. Or:
 
 	use File::Spec::Functions;
 
-	$x = catfile('a', 'b', 'c');
+	my $x = catfile('a', 'b', 'c');
 
 =head1 DESCRIPTION
 

@@ -505,6 +505,12 @@ by the <code>--format</code> option of <em>git log</em>, such as <em>* [%h] %s</
 </div>
 </div>
 </dd>
+<dt class="hdlist1">--date=&lt;format&gt;</dt>
+<dd>
+<p>Show dates formatted according to the given date string. (See
+the <code>--date</code> option in the "Commit Formatting" section of
+<a href="git-log.html">git-log(1)</a>). Useful with <code>--group=format:&lt;format&gt;</code>.</p>
+</dd>
 <dt class="hdlist1">--group=&lt;type&gt;</dt>
 <dd>
 <p>Group commits based on <code>&lt;type&gt;</code>. If no <code>--group</code> option is
@@ -525,6 +531,11 @@ commit message trailer (see <a href="git-interpret-trailers.html">git-interpret-
 example, if your project uses <code>Reviewed-by</code> trailers, you might want
 to see who has been reviewing with
 <code>git shortlog -ns --group=trailer:reviewed-by</code>.</p>
+</li>
+<li>
+<p><code>format:&lt;format&gt;</code>, any string accepted by the <code>--format</code> option of
+<em>git log</em>. (See the "PRETTY FORMATS" section of
+<a href="git-log.html">git-log(1)</a>.)</p>
 <div class="paragraph">
 <p>Note that commits that do not include the trailer will not be counted.
 Likewise, commits with multiple trailers (e.g., multiple signoffs) may
@@ -650,7 +661,7 @@ error to use this option unless <code>--walk-reflogs</code> is in use.</p>
 </dd>
 <dt class="hdlist1">--grep=&lt;pattern&gt;</dt>
 <dd>
-<p>Limit the commits output to ones with log message that
+<p>Limit the commits output to ones with a log message that
 matches the specified pattern (regular expression).  With
 more than one <code>--grep=&lt;pattern&gt;</code>, commits whose message
 matches any of the given patterns are chosen (but see
@@ -667,7 +678,7 @@ instead of ones that match at least one.</p>
 </dd>
 <dt class="hdlist1">--invert-grep</dt>
 <dd>
-<p>Limit the commits output to ones with log message that do not
+<p>Limit the commits output to ones with a log message that do not
 match the pattern specified with <code>--grep=&lt;pattern&gt;</code>.</p>
 </dd>
 <dt class="hdlist1">-i</dt>
@@ -754,7 +765,11 @@ that arbitrary merges can be valid topic branch changes.</p>
 <dt class="hdlist1">--not</dt>
 <dd>
 <p>Reverses the meaning of the <em>^</em> prefix (or lack thereof)
-for all following revision specifiers, up to the next <code>--not</code>.</p>
+for all following revision specifiers, up to the next <code>--not</code>.
+When used on the command line before --stdin, the revisions passed
+through stdin will not be affected by it. Conversely, when passed
+via standard input, the revisions passed on the command line will
+not be affected by it.</p>
 </dd>
 <dt class="hdlist1">--all</dt>
 <dd>
@@ -805,6 +820,15 @@ or <code>--all</code>. If a trailing <em>/*</em> is intended, it must be given
 explicitly.</p>
 </div>
 </dd>
+<dt class="hdlist1">--exclude-hidden=[fetch|receive|uploadpack]</dt>
+<dd>
+<p>Do not include refs that would be hidden by <code>git-fetch</code>,
+<code>git-receive-pack</code> or <code>git-upload-pack</code> by consulting the appropriate
+<code>fetch.hideRefs</code>, <code>receive.hideRefs</code> or <code>uploadpack.hideRefs</code>
+configuration along with <code>transfer.hideRefs</code> (see
+<a href="git-config.html">git-config(1)</a>). This option affects the next pseudo-ref option
+<code>--all</code> or <code>--glob</code> and is cleared after processing them.</p>
+</dd>
 <dt class="hdlist1">--reflog</dt>
 <dd>
 <p>Pretend as if all objects mentioned by reflogs are listed on the
@@ -842,10 +866,13 @@ line.</p>
 </dd>
 <dt class="hdlist1">--stdin</dt>
 <dd>
-<p>In addition to the <em>&lt;commit&gt;</em> listed on the command
-line, read them from the standard input. If a <code>--</code> separator is
-seen, stop reading commits and start reading paths to limit the
-result.</p>
+<p>In addition to getting arguments from the command line, read
+them from standard input as well. This accepts commits and
+pseudo-options like <code>--all</code> and <code>--glob=</code>. When a <code>--</code> separator
+is seen, the following input is treated as paths and used to
+limit the result. Flags like <code>--not</code> which are read via standard input
+are only respected for arguments passed in the same way and will not
+influence any subsequent command line arguments.</p>
 </dd>
 <dt class="hdlist1">--cherry-mark</dt>
 <dd>
@@ -1015,13 +1042,15 @@ meaningful history.</p>
 merges from the resulting history, as there are no selected
 commits contributing to this merge.</p>
 </dd>
-<dt class="hdlist1">--ancestry-path</dt>
+<dt class="hdlist1">--ancestry-path[=&lt;commit&gt;]</dt>
 <dd>
 <p>When given a range of commits to display (e.g. <em>commit1..commit2</em>
-or <em>commit2 ^commit1</em>), only display commits that exist
-directly on the ancestry chain between the <em>commit1</em> and
-<em>commit2</em>, i.e. commits that are both descendants of <em>commit1</em>,
-and ancestors of <em>commit2</em>.</p>
+or <em>commit2 ^commit1</em>), only display commits in that range
+that are ancestors of &lt;commit&gt;, descendants of &lt;commit&gt;, or
+&lt;commit&gt; itself.  If no commit is specified, use <em>commit1</em> (the
+excluded part of the range) as &lt;commit&gt;.  Can be passed multiple
+times; if so, a commit is included if it is any of the commits
+given or if it is an ancestor or descendant of one of them.</p>
 </dd>
 </dl>
 </div>
@@ -1267,12 +1296,11 @@ parent and is TREESAME.</p>
 </div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1">--ancestry-path</dt>
+<dt class="hdlist1">--ancestry-path[=&lt;commit&gt;]</dt>
 <dd>
-<p>Limit the displayed commits to those directly on the ancestry
-chain between the &#8220;from&#8221; and &#8220;to&#8221; commits in the given commit
-range. I.e. only display commits that are ancestor of the &#8220;to&#8221;
-commit and descendants of the &#8220;from&#8221; commit.</p>
+<p>Limit the displayed commits to those which are an ancestor of
+&lt;commit&gt;, or which are a descendant of &lt;commit&gt;, or are &lt;commit&gt;
+itself.</p>
 <div class="paragraph">
 <p>As an example use case, consider the following commit history:</p>
 </div>
@@ -1307,6 +1335,34 @@ option does. Applied to the <em>D..M</em> range, it results in:</p>
                   G---H---I---J
                                \
                                 L--M</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We can also use <code>--ancestry-path=D</code> instead of <code>--ancestry-path</code> which
+means the same thing when applied to the <em>D..M</em> range but is just more
+explicit.</p>
+</div>
+<div class="paragraph">
+<p>If we instead are interested in a given topic within this range, and all
+commits affected by that topic, we may only want to view the subset of
+<code>D..M</code> which contain that topic in their ancestry path.  So, using
+<code>--ancestry-path=H D..M</code> for example would result in:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>                E
+                 \
+                  G---H---I---J
+                               \
+                                L--M</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Whereas <code>--ancestry-path=K D..M</code> would result in</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>                K---------------L--M</pre>
 </div>
 </div>
 </dd>
@@ -1375,7 +1431,7 @@ merge commits <code>O</code> and <code>P</code>. With parent rewriting, the resu
 not actually contribute a change to <code>file.txt</code>. They only merged a topic
 that was based on an older version of <code>file.txt</code>. This is a common
 issue in repositories using a workflow where many contributors work in
-parallel and merge their topic branches along a single trunk: manu
+parallel and merge their topic branches along a single trunk: many
 unrelated merges appear in the <code>--full-history</code> results.</p>
 </div>
 <div class="paragraph">
@@ -1502,7 +1558,7 @@ the current directory.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-08-30 21:40:02 UTC
+Last updated 2024-02-23 20:26:53 UTC
 </div>
 </div>
 </body>

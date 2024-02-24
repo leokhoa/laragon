@@ -4,12 +4,12 @@ use strict;
 use warnings;
 use bytes;
 
-use IO::Compress::Base::Common 2.106 qw(:Status);
+use IO::Compress::Base::Common 2.204 qw(:Status);
 
-use Compress::Raw::Bzip2 2.103 ;
+use Compress::Raw::Bzip2 2.204 ;
 
 our ($VERSION, @ISA);
-$VERSION = '2.106';
+$VERSION = '2.204';
 
 sub mkUncompObject
 {

@@ -3,11 +3,10 @@
 # modify it under the same terms as Perl itself.
 
 package Authen::SASL::EXTERNAL;
-
+$Authen::SASL::EXTERNAL::VERSION = '2.1700';
 use strict;
-use vars qw($VERSION);
+use warnings;
 
-$VERSION = "2.14";
 
 sub new {
   shift;

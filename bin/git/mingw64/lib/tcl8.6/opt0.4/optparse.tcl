@@ -601,7 +601,7 @@ proc ::tcl::OptCheckType {arg type {typeArgs ""}} {
 	    return [expr {$arg ? 1 : 0}]
         }
         choice {
-            if {[lsearch -exact $typeArgs $arg] < 0} {
+            if {$arg ni $typeArgs} {
                 error "invalid choice"
             }
 	    return $arg
