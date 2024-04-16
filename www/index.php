@@ -10,7 +10,6 @@ if (!empty($_GET['q'])) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -28,7 +27,7 @@ if (!empty($_GET['q'])) {
       margin: 0;
       min-height: 100vh;
       font-weight: 100;
-        font-family: 'Karla', sans-serif;
+      font-family: 'Karla', sans-serif;
       font-size: 18px;
     }
 
@@ -79,7 +78,6 @@ if (!empty($_GET['q'])) {
     a {
       color: #37ADFF;
       font-weight: 900;
-      text-decoration: none;
     }
 
     a:hover {
@@ -96,17 +94,6 @@ if (!empty($_GET['q'])) {
       display: block;
       margin: 1rem 0;
     }
-
-    nav a:after {
-      content: '→';
-      margin-left: 0.5rem;
-    }
-
-    .alert {
-      color: red;
-      font-weight: 900;
-    }
-
     @media (min-width: 650px) {
       h1 {
         font-size: 10rem;
@@ -117,7 +104,7 @@ if (!empty($_GET['q'])) {
 
 <body>
   <header>
-    <img class="header__item header--logo" src="https://i.imgur.com/ky9oqct.png" alt="Offline">
+    <img class="header__item header--logo" src="https://i.imgur.com/ky9oqct.png" alt="Laragon logo">
     <h1 class="header__item header--title" title="Laragon">Laragon</h1>
   </header>
   <main>
