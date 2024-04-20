@@ -1,16 +1,12 @@
 <?php
-// Initialisation des variables avec des valeurs par défaut ou celles soumises via le formulaire
 $protocol = isset($_POST['protocol']) ? $_POST['protocol'] : 'https';
 $top_lvl_domain = isset($_POST['top_lvl_domain']) ? $_POST['top_lvl_domain'] : '.test';
 
-// Traitement du formulaire
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-  // Stockage des valeurs dans une session ou envoie par get (pour simplifier ici, on utilise GET)
   header("Location: " . $_SERVER['PHP_SELF'] . "?protocol=" . urlencode($protocol) . "&top_lvl_domain=" . urlencode($top_lvl_domain));
   exit;
 }
 
-// Maintenant, nous utilisons les paramètres de l'URL si présents
 if (isset($_GET['protocol'])) {
   $protocol = $_GET['protocol'];
 }
@@ -27,7 +23,7 @@ if (!empty($_GET['q'])) {
   }
 }
 ?>
-<!DOCTYPE html>
+<!DOCTYPE html lang="en">
 <html>
 
 <head>
@@ -36,7 +32,6 @@ if (!empty($_GET['q'])) {
   <title>Laragon</title>
   <link href="https://fonts.googleapis.com/css?family=Karla:400" rel="stylesheet" type="text/css">
   <link rel="shortcut icon" href="https://i.imgur.com/ky9oqct.png" type="image/png">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <style>
     :root {
       --theme0: #36a2ff;
@@ -59,6 +54,10 @@ if (!empty($_GET['q'])) {
       font-size: large;
     }
 
+    img {
+      max-width: 100%;
+      height: auto;
+    }
 
     nav,
     aside {
@@ -81,8 +80,10 @@ if (!empty($_GET['q'])) {
 
     .header__title {
       display: flex;
+      flex-wrap: wrap;
       justify-content: center;
       align-items: center;
+      gap: 1rem;
     }
 
     .header__description {
@@ -92,10 +93,8 @@ if (!empty($_GET['q'])) {
     }
 
     h1 {
-      font-size: 5rem;
+      font-size: clamp(24px, 20vw, 8rem);
     }
-
-
 
     a {
       color: var(--theme1);
@@ -118,13 +117,13 @@ if (!empty($_GET['q'])) {
       max-width: 1200px;
       margin: 0 auto;
       padding: 1rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      grid-gap: 1rem;
       text-align: center;
     }
 
-    .info___item {
+    .info__item {
       padding: 0.5rem;
       flex: 1;
       background-color: #08314D;
@@ -132,12 +131,12 @@ if (!empty($_GET['q'])) {
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 0.5rem;
       box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.2), 0 5px 5px 0 rgba(0, 0, 0, 0.24);
       font-size: 1rem;
+      border-radius: 5px;
     }
 
-    .info___item a {
+    .info__item a {
       color: var(--light);
     }
 
@@ -146,10 +145,22 @@ if (!empty($_GET['q'])) {
       margin: 0 auto;
       padding: 1rem;
       display: flex;
+      gap: 0.5rem;
       flex-direction: column;
       justify-content: center;
       align-items: center;
     }
+
+    .settings>* {
+      margin: 0;
+    }
+
+    .settings form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
 
     .php-my-admin__link {
       display: inline-block;
@@ -172,11 +183,6 @@ if (!empty($_GET['q'])) {
       height: 8rem;
     }
 
-    /* ul,
-    li {
-      border: 2px dashed grey;
-    } */
-
     .project__ul {
       margin: 0;
       padding: 0;
@@ -184,17 +190,14 @@ if (!empty($_GET['q'])) {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
       grid-gap: 1rem;
-      /* display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem; */
     }
 
     .project__li {
       display: block;
-      /* flex: 0 1 250px; */
       background-color: var(--light);
       padding: 0.5rem;
       font-size: 0.8rem;
+      border-radius: 5px;
     }
 
     .project__link {
@@ -208,12 +211,19 @@ if (!empty($_GET['q'])) {
       margin: 0 0.4rem;
     }
 
+    .no-project {
+      margin: 0 auto;
+      text-align: center;
+      max-width: 1200px;
+    }
+
     .btn {
       display: inline-block;
       background-color: var(--theme0);
       color: var(--light);
       padding: 0.5rem 1rem;
       transition: 300ms;
+      border-radius: 5px;
     }
 
     .btn:hover {
@@ -223,16 +233,17 @@ if (!empty($_GET['q'])) {
       background-color: var(--theme1--hover);
     }
 
-
-    @media (min-width: 650px) {
-      h1 {
-        font-size: 10rem;
-      }
+    .time {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      opacity: 0.5;
     }
   </style>
 </head>
 
 <body>
+  <time class="time"></time>
   <main>
     <header>
       <div class="header__title">
@@ -251,26 +262,17 @@ if (!empty($_GET['q'])) {
     </header>
 
     <div class="info">
-      <div class="info___item">
-        <div class="info__image-box">
-          <img src="./_images/apache.svg" alt="PHP" height="36">
-        </div>
+      <div class="info__item">
         <p class="info__text">
           <?php print($_SERVER['SERVER_SOFTWARE']); ?>
         </p>
       </div>
-      <a class="info___item" title="phpinfo()" href="/?q=info">
-        <div class="info__image-box">
-          <img src="./_images/php.svg" alt="PHP" height="36">
-        </div>
+      <a class="info__item" title="phpinfo()" href="/?q=info">
         <p>
           PHP version: <?php print phpversion(); ?> <span>info</span>
         </p>
       </a>
-      <div class="info___item">
-        <div class="info__image-box">
-          <img src="./_images/folder.svg" alt="PHP" height="25">
-        </div>
+      <div class="info__item">
         <p>
           Document Root:<br><strong><?php print($_SERVER['DOCUMENT_ROOT']); ?></strong>
         </p>
@@ -281,39 +283,37 @@ if (!empty($_GET['q'])) {
       if (!$file_headers || $file_headers[0] == 'HTTP/1.1 404 Not Found') :
         $exists = false;
       ?>
-        <div class="info___item">
-          <p class="alert">Please install phpMyAdmin</p>
+        <div class="info__item">
+          <p class="alert">There is no phpMyAdmin installed</p>
         </div>
       <?php
       else :
         $exists = true;
       ?>
         <!-- ANCHOR Lien vers phpMyAdmin  -->
-        <a class="info___item" href="<?php echo $phpMyAdmin; ?>" target="_blank">
-          <div class="info__image-box">
-            <img src="./_images/phpmyadmin.svg" alt="PHP" height="36">
-          </div>
-          <p class="php-my-admin"> phpmyadmin </p>
+        <a class="info__item" href="<?php echo $phpMyAdmin; ?>" target="_blank">
+          <p class="php-my-admin">phpmyadmin</p>
         </a>
       <?php
       endif;
       ?>
-      <div class="info___item">
-        <div class="horloge"></div>
-      </div>
     </div>
     <div class="settings">
       <form action="#" method="post">
-        <label for="protocol">Choose protocol:</label>
-        <select name="protocol" id="protocol">
-          <option value="http" <?php echo ($protocol === 'http') ? 'selected' : ''; ?>>HTTP</option>
-          <option value="https" <?php echo ($protocol === 'https') ? 'selected' : ''; ?>>HTTPS</option>
-        </select>
-        <label for="top_lvl_domain">Top-level domain:</label>
-        <input type="text" name="top_lvl_domain" id="top_lvl_domain" value="<?php echo htmlspecialchars($top_lvl_domain); ?>">
+        <div class="settings__item">
+          <label for="protocol">Choose protocol:</label>
+          <select name="protocol" id="protocol">
+            <option value="http" <?php echo ($protocol === 'http') ? 'selected' : ''; ?>>HTTP</option>
+            <option value="https" <?php echo ($protocol === 'https') ? 'selected' : ''; ?>>HTTPS</option>
+          </select>
+        </div>
+        <div class="settings__item">
+          <label for="top_lvl_domain">Top-level domain:</label>
+          <input type="text" name="top_lvl_domain" id="top_lvl_domain" value="<?php echo htmlspecialchars($top_lvl_domain); ?>">
+        </div>
         <button type="submit">Update Settings</button>
       </form>
-      <p><small>Select the protocol and domain to match Laragon settings.</small></p>
+      <p><small><em>Select the protocol and domain to match Laragon settings.</em></small></p>
     </div>
   </main>
   <div class="main-container">
@@ -328,13 +328,12 @@ if (!empty($_GET['q'])) {
     ?>
       <nav class="project">
         <ul class="project__ul">
-          <!-- ANCHOR Liens vers les projets -->
           <?php
 
           foreach ($dirList as $key => $value) :
             $link1 = strtolower($protocol . '://' . $value . $top_lvl_domain);
             $link2 = strtolower($value);
-            $lastModifiedTime = date("d-m-Y H:i", filemtime($value)); // Ajout pour afficher la date de dernière modification
+            $lastModifiedTime = date("d-m-Y H:i", filemtime($value));
             if ($value !== '_images') :
 
           ?>
@@ -345,7 +344,6 @@ if (!empty($_GET['q'])) {
                   </a>
                 </div>
                 <div>
-                  <!-- Affichage de la date de dernière modification -->
                   <span>Last modified: <?php echo $lastModifiedTime; ?></span>
                 </div>
                 <div>
@@ -363,7 +361,7 @@ if (!empty($_GET['q'])) {
     <?php
     else :
     ?>
-      <div>
+      <div class="no-project">
         <p class="alert">There are no directories, create your first project now</p>
         <div>
           <img src="https://i.imgur.com/3Sgu8XI.png" alt="Offline">
@@ -375,35 +373,28 @@ if (!empty($_GET['q'])) {
 
   </div>
   <script>
-    const horloge = document.querySelector('.horloge');
+    const timeElement = document.querySelector('.time');
 
-    function afficherHeure() {
-      const date = new Date();
-      let jour = date.getDate();
-      let mois = date.getMonth() + 1; // Les mois sont indexés à partir de 0
-      let annee = date.getFullYear();
-      let heure = date.getHours();
-      let minutes = date.getMinutes();
-      let secondes = date.getSeconds();
+    function displayTime() {
+      const now = new Date();
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const formattedDate = now.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZone: timeZone
+      });
 
-      // Ajout d'un zéro devant les chiffres inférieurs à 10
-      jour = jour < 10 ? '0' + jour : jour;
-      mois = mois < 10 ? '0' + mois : mois;
-      heure = heure < 10 ? '0' + heure : heure;
-      minutes = minutes < 10 ? '0' + minutes : minutes;
-      secondes = secondes < 10 ? '0' + secondes : secondes;
-
-      // Format de la date et de l'heure
-      const temps = jour + "/" + mois + "/" + annee + " " + heure + ":" + minutes + ":" + secondes;
-
-      horloge.innerText = temps;
+      timeElement.innerText = formattedDate;
+      timeElement.setAttribute('datetime', now.toISOString());
     }
 
-    // Mettre à jour l'heure chaque seconde
-    setInterval(afficherHeure, 1000);
-
-    // Afficher l'heure immédiatement au chargement de la page
-    afficherHeure();
+    setInterval(displayTime, 1000);
+    displayTime();
   </script>
 </body>
 
