@@ -687,7 +687,7 @@
             e.preventDefault();
             var email = $(this).data('email');
             $.ajax({
-                url: 'open_email.php',
+               url: 'assets/inbox/open_email.php',
                 data: { email: email },
                 success: function(data) {
                     $('#emailModal .modal-body').html(data);
