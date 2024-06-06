@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content="Developing with asyncio" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://docs.python.org/3/library/asyncio-dev.html" />
+<meta property="og:site_name" content="Python documentation" />
+<meta property="og:description" content="Asynchronous programming is different from classic “sequential” programming. This page lists common mistakes and traps and explains how to avoid them. Debug Mode: By default asyncio runs in product..." />
+<meta property="og:image" content="https://docs.python.org/3/_static/og-image.png" />
+<meta property="og:image:alt" content="Python documentation" />
+<meta name="description" content="Asynchronous programming is different from classic “sequential” programming. This page lists common mistakes and traps and explains how to avoid them. Debug Mode: By default asyncio runs in product..." />
+<meta property="og:image:width" content="200" />
+<meta property="og:image:height" content="200" />
+<meta name="theme-color" content="#3776ab" />
+
+    <title>Developing with asyncio &#8212; Python 3.12.3 documentation</title><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+    <link rel="stylesheet" type="text/css" href="../_static/pydoctheme.css?v=bb723527" />
+    <link id="pygments_dark_css" media="(prefers-color-scheme: dark)" rel="stylesheet" type="text/css" href="../_static/pygments_dark.css?v=b20cc3f5" />
+    
+    <script src="../_static/documentation_options.js?v=2c828074"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <script src="../_static/sidebar.js"></script>
+    
+    <link rel="search" type="application/opensearchdescription+xml"
+          title="Search within Python 3.12.3 documentation"
+          href="../_static/opensearch.xml"/>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="copyright" title="Copyright" href="../copyright.html" />
+    <link rel="next" title="socket — Low-level networking interface" href="socket.html" />
+    <link rel="prev" title="Low-level API Index" href="asyncio-llapi-index.html" />
+    <link rel="canonical" href="https://docs.python.org/3/library/asyncio-dev.html" />
+    
+      
+    
+
+    
+    <style>
+      @media only screen {
+        table.full-width-table {
+            width: 100%;
+        }
+      }
+    </style>
+<link rel="stylesheet" href="../_static/pydoctheme_dark.css" media="(prefers-color-scheme: dark)" id="pydoctheme_dark_css">
+    <link rel="shortcut icon" type="image/png" href="../_static/py.svg" />
+            <script type="text/javascript" src="../_static/copybutton.js"></script>
+            <script type="text/javascript" src="../_static/menu.js"></script>
+            <script type="text/javascript" src="../_static/search-focus.js"></script>
+            <script type="text/javascript" src="../_static/themetoggle.js"></script> 
+
+  </head>
+<body>
+<div class="mobile-nav">
+    <input type="checkbox" id="menuToggler" class="toggler__input" aria-controls="navigation"
+           aria-pressed="false" aria-expanded="false" role="button" aria-label="Menu" />
+    <nav class="nav-content" role="navigation">
+        <label for="menuToggler" class="toggler__label">
+            <span></span>
+        </label>
+        <span class="nav-items-wrapper">
+            <a href="https://www.python.org/" class="nav-logo">
+                <img src="../_static/py.svg" alt="Python logo"/>
+            </a>
+            <span class="version_switcher_placeholder"></span>
+            <form role="search" class="search" action="../search.html" method="get">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" class="search-icon">
+                    <path fill-rule="nonzero" fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 001.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 00-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 005.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                </svg>
+                <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" />
+                <input type="submit" value="Go"/>
+            </form>
+        </span>
+    </nav>
+    <div class="menu-wrapper">
+        <nav class="menu" role="navigation" aria-label="main navigation">
+            <div class="language_switcher_placeholder"></div>
+            
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected>Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label>
+  <div>
+    <h3><a href="../contents.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Developing with asyncio</a><ul>
+<li><a class="reference internal" href="#debug-mode">Debug Mode</a></li>
+<li><a class="reference internal" href="#concurrency-and-multithreading">Concurrency and Multithreading</a></li>
+<li><a class="reference internal" href="#running-blocking-code">Running Blocking Code</a></li>
+<li><a class="reference internal" href="#logging">Logging</a></li>
+<li><a class="reference internal" href="#detect-never-awaited-coroutines">Detect never-awaited coroutines</a></li>
+<li><a class="reference internal" href="#detect-never-retrieved-exceptions">Detect never-retrieved exceptions</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="asyncio-llapi-index.html"
+                          title="previous chapter">Low-level API Index</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="socket.html"
+                          title="next chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">socket</span></code> — Low-level networking interface</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../bugs.html">Report a Bug</a></li>
+      <li>
+        <a href="https://github.com/python/cpython/blob/main/Doc/library/asyncio-dev.rst"
+            rel="nofollow">Show Source
+        </a>
+      </li>
+    </ul>
+  </div>
+        </nav>
+    </div>
+</div>
+
+  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="socket.html" title="socket — Low-level networking interface"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="asyncio-llapi-index.html" title="Low-level API Index"
+             accesskey="P">previous</a> |</li>
+
+          <li><img src="../_static/py.svg" alt="Python logo" style="vertical-align: middle; margin-top: -1px"/></li>
+          <li><a href="https://www.python.org/">Python</a> &#187;</li>
+          <li class="switchers">
+            <div class="language_switcher_placeholder"></div>
+            <div class="version_switcher_placeholder"></div>
+          </li>
+          <li>
+              
+          </li>
+    <li id="cpython-language-and-version">
+      <a href="../index.html">3.12.3 Documentation</a> &#187;
+    </li>
+
+          <li class="nav-item nav-item-1"><a href="index.html" >The Python Standard Library</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="ipc.html" >Networking and Interprocess Communication</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="asyncio.html" accesskey="U"><code class="xref py py-mod docutils literal notranslate"><span class="pre">asyncio</span></code> — Asynchronous I/O</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Developing with asyncio</a></li>
+                <li class="right">
+                    
+
+    <div class="inline-search" role="search">
+        <form class="inline-search" action="../search.html" method="get">
+          <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" id="search-box" />
+          <input type="submit" value="Go" />
+        </form>
+    </div>
+                     |
+                </li>
+            <li class="right">
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected>Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label> |</li>
+            
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="developing-with-asyncio">
+<span id="asyncio-dev"></span><h1>Developing with asyncio<a class="headerlink" href="#developing-with-asyncio" title="Link to this heading">¶</a></h1>
+<p>Asynchronous programming is different from classic “sequential”
+programming.</p>
+<p>This page lists common mistakes and traps and explains how
+to avoid them.</p>
+<section id="debug-mode">
+<span id="asyncio-debug-mode"></span><h2>Debug Mode<a class="headerlink" href="#debug-mode" title="Link to this heading">¶</a></h2>
+<p>By default asyncio runs in production mode.  In order to ease
+the development asyncio has a <em>debug mode</em>.</p>
+<p>There are several ways to enable asyncio debug mode:</p>
+<ul class="simple">
+<li><p>Setting the <span class="target" id="index-0"></span><a class="reference internal" href="../using/cmdline.html#envvar-PYTHONASYNCIODEBUG"><code class="xref std std-envvar docutils literal notranslate"><span class="pre">PYTHONASYNCIODEBUG</span></code></a> environment variable to <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p></li>
+<li><p>Using the <a class="reference internal" href="devmode.html#devmode"><span class="std std-ref">Python Development Mode</span></a>.</p></li>
+<li><p>Passing <code class="docutils literal notranslate"><span class="pre">debug=True</span></code> to <a class="reference internal" href="asyncio-runner.html#asyncio.run" title="asyncio.run"><code class="xref py py-func docutils literal notranslate"><span class="pre">asyncio.run()</span></code></a>.</p></li>
+<li><p>Calling <a class="reference internal" href="asyncio-eventloop.html#asyncio.loop.set_debug" title="asyncio.loop.set_debug"><code class="xref py py-meth docutils literal notranslate"><span class="pre">loop.set_debug()</span></code></a>.</p></li>
+</ul>
+<p>In addition to enabling the debug mode, consider also:</p>
+<ul>
+<li><p>setting the log level of the <a class="reference internal" href="#asyncio-logger"><span class="std std-ref">asyncio logger</span></a> to
+<a class="reference internal" href="logging.html#logging.DEBUG" title="logging.DEBUG"><code class="xref py py-const docutils literal notranslate"><span class="pre">logging.DEBUG</span></code></a>, for example the following snippet of code
+can be run at startup of the application:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+<li><p>configuring the <a class="reference internal" href="warnings.html#module-warnings" title="warnings: Issue warning messages and control their disposition."><code class="xref py py-mod docutils literal notranslate"><span class="pre">warnings</span></code></a> module to display
+<a class="reference internal" href="exceptions.html#ResourceWarning" title="ResourceWarning"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ResourceWarning</span></code></a> warnings.  One way of doing that is by
+using the <a class="reference internal" href="../using/cmdline.html#cmdoption-W"><code class="xref std std-option docutils literal notranslate"><span class="pre">-W</span></code></a> <code class="docutils literal notranslate"><span class="pre">default</span></code> command line option.</p></li>
+</ul>
+<p>When the debug mode is enabled:</p>
+<ul class="simple">
+<li><p>asyncio checks for <a class="reference internal" href="#asyncio-coroutine-not-scheduled"><span class="std std-ref">coroutines that were not awaited</span></a> and logs them; this mitigates
+the “forgotten await” pitfall.</p></li>
+<li><p>Many non-threadsafe asyncio APIs (such as <a class="reference internal" href="asyncio-eventloop.html#asyncio.loop.call_soon" title="asyncio.loop.call_soon"><code class="xref py py-meth docutils literal notranslate"><span class="pre">loop.call_soon()</span></code></a> and
+<a class="reference internal" href="asyncio-eventloop.html#asyncio.loop.call_at" title="asyncio.loop.call_at"><code class="xref py py-meth docutils literal notranslate"><span class="pre">loop.call_at()</span></code></a> methods) raise an exception if they are called
+from a wrong thread.</p></li>
+<li><p>The execution time of the I/O selector is logged if it takes too long to
+perform an I/O operation.</p></li>
+<li><p>Callbacks taking longer than 100 milliseconds are logged.  The
+<a class="reference internal" href="asyncio-eventloop.html#asyncio.loop.slow_callback_duration" title="asyncio.loop.slow_callback_duration"><code class="xref py py-attr docutils literal notranslate"><span class="pre">loop.slow_callback_duration</span></code></a> attribute can be used to set the
+minimum execution duration in seconds that is considered “slow”.</p></li>
+</ul>
+</section>
+<section id="concurrency-and-multithreading">
+<span id="asyncio-multithreading"></span><h2>Concurrency and Multithreading<a class="headerlink" href="#concurrency-and-multithreading" title="Link to this heading">¶</a></h2>
+<p>An event loop runs in a thread (typically the main thread) and executes
+all callbacks and Tasks in its thread.  While a Task is running in the
+event loop, no other Tasks can run in the same thread.  When a Task
+executes an <code class="docutils literal notranslate"><span class="pre">await</span></code> expression, the running Task gets suspended, and
+the event loop executes the next Task.</p>
+<p>To schedule a <a class="reference internal" href="../glossary.html#term-callback"><span class="xref std std-term">callback</span></a> from another OS thread, the
+<a class="reference internal" href="asyncio-eventloop.html#asyncio.loop.call_soon_threadsafe" title="asyncio.loop.call_soon_threadsafe"><code class="xref py py-meth docutils literal notranslate"><span class="pre">loop.call_soon_threadsafe()</span></code></a> method should be used. Example:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">loop</span><span class="o">.</span><span class="n">call_soon_threadsafe</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Almost all asyncio objects are not thread safe, which is typically
+not a problem unless there is code that works with them from outside
+of a Task or a callback.  If there’s a need for such code to call a
+low-level asyncio API, the <a class="reference internal" href="asyncio-eventloop.html#asyncio.loop.call_soon_threadsafe" title="asyncio.loop.call_soon_threadsafe"><code class="xref py py-meth docutils literal notranslate"><span class="pre">loop.call_soon_threadsafe()</span></code></a> method
+should be used, e.g.:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">loop</span><span class="o">.</span><span class="n">call_soon_threadsafe</span><span class="p">(</span><span class="n">fut</span><span class="o">.</span><span class="n">cancel</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>To schedule a coroutine object from a different OS thread, the
+<a class="reference internal" href="asyncio-task.html#asyncio.run_coroutine_threadsafe" title="asyncio.run_coroutine_threadsafe"><code class="xref py py-func docutils literal notranslate"><span class="pre">run_coroutine_threadsafe()</span></code></a> function should be used. It returns a
+<a class="reference internal" href="concurrent.futures.html#concurrent.futures.Future" title="concurrent.futures.Future"><code class="xref py py-class docutils literal notranslate"><span class="pre">concurrent.futures.Future</span></code></a> to access the result:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">def</span> <span class="nf">coro_func</span><span class="p">():</span>
+     <span class="k">return</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">42</span><span class="p">)</span>
+
+<span class="c1"># Later in another OS thread:</span>
+
+<span class="n">future</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">run_coroutine_threadsafe</span><span class="p">(</span><span class="n">coro_func</span><span class="p">(),</span> <span class="n">loop</span><span class="p">)</span>
+<span class="c1"># Wait for the result:</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>To handle signals the event loop must be
+run in the main thread.</p>
+<p>The <a class="reference internal" href="asyncio-eventloop.html#asyncio.loop.run_in_executor" title="asyncio.loop.run_in_executor"><code class="xref py py-meth docutils literal notranslate"><span class="pre">loop.run_in_executor()</span></code></a> method can be used with a
+<a class="reference internal" href="concurrent.futures.html#concurrent.futures.ThreadPoolExecutor" title="concurrent.futures.ThreadPoolExecutor"><code class="xref py py-class docutils literal notranslate"><span class="pre">concurrent.futures.ThreadPoolExecutor</span></code></a> to execute
+blocking code in a different OS thread without blocking the OS thread
+that the event loop runs in.</p>
+<p>There is currently no way to schedule coroutines or callbacks directly
+from a different process (such as one started with
+<a class="reference internal" href="multiprocessing.html#module-multiprocessing" title="multiprocessing: Process-based parallelism."><code class="xref py py-mod docutils literal notranslate"><span class="pre">multiprocessing</span></code></a>). The <a class="reference internal" href="asyncio-eventloop.html#asyncio-event-loop-methods"><span class="std std-ref">Event Loop Methods</span></a>
+section lists APIs that can read from pipes and watch file descriptors
+without blocking the event loop. In addition, asyncio’s
+<a class="reference internal" href="asyncio-subprocess.html#asyncio-subprocess"><span class="std std-ref">Subprocess</span></a> APIs provide a way to start a
+process and communicate with it from the event loop. Lastly, the
+aforementioned <a class="reference internal" href="asyncio-eventloop.html#asyncio.loop.run_in_executor" title="asyncio.loop.run_in_executor"><code class="xref py py-meth docutils literal notranslate"><span class="pre">loop.run_in_executor()</span></code></a> method can also be used
+with a <a class="reference internal" href="concurrent.futures.html#concurrent.futures.ProcessPoolExecutor" title="concurrent.futures.ProcessPoolExecutor"><code class="xref py py-class docutils literal notranslate"><span class="pre">concurrent.futures.ProcessPoolExecutor</span></code></a> to execute
+code in a different process.</p>
+</section>
+<section id="running-blocking-code">
+<span id="asyncio-handle-blocking"></span><h2>Running Blocking Code<a class="headerlink" href="#running-blocking-code" title="Link to this heading">¶</a></h2>
+<p>Blocking (CPU-bound) code should not be called directly.  For example,
+if a function performs a CPU-intensive calculation for 1 second,
+all concurrent asyncio Tasks and IO operations would be delayed
+by 1 second.</p>
+<p>An executor can be used to run a task in a different thread or even in
+a different process to avoid blocking the OS thread with the
+event loop.  See the <a class="reference internal" href="asyncio-eventloop.html#asyncio.loop.run_in_executor" title="asyncio.loop.run_in_executor"><code class="xref py py-meth docutils literal notranslate"><span class="pre">loop.run_in_executor()</span></code></a> method for more
+details.</p>
+</section>
+<section id="logging">
+<span id="asyncio-logger"></span><h2>Logging<a class="headerlink" href="#logging" title="Link to this heading">¶</a></h2>
+<p>asyncio uses the <a class="reference internal" href="logging.html#module-logging" title="logging: Flexible event logging system for applications."><code class="xref py py-mod docutils literal notranslate"><span class="pre">logging</span></code></a> module and all logging is performed
+via the <code class="docutils literal notranslate"><span class="pre">&quot;asyncio&quot;</span></code> logger.</p>
+<p>The default log level is <a class="reference internal" href="logging.html#logging.INFO" title="logging.INFO"><code class="xref py py-const docutils literal notranslate"><span class="pre">logging.INFO</span></code></a>, which can be easily
+adjusted:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;asyncio&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Network logging can block the event loop. It is recommended to use
+a separate thread for handling logs or use non-blocking IO. For example,
+see <a class="reference internal" href="../howto/logging-cookbook.html#blocking-handlers"><span class="std std-ref">Dealing with handlers that block</span></a>.</p>
+</section>
+<section id="detect-never-awaited-coroutines">
+<span id="asyncio-coroutine-not-scheduled"></span><h2>Detect never-awaited coroutines<a class="headerlink" href="#detect-never-awaited-coroutines" title="Link to this heading">¶</a></h2>
+<p>When a coroutine function is called, but not awaited
+(e.g. <code class="docutils literal notranslate"><span class="pre">coro()</span></code> instead of <code class="docutils literal notranslate"><span class="pre">await</span> <span class="pre">coro()</span></code>)
+or the coroutine is not scheduled with <a class="reference internal" href="asyncio-task.html#asyncio.create_task" title="asyncio.create_task"><code class="xref py py-meth docutils literal notranslate"><span class="pre">asyncio.create_task()</span></code></a>, asyncio
+will emit a <a class="reference internal" href="exceptions.html#RuntimeWarning" title="RuntimeWarning"><code class="xref py py-exc docutils literal notranslate"><span class="pre">RuntimeWarning</span></code></a>:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">asyncio</span>
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">test</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;never scheduled&quot;</span><span class="p">)</span>
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">test</span><span class="p">()</span>
+
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>Output:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">test</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">7</span><span class="p">:</span> <span class="ne">RuntimeWarning</span><span class="p">:</span> <span class="n">coroutine</span> <span class="s1">&#39;test&#39;</span> <span class="n">was</span> <span class="n">never</span> <span class="n">awaited</span>
+  <span class="n">test</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Output in debug mode:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">test</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">7</span><span class="p">:</span> <span class="ne">RuntimeWarning</span><span class="p">:</span> <span class="n">coroutine</span> <span class="s1">&#39;test&#39;</span> <span class="n">was</span> <span class="n">never</span> <span class="n">awaited</span>
+<span class="n">Coroutine</span> <span class="n">created</span> <span class="n">at</span> <span class="p">(</span><span class="n">most</span> <span class="n">recent</span> <span class="n">call</span> <span class="n">last</span><span class="p">)</span>
+  <span class="n">File</span> <span class="s2">&quot;../t.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">9</span><span class="p">,</span> <span class="ow">in</span> <span class="o">&lt;</span><span class="n">module</span><span class="o">&gt;</span>
+    <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">(),</span> <span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+  <span class="o">&lt;</span> <span class="o">..</span> <span class="o">&gt;</span>
+
+  <span class="n">File</span> <span class="s2">&quot;../t.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">7</span><span class="p">,</span> <span class="ow">in</span> <span class="n">main</span>
+    <span class="n">test</span><span class="p">()</span>
+  <span class="n">test</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The usual fix is to either await the coroutine or call the
+<a class="reference internal" href="asyncio-task.html#asyncio.create_task" title="asyncio.create_task"><code class="xref py py-meth docutils literal notranslate"><span class="pre">asyncio.create_task()</span></code></a> function:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="k">await</span> <span class="n">test</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="detect-never-retrieved-exceptions">
+<h2>Detect never-retrieved exceptions<a class="headerlink" href="#detect-never-retrieved-exceptions" title="Link to this heading">¶</a></h2>
+<p>If a <a class="reference internal" href="asyncio-future.html#asyncio.Future.set_exception" title="asyncio.Future.set_exception"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Future.set_exception()</span></code></a> is called but the Future object is
+never awaited on, the exception would never be propagated to the
+user code.  In this case, asyncio would emit a log message when the
+Future object is garbage collected.</p>
+<p>Example of an unhandled exception:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">asyncio</span>
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">bug</span><span class="p">():</span>
+    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;not consumed&quot;</span><span class="p">)</span>
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="n">bug</span><span class="p">())</span>
+
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>Output:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">Task</span> <span class="n">exception</span> <span class="n">was</span> <span class="n">never</span> <span class="n">retrieved</span>
+<span class="n">future</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">Task</span> <span class="n">finished</span> <span class="n">coro</span><span class="o">=&lt;</span><span class="n">bug</span><span class="p">()</span> <span class="n">done</span><span class="p">,</span> <span class="n">defined</span> <span class="n">at</span> <span class="n">test</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">3</span><span class="o">&gt;</span>
+  <span class="n">exception</span><span class="o">=</span><span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;not consumed&#39;</span><span class="p">)</span><span class="o">&gt;</span>
+
+<span class="n">Traceback</span> <span class="p">(</span><span class="n">most</span> <span class="n">recent</span> <span class="n">call</span> <span class="n">last</span><span class="p">):</span>
+  <span class="n">File</span> <span class="s2">&quot;test.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">4</span><span class="p">,</span> <span class="ow">in</span> <span class="n">bug</span>
+    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;not consumed&quot;</span><span class="p">)</span>
+<span class="ne">Exception</span><span class="p">:</span> <span class="ow">not</span> <span class="n">consumed</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="#asyncio-debug-mode"><span class="std std-ref">Enable the debug mode</span></a> to get the
+traceback where the task was created:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">(),</span> <span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Output in debug mode:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">Task</span> <span class="n">exception</span> <span class="n">was</span> <span class="n">never</span> <span class="n">retrieved</span>
+<span class="n">future</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">Task</span> <span class="n">finished</span> <span class="n">coro</span><span class="o">=&lt;</span><span class="n">bug</span><span class="p">()</span> <span class="n">done</span><span class="p">,</span> <span class="n">defined</span> <span class="n">at</span> <span class="n">test</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">3</span><span class="o">&gt;</span>
+    <span class="n">exception</span><span class="o">=</span><span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;not consumed&#39;</span><span class="p">)</span> <span class="n">created</span> <span class="n">at</span> <span class="n">asyncio</span><span class="o">/</span><span class="n">tasks</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">321</span><span class="o">&gt;</span>
+
+<span class="n">source_traceback</span><span class="p">:</span> <span class="n">Object</span> <span class="n">created</span> <span class="n">at</span> <span class="p">(</span><span class="n">most</span> <span class="n">recent</span> <span class="n">call</span> <span class="n">last</span><span class="p">):</span>
+  <span class="n">File</span> <span class="s2">&quot;../t.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">9</span><span class="p">,</span> <span class="ow">in</span> <span class="o">&lt;</span><span class="n">module</span><span class="o">&gt;</span>
+    <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">(),</span> <span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="o">&lt;</span> <span class="o">..</span> <span class="o">&gt;</span>
+
+<span class="n">Traceback</span> <span class="p">(</span><span class="n">most</span> <span class="n">recent</span> <span class="n">call</span> <span class="n">last</span><span class="p">):</span>
+  <span class="n">File</span> <span class="s2">&quot;../t.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">4</span><span class="p">,</span> <span class="ow">in</span> <span class="n">bug</span>
+    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;not consumed&quot;</span><span class="p">)</span>
+<span class="ne">Exception</span><span class="p">:</span> <span class="ow">not</span> <span class="n">consumed</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="../contents.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Developing with asyncio</a><ul>
+<li><a class="reference internal" href="#debug-mode">Debug Mode</a></li>
+<li><a class="reference internal" href="#concurrency-and-multithreading">Concurrency and Multithreading</a></li>
+<li><a class="reference internal" href="#running-blocking-code">Running Blocking Code</a></li>
+<li><a class="reference internal" href="#logging">Logging</a></li>
+<li><a class="reference internal" href="#detect-never-awaited-coroutines">Detect never-awaited coroutines</a></li>
+<li><a class="reference internal" href="#detect-never-retrieved-exceptions">Detect never-retrieved exceptions</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="asyncio-llapi-index.html"
+                          title="previous chapter">Low-level API Index</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="socket.html"
+                          title="next chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">socket</span></code> — Low-level networking interface</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../bugs.html">Report a Bug</a></li>
+      <li>
+        <a href="https://github.com/python/cpython/blob/main/Doc/library/asyncio-dev.rst"
+            rel="nofollow">Show Source
+        </a>
+      </li>
+    </ul>
+  </div>
+        </div>
+<div id="sidebarbutton" title="Collapse sidebar">
+<span>«</span>
+</div>
+
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="socket.html" title="socket — Low-level networking interface"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="asyncio-llapi-index.html" title="Low-level API Index"
+             >previous</a> |</li>
+
+          <li><img src="../_static/py.svg" alt="Python logo" style="vertical-align: middle; margin-top: -1px"/></li>
+          <li><a href="https://www.python.org/">Python</a> &#187;</li>
+          <li class="switchers">
+            <div class="language_switcher_placeholder"></div>
+            <div class="version_switcher_placeholder"></div>
+          </li>
+          <li>
+              
+          </li>
+    <li id="cpython-language-and-version">
+      <a href="../index.html">3.12.3 Documentation</a> &#187;
+    </li>
+
+          <li class="nav-item nav-item-1"><a href="index.html" >The Python Standard Library</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="ipc.html" >Networking and Interprocess Communication</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="asyncio.html" ><code class="xref py py-mod docutils literal notranslate"><span class="pre">asyncio</span></code> — Asynchronous I/O</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Developing with asyncio</a></li>
+                <li class="right">
+                    
+
+    <div class="inline-search" role="search">
+        <form class="inline-search" action="../search.html" method="get">
+          <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" id="search-box" />
+          <input type="submit" value="Go" />
+        </form>
+    </div>
+                     |
+                </li>
+            <li class="right">
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected>Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label> |</li>
+            
+      </ul>
+    </div>  
+    <div class="footer">
+    &copy; 
+      <a href="../copyright.html">
+    
+    Copyright
+    
+      </a>
+     2001-2024, Python Software Foundation.
+    <br />
+    This page is licensed under the Python Software Foundation License Version 2.
+    <br />
+    Examples, recipes, and other code in the documentation are additionally licensed under the Zero Clause BSD License.
+    <br />
+    
+      See <a href="/license.html">History and License</a> for more information.<br />
+    
+    
+    <br />
+
+    The Python Software Foundation is a non-profit corporation.
+<a href="https://www.python.org/psf/donations/">Please donate.</a>
+<br />
+    <br />
+      Last updated on Apr 09, 2024 (13:47 UTC).
+    
+      <a href="/bugs.html">Found a bug</a>?
+    
+    <br />
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
+    </div>
+
+  </body>
+</html>

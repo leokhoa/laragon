@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content="Debugging C API extensions and CPython Internals with GDB" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://docs.python.org/3/howto/gdb_helpers.html" />
+<meta property="og:site_name" content="Python documentation" />
+<meta property="og:description" content="This document explains how the Python GDB extension, python-gdb.py, can be used with the GDB debugger to debug CPython extensions and the CPython interpreter itself. When debugging low-level proble..." />
+<meta property="og:image" content="https://docs.python.org/3/_static/og-image.png" />
+<meta property="og:image:alt" content="Python documentation" />
+<meta name="description" content="This document explains how the Python GDB extension, python-gdb.py, can be used with the GDB debugger to debug CPython extensions and the CPython interpreter itself. When debugging low-level proble..." />
+<meta property="og:image:width" content="200" />
+<meta property="og:image:height" content="200" />
+<meta name="theme-color" content="#3776ab" />
+
+    <title>Debugging C API extensions and CPython Internals with GDB &#8212; Python 3.12.3 documentation</title><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+    <link rel="stylesheet" type="text/css" href="../_static/pydoctheme.css?v=bb723527" />
+    <link id="pygments_dark_css" media="(prefers-color-scheme: dark)" rel="stylesheet" type="text/css" href="../_static/pygments_dark.css?v=b20cc3f5" />
+    
+    <script src="../_static/documentation_options.js?v=2c828074"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <script src="../_static/sidebar.js"></script>
+    
+    <link rel="search" type="application/opensearchdescription+xml"
+          title="Search within Python 3.12.3 documentation"
+          href="../_static/opensearch.xml"/>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="copyright" title="Copyright" href="../copyright.html" />
+    <link rel="next" title="Enum HOWTO" href="enum.html" />
+    <link rel="prev" title="Descriptor Guide" href="descriptor.html" />
+    <link rel="canonical" href="https://docs.python.org/3/howto/gdb_helpers.html" />
+    
+      
+    
+
+    
+    <style>
+      @media only screen {
+        table.full-width-table {
+            width: 100%;
+        }
+      }
+    </style>
+<link rel="stylesheet" href="../_static/pydoctheme_dark.css" media="(prefers-color-scheme: dark)" id="pydoctheme_dark_css">
+    <link rel="shortcut icon" type="image/png" href="../_static/py.svg" />
+            <script type="text/javascript" src="../_static/copybutton.js"></script>
+            <script type="text/javascript" src="../_static/menu.js"></script>
+            <script type="text/javascript" src="../_static/search-focus.js"></script>
+            <script type="text/javascript" src="../_static/themetoggle.js"></script> 
+
+  </head>
+<body>
+<div class="mobile-nav">
+    <input type="checkbox" id="menuToggler" class="toggler__input" aria-controls="navigation"
+           aria-pressed="false" aria-expanded="false" role="button" aria-label="Menu" />
+    <nav class="nav-content" role="navigation">
+        <label for="menuToggler" class="toggler__label">
+            <span></span>
+        </label>
+        <span class="nav-items-wrapper">
+            <a href="https://www.python.org/" class="nav-logo">
+                <img src="../_static/py.svg" alt="Python logo"/>
+            </a>
+            <span class="version_switcher_placeholder"></span>
+            <form role="search" class="search" action="../search.html" method="get">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" class="search-icon">
+                    <path fill-rule="nonzero" fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 001.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 00-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 005.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                </svg>
+                <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" />
+                <input type="submit" value="Go"/>
+            </form>
+        </span>
+    </nav>
+    <div class="menu-wrapper">
+        <nav class="menu" role="navigation" aria-label="main navigation">
+            <div class="language_switcher_placeholder"></div>
+            
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected>Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label>
+  <div>
+    <h3><a href="../contents.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Debugging C API extensions and CPython Internals with GDB</a><ul>
+<li><a class="reference internal" href="#prerequisites">Prerequisites</a><ul>
+<li><a class="reference internal" href="#setup-with-python-built-from-source">Setup with Python built from source</a></li>
+<li><a class="reference internal" href="#setup-for-python-from-a-linux-distro">Setup for Python from a Linux distro</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#using-the-debug-build-and-development-mode">Using the Debug build and Development mode</a></li>
+<li><a class="reference internal" href="#using-the-python-gdb-extension">Using the <code class="docutils literal notranslate"><span class="pre">python-gdb</span></code> extension</a><ul>
+<li><a class="reference internal" href="#pretty-printers">Pretty-printers</a></li>
+<li><a class="reference internal" href="#py-list"><code class="docutils literal notranslate"><span class="pre">py-list</span></code></a></li>
+<li><a class="reference internal" href="#py-up-and-py-down"><code class="docutils literal notranslate"><span class="pre">py-up</span></code> and <code class="docutils literal notranslate"><span class="pre">py-down</span></code></a></li>
+<li><a class="reference internal" href="#py-bt"><code class="docutils literal notranslate"><span class="pre">py-bt</span></code></a></li>
+<li><a class="reference internal" href="#py-print"><code class="docutils literal notranslate"><span class="pre">py-print</span></code></a></li>
+<li><a class="reference internal" href="#py-locals"><code class="docutils literal notranslate"><span class="pre">py-locals</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#use-with-gdb-commands">Use with GDB commands</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="descriptor.html"
+                          title="previous chapter">Descriptor Guide</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="enum.html"
+                          title="next chapter">Enum HOWTO</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../bugs.html">Report a Bug</a></li>
+      <li>
+        <a href="https://github.com/python/cpython/blob/main/Doc/howto/gdb_helpers.rst"
+            rel="nofollow">Show Source
+        </a>
+      </li>
+    </ul>
+  </div>
+        </nav>
+    </div>
+</div>
+
+  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="enum.html" title="Enum HOWTO"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="descriptor.html" title="Descriptor Guide"
+             accesskey="P">previous</a> |</li>
+
+          <li><img src="../_static/py.svg" alt="Python logo" style="vertical-align: middle; margin-top: -1px"/></li>
+          <li><a href="https://www.python.org/">Python</a> &#187;</li>
+          <li class="switchers">
+            <div class="language_switcher_placeholder"></div>
+            <div class="version_switcher_placeholder"></div>
+          </li>
+          <li>
+              
+          </li>
+    <li id="cpython-language-and-version">
+      <a href="../index.html">3.12.3 Documentation</a> &#187;
+    </li>
+
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Python HOWTOs</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Debugging C API extensions and CPython Internals with GDB</a></li>
+                <li class="right">
+                    
+
+    <div class="inline-search" role="search">
+        <form class="inline-search" action="../search.html" method="get">
+          <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" id="search-box" />
+          <input type="submit" value="Go" />
+        </form>
+    </div>
+                     |
+                </li>
+            <li class="right">
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected>Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label> |</li>
+            
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="debugging-c-api-extensions-and-cpython-internals-with-gdb">
+<span id="gdb"></span><h1>Debugging C API extensions and CPython Internals with GDB<a class="headerlink" href="#debugging-c-api-extensions-and-cpython-internals-with-gdb" title="Link to this heading">¶</a></h1>
+<p>This document explains how the Python GDB extension, <code class="docutils literal notranslate"><span class="pre">python-gdb.py</span></code>, can
+be used with the GDB debugger to debug CPython extensions and the
+CPython interpreter itself.</p>
+<p>When debugging low-level problems such as crashes or deadlocks, a low-level
+debugger, such as GDB, is useful to diagnose and correct the issue.
+By default, GDB (or any of its front-ends) doesn’t support high-level
+information specific to the CPython interpreter.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">python-gdb.py</span></code> extension adds CPython interpreter information to GDB.
+The extension helps introspect the stack of currently executing Python functions.
+Given a Python object represented by a <span class="c-expr sig sig-inline c"><a class="reference internal" href="../c-api/structures.html#c.PyObject" title="PyObject"><span class="n">PyObject</span></a><span class="p">*</span></span> pointer,
+the extension surfaces the type and value of the object.</p>
+<p>Developers who are working on CPython extensions or tinkering with parts
+of CPython that are written in C can use this document to learn how to use the
+<code class="docutils literal notranslate"><span class="pre">python-gdb.py</span></code> extension with GDB.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This document assumes that you are familiar with the basics of GDB and the
+CPython C API. It consolidates guidance from the
+<a class="reference external" href="https://devguide.python.org">devguide</a>  and the
+<a class="reference external" href="https://wiki.python.org/moin/DebuggingWithGdb">Python wiki</a>.</p>
+</div>
+<section id="prerequisites">
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading">¶</a></h2>
+<p>You need to have:</p>
+<ul class="simple">
+<li><p>GDB 7 or later. (For earlier versions of GDB, see <code class="docutils literal notranslate"><span class="pre">Misc/gdbinit</span></code> in the
+sources of Python 3.11 or earlier.)</p></li>
+<li><p>GDB-compatible debugging information for Python and any extension you are
+debugging.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">python-gdb.py</span></code> extension.</p></li>
+</ul>
+<p>The extension is built with Python, but might be distributed separately or
+not at all. Below, we include tips for a few common systems as examples.
+Note that even if the instructions match your system, they might be outdated.</p>
+<section id="setup-with-python-built-from-source">
+<h3>Setup with Python built from source<a class="headerlink" href="#setup-with-python-built-from-source" title="Link to this heading">¶</a></h3>
+<p>When you build CPython from source, debugging information should be available,
+and the build should add a <code class="docutils literal notranslate"><span class="pre">python-gdb.py</span></code> file to the root directory of
+your repository.</p>
+<p>To activate support, you must add the directory containing <code class="docutils literal notranslate"><span class="pre">python-gdb.py</span></code>
+to GDB’s “auto-load-safe-path”.
+If you haven’t done this, recent versions of GDB will print out a warning
+with instructions on how to do this.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you do not see instructions for your version of GDB, put this in your
+configuration file (<code class="docutils literal notranslate"><span class="pre">~/.gdbinit</span></code> or <code class="docutils literal notranslate"><span class="pre">~/.config/gdb/gdbinit</span></code>):</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>add-auto-load-safe-path /path/to/cpython
+</pre></div>
+</div>
+<p>You can also add multiple paths, separated by <code class="docutils literal notranslate"><span class="pre">:</span></code>.</p>
+</div>
+</section>
+<section id="setup-for-python-from-a-linux-distro">
+<h3>Setup for Python from a Linux distro<a class="headerlink" href="#setup-for-python-from-a-linux-distro" title="Link to this heading">¶</a></h3>
+<p>Most Linux systems provide debug information for the system Python
+in a package called <code class="docutils literal notranslate"><span class="pre">python-debuginfo</span></code>, <code class="docutils literal notranslate"><span class="pre">python-dbg</span></code> or similar.
+For example:</p>
+<ul>
+<li><p>Fedora:</p>
+<blockquote>
+<div><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>dnf<span class="w"> </span>install<span class="w"> </span>gdb
+sudo<span class="w"> </span>dnf<span class="w"> </span>debuginfo-install<span class="w"> </span>python3
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>Ubuntu:</p>
+<blockquote>
+<div><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>gdb<span class="w"> </span>python3-dbg
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+</ul>
+<p>On several recent Linux systems, GDB can download debugging symbols
+automatically using <em>debuginfod</em>.
+However, this will not install the <code class="docutils literal notranslate"><span class="pre">python-gdb.py</span></code> extension;
+you generally do need to install the debug info package separately.</p>
+</section>
+</section>
+<section id="using-the-debug-build-and-development-mode">
+<h2>Using the Debug build and Development mode<a class="headerlink" href="#using-the-debug-build-and-development-mode" title="Link to this heading">¶</a></h2>
+<p>For easier debugging, you might want to:</p>
+<ul class="simple">
+<li><p>Use a <a class="reference internal" href="../using/configure.html#debug-build"><span class="std std-ref">debug build</span></a> of Python. (When building from source,
+use <code class="docutils literal notranslate"><span class="pre">configure</span> <span class="pre">--with-pydebug</span></code>. On Linux distros, install and run a package
+like <code class="docutils literal notranslate"><span class="pre">python-debug</span></code> or <code class="docutils literal notranslate"><span class="pre">python-dbg</span></code>, if available.)</p></li>
+<li><p>Use the runtime <a class="reference internal" href="../library/devmode.html#devmode"><span class="std std-ref">development mode</span></a> (<code class="docutils literal notranslate"><span class="pre">-X</span> <span class="pre">dev</span></code>).</p></li>
+</ul>
+<p>Both enable extra assertions and disable some optimizations.
+Sometimes this hides the bug you are trying to find, but in most cases they
+make the process easier.</p>
+</section>
+<section id="using-the-python-gdb-extension">
+<h2>Using the <code class="docutils literal notranslate"><span class="pre">python-gdb</span></code> extension<a class="headerlink" href="#using-the-python-gdb-extension" title="Link to this heading">¶</a></h2>
+<p>When the extension is loaded, it provides two main features:
+pretty printers for Python values, and additional commands.</p>
+<section id="pretty-printers">
+<h3>Pretty-printers<a class="headerlink" href="#pretty-printers" title="Link to this heading">¶</a></h3>
+<p>This is what a GDB backtrace looks like (truncated) when this extension is
+enabled:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>#0  0x000000000041a6b1 in PyObject_Malloc (nbytes=Cannot access memory at address 0x7fffff7fefe8
+) at Objects/obmalloc.c:748
+#1  0x000000000041b7c0 in _PyObject_DebugMallocApi (id=111 &#39;o&#39;, nbytes=24) at Objects/obmalloc.c:1445
+#2  0x000000000041b717 in _PyObject_DebugMalloc (nbytes=24) at Objects/obmalloc.c:1412
+#3  0x000000000044060a in _PyUnicode_New (length=11) at Objects/unicodeobject.c:346
+#4  0x00000000004466aa in PyUnicodeUCS2_DecodeUTF8Stateful (s=0x5c2b8d &quot;__lltrace__&quot;, size=11, errors=0x0, consumed=
+    0x0) at Objects/unicodeobject.c:2531
+#5  0x0000000000446647 in PyUnicodeUCS2_DecodeUTF8 (s=0x5c2b8d &quot;__lltrace__&quot;, size=11, errors=0x0)
+    at Objects/unicodeobject.c:2495
+#6  0x0000000000440d1b in PyUnicodeUCS2_FromStringAndSize (u=0x5c2b8d &quot;__lltrace__&quot;, size=11)
+    at Objects/unicodeobject.c:551
+#7  0x0000000000440d94 in PyUnicodeUCS2_FromString (u=0x5c2b8d &quot;__lltrace__&quot;) at Objects/unicodeobject.c:569
+#8  0x0000000000584abd in PyDict_GetItemString (v=
+    {&#39;Yuck&#39;: &lt;type at remote 0xad4730&gt;, &#39;__builtins__&#39;: &lt;module at remote 0x7ffff7fd5ee8&gt;, &#39;__file__&#39;: &#39;Lib/test/crashers/nasty_eq_vs_dict.py&#39;, &#39;__package__&#39;: None, &#39;y&#39;: &lt;Yuck(i=0) at remote 0xaacd80&gt;, &#39;dict&#39;: {0: 0, 1: 1, 2: 2, 3: 3}, &#39;__cached__&#39;: None, &#39;__name__&#39;: &#39;__main__&#39;, &#39;z&#39;: &lt;Yuck(i=0) at remote 0xaace60&gt;, &#39;__doc__&#39;: None}, key=
+    0x5c2b8d &quot;__lltrace__&quot;) at Objects/dictobject.c:2171
+</pre></div>
+</div>
+<p>Notice how the dictionary argument to <code class="docutils literal notranslate"><span class="pre">PyDict_GetItemString</span></code> is displayed
+as its <code class="docutils literal notranslate"><span class="pre">repr()</span></code>, rather than an opaque <code class="docutils literal notranslate"><span class="pre">PyObject</span> <span class="pre">*</span></code> pointer.</p>
+<p>The extension works by supplying a custom printing routine for values of type
+<code class="docutils literal notranslate"><span class="pre">PyObject</span> <span class="pre">*</span></code>.  If you need to access lower-level details of an object, then
+cast the value to a pointer of the appropriate type.  For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(gdb) p globals
+$1 = {&#39;__builtins__&#39;: &lt;module at remote 0x7ffff7fb1868&gt;, &#39;__name__&#39;:
+&#39;__main__&#39;, &#39;ctypes&#39;: &lt;module at remote 0x7ffff7f14360&gt;, &#39;__doc__&#39;: None,
+&#39;__package__&#39;: None}
+
+(gdb) p *(PyDictObject*)globals
+$2 = {ob_refcnt = 3, ob_type = 0x3dbdf85820, ma_fill = 5, ma_used = 5,
+ma_mask = 7, ma_table = 0x63d0f8, ma_lookup = 0x3dbdc7ea70
+&lt;lookdict_string&gt;, ma_smalltable = {{me_hash = 7065186196740147912,
+me_key = &#39;__builtins__&#39;, me_value = &lt;module at remote 0x7ffff7fb1868&gt;},
+{me_hash = -368181376027291943, me_key = &#39;__name__&#39;,
+me_value =&#39;__main__&#39;}, {me_hash = 0, me_key = 0x0, me_value = 0x0},
+{me_hash = 0, me_key = 0x0, me_value = 0x0},
+{me_hash = -9177857982131165996, me_key = &#39;ctypes&#39;,
+me_value = &lt;module at remote 0x7ffff7f14360&gt;},
+{me_hash = -8518757509529533123, me_key = &#39;__doc__&#39;, me_value = None},
+{me_hash = 0, me_key = 0x0, me_value = 0x0}, {
+  me_hash = 6614918939584953775, me_key = &#39;__package__&#39;, me_value = None}}}
+</pre></div>
+</div>
+<p>Note that the pretty-printers do not actually call <code class="docutils literal notranslate"><span class="pre">repr()</span></code>.
+For basic types, they try to match its result closely.</p>
+<p>An area that can be confusing is that the custom printer for some types look a
+lot like GDB’s built-in printer for standard types.  For example, the
+pretty-printer for a Python <code class="docutils literal notranslate"><span class="pre">int</span></code> (<span class="c-expr sig sig-inline c"><a class="reference internal" href="../c-api/long.html#c.PyLongObject" title="PyLongObject"><span class="n">PyLongObject</span></a><span class="p">*</span></span>)
+gives a representation that is not distinguishable from one of a
+regular machine-level integer:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(gdb) p some_machine_integer
+$3 = 42
+
+(gdb) p some_python_integer
+$4 = 42
+</pre></div>
+</div>
+<p>The internal structure can be revealed with a cast to <span class="c-expr sig sig-inline c"><a class="reference internal" href="../c-api/long.html#c.PyLongObject" title="PyLongObject"><span class="n">PyLongObject</span></a><span class="p">*</span></span>:</p>
+<blockquote>
+<div><p>(gdb) p <em>(PyLongObject</em>)some_python_integer
+$5 = {ob_base = {ob_base = {ob_refcnt = 8, ob_type = 0x3dad39f5e0}, ob_size = 1},
+ob_digit = {42}}</p>
+</div></blockquote>
+<p>A similar confusion can arise with the <code class="docutils literal notranslate"><span class="pre">str</span></code> type, where the output looks a
+lot like gdb’s built-in printer for <code class="docutils literal notranslate"><span class="pre">char</span> <span class="pre">*</span></code>:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(gdb) p ptr_to_python_str
+$6 = &#39;__builtins__&#39;
+</pre></div>
+</div>
+<p>The pretty-printer for <code class="docutils literal notranslate"><span class="pre">str</span></code> instances defaults to using single-quotes (as
+does Python’s <code class="docutils literal notranslate"><span class="pre">repr</span></code> for strings) whereas the standard printer for <code class="docutils literal notranslate"><span class="pre">char</span> <span class="pre">*</span></code>
+values uses double-quotes and contains a hexadecimal address:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(gdb) p ptr_to_char_star
+$7 = 0x6d72c0 &quot;hello world&quot;
+</pre></div>
+</div>
+<p>Again, the implementation details can be revealed with a cast to
+<span class="c-expr sig sig-inline c"><a class="reference internal" href="../c-api/unicode.html#c.PyUnicodeObject" title="PyUnicodeObject"><span class="n">PyUnicodeObject</span></a><span class="p">*</span></span>:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(gdb) p *(PyUnicodeObject*)$6
+$8 = {ob_base = {ob_refcnt = 33, ob_type = 0x3dad3a95a0}, length = 12,
+str = 0x7ffff2128500, hash = 7065186196740147912, state = 1, defenc = 0x0}
+</pre></div>
+</div>
+</section>
+<section id="py-list">
+<h3><code class="docutils literal notranslate"><span class="pre">py-list</span></code><a class="headerlink" href="#py-list" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>The extension adds a <code class="docutils literal notranslate"><span class="pre">py-list</span></code> command, which
+lists the Python source code (if any) for the current frame in the selected
+thread.  The current line is marked with a “&gt;”:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(gdb) py-list
+ 901        if options.profile:
+ 902            options.profile = False
+ 903            profile_me()
+ 904            return
+ 905
+&gt;906        u = UI()
+ 907        if not u.quit:
+ 908            try:
+ 909                gtk.main()
+ 910            except KeyboardInterrupt:
+ 911                # properly quit on a keyboard interrupt...
+</pre></div>
+</div>
+<p>Use <code class="docutils literal notranslate"><span class="pre">py-list</span> <span class="pre">START</span></code> to list at a different line number within the Python
+source, and <code class="docutils literal notranslate"><span class="pre">py-list</span> <span class="pre">START,END</span></code> to list a specific range of lines within
+the Python source.</p>
+</div></blockquote>
+</section>
+<section id="py-up-and-py-down">
+<h3><code class="docutils literal notranslate"><span class="pre">py-up</span></code> and <code class="docutils literal notranslate"><span class="pre">py-down</span></code><a class="headerlink" href="#py-up-and-py-down" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>The <code class="docutils literal notranslate"><span class="pre">py-up</span></code> and <code class="docutils literal notranslate"><span class="pre">py-down</span></code> commands are analogous to GDB’s regular <code class="docutils literal notranslate"><span class="pre">up</span></code>
+and <code class="docutils literal notranslate"><span class="pre">down</span></code> commands, but try to move at the level of CPython frames, rather
+than C frames.</p>
+<p>GDB is not always able to read the relevant frame information, depending on
+the optimization level with which CPython was compiled. Internally, the
+commands look for C frames that are executing the default frame evaluation
+function (that is, the core bytecode interpreter loop within CPython) and
+look up the value of the related <code class="docutils literal notranslate"><span class="pre">PyFrameObject</span> <span class="pre">*</span></code>.</p>
+<p>They emit the frame number (at the C level) within the thread.</p>
+<p>For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(gdb) py-up
+#37 Frame 0x9420b04, for file /usr/lib/python2.6/site-packages/
+gnome_sudoku/main.py, line 906, in start_game ()
+    u = UI()
+(gdb) py-up
+#40 Frame 0x948e82c, for file /usr/lib/python2.6/site-packages/
+gnome_sudoku/gnome_sudoku.py, line 22, in start_game(main=&lt;module at remote 0xb771b7f4&gt;)
+    main.start_game()
+(gdb) py-up
+Unable to find an older python frame
+</pre></div>
+</div>
+<p>so we’re at the top of the Python stack.</p>
+<p>The frame numbers correspond to those displayed by GDB’s standard
+<code class="docutils literal notranslate"><span class="pre">backtrace</span></code> command.
+The command skips C frames which are not executing Python code.</p>
+<p>Going back down:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(gdb) py-down
+#37 Frame 0x9420b04, for file /usr/lib/python2.6/site-packages/gnome_sudoku/main.py, line 906, in start_game ()
+    u = UI()
+(gdb) py-down
+#34 (unable to read python frame information)
+(gdb) py-down
+#23 (unable to read python frame information)
+(gdb) py-down
+#19 (unable to read python frame information)
+(gdb) py-down
+#14 Frame 0x99262ac, for file /usr/lib/python2.6/site-packages/gnome_sudoku/game_selector.py, line 201, in run_swallowed_dialog (self=&lt;NewOrSavedGameSelector(new_game_model=&lt;gtk.ListStore at remote 0x98fab44&gt;, puzzle=None, saved_games=[{&#39;gsd.auto_fills&#39;: 0, &#39;tracking&#39;: {}, &#39;trackers&#39;: {}, &#39;notes&#39;: [], &#39;saved_at&#39;: 1270084485, &#39;game&#39;: &#39;7 8 0 0 0 0 0 5 6 0 0 9 0 8 0 1 0 0 0 4 6 0 0 0 0 7 0 6 5 0 0 0 4 7 9 2 0 0 0 9 0 1 0 0 0 3 9 7 6 0 0 0 1 8 0 6 0 0 0 0 2 8 0 0 0 5 0 4 0 6 0 0 2 1 0 0 0 0 0 4 5\n7 8 0 0 0 0 0 5 6 0 0 9 0 8 0 1 0 0 0 4 6 0 0 0 0 7 0 6 5 1 8 3 4 7 9 2 0 0 0 9 0 1 0 0 0 3 9 7 6 0 0 0 1 8 0 6 0 0 0 0 2 8 0 0 0 5 0 4 0 6 0 0 2 1 0 0 0 0 0 4 5&#39;, &#39;gsd.impossible_hints&#39;: 0, &#39;timer.__absolute_start_time__&#39;: &lt;float at remote 0x984b474&gt;, &#39;gsd.hints&#39;: 0, &#39;timer.active_time&#39;: &lt;float at remote 0x984b494&gt;, &#39;timer.total_time&#39;: &lt;float at remote 0x984b464&gt;}], dialog=&lt;gtk.Dialog at remote 0x98faaa4&gt;, saved_game_model=&lt;gtk.ListStore at remote 0x98fad24&gt;, sudoku_maker=&lt;SudokuMaker(terminated=False, played=[], batch_siz...(truncated)
+            swallower.run_dialog(self.dialog)
+(gdb) py-down
+#11 Frame 0x9aead74, for file /usr/lib/python2.6/site-packages/gnome_sudoku/dialog_swallower.py, line 48, in run_dialog (self=&lt;SwappableArea(running=&lt;gtk.Dialog at remote 0x98faaa4&gt;, main_page=0) at remote 0x98fa6e4&gt;, d=&lt;gtk.Dialog at remote 0x98faaa4&gt;)
+            gtk.main()
+(gdb) py-down
+#8 (unable to read python frame information)
+(gdb) py-down
+Unable to find a newer python frame
+</pre></div>
+</div>
+<p>and we’re at the bottom of the Python stack.</p>
+<p>Note that in Python 3.12 and newer, the same C stack frame can be used for
+multiple Python stack frames. This means that <code class="docutils literal notranslate"><span class="pre">py-up</span></code> and <code class="docutils literal notranslate"><span class="pre">py-down</span></code>
+may move multiple Python frames at once. For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(gdb) py-up
+#6 Frame 0x7ffff7fb62b0, for file /tmp/rec.py, line 5, in recursive_function (n=0)
+   time.sleep(5)
+#6 Frame 0x7ffff7fb6240, for file /tmp/rec.py, line 7, in recursive_function (n=1)
+   recursive_function(n-1)
+#6 Frame 0x7ffff7fb61d0, for file /tmp/rec.py, line 7, in recursive_function (n=2)
+   recursive_function(n-1)
+#6 Frame 0x7ffff7fb6160, for file /tmp/rec.py, line 7, in recursive_function (n=3)
+   recursive_function(n-1)
+#6 Frame 0x7ffff7fb60f0, for file /tmp/rec.py, line 7, in recursive_function (n=4)
+   recursive_function(n-1)
+#6 Frame 0x7ffff7fb6080, for file /tmp/rec.py, line 7, in recursive_function (n=5)
+   recursive_function(n-1)
+#6 Frame 0x7ffff7fb6020, for file /tmp/rec.py, line 9, in &lt;module&gt; ()
+   recursive_function(5)
+(gdb) py-up
+Unable to find an older python frame
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+<section id="py-bt">
+<h3><code class="docutils literal notranslate"><span class="pre">py-bt</span></code><a class="headerlink" href="#py-bt" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>The <code class="docutils literal notranslate"><span class="pre">py-bt</span></code> command attempts to display a Python-level backtrace of the
+current thread.</p>
+<p>For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(gdb) py-bt
+#8 (unable to read python frame information)
+#11 Frame 0x9aead74, for file /usr/lib/python2.6/site-packages/gnome_sudoku/dialog_swallower.py, line 48, in run_dialog (self=&lt;SwappableArea(running=&lt;gtk.Dialog at remote 0x98faaa4&gt;, main_page=0) at remote 0x98fa6e4&gt;, d=&lt;gtk.Dialog at remote 0x98faaa4&gt;)
+            gtk.main()
+#14 Frame 0x99262ac, for file /usr/lib/python2.6/site-packages/gnome_sudoku/game_selector.py, line 201, in run_swallowed_dialog (self=&lt;NewOrSavedGameSelector(new_game_model=&lt;gtk.ListStore at remote 0x98fab44&gt;, puzzle=None, saved_games=[{&#39;gsd.auto_fills&#39;: 0, &#39;tracking&#39;: {}, &#39;trackers&#39;: {}, &#39;notes&#39;: [], &#39;saved_at&#39;: 1270084485, &#39;game&#39;: &#39;7 8 0 0 0 0 0 5 6 0 0 9 0 8 0 1 0 0 0 4 6 0 0 0 0 7 0 6 5 0 0 0 4 7 9 2 0 0 0 9 0 1 0 0 0 3 9 7 6 0 0 0 1 8 0 6 0 0 0 0 2 8 0 0 0 5 0 4 0 6 0 0 2 1 0 0 0 0 0 4 5\n7 8 0 0 0 0 0 5 6 0 0 9 0 8 0 1 0 0 0 4 6 0 0 0 0 7 0 6 5 1 8 3 4 7 9 2 0 0 0 9 0 1 0 0 0 3 9 7 6 0 0 0 1 8 0 6 0 0 0 0 2 8 0 0 0 5 0 4 0 6 0 0 2 1 0 0 0 0 0 4 5&#39;, &#39;gsd.impossible_hints&#39;: 0, &#39;timer.__absolute_start_time__&#39;: &lt;float at remote 0x984b474&gt;, &#39;gsd.hints&#39;: 0, &#39;timer.active_time&#39;: &lt;float at remote 0x984b494&gt;, &#39;timer.total_time&#39;: &lt;float at remote 0x984b464&gt;}], dialog=&lt;gtk.Dialog at remote 0x98faaa4&gt;, saved_game_model=&lt;gtk.ListStore at remote 0x98fad24&gt;, sudoku_maker=&lt;SudokuMaker(terminated=False, played=[], batch_siz...(truncated)
+            swallower.run_dialog(self.dialog)
+#19 (unable to read python frame information)
+#23 (unable to read python frame information)
+#34 (unable to read python frame information)
+#37 Frame 0x9420b04, for file /usr/lib/python2.6/site-packages/gnome_sudoku/main.py, line 906, in start_game ()
+    u = UI()
+#40 Frame 0x948e82c, for file /usr/lib/python2.6/site-packages/gnome_sudoku/gnome_sudoku.py, line 22, in start_game (main=&lt;module at remote 0xb771b7f4&gt;)
+    main.start_game()
+</pre></div>
+</div>
+<p>The frame numbers correspond to those displayed by GDB’s standard
+<code class="docutils literal notranslate"><span class="pre">backtrace</span></code> command.</p>
+</div></blockquote>
+</section>
+<section id="py-print">
+<h3><code class="docutils literal notranslate"><span class="pre">py-print</span></code><a class="headerlink" href="#py-print" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>The <code class="docutils literal notranslate"><span class="pre">py-print</span></code> command looks up a Python name and tries to print it.
+It looks in locals within the current thread, then globals, then finally
+builtins:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(gdb) py-print self
+local &#39;self&#39; = &lt;SwappableArea(running=&lt;gtk.Dialog at remote 0x98faaa4&gt;,
+main_page=0) at remote 0x98fa6e4&gt;
+(gdb) py-print __name__
+global &#39;__name__&#39; = &#39;gnome_sudoku.dialog_swallower&#39;
+(gdb) py-print len
+builtin &#39;len&#39; = &lt;built-in function len&gt;
+(gdb) py-print scarlet_pimpernel
+&#39;scarlet_pimpernel&#39; not found
+</pre></div>
+</div>
+<p>If the current C frame corresponds to multiple Python frames, <code class="docutils literal notranslate"><span class="pre">py-print</span></code>
+only considers the first one.</p>
+</div></blockquote>
+</section>
+<section id="py-locals">
+<h3><code class="docutils literal notranslate"><span class="pre">py-locals</span></code><a class="headerlink" href="#py-locals" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>The <code class="docutils literal notranslate"><span class="pre">py-locals</span></code> command looks up all Python locals within the current
+Python frame in the selected thread, and prints their representations:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(gdb) py-locals
+self = &lt;SwappableArea(running=&lt;gtk.Dialog at remote 0x98faaa4&gt;,
+main_page=0) at remote 0x98fa6e4&gt;
+d = &lt;gtk.Dialog at remote 0x98faaa4&gt;
+</pre></div>
+</div>
+<p>If the current C frame corresponds to multiple Python frames, locals from
+all of them will be shown:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(gdb) py-locals
+Locals for recursive_function
+n = 0
+Locals for recursive_function
+n = 1
+Locals for recursive_function
+n = 2
+Locals for recursive_function
+n = 3
+Locals for recursive_function
+n = 4
+Locals for recursive_function
+n = 5
+Locals for &lt;module&gt;
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+</section>
+<section id="use-with-gdb-commands">
+<h2>Use with GDB commands<a class="headerlink" href="#use-with-gdb-commands" title="Link to this heading">¶</a></h2>
+<p>The extension commands complement GDB’s built-in commands.
+For example, you can use a frame numbers shown by <code class="docutils literal notranslate"><span class="pre">py-bt</span></code> with the <code class="docutils literal notranslate"><span class="pre">frame</span></code>
+command to go a specific frame within the selected thread, like this:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(gdb) py-bt
+(output snipped)
+#68 Frame 0xaa4560, for file Lib/test/regrtest.py, line 1548, in &lt;module&gt; ()
+        main()
+(gdb) frame 68
+#68 0x00000000004cd1e6 in PyEval_EvalFrameEx (f=Frame 0xaa4560, for file Lib/test/regrtest.py, line 1548, in &lt;module&gt; (), throwflag=0) at Python/ceval.c:2665
+2665                            x = call_function(&amp;sp, oparg);
+(gdb) py-list
+1543        # Run the tests in a context manager that temporary changes the CWD to a
+1544        # temporary and writable directory. If it&#39;s not possible to create or
+1545        # change the CWD, the original CWD will be used. The original CWD is
+1546        # available from test_support.SAVEDCWD.
+1547        with test_support.temp_cwd(TESTCWD, quiet=True):
+&gt;1548            main()
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">info</span> <span class="pre">threads</span></code> command will give you a list of the threads within the
+process, and you can use the <code class="docutils literal notranslate"><span class="pre">thread</span></code> command to select a different one:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(gdb) info threads
+  105 Thread 0x7fffefa18710 (LWP 10260)  sem_wait () at ../nptl/sysdeps/unix/sysv/linux/x86_64/sem_wait.S:86
+  104 Thread 0x7fffdf5fe710 (LWP 10259)  sem_wait () at ../nptl/sysdeps/unix/sysv/linux/x86_64/sem_wait.S:86
+* 1 Thread 0x7ffff7fe2700 (LWP 10145)  0x00000038e46d73e3 in select () at ../sysdeps/unix/syscall-template.S:82
+</pre></div>
+</div>
+<p>You can use <code class="docutils literal notranslate"><span class="pre">thread</span> <span class="pre">apply</span> <span class="pre">all</span> <span class="pre">COMMAND</span></code> or (<code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">a</span> <span class="pre">a</span> <span class="pre">COMMAND</span></code> for short) to run
+a command on all threads.  With <code class="docutils literal notranslate"><span class="pre">py-bt</span></code>, this lets you see what every
+thread is doing at the Python level:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(gdb) t a a py-bt
+
+Thread 105 (Thread 0x7fffefa18710 (LWP 10260)):
+#5 Frame 0x7fffd00019d0, for file /home/david/coding/python-svn/Lib/threading.py, line 155, in _acquire_restore (self=&lt;_RLock(_Verbose__verbose=False, _RLock__owner=140737354016512, _RLock__block=&lt;thread.lock at remote 0x858770&gt;, _RLock__count=1) at remote 0xd7ff40&gt;, count_owner=(1, 140737213728528), count=1, owner=140737213728528)
+        self.__block.acquire()
+#8 Frame 0x7fffac001640, for file /home/david/coding/python-svn/Lib/threading.py, line 269, in wait (self=&lt;_Condition(_Condition__lock=&lt;_RLock(_Verbose__verbose=False, _RLock__owner=140737354016512, _RLock__block=&lt;thread.lock at remote 0x858770&gt;, _RLock__count=1) at remote 0xd7ff40&gt;, acquire=&lt;instancemethod at remote 0xd80260&gt;, _is_owned=&lt;instancemethod at remote 0xd80160&gt;, _release_save=&lt;instancemethod at remote 0xd803e0&gt;, release=&lt;instancemethod at remote 0xd802e0&gt;, _acquire_restore=&lt;instancemethod at remote 0xd7ee60&gt;, _Verbose__verbose=False, _Condition__waiters=[]) at remote 0xd7fd10&gt;, timeout=None, waiter=&lt;thread.lock at remote 0x858a90&gt;, saved_state=(1, 140737213728528))
+            self._acquire_restore(saved_state)
+#12 Frame 0x7fffb8001a10, for file /home/david/coding/python-svn/Lib/test/lock_tests.py, line 348, in f ()
+            cond.wait()
+#16 Frame 0x7fffb8001c40, for file /home/david/coding/python-svn/Lib/test/lock_tests.py, line 37, in task (tid=140737213728528)
+                f()
+
+Thread 104 (Thread 0x7fffdf5fe710 (LWP 10259)):
+#5 Frame 0x7fffe4001580, for file /home/david/coding/python-svn/Lib/threading.py, line 155, in _acquire_restore (self=&lt;_RLock(_Verbose__verbose=False, _RLock__owner=140737354016512, _RLock__block=&lt;thread.lock at remote 0x858770&gt;, _RLock__count=1) at remote 0xd7ff40&gt;, count_owner=(1, 140736940992272), count=1, owner=140736940992272)
+        self.__block.acquire()
+#8 Frame 0x7fffc8002090, for file /home/david/coding/python-svn/Lib/threading.py, line 269, in wait (self=&lt;_Condition(_Condition__lock=&lt;_RLock(_Verbose__verbose=False, _RLock__owner=140737354016512, _RLock__block=&lt;thread.lock at remote 0x858770&gt;, _RLock__count=1) at remote 0xd7ff40&gt;, acquire=&lt;instancemethod at remote 0xd80260&gt;, _is_owned=&lt;instancemethod at remote 0xd80160&gt;, _release_save=&lt;instancemethod at remote 0xd803e0&gt;, release=&lt;instancemethod at remote 0xd802e0&gt;, _acquire_restore=&lt;instancemethod at remote 0xd7ee60&gt;, _Verbose__verbose=False, _Condition__waiters=[]) at remote 0xd7fd10&gt;, timeout=None, waiter=&lt;thread.lock at remote 0x858860&gt;, saved_state=(1, 140736940992272))
+            self._acquire_restore(saved_state)
+#12 Frame 0x7fffac001c90, for file /home/david/coding/python-svn/Lib/test/lock_tests.py, line 348, in f ()
+            cond.wait()
+#16 Frame 0x7fffac0011c0, for file /home/david/coding/python-svn/Lib/test/lock_tests.py, line 37, in task (tid=140736940992272)
+                f()
+
+Thread 1 (Thread 0x7ffff7fe2700 (LWP 10145)):
+#5 Frame 0xcb5380, for file /home/david/coding/python-svn/Lib/test/lock_tests.py, line 16, in _wait ()
+    time.sleep(0.01)
+#8 Frame 0x7fffd00024a0, for file /home/david/coding/python-svn/Lib/test/lock_tests.py, line 378, in _check_notify (self=&lt;ConditionTests(_testMethodName=&#39;test_notify&#39;, _resultForDoCleanups=&lt;TestResult(_original_stdout=&lt;cStringIO.StringO at remote 0xc191e0&gt;, skipped=[], _mirrorOutput=False, testsRun=39, buffer=False, _original_stderr=&lt;file at remote 0x7ffff7fc6340&gt;, _stdout_buffer=&lt;cStringIO.StringO at remote 0xc9c7f8&gt;, _stderr_buffer=&lt;cStringIO.StringO at remote 0xc9c790&gt;, _moduleSetUpFailed=False, expectedFailures=[], errors=[], _previousTestClass=&lt;type at remote 0x928310&gt;, unexpectedSuccesses=[], failures=[], shouldStop=False, failfast=False) at remote 0xc185a0&gt;, _threads=(0,), _cleanups=[], _type_equality_funcs={&lt;type at remote 0x7eba00&gt;: &lt;instancemethod at remote 0xd750e0&gt;, &lt;type at remote 0x7e7820&gt;: &lt;instancemethod at remote 0xd75160&gt;, &lt;type at remote 0x7e30e0&gt;: &lt;instancemethod at remote 0xd75060&gt;, &lt;type at remote 0x7e7d20&gt;: &lt;instancemethod at remote 0xd751e0&gt;, &lt;type at remote 0x7f19e0...(truncated)
+        _wait()
+</pre></div>
+</div>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="../contents.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Debugging C API extensions and CPython Internals with GDB</a><ul>
+<li><a class="reference internal" href="#prerequisites">Prerequisites</a><ul>
+<li><a class="reference internal" href="#setup-with-python-built-from-source">Setup with Python built from source</a></li>
+<li><a class="reference internal" href="#setup-for-python-from-a-linux-distro">Setup for Python from a Linux distro</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#using-the-debug-build-and-development-mode">Using the Debug build and Development mode</a></li>
+<li><a class="reference internal" href="#using-the-python-gdb-extension">Using the <code class="docutils literal notranslate"><span class="pre">python-gdb</span></code> extension</a><ul>
+<li><a class="reference internal" href="#pretty-printers">Pretty-printers</a></li>
+<li><a class="reference internal" href="#py-list"><code class="docutils literal notranslate"><span class="pre">py-list</span></code></a></li>
+<li><a class="reference internal" href="#py-up-and-py-down"><code class="docutils literal notranslate"><span class="pre">py-up</span></code> and <code class="docutils literal notranslate"><span class="pre">py-down</span></code></a></li>
+<li><a class="reference internal" href="#py-bt"><code class="docutils literal notranslate"><span class="pre">py-bt</span></code></a></li>
+<li><a class="reference internal" href="#py-print"><code class="docutils literal notranslate"><span class="pre">py-print</span></code></a></li>
+<li><a class="reference internal" href="#py-locals"><code class="docutils literal notranslate"><span class="pre">py-locals</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#use-with-gdb-commands">Use with GDB commands</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="descriptor.html"
+                          title="previous chapter">Descriptor Guide</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="enum.html"
+                          title="next chapter">Enum HOWTO</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../bugs.html">Report a Bug</a></li>
+      <li>
+        <a href="https://github.com/python/cpython/blob/main/Doc/howto/gdb_helpers.rst"
+            rel="nofollow">Show Source
+        </a>
+      </li>
+    </ul>
+  </div>
+        </div>
+<div id="sidebarbutton" title="Collapse sidebar">
+<span>«</span>
+</div>
+
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="enum.html" title="Enum HOWTO"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="descriptor.html" title="Descriptor Guide"
+             >previous</a> |</li>
+
+          <li><img src="../_static/py.svg" alt="Python logo" style="vertical-align: middle; margin-top: -1px"/></li>
+          <li><a href="https://www.python.org/">Python</a> &#187;</li>
+          <li class="switchers">
+            <div class="language_switcher_placeholder"></div>
+            <div class="version_switcher_placeholder"></div>
+          </li>
+          <li>
+              
+          </li>
+    <li id="cpython-language-and-version">
+      <a href="../index.html">3.12.3 Documentation</a> &#187;
+    </li>
+
+          <li class="nav-item nav-item-1"><a href="index.html" >Python HOWTOs</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Debugging C API extensions and CPython Internals with GDB</a></li>
+                <li class="right">
+                    
+
+    <div class="inline-search" role="search">
+        <form class="inline-search" action="../search.html" method="get">
+          <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" id="search-box" />
+          <input type="submit" value="Go" />
+        </form>
+    </div>
+                     |
+                </li>
+            <li class="right">
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected>Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label> |</li>
+            
+      </ul>
+    </div>  
+    <div class="footer">
+    &copy; 
+      <a href="../copyright.html">
+    
+    Copyright
+    
+      </a>
+     2001-2024, Python Software Foundation.
+    <br />
+    This page is licensed under the Python Software Foundation License Version 2.
+    <br />
+    Examples, recipes, and other code in the documentation are additionally licensed under the Zero Clause BSD License.
+    <br />
+    
+      See <a href="/license.html">History and License</a> for more information.<br />
+    
+    
+    <br />
+
+    The Python Software Foundation is a non-profit corporation.
+<a href="https://www.python.org/psf/donations/">Please donate.</a>
+<br />
+    <br />
+      Last updated on Apr 09, 2024 (13:47 UTC).
+    
+      <a href="/bugs.html">Found a bug</a>?
+    
+    <br />
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
+    </div>
+
+  </body>
+</html>

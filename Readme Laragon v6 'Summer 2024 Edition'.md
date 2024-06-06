@@ -23,7 +23,7 @@
 * nodejs ( https://nodejs.org/en/download/prebuilt-binaries ) ==> 
 * notepad++ ( https://notepad-plus-plus.org/downloads/ ) ==> npp.8.6.8.portable.x64.7z
 * php ( https://windows.php.net/download/ ) ==> php-8.3.8-Win32-vs16-x64.zip
-* python
+* python ( https://www.python.org/downloads/windows/ ) ==> python-3.12.3-amd64.exe installed to bin\python\pithon-3.12.3
 * redis
 * sendmail
 * telnet

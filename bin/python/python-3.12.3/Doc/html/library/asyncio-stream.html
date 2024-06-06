@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content="Streams" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://docs.python.org/3/library/asyncio-stream.html" />
+<meta property="og:site_name" content="Python documentation" />
+<meta property="og:description" content="Source code: Lib/asyncio/streams.py Streams are high-level async/await-ready primitives to work with network connections. Streams allow sending and receiving data without using callbacks or low-lev..." />
+<meta property="og:image" content="https://docs.python.org/3/_static/og-image.png" />
+<meta property="og:image:alt" content="Python documentation" />
+<meta name="description" content="Source code: Lib/asyncio/streams.py Streams are high-level async/await-ready primitives to work with network connections. Streams allow sending and receiving data without using callbacks or low-lev..." />
+<meta property="og:image:width" content="200" />
+<meta property="og:image:height" content="200" />
+<meta name="theme-color" content="#3776ab" />
+
+    <title>Streams &#8212; Python 3.12.3 documentation</title><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+    <link rel="stylesheet" type="text/css" href="../_static/pydoctheme.css?v=bb723527" />
+    <link id="pygments_dark_css" media="(prefers-color-scheme: dark)" rel="stylesheet" type="text/css" href="../_static/pygments_dark.css?v=b20cc3f5" />
+    
+    <script src="../_static/documentation_options.js?v=2c828074"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <script src="../_static/sidebar.js"></script>
+    
+    <link rel="search" type="application/opensearchdescription+xml"
+          title="Search within Python 3.12.3 documentation"
+          href="../_static/opensearch.xml"/>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="copyright" title="Copyright" href="../copyright.html" />
+    <link rel="next" title="Synchronization Primitives" href="asyncio-sync.html" />
+    <link rel="prev" title="Coroutines and Tasks" href="asyncio-task.html" />
+    <link rel="canonical" href="https://docs.python.org/3/library/asyncio-stream.html" />
+    
+      
+    
+
+    
+    <style>
+      @media only screen {
+        table.full-width-table {
+            width: 100%;
+        }
+      }
+    </style>
+<link rel="stylesheet" href="../_static/pydoctheme_dark.css" media="(prefers-color-scheme: dark)" id="pydoctheme_dark_css">
+    <link rel="shortcut icon" type="image/png" href="../_static/py.svg" />
+            <script type="text/javascript" src="../_static/copybutton.js"></script>
+            <script type="text/javascript" src="../_static/menu.js"></script>
+            <script type="text/javascript" src="../_static/search-focus.js"></script>
+            <script type="text/javascript" src="../_static/themetoggle.js"></script> 
+
+  </head>
+<body>
+<div class="mobile-nav">
+    <input type="checkbox" id="menuToggler" class="toggler__input" aria-controls="navigation"
+           aria-pressed="false" aria-expanded="false" role="button" aria-label="Menu" />
+    <nav class="nav-content" role="navigation">
+        <label for="menuToggler" class="toggler__label">
+            <span></span>
+        </label>
+        <span class="nav-items-wrapper">
+            <a href="https://www.python.org/" class="nav-logo">
+                <img src="../_static/py.svg" alt="Python logo"/>
+            </a>
+            <span class="version_switcher_placeholder"></span>
+            <form role="search" class="search" action="../search.html" method="get">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" class="search-icon">
+                    <path fill-rule="nonzero" fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 001.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 00-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 005.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                </svg>
+                <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" />
+                <input type="submit" value="Go"/>
+            </form>
+        </span>
+    </nav>
+    <div class="menu-wrapper">
+        <nav class="menu" role="navigation" aria-label="main navigation">
+            <div class="language_switcher_placeholder"></div>
+            
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected>Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label>
+  <div>
+    <h3><a href="../contents.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Streams</a><ul>
+<li><a class="reference internal" href="#streamreader">StreamReader</a></li>
+<li><a class="reference internal" href="#streamwriter">StreamWriter</a></li>
+<li><a class="reference internal" href="#examples">Examples</a><ul>
+<li><a class="reference internal" href="#tcp-echo-client-using-streams">TCP echo client using streams</a></li>
+<li><a class="reference internal" href="#tcp-echo-server-using-streams">TCP echo server using streams</a></li>
+<li><a class="reference internal" href="#get-http-headers">Get HTTP headers</a></li>
+<li><a class="reference internal" href="#register-an-open-socket-to-wait-for-data-using-streams">Register an open socket to wait for data using streams</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="asyncio-task.html"
+                          title="previous chapter">Coroutines and Tasks</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="asyncio-sync.html"
+                          title="next chapter">Synchronization Primitives</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../bugs.html">Report a Bug</a></li>
+      <li>
+        <a href="https://github.com/python/cpython/blob/main/Doc/library/asyncio-stream.rst"
+            rel="nofollow">Show Source
+        </a>
+      </li>
+    </ul>
+  </div>
+        </nav>
+    </div>
+</div>
+
+  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="asyncio-sync.html" title="Synchronization Primitives"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="asyncio-task.html" title="Coroutines and Tasks"
+             accesskey="P">previous</a> |</li>
+
+          <li><img src="../_static/py.svg" alt="Python logo" style="vertical-align: middle; margin-top: -1px"/></li>
+          <li><a href="https://www.python.org/">Python</a> &#187;</li>
+          <li class="switchers">
+            <div class="language_switcher_placeholder"></div>
+            <div class="version_switcher_placeholder"></div>
+          </li>
+          <li>
+              
+          </li>
+    <li id="cpython-language-and-version">
+      <a href="../index.html">3.12.3 Documentation</a> &#187;
+    </li>
+
+          <li class="nav-item nav-item-1"><a href="index.html" >The Python Standard Library</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="ipc.html" >Networking and Interprocess Communication</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="asyncio.html" accesskey="U"><code class="xref py py-mod docutils literal notranslate"><span class="pre">asyncio</span></code> — Asynchronous I/O</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Streams</a></li>
+                <li class="right">
+                    
+
+    <div class="inline-search" role="search">
+        <form class="inline-search" action="../search.html" method="get">
+          <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" id="search-box" />
+          <input type="submit" value="Go" />
+        </form>
+    </div>
+                     |
+                </li>
+            <li class="right">
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected>Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label> |</li>
+            
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="streams">
+<span id="asyncio-streams"></span><h1>Streams<a class="headerlink" href="#streams" title="Link to this heading">¶</a></h1>
+<p><strong>Source code:</strong> <a class="reference external" href="https://github.com/python/cpython/tree/3.12/Lib/asyncio/streams.py">Lib/asyncio/streams.py</a></p>
+<hr class="docutils" />
+<p>Streams are high-level async/await-ready primitives to work with
+network connections.  Streams allow sending and receiving data without
+using callbacks or low-level protocols and transports.</p>
+<p id="asyncio-example-stream">Here is an example of a TCP echo client written using asyncio
+streams:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">asyncio</span>
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">tcp_echo_client</span><span class="p">(</span><span class="n">message</span><span class="p">):</span>
+    <span class="n">reader</span><span class="p">,</span> <span class="n">writer</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">open_connection</span><span class="p">(</span>
+        <span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span> <span class="mi">8888</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Send: </span><span class="si">{</span><span class="n">message</span><span class="si">!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+    <span class="k">await</span> <span class="n">writer</span><span class="o">.</span><span class="n">drain</span><span class="p">()</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="k">await</span> <span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Received: </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span><span class="si">!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Close the connection&#39;</span><span class="p">)</span>
+    <span class="n">writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">await</span> <span class="n">writer</span><span class="o">.</span><span class="n">wait_closed</span><span class="p">()</span>
+
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tcp_echo_client</span><span class="p">(</span><span class="s1">&#39;Hello World!&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>See also the <a class="reference internal" href="#examples">Examples</a> section below.</p>
+<p class="rubric">Stream Functions</p>
+<p>The following top-level asyncio functions can be used to create
+and work with streams:</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="asyncio.open_connection">
+<em class="property"><span class="pre">coroutine</span> </em><span class="sig-prename descclassname"><span class="pre">asyncio.</span></span><span class="sig-name descname"><span class="pre">open_connection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">family</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proto</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_addr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server_hostname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl_handshake_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl_shutdown_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">happy_eyeballs_delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interleave</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.open_connection" title="Link to this definition">¶</a></dt>
+<dd><p>Establish a network connection and return a pair of
+<code class="docutils literal notranslate"><span class="pre">(reader,</span> <span class="pre">writer)</span></code> objects.</p>
+<p>The returned <em>reader</em> and <em>writer</em> objects are instances of
+<a class="reference internal" href="#asyncio.StreamReader" title="asyncio.StreamReader"><code class="xref py py-class docutils literal notranslate"><span class="pre">StreamReader</span></code></a> and <a class="reference internal" href="#asyncio.StreamWriter" title="asyncio.StreamWriter"><code class="xref py py-class docutils literal notranslate"><span class="pre">StreamWriter</span></code></a> classes.</p>
+<p><em>limit</em> determines the buffer size limit used by the
+returned <a class="reference internal" href="#asyncio.StreamReader" title="asyncio.StreamReader"><code class="xref py py-class docutils literal notranslate"><span class="pre">StreamReader</span></code></a> instance.  By default the <em>limit</em>
+is set to 64 KiB.</p>
+<p>The rest of the arguments are passed directly to
+<a class="reference internal" href="asyncio-eventloop.html#asyncio.loop.create_connection" title="asyncio.loop.create_connection"><code class="xref py py-meth docutils literal notranslate"><span class="pre">loop.create_connection()</span></code></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <em>sock</em> argument transfers ownership of the socket to the
+<a class="reference internal" href="#asyncio.StreamWriter" title="asyncio.StreamWriter"><code class="xref py py-class docutils literal notranslate"><span class="pre">StreamWriter</span></code></a> created. To close the socket, call its
+<a class="reference internal" href="#asyncio.StreamWriter.close" title="asyncio.StreamWriter.close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">close()</span></code></a> method.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.7: </span>Added the <em>ssl_handshake_timeout</em> parameter.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.8: </span>Added the <em>happy_eyeballs_delay</em> and <em>interleave</em> parameters.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.10: </span>Removed the <em>loop</em> parameter.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.11: </span>Added the <em>ssl_shutdown_timeout</em> parameter.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="asyncio.start_server">
+<em class="property"><span class="pre">coroutine</span> </em><span class="sig-prename descclassname"><span class="pre">asyncio.</span></span><span class="sig-name descname"><span class="pre">start_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">client_connected_cb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">family</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">socket.AF_UNSPEC</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">socket.AI_PASSIVE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backlog</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reuse_address</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reuse_port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl_handshake_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl_shutdown_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_serving</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.start_server" title="Link to this definition">¶</a></dt>
+<dd><p>Start a socket server.</p>
+<p>The <em>client_connected_cb</em> callback is called whenever a new client
+connection is established.  It receives a <code class="docutils literal notranslate"><span class="pre">(reader,</span> <span class="pre">writer)</span></code> pair
+as two arguments, instances of the <a class="reference internal" href="#asyncio.StreamReader" title="asyncio.StreamReader"><code class="xref py py-class docutils literal notranslate"><span class="pre">StreamReader</span></code></a> and
+<a class="reference internal" href="#asyncio.StreamWriter" title="asyncio.StreamWriter"><code class="xref py py-class docutils literal notranslate"><span class="pre">StreamWriter</span></code></a> classes.</p>
+<p><em>client_connected_cb</em> can be a plain callable or a
+<a class="reference internal" href="asyncio-task.html#coroutine"><span class="std std-ref">coroutine function</span></a>; if it is a coroutine function,
+it will be automatically scheduled as a <a class="reference internal" href="asyncio-task.html#asyncio.Task" title="asyncio.Task"><code class="xref py py-class docutils literal notranslate"><span class="pre">Task</span></code></a>.</p>
+<p><em>limit</em> determines the buffer size limit used by the
+returned <a class="reference internal" href="#asyncio.StreamReader" title="asyncio.StreamReader"><code class="xref py py-class docutils literal notranslate"><span class="pre">StreamReader</span></code></a> instance.  By default the <em>limit</em>
+is set to 64 KiB.</p>
+<p>The rest of the arguments are passed directly to
+<a class="reference internal" href="asyncio-eventloop.html#asyncio.loop.create_server" title="asyncio.loop.create_server"><code class="xref py py-meth docutils literal notranslate"><span class="pre">loop.create_server()</span></code></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <em>sock</em> argument transfers ownership of the socket to the
+server created. To close the socket, call the server’s
+<a class="reference internal" href="asyncio-eventloop.html#asyncio.Server.close" title="asyncio.Server.close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">close()</span></code></a> method.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.7: </span>Added the <em>ssl_handshake_timeout</em> and <em>start_serving</em> parameters.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.10: </span>Removed the <em>loop</em> parameter.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.11: </span>Added the <em>ssl_shutdown_timeout</em> parameter.</p>
+</div>
+</dd></dl>
+
+<p class="rubric">Unix Sockets</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="asyncio.open_unix_connection">
+<em class="property"><span class="pre">coroutine</span> </em><span class="sig-prename descclassname"><span class="pre">asyncio.</span></span><span class="sig-name descname"><span class="pre">open_unix_connection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server_hostname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl_handshake_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl_shutdown_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.open_unix_connection" title="Link to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>Establish a Unix socket connection and return a pair of
+<code class="docutils literal notranslate"><span class="pre">(reader,</span> <span class="pre">writer)</span></code>.</p>
+<p>Similar to <a class="reference internal" href="#asyncio.open_connection" title="asyncio.open_connection"><code class="xref py py-func docutils literal notranslate"><span class="pre">open_connection()</span></code></a> but operates on Unix sockets.</p>
+<p>See also the documentation of <a class="reference internal" href="asyncio-eventloop.html#asyncio.loop.create_unix_connection" title="asyncio.loop.create_unix_connection"><code class="xref py py-meth docutils literal notranslate"><span class="pre">loop.create_unix_connection()</span></code></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <em>sock</em> argument transfers ownership of the socket to the
+<a class="reference internal" href="#asyncio.StreamWriter" title="asyncio.StreamWriter"><code class="xref py py-class docutils literal notranslate"><span class="pre">StreamWriter</span></code></a> created. To close the socket, call its
+<a class="reference internal" href="#asyncio.StreamWriter.close" title="asyncio.StreamWriter.close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">close()</span></code></a> method.</p>
+</div>
+<div class="availability docutils container">
+<p><a class="reference internal" href="intro.html#availability"><span class="std std-ref">Availability</span></a>: Unix.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.7: </span>Added the <em>ssl_handshake_timeout</em> parameter.
+The <em>path</em> parameter can now be a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a></p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.10: </span>Removed the <em>loop</em> parameter.</p>
+</div>
+</div></blockquote>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.11: </span>Added the <em>ssl_shutdown_timeout</em> parameter.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="asyncio.start_unix_server">
+<em class="property"><span class="pre">coroutine</span> </em><span class="sig-prename descclassname"><span class="pre">asyncio.</span></span><span class="sig-name descname"><span class="pre">start_unix_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">client_connected_cb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backlog</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl_handshake_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl_shutdown_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_serving</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.start_unix_server" title="Link to this definition">¶</a></dt>
+<dd><p>Start a Unix socket server.</p>
+<p>Similar to <a class="reference internal" href="#asyncio.start_server" title="asyncio.start_server"><code class="xref py py-func docutils literal notranslate"><span class="pre">start_server()</span></code></a> but works with Unix sockets.</p>
+<p>See also the documentation of <a class="reference internal" href="asyncio-eventloop.html#asyncio.loop.create_unix_server" title="asyncio.loop.create_unix_server"><code class="xref py py-meth docutils literal notranslate"><span class="pre">loop.create_unix_server()</span></code></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <em>sock</em> argument transfers ownership of the socket to the
+server created. To close the socket, call the server’s
+<a class="reference internal" href="asyncio-eventloop.html#asyncio.Server.close" title="asyncio.Server.close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">close()</span></code></a> method.</p>
+</div>
+<div class="availability docutils container">
+<p><a class="reference internal" href="intro.html#availability"><span class="std std-ref">Availability</span></a>: Unix.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.7: </span>Added the <em>ssl_handshake_timeout</em> and <em>start_serving</em> parameters.
+The <em>path</em> parameter can now be a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.10: </span>Removed the <em>loop</em> parameter.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.11: </span>Added the <em>ssl_shutdown_timeout</em> parameter.</p>
+</div>
+</dd></dl>
+
+<section id="streamreader">
+<h2>StreamReader<a class="headerlink" href="#streamreader" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="asyncio.StreamReader">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">asyncio.</span></span><span class="sig-name descname"><span class="pre">StreamReader</span></span><a class="headerlink" href="#asyncio.StreamReader" title="Link to this definition">¶</a></dt>
+<dd><p>Represents a reader object that provides APIs to read data
+from the IO stream. As an <a class="reference internal" href="../glossary.html#term-asynchronous-iterable"><span class="xref std std-term">asynchronous iterable</span></a>, the
+object supports the <a class="reference internal" href="../reference/compound_stmts.html#async-for"><code class="xref std std-keyword docutils literal notranslate"><span class="pre">async</span> <span class="pre">for</span></code></a> statement.</p>
+<p>It is not recommended to instantiate <em>StreamReader</em> objects
+directly; use <a class="reference internal" href="#asyncio.open_connection" title="asyncio.open_connection"><code class="xref py py-func docutils literal notranslate"><span class="pre">open_connection()</span></code></a> and <a class="reference internal" href="#asyncio.start_server" title="asyncio.start_server"><code class="xref py py-func docutils literal notranslate"><span class="pre">start_server()</span></code></a>
+instead.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="asyncio.StreamReader.feed_eof">
+<span class="sig-name descname"><span class="pre">feed_eof</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.StreamReader.feed_eof" title="Link to this definition">¶</a></dt>
+<dd><p>Acknowledge the EOF.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="asyncio.StreamReader.read">
+<em class="property"><span class="pre">coroutine</span> </em><span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.StreamReader.read" title="Link to this definition">¶</a></dt>
+<dd><p>Read up to <em>n</em> bytes from the stream.</p>
+<p>If <em>n</em> is not provided or set to <code class="docutils literal notranslate"><span class="pre">-1</span></code>,
+read until EOF, then return all read <a class="reference internal" href="stdtypes.html#bytes" title="bytes"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></a>.
+If EOF was received and the internal buffer is empty,
+return an empty <code class="docutils literal notranslate"><span class="pre">bytes</span></code> object.</p>
+<p>If <em>n</em> is <code class="docutils literal notranslate"><span class="pre">0</span></code>, return an empty <code class="docutils literal notranslate"><span class="pre">bytes</span></code> object immediately.</p>
+<p>If <em>n</em> is positive, return at most <em>n</em> available <code class="docutils literal notranslate"><span class="pre">bytes</span></code>
+as soon as at least 1 byte is available in the internal buffer.
+If EOF is received before any byte is read, return an empty
+<code class="docutils literal notranslate"><span class="pre">bytes</span></code> object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="asyncio.StreamReader.readline">
+<em class="property"><span class="pre">coroutine</span> </em><span class="sig-name descname"><span class="pre">readline</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.StreamReader.readline" title="Link to this definition">¶</a></dt>
+<dd><p>Read one line, where “line” is a sequence of bytes
+ending with <code class="docutils literal notranslate"><span class="pre">\n</span></code>.</p>
+<p>If EOF is received and <code class="docutils literal notranslate"><span class="pre">\n</span></code> was not found, the method
+returns partially read data.</p>
+<p>If EOF is received and the internal buffer is empty,
+return an empty <code class="docutils literal notranslate"><span class="pre">bytes</span></code> object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="asyncio.StreamReader.readexactly">
+<em class="property"><span class="pre">coroutine</span> </em><span class="sig-name descname"><span class="pre">readexactly</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.StreamReader.readexactly" title="Link to this definition">¶</a></dt>
+<dd><p>Read exactly <em>n</em> bytes.</p>
+<p>Raise an <a class="reference internal" href="asyncio-exceptions.html#asyncio.IncompleteReadError" title="asyncio.IncompleteReadError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">IncompleteReadError</span></code></a> if EOF is reached before <em>n</em>
+can be read.  Use the <a class="reference internal" href="asyncio-exceptions.html#asyncio.IncompleteReadError.partial" title="asyncio.IncompleteReadError.partial"><code class="xref py py-attr docutils literal notranslate"><span class="pre">IncompleteReadError.partial</span></code></a>
+attribute to get the partially read data.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="asyncio.StreamReader.readuntil">
+<em class="property"><span class="pre">coroutine</span> </em><span class="sig-name descname"><span class="pre">readuntil</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">separator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">b'\n'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.StreamReader.readuntil" title="Link to this definition">¶</a></dt>
+<dd><p>Read data from the stream until <em>separator</em> is found.</p>
+<p>On success, the data and separator will be removed from the
+internal buffer (consumed). Returned data will include the
+separator at the end.</p>
+<p>If the amount of data read exceeds the configured stream limit, a
+<a class="reference internal" href="asyncio-exceptions.html#asyncio.LimitOverrunError" title="asyncio.LimitOverrunError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">LimitOverrunError</span></code></a> exception is raised, and the data
+is left in the internal buffer and can be read again.</p>
+<p>If EOF is reached before the complete separator is found,
+an <a class="reference internal" href="asyncio-exceptions.html#asyncio.IncompleteReadError" title="asyncio.IncompleteReadError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">IncompleteReadError</span></code></a> exception is raised, and the internal
+buffer is reset.  The <a class="reference internal" href="asyncio-exceptions.html#asyncio.IncompleteReadError.partial" title="asyncio.IncompleteReadError.partial"><code class="xref py py-attr docutils literal notranslate"><span class="pre">IncompleteReadError.partial</span></code></a> attribute
+may contain a portion of the separator.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 3.5.2.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="asyncio.StreamReader.at_eof">
+<span class="sig-name descname"><span class="pre">at_eof</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.StreamReader.at_eof" title="Link to this definition">¶</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if the buffer is empty and <a class="reference internal" href="#asyncio.StreamReader.feed_eof" title="asyncio.StreamReader.feed_eof"><code class="xref py py-meth docutils literal notranslate"><span class="pre">feed_eof()</span></code></a>
+was called.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="streamwriter">
+<h2>StreamWriter<a class="headerlink" href="#streamwriter" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="asyncio.StreamWriter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">asyncio.</span></span><span class="sig-name descname"><span class="pre">StreamWriter</span></span><a class="headerlink" href="#asyncio.StreamWriter" title="Link to this definition">¶</a></dt>
+<dd><p>Represents a writer object that provides APIs to write data
+to the IO stream.</p>
+<p>It is not recommended to instantiate <em>StreamWriter</em> objects
+directly; use <a class="reference internal" href="#asyncio.open_connection" title="asyncio.open_connection"><code class="xref py py-func docutils literal notranslate"><span class="pre">open_connection()</span></code></a> and <a class="reference internal" href="#asyncio.start_server" title="asyncio.start_server"><code class="xref py py-func docutils literal notranslate"><span class="pre">start_server()</span></code></a>
+instead.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="asyncio.StreamWriter.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.StreamWriter.write" title="Link to this definition">¶</a></dt>
+<dd><p>The method attempts to write the <em>data</em> to the underlying socket immediately.
+If that fails, the data is queued in an internal write buffer until it can be
+sent.</p>
+<p>The method should be used along with the <code class="docutils literal notranslate"><span class="pre">drain()</span></code> method:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">drain</span><span class="p">()</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="asyncio.StreamWriter.writelines">
+<span class="sig-name descname"><span class="pre">writelines</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.StreamWriter.writelines" title="Link to this definition">¶</a></dt>
+<dd><p>The method writes a list (or any iterable) of bytes to the underlying socket
+immediately.
+If that fails, the data is queued in an internal write buffer until it can be
+sent.</p>
+<p>The method should be used along with the <code class="docutils literal notranslate"><span class="pre">drain()</span></code> method:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">stream</span><span class="o">.</span><span class="n">writelines</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+<span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">drain</span><span class="p">()</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="asyncio.StreamWriter.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.StreamWriter.close" title="Link to this definition">¶</a></dt>
+<dd><p>The method closes the stream and the underlying socket.</p>
+<p>The method should be used, though not mandatory,
+along with the <code class="docutils literal notranslate"><span class="pre">wait_closed()</span></code> method:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">stream</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">wait_closed</span><span class="p">()</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="asyncio.StreamWriter.can_write_eof">
+<span class="sig-name descname"><span class="pre">can_write_eof</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.StreamWriter.can_write_eof" title="Link to this definition">¶</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if the underlying transport supports
+the <a class="reference internal" href="#asyncio.StreamWriter.write_eof" title="asyncio.StreamWriter.write_eof"><code class="xref py py-meth docutils literal notranslate"><span class="pre">write_eof()</span></code></a> method, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="asyncio.StreamWriter.write_eof">
+<span class="sig-name descname"><span class="pre">write_eof</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.StreamWriter.write_eof" title="Link to this definition">¶</a></dt>
+<dd><p>Close the write end of the stream after the buffered write
+data is flushed.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="asyncio.StreamWriter.transport">
+<span class="sig-name descname"><span class="pre">transport</span></span><a class="headerlink" href="#asyncio.StreamWriter.transport" title="Link to this definition">¶</a></dt>
+<dd><p>Return the underlying asyncio transport.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="asyncio.StreamWriter.get_extra_info">
+<span class="sig-name descname"><span class="pre">get_extra_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.StreamWriter.get_extra_info" title="Link to this definition">¶</a></dt>
+<dd><p>Access optional transport information; see
+<a class="reference internal" href="asyncio-protocol.html#asyncio.BaseTransport.get_extra_info" title="asyncio.BaseTransport.get_extra_info"><code class="xref py py-meth docutils literal notranslate"><span class="pre">BaseTransport.get_extra_info()</span></code></a> for details.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="asyncio.StreamWriter.drain">
+<em class="property"><span class="pre">coroutine</span> </em><span class="sig-name descname"><span class="pre">drain</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.StreamWriter.drain" title="Link to this definition">¶</a></dt>
+<dd><p>Wait until it is appropriate to resume writing to the stream.
+Example:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="k">await</span> <span class="n">writer</span><span class="o">.</span><span class="n">drain</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This is a flow control method that interacts with the underlying
+IO write buffer.  When the size of the buffer reaches
+the high watermark, <em>drain()</em> blocks until the size of the
+buffer is drained down to the low watermark and writing can
+be resumed.  When there is nothing to wait for, the <a class="reference internal" href="#asyncio.StreamWriter.drain" title="asyncio.StreamWriter.drain"><code class="xref py py-meth docutils literal notranslate"><span class="pre">drain()</span></code></a>
+returns immediately.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="asyncio.StreamWriter.start_tls">
+<em class="property"><span class="pre">coroutine</span> </em><span class="sig-name descname"><span class="pre">start_tls</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sslcontext</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server_hostname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl_handshake_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl_shutdown_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.StreamWriter.start_tls" title="Link to this definition">¶</a></dt>
+<dd><p>Upgrade an existing stream-based connection to TLS.</p>
+<p>Parameters:</p>
+<ul class="simple">
+<li><p><em>sslcontext</em>: a configured instance of <a class="reference internal" href="ssl.html#ssl.SSLContext" title="ssl.SSLContext"><code class="xref py py-class docutils literal notranslate"><span class="pre">SSLContext</span></code></a>.</p></li>
+<li><p><em>server_hostname</em>: sets or overrides the host name that the target
+server’s certificate will be matched against.</p></li>
+<li><p><em>ssl_handshake_timeout</em> is the time in seconds to wait for the TLS
+handshake to complete before aborting the connection.  <code class="docutils literal notranslate"><span class="pre">60.0</span></code> seconds
+if <code class="docutils literal notranslate"><span class="pre">None</span></code> (default).</p></li>
+<li><p><em>ssl_shutdown_timeout</em> is the time in seconds to wait for the SSL shutdown
+to complete before aborting the connection. <code class="docutils literal notranslate"><span class="pre">30.0</span></code> seconds if <code class="docutils literal notranslate"><span class="pre">None</span></code>
+(default).</p></li>
+</ul>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 3.11.</span></p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.12: </span>Added the <em>ssl_shutdown_timeout</em> parameter.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="asyncio.StreamWriter.is_closing">
+<span class="sig-name descname"><span class="pre">is_closing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.StreamWriter.is_closing" title="Link to this definition">¶</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if the stream is closed or in the process of
+being closed.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 3.7.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="asyncio.StreamWriter.wait_closed">
+<em class="property"><span class="pre">coroutine</span> </em><span class="sig-name descname"><span class="pre">wait_closed</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#asyncio.StreamWriter.wait_closed" title="Link to this definition">¶</a></dt>
+<dd><p>Wait until the stream is closed.</p>
+<p>Should be called after <a class="reference internal" href="#asyncio.StreamWriter.close" title="asyncio.StreamWriter.close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">close()</span></code></a> to wait until the underlying
+connection is closed, ensuring that all data has been flushed
+before e.g. exiting the program.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 3.7.</span></p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Link to this heading">¶</a></h2>
+<section id="tcp-echo-client-using-streams">
+<span id="asyncio-tcp-echo-client-streams"></span><h3>TCP echo client using streams<a class="headerlink" href="#tcp-echo-client-using-streams" title="Link to this heading">¶</a></h3>
+<p>TCP echo client using the <a class="reference internal" href="#asyncio.open_connection" title="asyncio.open_connection"><code class="xref py py-func docutils literal notranslate"><span class="pre">asyncio.open_connection()</span></code></a> function:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">asyncio</span>
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">tcp_echo_client</span><span class="p">(</span><span class="n">message</span><span class="p">):</span>
+    <span class="n">reader</span><span class="p">,</span> <span class="n">writer</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">open_connection</span><span class="p">(</span>
+        <span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span> <span class="mi">8888</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Send: </span><span class="si">{</span><span class="n">message</span><span class="si">!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+    <span class="k">await</span> <span class="n">writer</span><span class="o">.</span><span class="n">drain</span><span class="p">()</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="k">await</span> <span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Received: </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span><span class="si">!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Close the connection&#39;</span><span class="p">)</span>
+    <span class="n">writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">await</span> <span class="n">writer</span><span class="o">.</span><span class="n">wait_closed</span><span class="p">()</span>
+
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tcp_echo_client</span><span class="p">(</span><span class="s1">&#39;Hello World!&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>The <a class="reference internal" href="asyncio-protocol.html#asyncio-example-tcp-echo-client-protocol"><span class="std std-ref">TCP echo client protocol</span></a>
+example uses the low-level <a class="reference internal" href="asyncio-eventloop.html#asyncio.loop.create_connection" title="asyncio.loop.create_connection"><code class="xref py py-meth docutils literal notranslate"><span class="pre">loop.create_connection()</span></code></a> method.</p>
+</div>
+</section>
+<section id="tcp-echo-server-using-streams">
+<span id="asyncio-tcp-echo-server-streams"></span><h3>TCP echo server using streams<a class="headerlink" href="#tcp-echo-server-using-streams" title="Link to this heading">¶</a></h3>
+<p>TCP echo server using the <a class="reference internal" href="#asyncio.start_server" title="asyncio.start_server"><code class="xref py py-func docutils literal notranslate"><span class="pre">asyncio.start_server()</span></code></a> function:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">asyncio</span>
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">handle_echo</span><span class="p">(</span><span class="n">reader</span><span class="p">,</span> <span class="n">writer</span><span class="p">):</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="k">await</span> <span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+    <span class="n">message</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+    <span class="n">addr</span> <span class="o">=</span> <span class="n">writer</span><span class="o">.</span><span class="n">get_extra_info</span><span class="p">(</span><span class="s1">&#39;peername&#39;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Received </span><span class="si">{</span><span class="n">message</span><span class="si">!r}</span><span class="s2"> from </span><span class="si">{</span><span class="n">addr</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Send: </span><span class="si">{</span><span class="n">message</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">await</span> <span class="n">writer</span><span class="o">.</span><span class="n">drain</span><span class="p">()</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Close the connection&quot;</span><span class="p">)</span>
+    <span class="n">writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">await</span> <span class="n">writer</span><span class="o">.</span><span class="n">wait_closed</span><span class="p">()</span>
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">server</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">start_server</span><span class="p">(</span>
+        <span class="n">handle_echo</span><span class="p">,</span> <span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span> <span class="mi">8888</span><span class="p">)</span>
+
+    <span class="n">addrs</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">sock</span><span class="o">.</span><span class="n">getsockname</span><span class="p">())</span> <span class="k">for</span> <span class="n">sock</span> <span class="ow">in</span> <span class="n">server</span><span class="o">.</span><span class="n">sockets</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Serving on </span><span class="si">{</span><span class="n">addrs</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">async</span> <span class="k">with</span> <span class="n">server</span><span class="p">:</span>
+        <span class="k">await</span> <span class="n">server</span><span class="o">.</span><span class="n">serve_forever</span><span class="p">()</span>
+
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>The <a class="reference internal" href="asyncio-protocol.html#asyncio-example-tcp-echo-server-protocol"><span class="std std-ref">TCP echo server protocol</span></a>
+example uses the <a class="reference internal" href="asyncio-eventloop.html#asyncio.loop.create_server" title="asyncio.loop.create_server"><code class="xref py py-meth docutils literal notranslate"><span class="pre">loop.create_server()</span></code></a> method.</p>
+</div>
+</section>
+<section id="get-http-headers">
+<h3>Get HTTP headers<a class="headerlink" href="#get-http-headers" title="Link to this heading">¶</a></h3>
+<p>Simple example querying HTTP headers of the URL passed on the command line:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">asyncio</span>
+<span class="kn">import</span> <span class="nn">urllib.parse</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">print_http_headers</span><span class="p">(</span><span class="n">url</span><span class="p">):</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">urlsplit</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">url</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="s1">&#39;https&#39;</span><span class="p">:</span>
+        <span class="n">reader</span><span class="p">,</span> <span class="n">writer</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">open_connection</span><span class="p">(</span>
+            <span class="n">url</span><span class="o">.</span><span class="n">hostname</span><span class="p">,</span> <span class="mi">443</span><span class="p">,</span> <span class="n">ssl</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">reader</span><span class="p">,</span> <span class="n">writer</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">open_connection</span><span class="p">(</span>
+            <span class="n">url</span><span class="o">.</span><span class="n">hostname</span><span class="p">,</span> <span class="mi">80</span><span class="p">)</span>
+
+    <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;HEAD </span><span class="si">{</span><span class="n">url</span><span class="o">.</span><span class="n">path</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">&#39;/&#39;</span><span class="si">}</span><span class="s2"> HTTP/1.0</span><span class="se">\r\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;Host: </span><span class="si">{</span><span class="n">url</span><span class="o">.</span><span class="n">hostname</span><span class="si">}</span><span class="se">\r\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\r\n</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;latin-1&#39;</span><span class="p">))</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="k">await</span> <span class="n">reader</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>
+            <span class="k">break</span>
+
+        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;latin1&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">line</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;HTTP header&gt; </span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Ignore the body, close the socket</span>
+    <span class="n">writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">await</span> <span class="n">writer</span><span class="o">.</span><span class="n">wait_closed</span><span class="p">()</span>
+
+<span class="n">url</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">print_http_headers</span><span class="p">(</span><span class="n">url</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Usage:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">example</span><span class="o">.</span><span class="n">py</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">page</span><span class="o">.</span><span class="n">html</span>
+</pre></div>
+</div>
+<p>or with HTTPS:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">example</span><span class="o">.</span><span class="n">py</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">page</span><span class="o">.</span><span class="n">html</span>
+</pre></div>
+</div>
+</section>
+<section id="register-an-open-socket-to-wait-for-data-using-streams">
+<span id="asyncio-example-create-connection-streams"></span><h3>Register an open socket to wait for data using streams<a class="headerlink" href="#register-an-open-socket-to-wait-for-data-using-streams" title="Link to this heading">¶</a></h3>
+<p>Coroutine waiting until a socket receives data using the
+<a class="reference internal" href="#asyncio.open_connection" title="asyncio.open_connection"><code class="xref py py-func docutils literal notranslate"><span class="pre">open_connection()</span></code></a> function:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">asyncio</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">wait_for_data</span><span class="p">():</span>
+    <span class="c1"># Get a reference to the current event loop because</span>
+    <span class="c1"># we want to access low-level APIs.</span>
+    <span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_running_loop</span><span class="p">()</span>
+
+    <span class="c1"># Create a pair of connected sockets.</span>
+    <span class="n">rsock</span><span class="p">,</span> <span class="n">wsock</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socketpair</span><span class="p">()</span>
+
+    <span class="c1"># Register the open socket to wait for data.</span>
+    <span class="n">reader</span><span class="p">,</span> <span class="n">writer</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">open_connection</span><span class="p">(</span><span class="n">sock</span><span class="o">=</span><span class="n">rsock</span><span class="p">)</span>
+
+    <span class="c1"># Simulate the reception of data from the network</span>
+    <span class="n">loop</span><span class="o">.</span><span class="n">call_soon</span><span class="p">(</span><span class="n">wsock</span><span class="o">.</span><span class="n">send</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+    <span class="c1"># Wait for data</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="k">await</span> <span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+
+    <span class="c1"># Got data, we are done: close the socket</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Received:&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+    <span class="n">writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">await</span> <span class="n">writer</span><span class="o">.</span><span class="n">wait_closed</span><span class="p">()</span>
+
+    <span class="c1"># Close the second socket</span>
+    <span class="n">wsock</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">wait_for_data</span><span class="p">())</span>
+</pre></div>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>The <a class="reference internal" href="asyncio-protocol.html#asyncio-example-create-connection"><span class="std std-ref">register an open socket to wait for data using a protocol</span></a> example uses a low-level protocol and
+the <a class="reference internal" href="asyncio-eventloop.html#asyncio.loop.create_connection" title="asyncio.loop.create_connection"><code class="xref py py-meth docutils literal notranslate"><span class="pre">loop.create_connection()</span></code></a> method.</p>
+<p>The <a class="reference internal" href="asyncio-eventloop.html#asyncio-example-watch-fd"><span class="std std-ref">watch a file descriptor for read events</span></a> example uses the low-level
+<a class="reference internal" href="asyncio-eventloop.html#asyncio.loop.add_reader" title="asyncio.loop.add_reader"><code class="xref py py-meth docutils literal notranslate"><span class="pre">loop.add_reader()</span></code></a> method to watch a file descriptor.</p>
+</div>
+</section>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="../contents.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Streams</a><ul>
+<li><a class="reference internal" href="#streamreader">StreamReader</a></li>
+<li><a class="reference internal" href="#streamwriter">StreamWriter</a></li>
+<li><a class="reference internal" href="#examples">Examples</a><ul>
+<li><a class="reference internal" href="#tcp-echo-client-using-streams">TCP echo client using streams</a></li>
+<li><a class="reference internal" href="#tcp-echo-server-using-streams">TCP echo server using streams</a></li>
+<li><a class="reference internal" href="#get-http-headers">Get HTTP headers</a></li>
+<li><a class="reference internal" href="#register-an-open-socket-to-wait-for-data-using-streams">Register an open socket to wait for data using streams</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="asyncio-task.html"
+                          title="previous chapter">Coroutines and Tasks</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="asyncio-sync.html"
+                          title="next chapter">Synchronization Primitives</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../bugs.html">Report a Bug</a></li>
+      <li>
+        <a href="https://github.com/python/cpython/blob/main/Doc/library/asyncio-stream.rst"
+            rel="nofollow">Show Source
+        </a>
+      </li>
+    </ul>
+  </div>
+        </div>
+<div id="sidebarbutton" title="Collapse sidebar">
+<span>«</span>
+</div>
+
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="asyncio-sync.html" title="Synchronization Primitives"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="asyncio-task.html" title="Coroutines and Tasks"
+             >previous</a> |</li>
+
+          <li><img src="../_static/py.svg" alt="Python logo" style="vertical-align: middle; margin-top: -1px"/></li>
+          <li><a href="https://www.python.org/">Python</a> &#187;</li>
+          <li class="switchers">
+            <div class="language_switcher_placeholder"></div>
+            <div class="version_switcher_placeholder"></div>
+          </li>
+          <li>
+              
+          </li>
+    <li id="cpython-language-and-version">
+      <a href="../index.html">3.12.3 Documentation</a> &#187;
+    </li>
+
+          <li class="nav-item nav-item-1"><a href="index.html" >The Python Standard Library</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="ipc.html" >Networking and Interprocess Communication</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="asyncio.html" ><code class="xref py py-mod docutils literal notranslate"><span class="pre">asyncio</span></code> — Asynchronous I/O</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Streams</a></li>
+                <li class="right">
+                    
+
+    <div class="inline-search" role="search">
+        <form class="inline-search" action="../search.html" method="get">
+          <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" id="search-box" />
+          <input type="submit" value="Go" />
+        </form>
+    </div>
+                     |
+                </li>
+            <li class="right">
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected>Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label> |</li>
+            
+      </ul>
+    </div>  
+    <div class="footer">
+    &copy; 
+      <a href="../copyright.html">
+    
+    Copyright
+    
+      </a>
+     2001-2024, Python Software Foundation.
+    <br />
+    This page is licensed under the Python Software Foundation License Version 2.
+    <br />
+    Examples, recipes, and other code in the documentation are additionally licensed under the Zero Clause BSD License.
+    <br />
+    
+      See <a href="/license.html">History and License</a> for more information.<br />
+    
+    
+    <br />
+
+    The Python Software Foundation is a non-profit corporation.
+<a href="https://www.python.org/psf/donations/">Please donate.</a>
+<br />
+    <br />
+      Last updated on Apr 09, 2024 (13:47 UTC).
+    
+      <a href="/bugs.html">Found a bug</a>?
+    
+    <br />
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
+    </div>
+
+  </body>
+</html>

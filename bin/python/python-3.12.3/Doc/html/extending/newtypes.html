@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content="3. Defining Extension Types: Assorted Topics" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://docs.python.org/3/extending/newtypes.html" />
+<meta property="og:site_name" content="Python documentation" />
+<meta property="og:description" content="This section aims to give a quick fly-by on the various type methods you can implement and what they do. Here is the definition of PyTypeObject, with some fields only used in debug builds omitted: ..." />
+<meta property="og:image" content="https://docs.python.org/3/_static/og-image.png" />
+<meta property="og:image:alt" content="Python documentation" />
+<meta name="description" content="This section aims to give a quick fly-by on the various type methods you can implement and what they do. Here is the definition of PyTypeObject, with some fields only used in debug builds omitted: ..." />
+<meta property="og:image:width" content="200" />
+<meta property="og:image:height" content="200" />
+<meta name="theme-color" content="#3776ab" />
+
+    <title>3. Defining Extension Types: Assorted Topics &#8212; Python 3.12.3 documentation</title><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+    <link rel="stylesheet" type="text/css" href="../_static/pydoctheme.css?v=bb723527" />
+    <link id="pygments_dark_css" media="(prefers-color-scheme: dark)" rel="stylesheet" type="text/css" href="../_static/pygments_dark.css?v=b20cc3f5" />
+    
+    <script src="../_static/documentation_options.js?v=2c828074"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <script src="../_static/sidebar.js"></script>
+    
+    <link rel="search" type="application/opensearchdescription+xml"
+          title="Search within Python 3.12.3 documentation"
+          href="../_static/opensearch.xml"/>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="copyright" title="Copyright" href="../copyright.html" />
+    <link rel="next" title="4. Building C and C++ Extensions" href="building.html" />
+    <link rel="prev" title="2. Defining Extension Types: Tutorial" href="newtypes_tutorial.html" />
+    <link rel="canonical" href="https://docs.python.org/3/extending/newtypes.html" />
+    
+      
+    
+
+    
+    <style>
+      @media only screen {
+        table.full-width-table {
+            width: 100%;
+        }
+      }
+    </style>
+<link rel="stylesheet" href="../_static/pydoctheme_dark.css" media="(prefers-color-scheme: dark)" id="pydoctheme_dark_css">
+    <link rel="shortcut icon" type="image/png" href="../_static/py.svg" />
+            <script type="text/javascript" src="../_static/copybutton.js"></script>
+            <script type="text/javascript" src="../_static/menu.js"></script>
+            <script type="text/javascript" src="../_static/search-focus.js"></script>
+            <script type="text/javascript" src="../_static/themetoggle.js"></script> 
+
+  </head>
+<body>
+<div class="mobile-nav">
+    <input type="checkbox" id="menuToggler" class="toggler__input" aria-controls="navigation"
+           aria-pressed="false" aria-expanded="false" role="button" aria-label="Menu" />
+    <nav class="nav-content" role="navigation">
+        <label for="menuToggler" class="toggler__label">
+            <span></span>
+        </label>
+        <span class="nav-items-wrapper">
+            <a href="https://www.python.org/" class="nav-logo">
+                <img src="../_static/py.svg" alt="Python logo"/>
+            </a>
+            <span class="version_switcher_placeholder"></span>
+            <form role="search" class="search" action="../search.html" method="get">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" class="search-icon">
+                    <path fill-rule="nonzero" fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 001.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 00-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 005.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                </svg>
+                <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" />
+                <input type="submit" value="Go"/>
+            </form>
+        </span>
+    </nav>
+    <div class="menu-wrapper">
+        <nav class="menu" role="navigation" aria-label="main navigation">
+            <div class="language_switcher_placeholder"></div>
+            
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected>Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label>
+  <div>
+    <h3><a href="../contents.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">3. Defining Extension Types: Assorted Topics</a><ul>
+<li><a class="reference internal" href="#finalization-and-de-allocation">3.1. Finalization and De-allocation</a></li>
+<li><a class="reference internal" href="#object-presentation">3.2. Object Presentation</a></li>
+<li><a class="reference internal" href="#attribute-management">3.3. Attribute Management</a><ul>
+<li><a class="reference internal" href="#generic-attribute-management">3.3.1. Generic Attribute Management</a></li>
+<li><a class="reference internal" href="#type-specific-attribute-management">3.3.2. Type-specific Attribute Management</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#object-comparison">3.4. Object Comparison</a></li>
+<li><a class="reference internal" href="#abstract-protocol-support">3.5. Abstract Protocol Support</a></li>
+<li><a class="reference internal" href="#weak-reference-support">3.6. Weak Reference Support</a></li>
+<li><a class="reference internal" href="#more-suggestions">3.7. More Suggestions</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="newtypes_tutorial.html"
+                          title="previous chapter"><span class="section-number">2. </span>Defining Extension Types: Tutorial</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="building.html"
+                          title="next chapter"><span class="section-number">4. </span>Building C and C++ Extensions</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../bugs.html">Report a Bug</a></li>
+      <li>
+        <a href="https://github.com/python/cpython/blob/main/Doc/extending/newtypes.rst"
+            rel="nofollow">Show Source
+        </a>
+      </li>
+    </ul>
+  </div>
+        </nav>
+    </div>
+</div>
+
+  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="building.html" title="4. Building C and C++ Extensions"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="newtypes_tutorial.html" title="2. Defining Extension Types: Tutorial"
+             accesskey="P">previous</a> |</li>
+
+          <li><img src="../_static/py.svg" alt="Python logo" style="vertical-align: middle; margin-top: -1px"/></li>
+          <li><a href="https://www.python.org/">Python</a> &#187;</li>
+          <li class="switchers">
+            <div class="language_switcher_placeholder"></div>
+            <div class="version_switcher_placeholder"></div>
+          </li>
+          <li>
+              
+          </li>
+    <li id="cpython-language-and-version">
+      <a href="../index.html">3.12.3 Documentation</a> &#187;
+    </li>
+
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Extending and Embedding the Python Interpreter</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href=""><span class="section-number">3. </span>Defining Extension Types: Assorted Topics</a></li>
+                <li class="right">
+                    
+
+    <div class="inline-search" role="search">
+        <form class="inline-search" action="../search.html" method="get">
+          <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" id="search-box" />
+          <input type="submit" value="Go" />
+        </form>
+    </div>
+                     |
+                </li>
+            <li class="right">
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected>Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label> |</li>
+            
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="defining-extension-types-assorted-topics">
+<span id="new-types-topics"></span><h1><span class="section-number">3. </span>Defining Extension Types: Assorted Topics<a class="headerlink" href="#defining-extension-types-assorted-topics" title="Link to this heading">¶</a></h1>
+<p id="dnt-type-methods">This section aims to give a quick fly-by on the various type methods you can
+implement and what they do.</p>
+<p>Here is the definition of <a class="reference internal" href="../c-api/type.html#c.PyTypeObject" title="PyTypeObject"><code class="xref c c-type docutils literal notranslate"><span class="pre">PyTypeObject</span></code></a>, with some fields only used in
+<a class="reference internal" href="../using/configure.html#debug-build"><span class="std std-ref">debug builds</span></a> omitted:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">_typeobject</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">PyObject_VAR_HEAD</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">tp_name</span><span class="p">;</span><span class="w"> </span><span class="cm">/* For printing, in format &quot;&lt;module&gt;.&lt;name&gt;&quot; */</span>
+<span class="w">    </span><span class="n">Py_ssize_t</span><span class="w"> </span><span class="n">tp_basicsize</span><span class="p">,</span><span class="w"> </span><span class="n">tp_itemsize</span><span class="p">;</span><span class="w"> </span><span class="cm">/* For allocation */</span>
+
+<span class="w">    </span><span class="cm">/* Methods to implement standard operations */</span>
+
+<span class="w">    </span><span class="n">destructor</span><span class="w"> </span><span class="n">tp_dealloc</span><span class="p">;</span>
+<span class="w">    </span><span class="n">Py_ssize_t</span><span class="w"> </span><span class="n">tp_vectorcall_offset</span><span class="p">;</span>
+<span class="w">    </span><span class="n">getattrfunc</span><span class="w"> </span><span class="n">tp_getattr</span><span class="p">;</span>
+<span class="w">    </span><span class="n">setattrfunc</span><span class="w"> </span><span class="n">tp_setattr</span><span class="p">;</span>
+<span class="w">    </span><span class="n">PyAsyncMethods</span><span class="w"> </span><span class="o">*</span><span class="n">tp_as_async</span><span class="p">;</span><span class="w"> </span><span class="cm">/* formerly known as tp_compare (Python 2)</span>
+<span class="cm">                                    or tp_reserved (Python 3) */</span>
+<span class="w">    </span><span class="n">reprfunc</span><span class="w"> </span><span class="n">tp_repr</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Method suites for standard classes */</span>
+
+<span class="w">    </span><span class="n">PyNumberMethods</span><span class="w"> </span><span class="o">*</span><span class="n">tp_as_number</span><span class="p">;</span>
+<span class="w">    </span><span class="n">PySequenceMethods</span><span class="w"> </span><span class="o">*</span><span class="n">tp_as_sequence</span><span class="p">;</span>
+<span class="w">    </span><span class="n">PyMappingMethods</span><span class="w"> </span><span class="o">*</span><span class="n">tp_as_mapping</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* More standard operations (here for binary compatibility) */</span>
+
+<span class="w">    </span><span class="n">hashfunc</span><span class="w"> </span><span class="n">tp_hash</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ternaryfunc</span><span class="w"> </span><span class="n">tp_call</span><span class="p">;</span>
+<span class="w">    </span><span class="n">reprfunc</span><span class="w"> </span><span class="n">tp_str</span><span class="p">;</span>
+<span class="w">    </span><span class="n">getattrofunc</span><span class="w"> </span><span class="n">tp_getattro</span><span class="p">;</span>
+<span class="w">    </span><span class="n">setattrofunc</span><span class="w"> </span><span class="n">tp_setattro</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Functions to access object as input/output buffer */</span>
+<span class="w">    </span><span class="n">PyBufferProcs</span><span class="w"> </span><span class="o">*</span><span class="n">tp_as_buffer</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Flags to define presence of optional/expanded features */</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">tp_flags</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">tp_doc</span><span class="p">;</span><span class="w"> </span><span class="cm">/* Documentation string */</span>
+
+<span class="w">    </span><span class="cm">/* Assigned meaning in release 2.0 */</span>
+<span class="w">    </span><span class="cm">/* call function for all accessible objects */</span>
+<span class="w">    </span><span class="n">traverseproc</span><span class="w"> </span><span class="n">tp_traverse</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* delete references to contained objects */</span>
+<span class="w">    </span><span class="n">inquiry</span><span class="w"> </span><span class="n">tp_clear</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Assigned meaning in release 2.1 */</span>
+<span class="w">    </span><span class="cm">/* rich comparisons */</span>
+<span class="w">    </span><span class="n">richcmpfunc</span><span class="w"> </span><span class="n">tp_richcompare</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* weak reference enabler */</span>
+<span class="w">    </span><span class="n">Py_ssize_t</span><span class="w"> </span><span class="n">tp_weaklistoffset</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Iterators */</span>
+<span class="w">    </span><span class="n">getiterfunc</span><span class="w"> </span><span class="n">tp_iter</span><span class="p">;</span>
+<span class="w">    </span><span class="n">iternextfunc</span><span class="w"> </span><span class="n">tp_iternext</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Attribute descriptor and subclassing stuff */</span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">PyMethodDef</span><span class="w"> </span><span class="o">*</span><span class="n">tp_methods</span><span class="p">;</span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">PyMemberDef</span><span class="w"> </span><span class="o">*</span><span class="n">tp_members</span><span class="p">;</span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">PyGetSetDef</span><span class="w"> </span><span class="o">*</span><span class="n">tp_getset</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// Strong reference on a heap type, borrowed reference on a static type</span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">_typeobject</span><span class="w"> </span><span class="o">*</span><span class="n">tp_base</span><span class="p">;</span>
+<span class="w">    </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">tp_dict</span><span class="p">;</span>
+<span class="w">    </span><span class="n">descrgetfunc</span><span class="w"> </span><span class="n">tp_descr_get</span><span class="p">;</span>
+<span class="w">    </span><span class="n">descrsetfunc</span><span class="w"> </span><span class="n">tp_descr_set</span><span class="p">;</span>
+<span class="w">    </span><span class="n">Py_ssize_t</span><span class="w"> </span><span class="n">tp_dictoffset</span><span class="p">;</span>
+<span class="w">    </span><span class="n">initproc</span><span class="w"> </span><span class="n">tp_init</span><span class="p">;</span>
+<span class="w">    </span><span class="n">allocfunc</span><span class="w"> </span><span class="n">tp_alloc</span><span class="p">;</span>
+<span class="w">    </span><span class="n">newfunc</span><span class="w"> </span><span class="n">tp_new</span><span class="p">;</span>
+<span class="w">    </span><span class="n">freefunc</span><span class="w"> </span><span class="n">tp_free</span><span class="p">;</span><span class="w"> </span><span class="cm">/* Low-level free-memory routine */</span>
+<span class="w">    </span><span class="n">inquiry</span><span class="w"> </span><span class="n">tp_is_gc</span><span class="p">;</span><span class="w"> </span><span class="cm">/* For PyObject_IS_GC */</span>
+<span class="w">    </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">tp_bases</span><span class="p">;</span>
+<span class="w">    </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">tp_mro</span><span class="p">;</span><span class="w"> </span><span class="cm">/* method resolution order */</span>
+<span class="w">    </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">tp_cache</span><span class="p">;</span>
+<span class="w">    </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">tp_subclasses</span><span class="p">;</span>
+<span class="w">    </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">tp_weaklist</span><span class="p">;</span>
+<span class="w">    </span><span class="n">destructor</span><span class="w"> </span><span class="n">tp_del</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Type attribute cache version tag. Added in version 2.6 */</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">tp_version_tag</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">destructor</span><span class="w"> </span><span class="n">tp_finalize</span><span class="p">;</span>
+<span class="w">    </span><span class="n">vectorcallfunc</span><span class="w"> </span><span class="n">tp_vectorcall</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* bitset of which type-watchers care about this type */</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">tp_watched</span><span class="p">;</span>
+<span class="p">}</span><span class="w"> </span><span class="n">PyTypeObject</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Now that’s a <em>lot</em> of methods.  Don’t worry too much though – if you have
+a type you want to define, the chances are very good that you will only
+implement a handful of these.</p>
+<p>As you probably expect by now, we’re going to go over this and give more
+information about the various handlers.  We won’t go in the order they are
+defined in the structure, because there is a lot of historical baggage that
+impacts the ordering of the fields.  It’s often easiest to find an example
+that includes the fields you need and then change the values to suit your new
+type.</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">tp_name</span><span class="p">;</span><span class="w"> </span><span class="cm">/* For printing */</span>
+</pre></div>
+</div>
+<p>The name of the type – as mentioned in the previous chapter, this will appear in
+various places, almost entirely for diagnostic purposes. Try to choose something
+that will be helpful in such a situation!</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">Py_ssize_t</span><span class="w"> </span><span class="n">tp_basicsize</span><span class="p">,</span><span class="w"> </span><span class="n">tp_itemsize</span><span class="p">;</span><span class="w"> </span><span class="cm">/* For allocation */</span>
+</pre></div>
+</div>
+<p>These fields tell the runtime how much memory to allocate when new objects of
+this type are created.  Python has some built-in support for variable length
+structures (think: strings, tuples) which is where the <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_itemsize" title="PyTypeObject.tp_itemsize"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_itemsize</span></code></a> field
+comes in.  This will be dealt with later.</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">tp_doc</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Here you can put a string (or its address) that you want returned when the
+Python script references <code class="docutils literal notranslate"><span class="pre">obj.__doc__</span></code> to retrieve the doc string.</p>
+<p>Now we come to the basic type methods – the ones most extension types will
+implement.</p>
+<section id="finalization-and-de-allocation">
+<h2><span class="section-number">3.1. </span>Finalization and De-allocation<a class="headerlink" href="#finalization-and-de-allocation" title="Link to this heading">¶</a></h2>
+<div class="highlight-c notranslate" id="index-0"><div class="highlight"><pre><span></span><span class="n">destructor</span><span class="w"> </span><span class="n">tp_dealloc</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>This function is called when the reference count of the instance of your type is
+reduced to zero and the Python interpreter wants to reclaim it.  If your type
+has memory to free or other clean-up to perform, you can put it here.  The
+object itself needs to be freed here as well.  Here is an example of this
+function:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="kt">void</span>
+<span class="nf">newdatatype_dealloc</span><span class="p">(</span><span class="n">newdatatypeobject</span><span class="w"> </span><span class="o">*</span><span class="n">obj</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">free</span><span class="p">(</span><span class="n">obj</span><span class="o">-&gt;</span><span class="n">obj_UnderlyingDatatypePtr</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Py_TYPE</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">tp_free</span><span class="p">((</span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">obj</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>If your type supports garbage collection, the destructor should call
+<a class="reference internal" href="../c-api/gcsupport.html#c.PyObject_GC_UnTrack" title="PyObject_GC_UnTrack"><code class="xref c c-func docutils literal notranslate"><span class="pre">PyObject_GC_UnTrack()</span></code></a> before clearing any member fields:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="kt">void</span>
+<span class="nf">newdatatype_dealloc</span><span class="p">(</span><span class="n">newdatatypeobject</span><span class="w"> </span><span class="o">*</span><span class="n">obj</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">PyObject_GC_UnTrack</span><span class="p">(</span><span class="n">obj</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Py_CLEAR</span><span class="p">(</span><span class="n">obj</span><span class="o">-&gt;</span><span class="n">other_obj</span><span class="p">);</span>
+<span class="w">    </span><span class="p">...</span>
+<span class="w">    </span><span class="n">Py_TYPE</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">tp_free</span><span class="p">((</span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">obj</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p id="index-1">One important requirement of the deallocator function is that it leaves any
+pending exceptions alone.  This is important since deallocators are frequently
+called as the interpreter unwinds the Python stack; when the stack is unwound
+due to an exception (rather than normal returns), nothing is done to protect the
+deallocators from seeing that an exception has already been set.  Any actions
+which a deallocator performs which may cause additional Python code to be
+executed may detect that an exception has been set.  This can lead to misleading
+errors from the interpreter.  The proper way to protect against this is to save
+a pending exception before performing the unsafe action, and restoring it when
+done.  This can be done using the <a class="reference internal" href="../c-api/exceptions.html#c.PyErr_Fetch" title="PyErr_Fetch"><code class="xref c c-func docutils literal notranslate"><span class="pre">PyErr_Fetch()</span></code></a> and
+<a class="reference internal" href="../c-api/exceptions.html#c.PyErr_Restore" title="PyErr_Restore"><code class="xref c c-func docutils literal notranslate"><span class="pre">PyErr_Restore()</span></code></a> functions:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="kt">void</span>
+<span class="nf">my_dealloc</span><span class="p">(</span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">obj</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">MyObject</span><span class="w"> </span><span class="o">*</span><span class="n">self</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">MyObject</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="n">obj</span><span class="p">;</span>
+<span class="w">    </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">cbresult</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">self</span><span class="o">-&gt;</span><span class="n">my_callback</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">err_type</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">err_value</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">err_traceback</span><span class="p">;</span>
+
+<span class="w">        </span><span class="cm">/* This saves the current exception state */</span>
+<span class="w">        </span><span class="n">PyErr_Fetch</span><span class="p">(</span><span class="o">&amp;</span><span class="n">err_type</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">err_value</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">err_traceback</span><span class="p">);</span>
+
+<span class="w">        </span><span class="n">cbresult</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">PyObject_CallNoArgs</span><span class="p">(</span><span class="n">self</span><span class="o">-&gt;</span><span class="n">my_callback</span><span class="p">);</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">cbresult</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span>
+<span class="w">            </span><span class="n">PyErr_WriteUnraisable</span><span class="p">(</span><span class="n">self</span><span class="o">-&gt;</span><span class="n">my_callback</span><span class="p">);</span>
+<span class="w">        </span><span class="k">else</span>
+<span class="w">            </span><span class="n">Py_DECREF</span><span class="p">(</span><span class="n">cbresult</span><span class="p">);</span>
+
+<span class="w">        </span><span class="cm">/* This restores the saved exception state */</span>
+<span class="w">        </span><span class="n">PyErr_Restore</span><span class="p">(</span><span class="n">err_type</span><span class="p">,</span><span class="w"> </span><span class="n">err_value</span><span class="p">,</span><span class="w"> </span><span class="n">err_traceback</span><span class="p">);</span>
+
+<span class="w">        </span><span class="n">Py_DECREF</span><span class="p">(</span><span class="n">self</span><span class="o">-&gt;</span><span class="n">my_callback</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">Py_TYPE</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">tp_free</span><span class="p">((</span><span class="n">PyObject</span><span class="o">*</span><span class="p">)</span><span class="n">self</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>There are limitations to what you can safely do in a deallocator function.
+First, if your type supports garbage collection (using <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_traverse" title="PyTypeObject.tp_traverse"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_traverse</span></code></a>
+and/or <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_clear" title="PyTypeObject.tp_clear"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_clear</span></code></a>), some of the object’s members can have been
+cleared or finalized by the time <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_dealloc" title="PyTypeObject.tp_dealloc"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_dealloc</span></code></a> is called.  Second, in
+<a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_dealloc" title="PyTypeObject.tp_dealloc"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_dealloc</span></code></a>, your object is in an unstable state: its reference
+count is equal to zero.  Any call to a non-trivial object or API (as in the
+example above) might end up calling <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_dealloc" title="PyTypeObject.tp_dealloc"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_dealloc</span></code></a> again, causing a
+double free and a crash.</p>
+<p>Starting with Python 3.4, it is recommended not to put any complex
+finalization code in <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_dealloc" title="PyTypeObject.tp_dealloc"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_dealloc</span></code></a>, and instead use the new
+<a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_finalize" title="PyTypeObject.tp_finalize"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_finalize</span></code></a> type method.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><span class="target" id="index-2"></span><a class="pep reference external" href="https://peps.python.org/pep-0442/"><strong>PEP 442</strong></a> explains the new finalization scheme.</p>
+</div>
+</div>
+</section>
+<section id="object-presentation">
+<span id="index-3"></span><h2><span class="section-number">3.2. </span>Object Presentation<a class="headerlink" href="#object-presentation" title="Link to this heading">¶</a></h2>
+<p>In Python, there are two ways to generate a textual representation of an object:
+the <a class="reference internal" href="../library/functions.html#repr" title="repr"><code class="xref py py-func docutils literal notranslate"><span class="pre">repr()</span></code></a> function, and the <a class="reference internal" href="../library/stdtypes.html#str" title="str"><code class="xref py py-func docutils literal notranslate"><span class="pre">str()</span></code></a> function.  (The <a class="reference internal" href="../library/functions.html#print" title="print"><code class="xref py py-func docutils literal notranslate"><span class="pre">print()</span></code></a>
+function just calls <a class="reference internal" href="../library/stdtypes.html#str" title="str"><code class="xref py py-func docutils literal notranslate"><span class="pre">str()</span></code></a>.)  These handlers are both optional.</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">reprfunc</span><span class="w"> </span><span class="n">tp_repr</span><span class="p">;</span>
+<span class="n">reprfunc</span><span class="w"> </span><span class="n">tp_str</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_repr" title="PyTypeObject.tp_repr"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_repr</span></code></a> handler should return a string object containing a
+representation of the instance for which it is called.  Here is a simple
+example:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span>
+<span class="nf">newdatatype_repr</span><span class="p">(</span><span class="n">newdatatypeobject</span><span class="w"> </span><span class="o">*</span><span class="n">obj</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">PyUnicode_FromFormat</span><span class="p">(</span><span class="s">&quot;Repr-ified_newdatatype{{size:%d}}&quot;</span><span class="p">,</span>
+<span class="w">                                </span><span class="n">obj</span><span class="o">-&gt;</span><span class="n">obj_UnderlyingDatatypePtr</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>If no <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_repr" title="PyTypeObject.tp_repr"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_repr</span></code></a> handler is specified, the interpreter will supply a
+representation that uses the type’s <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_name" title="PyTypeObject.tp_name"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_name</span></code></a> and a uniquely identifying
+value for the object.</p>
+<p>The <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_str" title="PyTypeObject.tp_str"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_str</span></code></a> handler is to <a class="reference internal" href="../library/stdtypes.html#str" title="str"><code class="xref py py-func docutils literal notranslate"><span class="pre">str()</span></code></a> what the <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_repr" title="PyTypeObject.tp_repr"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_repr</span></code></a> handler
+described above is to <a class="reference internal" href="../library/functions.html#repr" title="repr"><code class="xref py py-func docutils literal notranslate"><span class="pre">repr()</span></code></a>; that is, it is called when Python code calls
+<a class="reference internal" href="../library/stdtypes.html#str" title="str"><code class="xref py py-func docutils literal notranslate"><span class="pre">str()</span></code></a> on an instance of your object.  Its implementation is very similar
+to the <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_repr" title="PyTypeObject.tp_repr"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_repr</span></code></a> function, but the resulting string is intended for human
+consumption.  If <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_str" title="PyTypeObject.tp_str"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_str</span></code></a> is not specified, the <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_repr" title="PyTypeObject.tp_repr"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_repr</span></code></a> handler is
+used instead.</p>
+<p>Here is a simple example:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span>
+<span class="nf">newdatatype_str</span><span class="p">(</span><span class="n">newdatatypeobject</span><span class="w"> </span><span class="o">*</span><span class="n">obj</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">PyUnicode_FromFormat</span><span class="p">(</span><span class="s">&quot;Stringified_newdatatype{{size:%d}}&quot;</span><span class="p">,</span>
+<span class="w">                                </span><span class="n">obj</span><span class="o">-&gt;</span><span class="n">obj_UnderlyingDatatypePtr</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="attribute-management">
+<h2><span class="section-number">3.3. </span>Attribute Management<a class="headerlink" href="#attribute-management" title="Link to this heading">¶</a></h2>
+<p>For every object which can support attributes, the corresponding type must
+provide the functions that control how the attributes are resolved.  There needs
+to be a function which can retrieve attributes (if any are defined), and another
+to set attributes (if setting attributes is allowed).  Removing an attribute is
+a special case, for which the new value passed to the handler is <code class="docutils literal notranslate"><span class="pre">NULL</span></code>.</p>
+<p>Python supports two pairs of attribute handlers; a type that supports attributes
+only needs to implement the functions for one pair.  The difference is that one
+pair takes the name of the attribute as a <span class="c-expr sig sig-inline c"><span class="kt">char</span><span class="p">*</span></span>, while the other
+accepts a <span class="c-expr sig sig-inline c"><a class="reference internal" href="../c-api/structures.html#c.PyObject" title="PyObject"><span class="n">PyObject</span></a><span class="p">*</span></span>.  Each type can use whichever pair makes more
+sense for the implementation’s convenience.</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">getattrfunc</span><span class="w">  </span><span class="n">tp_getattr</span><span class="p">;</span><span class="w">        </span><span class="cm">/* char * version */</span>
+<span class="n">setattrfunc</span><span class="w">  </span><span class="n">tp_setattr</span><span class="p">;</span>
+<span class="cm">/* ... */</span>
+<span class="n">getattrofunc</span><span class="w"> </span><span class="n">tp_getattro</span><span class="p">;</span><span class="w">       </span><span class="cm">/* PyObject * version */</span>
+<span class="n">setattrofunc</span><span class="w"> </span><span class="n">tp_setattro</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>If accessing attributes of an object is always a simple operation (this will be
+explained shortly), there are generic implementations which can be used to
+provide the <span class="c-expr sig sig-inline c"><a class="reference internal" href="../c-api/structures.html#c.PyObject" title="PyObject"><span class="n">PyObject</span></a><span class="p">*</span></span> version of the attribute management functions.
+The actual need for type-specific attribute handlers almost completely
+disappeared starting with Python 2.2, though there are many examples which have
+not been updated to use some of the new generic mechanism that is available.</p>
+<section id="generic-attribute-management">
+<span id="id1"></span><h3><span class="section-number">3.3.1. </span>Generic Attribute Management<a class="headerlink" href="#generic-attribute-management" title="Link to this heading">¶</a></h3>
+<p>Most extension types only use <em>simple</em> attributes.  So, what makes the
+attributes simple?  There are only a couple of conditions that must be met:</p>
+<ol class="arabic simple">
+<li><p>The name of the attributes must be known when <a class="reference internal" href="../c-api/type.html#c.PyType_Ready" title="PyType_Ready"><code class="xref c c-func docutils literal notranslate"><span class="pre">PyType_Ready()</span></code></a> is
+called.</p></li>
+<li><p>No special processing is needed to record that an attribute was looked up or
+set, nor do actions need to be taken based on the value.</p></li>
+</ol>
+<p>Note that this list does not place any restrictions on the values of the
+attributes, when the values are computed, or how relevant data is stored.</p>
+<p>When <a class="reference internal" href="../c-api/type.html#c.PyType_Ready" title="PyType_Ready"><code class="xref c c-func docutils literal notranslate"><span class="pre">PyType_Ready()</span></code></a> is called, it uses three tables referenced by the
+type object to create <a class="reference internal" href="../glossary.html#term-descriptor"><span class="xref std std-term">descriptor</span></a>s which are placed in the dictionary of the
+type object.  Each descriptor controls access to one attribute of the instance
+object.  Each of the tables is optional; if all three are <code class="docutils literal notranslate"><span class="pre">NULL</span></code>, instances of
+the type will only have attributes that are inherited from their base type, and
+should leave the <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_getattro" title="PyTypeObject.tp_getattro"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_getattro</span></code></a> and <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_setattro" title="PyTypeObject.tp_setattro"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_setattro</span></code></a> fields <code class="docutils literal notranslate"><span class="pre">NULL</span></code> as
+well, allowing the base type to handle attributes.</p>
+<p>The tables are declared as three fields of the type object:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">PyMethodDef</span><span class="w"> </span><span class="o">*</span><span class="n">tp_methods</span><span class="p">;</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">PyMemberDef</span><span class="w"> </span><span class="o">*</span><span class="n">tp_members</span><span class="p">;</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">PyGetSetDef</span><span class="w"> </span><span class="o">*</span><span class="n">tp_getset</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>If <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_methods" title="PyTypeObject.tp_methods"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_methods</span></code></a> is not <code class="docutils literal notranslate"><span class="pre">NULL</span></code>, it must refer to an array of
+<a class="reference internal" href="../c-api/structures.html#c.PyMethodDef" title="PyMethodDef"><code class="xref c c-type docutils literal notranslate"><span class="pre">PyMethodDef</span></code></a> structures.  Each entry in the table is an instance of this
+structure:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">PyMethodDef</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w">  </span><span class="o">*</span><span class="n">ml_name</span><span class="p">;</span><span class="w">       </span><span class="cm">/* method name */</span>
+<span class="w">    </span><span class="n">PyCFunction</span><span class="w">  </span><span class="n">ml_meth</span><span class="p">;</span><span class="w">       </span><span class="cm">/* implementation function */</span>
+<span class="w">    </span><span class="kt">int</span><span class="w">          </span><span class="n">ml_flags</span><span class="p">;</span><span class="w">      </span><span class="cm">/* flags */</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w">  </span><span class="o">*</span><span class="n">ml_doc</span><span class="p">;</span><span class="w">        </span><span class="cm">/* docstring */</span>
+<span class="p">}</span><span class="w"> </span><span class="n">PyMethodDef</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>One entry should be defined for each method provided by the type; no entries are
+needed for methods inherited from a base type.  One additional entry is needed
+at the end; it is a sentinel that marks the end of the array.  The
+<a class="reference internal" href="../c-api/structures.html#c.PyMethodDef.ml_name" title="PyMethodDef.ml_name"><code class="xref c c-member docutils literal notranslate"><span class="pre">ml_name</span></code></a> field of the sentinel must be <code class="docutils literal notranslate"><span class="pre">NULL</span></code>.</p>
+<p>The second table is used to define attributes which map directly to data stored
+in the instance.  A variety of primitive C types are supported, and access may
+be read-only or read-write.  The structures in the table are defined as:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">PyMemberDef</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">name</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w">         </span><span class="n">type</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w">         </span><span class="n">offset</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w">         </span><span class="n">flags</span><span class="p">;</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">doc</span><span class="p">;</span>
+<span class="p">}</span><span class="w"> </span><span class="n">PyMemberDef</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>For each entry in the table, a <a class="reference internal" href="../glossary.html#term-descriptor"><span class="xref std std-term">descriptor</span></a> will be constructed and added to the
+type which will be able to extract a value from the instance structure.  The
+<a class="reference internal" href="../c-api/structures.html#c.PyMemberDef.type" title="PyMemberDef.type"><code class="xref c c-member docutils literal notranslate"><span class="pre">type</span></code></a> field should contain a type code like <a class="reference internal" href="../c-api/structures.html#c.Py_T_INT" title="Py_T_INT"><code class="xref c c-macro docutils literal notranslate"><span class="pre">Py_T_INT</span></code></a> or
+<a class="reference internal" href="../c-api/structures.html#c.Py_T_DOUBLE" title="Py_T_DOUBLE"><code class="xref c c-macro docutils literal notranslate"><span class="pre">Py_T_DOUBLE</span></code></a>; the value will be used to determine how to
+convert Python values to and from C values.  The <a class="reference internal" href="../c-api/structures.html#c.PyMemberDef.flags" title="PyMemberDef.flags"><code class="xref c c-member docutils literal notranslate"><span class="pre">flags</span></code></a> field is used to
+store flags which control how the attribute can be accessed: you can set it to
+<a class="reference internal" href="../c-api/structures.html#c.Py_READONLY" title="Py_READONLY"><code class="xref c c-macro docutils literal notranslate"><span class="pre">Py_READONLY</span></code></a> to prevent Python code from setting it.</p>
+<p>An interesting advantage of using the <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_members" title="PyTypeObject.tp_members"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_members</span></code></a> table to build
+descriptors that are used at runtime is that any attribute defined this way can
+have an associated doc string simply by providing the text in the table.  An
+application can use the introspection API to retrieve the descriptor from the
+class object, and get the doc string using its <code class="xref py py-attr docutils literal notranslate"><span class="pre">__doc__</span></code> attribute.</p>
+<p>As with the <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_methods" title="PyTypeObject.tp_methods"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_methods</span></code></a> table, a sentinel entry with a <a class="reference internal" href="../c-api/structures.html#c.PyMethodDef.ml_name" title="PyMethodDef.ml_name"><code class="xref c c-member docutils literal notranslate"><span class="pre">ml_name</span></code></a> value
+of <code class="docutils literal notranslate"><span class="pre">NULL</span></code> is required.</p>
+</section>
+<section id="type-specific-attribute-management">
+<h3><span class="section-number">3.3.2. </span>Type-specific Attribute Management<a class="headerlink" href="#type-specific-attribute-management" title="Link to this heading">¶</a></h3>
+<p>For simplicity, only the <span class="c-expr sig sig-inline c"><span class="kt">char</span><span class="p">*</span></span> version will be demonstrated here; the
+type of the name parameter is the only difference between the <span class="c-expr sig sig-inline c"><span class="kt">char</span><span class="p">*</span></span>
+and <span class="c-expr sig sig-inline c"><a class="reference internal" href="../c-api/structures.html#c.PyObject" title="PyObject"><span class="n">PyObject</span></a><span class="p">*</span></span> flavors of the interface. This example effectively does
+the same thing as the generic example above, but does not use the generic
+support added in Python 2.2.  It explains how the handler functions are
+called, so that if you do need to extend their functionality, you’ll understand
+what needs to be done.</p>
+<p>The <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_getattr" title="PyTypeObject.tp_getattr"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_getattr</span></code></a> handler is called when the object requires an attribute
+look-up.  It is called in the same situations where the <a class="reference internal" href="../reference/datamodel.html#object.__getattr__" title="object.__getattr__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__getattr__()</span></code></a>
+method of a class would be called.</p>
+<p>Here is an example:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span>
+<span class="nf">newdatatype_getattr</span><span class="p">(</span><span class="n">newdatatypeobject</span><span class="w"> </span><span class="o">*</span><span class="n">obj</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">name</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;data&quot;</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">PyLong_FromLong</span><span class="p">(</span><span class="n">obj</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">PyErr_Format</span><span class="p">(</span><span class="n">PyExc_AttributeError</span><span class="p">,</span>
+<span class="w">                 </span><span class="s">&quot;&#39;%.100s&#39; object has no attribute &#39;%.400s&#39;&quot;</span><span class="p">,</span>
+<span class="w">                 </span><span class="n">Py_TYPE</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">tp_name</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">NULL</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_setattr" title="PyTypeObject.tp_setattr"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_setattr</span></code></a> handler is called when the <a class="reference internal" href="../reference/datamodel.html#object.__setattr__" title="object.__setattr__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__setattr__()</span></code></a> or
+<a class="reference internal" href="../reference/datamodel.html#object.__delattr__" title="object.__delattr__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__delattr__()</span></code></a> method of a class instance would be called.  When an
+attribute should be deleted, the third parameter will be <code class="docutils literal notranslate"><span class="pre">NULL</span></code>.  Here is an
+example that simply raises an exception; if this were really all you wanted, the
+<a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_setattr" title="PyTypeObject.tp_setattr"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_setattr</span></code></a> handler should be set to <code class="docutils literal notranslate"><span class="pre">NULL</span></code>.</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="kt">int</span>
+<span class="nf">newdatatype_setattr</span><span class="p">(</span><span class="n">newdatatypeobject</span><span class="w"> </span><span class="o">*</span><span class="n">obj</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">v</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">PyErr_Format</span><span class="p">(</span><span class="n">PyExc_RuntimeError</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Read-only attribute: %s&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="object-comparison">
+<h2><span class="section-number">3.4. </span>Object Comparison<a class="headerlink" href="#object-comparison" title="Link to this heading">¶</a></h2>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">richcmpfunc</span><span class="w"> </span><span class="n">tp_richcompare</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_richcompare" title="PyTypeObject.tp_richcompare"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_richcompare</span></code></a> handler is called when comparisons are needed.  It is
+analogous to the <a class="reference internal" href="../reference/datamodel.html#richcmpfuncs"><span class="std std-ref">rich comparison methods</span></a>, like
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">__lt__()</span></code>, and also called by <a class="reference internal" href="../c-api/object.html#c.PyObject_RichCompare" title="PyObject_RichCompare"><code class="xref c c-func docutils literal notranslate"><span class="pre">PyObject_RichCompare()</span></code></a> and
+<a class="reference internal" href="../c-api/object.html#c.PyObject_RichCompareBool" title="PyObject_RichCompareBool"><code class="xref c c-func docutils literal notranslate"><span class="pre">PyObject_RichCompareBool()</span></code></a>.</p>
+<p>This function is called with two Python objects and the operator as arguments,
+where the operator is one of <code class="docutils literal notranslate"><span class="pre">Py_EQ</span></code>, <code class="docutils literal notranslate"><span class="pre">Py_NE</span></code>, <code class="docutils literal notranslate"><span class="pre">Py_LE</span></code>, <code class="docutils literal notranslate"><span class="pre">Py_GE</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Py_LT</span></code> or <code class="docutils literal notranslate"><span class="pre">Py_GT</span></code>.  It should compare the two objects with respect to the
+specified operator and return <code class="docutils literal notranslate"><span class="pre">Py_True</span></code> or <code class="docutils literal notranslate"><span class="pre">Py_False</span></code> if the comparison is
+successful, <code class="docutils literal notranslate"><span class="pre">Py_NotImplemented</span></code> to indicate that comparison is not
+implemented and the other object’s comparison method should be tried, or <code class="docutils literal notranslate"><span class="pre">NULL</span></code>
+if an exception was set.</p>
+<p>Here is a sample implementation, for a datatype that is considered equal if the
+size of an internal pointer is equal:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span>
+<span class="nf">newdatatype_richcmp</span><span class="p">(</span><span class="n">newdatatypeobject</span><span class="w"> </span><span class="o">*</span><span class="n">obj1</span><span class="p">,</span><span class="w"> </span><span class="n">newdatatypeobject</span><span class="w"> </span><span class="o">*</span><span class="n">obj2</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">op</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">result</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">c</span><span class="p">,</span><span class="w"> </span><span class="n">size1</span><span class="p">,</span><span class="w"> </span><span class="n">size2</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* code to make sure that both arguments are of type</span>
+<span class="cm">       newdatatype omitted */</span>
+
+<span class="w">    </span><span class="n">size1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">obj1</span><span class="o">-&gt;</span><span class="n">obj_UnderlyingDatatypePtr</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">;</span>
+<span class="w">    </span><span class="n">size2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">obj2</span><span class="o">-&gt;</span><span class="n">obj_UnderlyingDatatypePtr</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">switch</span><span class="w"> </span><span class="p">(</span><span class="n">op</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">Py_LT</span><span class="p">:</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">size1</span><span class="w"> </span><span class="o">&lt;</span><span class="w">  </span><span class="n">size2</span><span class="p">;</span><span class="w"> </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">Py_LE</span><span class="p">:</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">size1</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">size2</span><span class="p">;</span><span class="w"> </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">Py_EQ</span><span class="p">:</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">size1</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">size2</span><span class="p">;</span><span class="w"> </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">Py_NE</span><span class="p">:</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">size1</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">size2</span><span class="p">;</span><span class="w"> </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">Py_GT</span><span class="p">:</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">size1</span><span class="w"> </span><span class="o">&gt;</span><span class="w">  </span><span class="n">size2</span><span class="p">;</span><span class="w"> </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">Py_GE</span><span class="p">:</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">size1</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">size2</span><span class="p">;</span><span class="w"> </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">Py_True</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">Py_False</span><span class="p">;</span>
+<span class="w">    </span><span class="n">Py_INCREF</span><span class="p">(</span><span class="n">result</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">result</span><span class="p">;</span>
+<span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="abstract-protocol-support">
+<h2><span class="section-number">3.5. </span>Abstract Protocol Support<a class="headerlink" href="#abstract-protocol-support" title="Link to this heading">¶</a></h2>
+<p>Python supports a variety of <em>abstract</em> ‘protocols;’ the specific interfaces
+provided to use these interfaces are documented in <a class="reference internal" href="../c-api/abstract.html#abstract"><span class="std std-ref">Abstract Objects Layer</span></a>.</p>
+<p>A number of these abstract interfaces were defined early in the development of
+the Python implementation.  In particular, the number, mapping, and sequence
+protocols have been part of Python since the beginning.  Other protocols have
+been added over time.  For protocols which depend on several handler routines
+from the type implementation, the older protocols have been defined as optional
+blocks of handlers referenced by the type object.  For newer protocols there are
+additional slots in the main type object, with a flag bit being set to indicate
+that the slots are present and should be checked by the interpreter.  (The flag
+bit does not indicate that the slot values are non-<code class="docutils literal notranslate"><span class="pre">NULL</span></code>. The flag may be set
+to indicate the presence of a slot, but a slot may still be unfilled.)</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">PyNumberMethods</span><span class="w">   </span><span class="o">*</span><span class="n">tp_as_number</span><span class="p">;</span>
+<span class="n">PySequenceMethods</span><span class="w"> </span><span class="o">*</span><span class="n">tp_as_sequence</span><span class="p">;</span>
+<span class="n">PyMappingMethods</span><span class="w">  </span><span class="o">*</span><span class="n">tp_as_mapping</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>If you wish your object to be able to act like a number, a sequence, or a
+mapping object, then you place the address of a structure that implements the C
+type <a class="reference internal" href="../c-api/typeobj.html#c.PyNumberMethods" title="PyNumberMethods"><code class="xref c c-type docutils literal notranslate"><span class="pre">PyNumberMethods</span></code></a>, <a class="reference internal" href="../c-api/typeobj.html#c.PySequenceMethods" title="PySequenceMethods"><code class="xref c c-type docutils literal notranslate"><span class="pre">PySequenceMethods</span></code></a>, or
+<a class="reference internal" href="../c-api/typeobj.html#c.PyMappingMethods" title="PyMappingMethods"><code class="xref c c-type docutils literal notranslate"><span class="pre">PyMappingMethods</span></code></a>, respectively. It is up to you to fill in this
+structure with appropriate values. You can find examples of the use of each of
+these in the <code class="file docutils literal notranslate"><span class="pre">Objects</span></code> directory of the Python source distribution.</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">hashfunc</span><span class="w"> </span><span class="n">tp_hash</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>This function, if you choose to provide it, should return a hash number for an
+instance of your data type. Here is a simple example:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="n">Py_hash_t</span>
+<span class="nf">newdatatype_hash</span><span class="p">(</span><span class="n">newdatatypeobject</span><span class="w"> </span><span class="o">*</span><span class="n">obj</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">Py_hash_t</span><span class="w"> </span><span class="n">result</span><span class="p">;</span>
+<span class="w">    </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">obj</span><span class="o">-&gt;</span><span class="n">some_size</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">32767</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">obj</span><span class="o">-&gt;</span><span class="n">some_number</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">result</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">-1</span><span class="p">)</span>
+<span class="w">       </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-2</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><code class="xref c c-type docutils literal notranslate"><span class="pre">Py_hash_t</span></code> is a signed integer type with a platform-varying width.
+Returning <code class="docutils literal notranslate"><span class="pre">-1</span></code> from <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_hash" title="PyTypeObject.tp_hash"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_hash</span></code></a> indicates an error,
+which is why you should be careful to avoid returning it when hash computation
+is successful, as seen above.</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">ternaryfunc</span><span class="w"> </span><span class="n">tp_call</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>This function is called when an instance of your data type is “called”, for
+example, if <code class="docutils literal notranslate"><span class="pre">obj1</span></code> is an instance of your data type and the Python script
+contains <code class="docutils literal notranslate"><span class="pre">obj1('hello')</span></code>, the <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_call" title="PyTypeObject.tp_call"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_call</span></code></a> handler is invoked.</p>
+<p>This function takes three arguments:</p>
+<ol class="arabic simple">
+<li><p><em>self</em> is the instance of the data type which is the subject of the call.
+If the call is <code class="docutils literal notranslate"><span class="pre">obj1('hello')</span></code>, then <em>self</em> is <code class="docutils literal notranslate"><span class="pre">obj1</span></code>.</p></li>
+<li><p><em>args</em> is a tuple containing the arguments to the call.  You can use
+<a class="reference internal" href="../c-api/arg.html#c.PyArg_ParseTuple" title="PyArg_ParseTuple"><code class="xref c c-func docutils literal notranslate"><span class="pre">PyArg_ParseTuple()</span></code></a> to extract the arguments.</p></li>
+<li><p><em>kwds</em> is a dictionary of keyword arguments that were passed. If this is
+non-<code class="docutils literal notranslate"><span class="pre">NULL</span></code> and you support keyword arguments, use
+<a class="reference internal" href="../c-api/arg.html#c.PyArg_ParseTupleAndKeywords" title="PyArg_ParseTupleAndKeywords"><code class="xref c c-func docutils literal notranslate"><span class="pre">PyArg_ParseTupleAndKeywords()</span></code></a> to extract the arguments.  If you
+do not want to support keyword arguments and this is non-<code class="docutils literal notranslate"><span class="pre">NULL</span></code>, raise a
+<a class="reference internal" href="../library/exceptions.html#TypeError" title="TypeError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">TypeError</span></code></a> with a message saying that keyword arguments are not supported.</p></li>
+</ol>
+<p>Here is a toy <code class="docutils literal notranslate"><span class="pre">tp_call</span></code> implementation:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span>
+<span class="nf">newdatatype_call</span><span class="p">(</span><span class="n">newdatatypeobject</span><span class="w"> </span><span class="o">*</span><span class="n">obj</span><span class="p">,</span><span class="w"> </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">args</span><span class="p">,</span><span class="w"> </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">kwds</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">result</span><span class="p">;</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">arg1</span><span class="p">;</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">arg2</span><span class="p">;</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">arg3</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">PyArg_ParseTuple</span><span class="p">(</span><span class="n">args</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;sss:call&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">arg1</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">arg2</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">arg3</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">NULL</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">PyUnicode_FromFormat</span><span class="p">(</span>
+<span class="w">        </span><span class="s">&quot;Returning -- value: [%d] arg1: [%s] arg2: [%s] arg3: [%s]</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="n">obj</span><span class="o">-&gt;</span><span class="n">obj_UnderlyingDatatypePtr</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">,</span>
+<span class="w">        </span><span class="n">arg1</span><span class="p">,</span><span class="w"> </span><span class="n">arg2</span><span class="p">,</span><span class="w"> </span><span class="n">arg3</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="cm">/* Iterators */</span>
+<span class="n">getiterfunc</span><span class="w"> </span><span class="n">tp_iter</span><span class="p">;</span>
+<span class="n">iternextfunc</span><span class="w"> </span><span class="n">tp_iternext</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>These functions provide support for the iterator protocol.  Both handlers
+take exactly one parameter, the instance for which they are being called,
+and return a new reference.  In the case of an error, they should set an
+exception and return <code class="docutils literal notranslate"><span class="pre">NULL</span></code>.  <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_iter" title="PyTypeObject.tp_iter"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_iter</span></code></a> corresponds
+to the Python <a class="reference internal" href="../reference/datamodel.html#object.__iter__" title="object.__iter__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__iter__()</span></code></a> method, while <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_iternext" title="PyTypeObject.tp_iternext"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_iternext</span></code></a>
+corresponds to the Python <a class="reference internal" href="../library/stdtypes.html#iterator.__next__" title="iterator.__next__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__next__()</span></code></a> method.</p>
+<p>Any <a class="reference internal" href="../glossary.html#term-iterable"><span class="xref std std-term">iterable</span></a> object must implement the <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_iter" title="PyTypeObject.tp_iter"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_iter</span></code></a>
+handler, which must return an <a class="reference internal" href="../glossary.html#term-iterator"><span class="xref std std-term">iterator</span></a> object.  Here the same guidelines
+apply as for Python classes:</p>
+<ul class="simple">
+<li><p>For collections (such as lists and tuples) which can support multiple
+independent iterators, a new iterator should be created and returned by
+each call to <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_iter" title="PyTypeObject.tp_iter"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_iter</span></code></a>.</p></li>
+<li><p>Objects which can only be iterated over once (usually due to side effects of
+iteration, such as file objects) can implement <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_iter" title="PyTypeObject.tp_iter"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_iter</span></code></a>
+by returning a new reference to themselves – and should also therefore
+implement the <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_iternext" title="PyTypeObject.tp_iternext"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_iternext</span></code></a>  handler.</p></li>
+</ul>
+<p>Any <a class="reference internal" href="../glossary.html#term-iterator"><span class="xref std std-term">iterator</span></a> object should implement both <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_iter" title="PyTypeObject.tp_iter"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_iter</span></code></a>
+and <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_iternext" title="PyTypeObject.tp_iternext"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_iternext</span></code></a>.  An iterator’s
+<a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_iter" title="PyTypeObject.tp_iter"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_iter</span></code></a> handler should return a new reference
+to the iterator.  Its <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_iternext" title="PyTypeObject.tp_iternext"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_iternext</span></code></a> handler should
+return a new reference to the next object in the iteration, if there is one.
+If the iteration has reached the end, <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_iternext" title="PyTypeObject.tp_iternext"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_iternext</span></code></a>
+may return <code class="docutils literal notranslate"><span class="pre">NULL</span></code> without setting an exception, or it may set
+<a class="reference internal" href="../library/exceptions.html#StopIteration" title="StopIteration"><code class="xref py py-exc docutils literal notranslate"><span class="pre">StopIteration</span></code></a> <em>in addition</em> to returning <code class="docutils literal notranslate"><span class="pre">NULL</span></code>; avoiding
+the exception can yield slightly better performance.  If an actual error
+occurs, <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_iternext" title="PyTypeObject.tp_iternext"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_iternext</span></code></a> should always set an exception
+and return <code class="docutils literal notranslate"><span class="pre">NULL</span></code>.</p>
+</section>
+<section id="weak-reference-support">
+<span id="weakref-support"></span><h2><span class="section-number">3.6. </span>Weak Reference Support<a class="headerlink" href="#weak-reference-support" title="Link to this heading">¶</a></h2>
+<p>One of the goals of Python’s weak reference implementation is to allow any type
+to participate in the weak reference mechanism without incurring the overhead on
+performance-critical objects (such as numbers).</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>Documentation for the <a class="reference internal" href="../library/weakref.html#module-weakref" title="weakref: Support for weak references and weak dictionaries."><code class="xref py py-mod docutils literal notranslate"><span class="pre">weakref</span></code></a> module.</p>
+</div>
+<p>For an object to be weakly referencable, the extension type must set the
+<code class="docutils literal notranslate"><span class="pre">Py_TPFLAGS_MANAGED_WEAKREF</span></code> bit of the <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_flags" title="PyTypeObject.tp_flags"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_flags</span></code></a>
+field. The legacy <a class="reference internal" href="../c-api/typeobj.html#c.PyTypeObject.tp_weaklistoffset" title="PyTypeObject.tp_weaklistoffset"><code class="xref c c-member docutils literal notranslate"><span class="pre">tp_weaklistoffset</span></code></a> field should
+be left as zero.</p>
+<p>Concretely, here is how the statically declared type object would look:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="n">PyTypeObject</span><span class="w"> </span><span class="n">TrivialType</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">PyVarObject_HEAD_INIT</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<span class="w">    </span><span class="cm">/* ... other members omitted for brevity ... */</span>
+<span class="w">    </span><span class="p">.</span><span class="n">tp_flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Py_TPFLAGS_MANAGED_WEAKREF</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="p">...,</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+<p>The only further addition is that <code class="docutils literal notranslate"><span class="pre">tp_dealloc</span></code> needs to clear any weak
+references (by calling <a class="reference internal" href="../c-api/weakref.html#c.PyObject_ClearWeakRefs" title="PyObject_ClearWeakRefs"><code class="xref c c-func docutils literal notranslate"><span class="pre">PyObject_ClearWeakRefs()</span></code></a>):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="kt">void</span>
+<span class="nf">Trivial_dealloc</span><span class="p">(</span><span class="n">TrivialObject</span><span class="w"> </span><span class="o">*</span><span class="n">self</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="cm">/* Clear weakrefs first before calling any destructors */</span>
+<span class="w">    </span><span class="n">PyObject_ClearWeakRefs</span><span class="p">((</span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="n">self</span><span class="p">);</span>
+<span class="w">    </span><span class="cm">/* ... remainder of destruction code omitted for brevity ... */</span>
+<span class="w">    </span><span class="n">Py_TYPE</span><span class="p">(</span><span class="n">self</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">tp_free</span><span class="p">((</span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="n">self</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="more-suggestions">
+<h2><span class="section-number">3.7. </span>More Suggestions<a class="headerlink" href="#more-suggestions" title="Link to this heading">¶</a></h2>
+<p>In order to learn how to implement any specific method for your new data type,
+get the <a class="reference internal" href="../glossary.html#term-CPython"><span class="xref std std-term">CPython</span></a> source code.  Go to the <code class="file docutils literal notranslate"><span class="pre">Objects</span></code> directory,
+then search the C source files for <code class="docutils literal notranslate"><span class="pre">tp_</span></code> plus the function you want
+(for example, <code class="docutils literal notranslate"><span class="pre">tp_richcompare</span></code>).  You will find examples of the function
+you want to implement.</p>
+<p>When you need to verify that an object is a concrete instance of the type you
+are implementing, use the <a class="reference internal" href="../c-api/object.html#c.PyObject_TypeCheck" title="PyObject_TypeCheck"><code class="xref c c-func docutils literal notranslate"><span class="pre">PyObject_TypeCheck()</span></code></a> function.  A sample of
+its use might be something like the following:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">PyObject_TypeCheck</span><span class="p">(</span><span class="n">some_object</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">MyType</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">PyErr_SetString</span><span class="p">(</span><span class="n">PyExc_TypeError</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;arg #1 not a mything&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">NULL</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt>Download CPython source releases.</dt><dd><p><a class="reference external" href="https://www.python.org/downloads/source/">https://www.python.org/downloads/source/</a></p>
+</dd>
+<dt>The CPython project on GitHub, where the CPython source code is developed.</dt><dd><p><a class="reference external" href="https://github.com/python/cpython">https://github.com/python/cpython</a></p>
+</dd>
+</dl>
+</div>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="../contents.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">3. Defining Extension Types: Assorted Topics</a><ul>
+<li><a class="reference internal" href="#finalization-and-de-allocation">3.1. Finalization and De-allocation</a></li>
+<li><a class="reference internal" href="#object-presentation">3.2. Object Presentation</a></li>
+<li><a class="reference internal" href="#attribute-management">3.3. Attribute Management</a><ul>
+<li><a class="reference internal" href="#generic-attribute-management">3.3.1. Generic Attribute Management</a></li>
+<li><a class="reference internal" href="#type-specific-attribute-management">3.3.2. Type-specific Attribute Management</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#object-comparison">3.4. Object Comparison</a></li>
+<li><a class="reference internal" href="#abstract-protocol-support">3.5. Abstract Protocol Support</a></li>
+<li><a class="reference internal" href="#weak-reference-support">3.6. Weak Reference Support</a></li>
+<li><a class="reference internal" href="#more-suggestions">3.7. More Suggestions</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="newtypes_tutorial.html"
+                          title="previous chapter"><span class="section-number">2. </span>Defining Extension Types: Tutorial</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="building.html"
+                          title="next chapter"><span class="section-number">4. </span>Building C and C++ Extensions</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../bugs.html">Report a Bug</a></li>
+      <li>
+        <a href="https://github.com/python/cpython/blob/main/Doc/extending/newtypes.rst"
+            rel="nofollow">Show Source
+        </a>
+      </li>
+    </ul>
+  </div>
+        </div>
+<div id="sidebarbutton" title="Collapse sidebar">
+<span>«</span>
+</div>
+
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="building.html" title="4. Building C and C++ Extensions"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="newtypes_tutorial.html" title="2. Defining Extension Types: Tutorial"
+             >previous</a> |</li>
+
+          <li><img src="../_static/py.svg" alt="Python logo" style="vertical-align: middle; margin-top: -1px"/></li>
+          <li><a href="https://www.python.org/">Python</a> &#187;</li>
+          <li class="switchers">
+            <div class="language_switcher_placeholder"></div>
+            <div class="version_switcher_placeholder"></div>
+          </li>
+          <li>
+              
+          </li>
+    <li id="cpython-language-and-version">
+      <a href="../index.html">3.12.3 Documentation</a> &#187;
+    </li>
+
+          <li class="nav-item nav-item-1"><a href="index.html" >Extending and Embedding the Python Interpreter</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href=""><span class="section-number">3. </span>Defining Extension Types: Assorted Topics</a></li>
+                <li class="right">
+                    
+
+    <div class="inline-search" role="search">
+        <form class="inline-search" action="../search.html" method="get">
+          <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" id="search-box" />
+          <input type="submit" value="Go" />
+        </form>
+    </div>
+                     |
+                </li>
+            <li class="right">
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected>Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label> |</li>
+            
+      </ul>
+    </div>  
+    <div class="footer">
+    &copy; 
+      <a href="../copyright.html">
+    
+    Copyright
+    
+      </a>
+     2001-2024, Python Software Foundation.
+    <br />
+    This page is licensed under the Python Software Foundation License Version 2.
+    <br />
+    Examples, recipes, and other code in the documentation are additionally licensed under the Zero Clause BSD License.
+    <br />
+    
+      See <a href="/license.html">History and License</a> for more information.<br />
+    
+    
+    <br />
+
+    The Python Software Foundation is a non-profit corporation.
+<a href="https://www.python.org/psf/donations/">Please donate.</a>
+<br />
+    <br />
+      Last updated on Apr 09, 2024 (13:47 UTC).
+    
+      <a href="/bugs.html">Found a bug</a>?
+    
+    <br />
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
+    </div>
+
+  </body>
+</html>

@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content="Instrumenting CPython with DTrace and SystemTap" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://docs.python.org/3/howto/instrumentation.html" />
+<meta property="og:site_name" content="Python documentation" />
+<meta property="og:description" content="author, David Malcolm,, author, Łukasz Langa,. DTrace and SystemTap are monitoring tools, each providing a way to inspect what the processes on a computer system are doing. They both use domain-spe..." />
+<meta property="og:image" content="https://docs.python.org/3/_static/og-image.png" />
+<meta property="og:image:alt" content="Python documentation" />
+<meta name="description" content="author, David Malcolm,, author, Łukasz Langa,. DTrace and SystemTap are monitoring tools, each providing a way to inspect what the processes on a computer system are doing. They both use domain-spe..." />
+<meta property="og:image:width" content="200" />
+<meta property="og:image:height" content="200" />
+<meta name="theme-color" content="#3776ab" />
+
+    <title>Instrumenting CPython with DTrace and SystemTap &#8212; Python 3.12.3 documentation</title><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+    <link rel="stylesheet" type="text/css" href="../_static/pydoctheme.css?v=bb723527" />
+    <link id="pygments_dark_css" media="(prefers-color-scheme: dark)" rel="stylesheet" type="text/css" href="../_static/pygments_dark.css?v=b20cc3f5" />
+    
+    <script src="../_static/documentation_options.js?v=2c828074"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <script src="../_static/sidebar.js"></script>
+    
+    <link rel="search" type="application/opensearchdescription+xml"
+          title="Search within Python 3.12.3 documentation"
+          href="../_static/opensearch.xml"/>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="copyright" title="Copyright" href="../copyright.html" />
+    <link rel="next" title="Python support for the Linux perf profiler" href="perf_profiling.html" />
+    <link rel="prev" title="An introduction to the ipaddress module" href="ipaddress.html" />
+    <link rel="canonical" href="https://docs.python.org/3/howto/instrumentation.html" />
+    
+      
+    
+
+    
+    <style>
+      @media only screen {
+        table.full-width-table {
+            width: 100%;
+        }
+      }
+    </style>
+<link rel="stylesheet" href="../_static/pydoctheme_dark.css" media="(prefers-color-scheme: dark)" id="pydoctheme_dark_css">
+    <link rel="shortcut icon" type="image/png" href="../_static/py.svg" />
+            <script type="text/javascript" src="../_static/copybutton.js"></script>
+            <script type="text/javascript" src="../_static/menu.js"></script>
+            <script type="text/javascript" src="../_static/search-focus.js"></script>
+            <script type="text/javascript" src="../_static/themetoggle.js"></script> 
+
+  </head>
+<body>
+<div class="mobile-nav">
+    <input type="checkbox" id="menuToggler" class="toggler__input" aria-controls="navigation"
+           aria-pressed="false" aria-expanded="false" role="button" aria-label="Menu" />
+    <nav class="nav-content" role="navigation">
+        <label for="menuToggler" class="toggler__label">
+            <span></span>
+        </label>
+        <span class="nav-items-wrapper">
+            <a href="https://www.python.org/" class="nav-logo">
+                <img src="../_static/py.svg" alt="Python logo"/>
+            </a>
+            <span class="version_switcher_placeholder"></span>
+            <form role="search" class="search" action="../search.html" method="get">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" class="search-icon">
+                    <path fill-rule="nonzero" fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 001.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 00-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 005.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                </svg>
+                <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" />
+                <input type="submit" value="Go"/>
+            </form>
+        </span>
+    </nav>
+    <div class="menu-wrapper">
+        <nav class="menu" role="navigation" aria-label="main navigation">
+            <div class="language_switcher_placeholder"></div>
+            
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected>Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label>
+  <div>
+    <h3><a href="../contents.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Instrumenting CPython with DTrace and SystemTap</a><ul>
+<li><a class="reference internal" href="#enabling-the-static-markers">Enabling the static markers</a></li>
+<li><a class="reference internal" href="#static-dtrace-probes">Static DTrace probes</a></li>
+<li><a class="reference internal" href="#static-systemtap-markers">Static SystemTap markers</a></li>
+<li><a class="reference internal" href="#available-static-markers">Available static markers</a></li>
+<li><a class="reference internal" href="#systemtap-tapsets">SystemTap Tapsets</a></li>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="ipaddress.html"
+                          title="previous chapter">An introduction to the ipaddress module</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="perf_profiling.html"
+                          title="next chapter">Python support for the Linux <code class="docutils literal notranslate"><span class="pre">perf</span></code> profiler</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../bugs.html">Report a Bug</a></li>
+      <li>
+        <a href="https://github.com/python/cpython/blob/main/Doc/howto/instrumentation.rst"
+            rel="nofollow">Show Source
+        </a>
+      </li>
+    </ul>
+  </div>
+        </nav>
+    </div>
+</div>
+
+  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="perf_profiling.html" title="Python support for the Linux perf profiler"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="ipaddress.html" title="An introduction to the ipaddress module"
+             accesskey="P">previous</a> |</li>
+
+          <li><img src="../_static/py.svg" alt="Python logo" style="vertical-align: middle; margin-top: -1px"/></li>
+          <li><a href="https://www.python.org/">Python</a> &#187;</li>
+          <li class="switchers">
+            <div class="language_switcher_placeholder"></div>
+            <div class="version_switcher_placeholder"></div>
+          </li>
+          <li>
+              
+          </li>
+    <li id="cpython-language-and-version">
+      <a href="../index.html">3.12.3 Documentation</a> &#187;
+    </li>
+
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Python HOWTOs</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Instrumenting CPython with DTrace and SystemTap</a></li>
+                <li class="right">
+                    
+
+    <div class="inline-search" role="search">
+        <form class="inline-search" action="../search.html" method="get">
+          <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" id="search-box" />
+          <input type="submit" value="Go" />
+        </form>
+    </div>
+                     |
+                </li>
+            <li class="right">
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected>Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label> |</li>
+            
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="instrumenting-cpython-with-dtrace-and-systemtap">
+<span id="instrumentation"></span><h1>Instrumenting CPython with DTrace and SystemTap<a class="headerlink" href="#instrumenting-cpython-with-dtrace-and-systemtap" title="Link to this heading">¶</a></h1>
+<dl class="field-list simple">
+<dt class="field-odd">author<span class="colon">:</span></dt>
+<dd class="field-odd"><p>David Malcolm</p>
+</dd>
+<dt class="field-even">author<span class="colon">:</span></dt>
+<dd class="field-even"><p>Łukasz Langa</p>
+</dd>
+</dl>
+<p>DTrace and SystemTap are monitoring tools, each providing a way to inspect
+what the processes on a computer system are doing.  They both use
+domain-specific languages allowing a user to write scripts which:</p>
+<ul class="simple">
+<li><p>filter which processes are to be observed</p></li>
+<li><p>gather data from the processes of interest</p></li>
+<li><p>generate reports on the data</p></li>
+</ul>
+<p>As of Python 3.6, CPython can be built with embedded “markers”, also
+known as “probes”, that can be observed by a DTrace or SystemTap script,
+making it easier to monitor what the CPython processes on a system are
+doing.</p>
+<div class="impl-detail compound">
+<p><strong>CPython implementation detail:</strong> DTrace markers are implementation details of the CPython interpreter.
+No guarantees are made about probe compatibility between versions of
+CPython. DTrace scripts can stop working or work incorrectly without
+warning when changing CPython versions.</p>
+</div>
+<section id="enabling-the-static-markers">
+<h2>Enabling the static markers<a class="headerlink" href="#enabling-the-static-markers" title="Link to this heading">¶</a></h2>
+<p>macOS comes with built-in support for DTrace.  On Linux, in order to
+build CPython with the embedded markers for SystemTap, the SystemTap
+development tools must be installed.</p>
+<p>On a Linux machine, this can be done via:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>yum<span class="w"> </span>install<span class="w"> </span>systemtap-sdt-devel
+</pre></div>
+</div>
+<p>or:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>systemtap-sdt-dev
+</pre></div>
+</div>
+<p>CPython must then be <a class="reference internal" href="../using/configure.html#cmdoption-with-dtrace"><code class="xref std std-option docutils literal notranslate"><span class="pre">configured</span> <span class="pre">with</span> <span class="pre">the</span> <span class="pre">--with-dtrace</span> <span class="pre">option</span></code></a>:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>checking for --with-dtrace... yes
+</pre></div>
+</div>
+<p>On macOS, you can list available DTrace probes by running a Python
+process in the background and listing all probes made available by the
+Python provider:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>python3.6<span class="w"> </span>-q<span class="w"> </span><span class="p">&amp;</span>
+<span class="gp">$ </span>sudo<span class="w"> </span>dtrace<span class="w"> </span>-l<span class="w"> </span>-P<span class="w"> </span>python<span class="nv">$!</span><span class="w">  </span><span class="c1"># or: dtrace -l -m python3.6</span>
+
+<span class="go">   ID   PROVIDER            MODULE                          FUNCTION NAME</span>
+<span class="go">29564 python18035        python3.6          _PyEval_EvalFrameDefault function-entry</span>
+<span class="go">29565 python18035        python3.6             dtrace_function_entry function-entry</span>
+<span class="go">29566 python18035        python3.6          _PyEval_EvalFrameDefault function-return</span>
+<span class="go">29567 python18035        python3.6            dtrace_function_return function-return</span>
+<span class="go">29568 python18035        python3.6                           collect gc-done</span>
+<span class="go">29569 python18035        python3.6                           collect gc-start</span>
+<span class="go">29570 python18035        python3.6          _PyEval_EvalFrameDefault line</span>
+<span class="go">29571 python18035        python3.6                 maybe_dtrace_line line</span>
+</pre></div>
+</div>
+<p>On Linux, you can verify if the SystemTap static markers are present in
+the built binary by seeing if it contains a “.note.stapsdt” section.</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>readelf<span class="w"> </span>-S<span class="w"> </span>./python<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>.note.stapsdt
+<span class="go">[30] .note.stapsdt        NOTE         0000000000000000 00308d78</span>
+</pre></div>
+</div>
+<p>If you’ve built Python as a shared library
+(with the <a class="reference internal" href="../using/configure.html#cmdoption-enable-shared"><code class="xref std std-option docutils literal notranslate"><span class="pre">--enable-shared</span></code></a> configure option), you
+need to look instead within the shared library.  For example:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>readelf<span class="w"> </span>-S<span class="w"> </span>libpython3.3dm.so.1.0<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>.note.stapsdt
+<span class="go">[29] .note.stapsdt        NOTE         0000000000000000 00365b68</span>
+</pre></div>
+</div>
+<p>Sufficiently modern readelf can print the metadata:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>readelf<span class="w"> </span>-n<span class="w"> </span>./python
+
+<span class="go">Displaying notes found at file offset 0x00000254 with length 0x00000020:</span>
+<span class="go">    Owner                 Data size          Description</span>
+<span class="go">    GNU                  0x00000010          NT_GNU_ABI_TAG (ABI version tag)</span>
+<span class="go">        OS: Linux, ABI: 2.6.32</span>
+
+<span class="go">Displaying notes found at file offset 0x00000274 with length 0x00000024:</span>
+<span class="go">    Owner                 Data size          Description</span>
+<span class="go">    GNU                  0x00000014          NT_GNU_BUILD_ID (unique build ID bitstring)</span>
+<span class="go">        Build ID: df924a2b08a7e89f6e11251d4602022977af2670</span>
+
+<span class="go">Displaying notes found at file offset 0x002d6c30 with length 0x00000144:</span>
+<span class="go">    Owner                 Data size          Description</span>
+<span class="go">    stapsdt              0x00000031          NT_STAPSDT (SystemTap probe descriptors)</span>
+<span class="go">        Provider: python</span>
+<span class="go">        Name: gc__start</span>
+<span class="go">        Location: 0x00000000004371c3, Base: 0x0000000000630ce2, Semaphore: 0x00000000008d6bf6</span>
+<span class="go">        Arguments: -4@%ebx</span>
+<span class="go">    stapsdt              0x00000030          NT_STAPSDT (SystemTap probe descriptors)</span>
+<span class="go">        Provider: python</span>
+<span class="go">        Name: gc__done</span>
+<span class="go">        Location: 0x00000000004374e1, Base: 0x0000000000630ce2, Semaphore: 0x00000000008d6bf8</span>
+<span class="go">        Arguments: -8@%rax</span>
+<span class="go">    stapsdt              0x00000045          NT_STAPSDT (SystemTap probe descriptors)</span>
+<span class="go">        Provider: python</span>
+<span class="go">        Name: function__entry</span>
+<span class="go">        Location: 0x000000000053db6c, Base: 0x0000000000630ce2, Semaphore: 0x00000000008d6be8</span>
+<span class="go">        Arguments: 8@%rbp 8@%r12 -4@%eax</span>
+<span class="go">    stapsdt              0x00000046          NT_STAPSDT (SystemTap probe descriptors)</span>
+<span class="go">        Provider: python</span>
+<span class="go">        Name: function__return</span>
+<span class="go">        Location: 0x000000000053dba8, Base: 0x0000000000630ce2, Semaphore: 0x00000000008d6bea</span>
+<span class="go">        Arguments: 8@%rbp 8@%r12 -4@%eax</span>
+</pre></div>
+</div>
+<p>The above metadata contains information for SystemTap describing how it
+can patch strategically placed machine code instructions to enable the
+tracing hooks used by a SystemTap script.</p>
+</section>
+<section id="static-dtrace-probes">
+<h2>Static DTrace probes<a class="headerlink" href="#static-dtrace-probes" title="Link to this heading">¶</a></h2>
+<p>The following example DTrace script can be used to show the call/return
+hierarchy of a Python script, only tracing within the invocation of
+a function called “start”. In other words, import-time function
+invocations are not going to be listed:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>self int indent;
+
+python$target:::function-entry
+/copyinstr(arg1) == &quot;start&quot;/
+{
+        self-&gt;trace = 1;
+}
+
+python$target:::function-entry
+/self-&gt;trace/
+{
+        printf(&quot;%d\t%*s:&quot;, timestamp, 15, probename);
+        printf(&quot;%*s&quot;, self-&gt;indent, &quot;&quot;);
+        printf(&quot;%s:%s:%d\n&quot;, basename(copyinstr(arg0)), copyinstr(arg1), arg2);
+        self-&gt;indent++;
+}
+
+python$target:::function-return
+/self-&gt;trace/
+{
+        self-&gt;indent--;
+        printf(&quot;%d\t%*s:&quot;, timestamp, 15, probename);
+        printf(&quot;%*s&quot;, self-&gt;indent, &quot;&quot;);
+        printf(&quot;%s:%s:%d\n&quot;, basename(copyinstr(arg0)), copyinstr(arg1), arg2);
+}
+
+python$target:::function-return
+/copyinstr(arg1) == &quot;start&quot;/
+{
+        self-&gt;trace = 0;
+}
+</pre></div>
+</div>
+<p>It can be invoked like this:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>sudo<span class="w"> </span>dtrace<span class="w"> </span>-q<span class="w"> </span>-s<span class="w"> </span>call_stack.d<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;python3.6 script.py&quot;</span>
+</pre></div>
+</div>
+<p>The output looks like this:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>156641360502280  function-entry:call_stack.py:start:23
+156641360518804  function-entry: call_stack.py:function_1:1
+156641360532797  function-entry:  call_stack.py:function_3:9
+156641360546807 function-return:  call_stack.py:function_3:10
+156641360563367 function-return: call_stack.py:function_1:2
+156641360578365  function-entry: call_stack.py:function_2:5
+156641360591757  function-entry:  call_stack.py:function_1:1
+156641360605556  function-entry:   call_stack.py:function_3:9
+156641360617482 function-return:   call_stack.py:function_3:10
+156641360629814 function-return:  call_stack.py:function_1:2
+156641360642285 function-return: call_stack.py:function_2:6
+156641360656770  function-entry: call_stack.py:function_3:9
+156641360669707 function-return: call_stack.py:function_3:10
+156641360687853  function-entry: call_stack.py:function_4:13
+156641360700719 function-return: call_stack.py:function_4:14
+156641360719640  function-entry: call_stack.py:function_5:18
+156641360732567 function-return: call_stack.py:function_5:21
+156641360747370 function-return:call_stack.py:start:28
+</pre></div>
+</div>
+</section>
+<section id="static-systemtap-markers">
+<h2>Static SystemTap markers<a class="headerlink" href="#static-systemtap-markers" title="Link to this heading">¶</a></h2>
+<p>The low-level way to use the SystemTap integration is to use the static
+markers directly.  This requires you to explicitly state the binary file
+containing them.</p>
+<p>For example, this SystemTap script can be used to show the call/return
+hierarchy of a Python script:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>probe process(&quot;python&quot;).mark(&quot;function__entry&quot;) {
+     filename = user_string($arg1);
+     funcname = user_string($arg2);
+     lineno = $arg3;
+
+     printf(&quot;%s =&gt; %s in %s:%d\\n&quot;,
+            thread_indent(1), funcname, filename, lineno);
+}
+
+probe process(&quot;python&quot;).mark(&quot;function__return&quot;) {
+    filename = user_string($arg1);
+    funcname = user_string($arg2);
+    lineno = $arg3;
+
+    printf(&quot;%s &lt;= %s in %s:%d\\n&quot;,
+           thread_indent(-1), funcname, filename, lineno);
+}
+</pre></div>
+</div>
+<p>It can be invoked like this:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>stap<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>show-call-hierarchy.stp<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-c<span class="w"> </span><span class="s2">&quot;./python test.py&quot;</span>
+</pre></div>
+</div>
+<p>The output looks like this:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>11408 python(8274):        =&gt; __contains__ in Lib/_abcoll.py:362
+11414 python(8274):         =&gt; __getitem__ in Lib/os.py:425
+11418 python(8274):          =&gt; encode in Lib/os.py:490
+11424 python(8274):          &lt;= encode in Lib/os.py:493
+11428 python(8274):         &lt;= __getitem__ in Lib/os.py:426
+11433 python(8274):        &lt;= __contains__ in Lib/_abcoll.py:366
+</pre></div>
+</div>
+<p>where the columns are:</p>
+<ul class="simple">
+<li><p>time in microseconds since start of script</p></li>
+<li><p>name of executable</p></li>
+<li><p>PID of process</p></li>
+</ul>
+<p>and the remainder indicates the call/return hierarchy as the script executes.</p>
+<p>For a <a class="reference internal" href="../using/configure.html#cmdoption-enable-shared"><code class="xref std std-option docutils literal notranslate"><span class="pre">--enable-shared</span></code></a> build of CPython, the markers are contained within the
+libpython shared library, and the probe’s dotted path needs to reflect this. For
+example, this line from the above example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>probe process(&quot;python&quot;).mark(&quot;function__entry&quot;) {
+</pre></div>
+</div>
+<p>should instead read:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>probe process(&quot;python&quot;).library(&quot;libpython3.6dm.so.1.0&quot;).mark(&quot;function__entry&quot;) {
+</pre></div>
+</div>
+<p>(assuming a <a class="reference internal" href="../using/configure.html#debug-build"><span class="std std-ref">debug build</span></a> of CPython 3.6)</p>
+</section>
+<section id="available-static-markers">
+<h2>Available static markers<a class="headerlink" href="#available-static-markers" title="Link to this heading">¶</a></h2>
+<dl class="object">
+<dt class="sig sig-object">
+<span class="sig-name descname"><span class="pre">function__entry(str</span> <span class="pre">filename,</span> <span class="pre">str</span> <span class="pre">funcname,</span> <span class="pre">int</span> <span class="pre">lineno)</span></span></dt>
+<dd><p>This marker indicates that execution of a Python function has begun.
+It is only triggered for pure-Python (bytecode) functions.</p>
+<p>The filename, function name, and line number are provided back to the
+tracing script as positional arguments, which must be accessed using
+<code class="docutils literal notranslate"><span class="pre">$arg1</span></code>, <code class="docutils literal notranslate"><span class="pre">$arg2</span></code>, <code class="docutils literal notranslate"><span class="pre">$arg3</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">$arg1</span></code> : <code class="docutils literal notranslate"><span class="pre">(const</span> <span class="pre">char</span> <span class="pre">*)</span></code> filename, accessible using <code class="docutils literal notranslate"><span class="pre">user_string($arg1)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$arg2</span></code> : <code class="docutils literal notranslate"><span class="pre">(const</span> <span class="pre">char</span> <span class="pre">*)</span></code> function name, accessible using
+<code class="docutils literal notranslate"><span class="pre">user_string($arg2)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$arg3</span></code> : <code class="docutils literal notranslate"><span class="pre">int</span></code> line number</p></li>
+</ul>
+</div></blockquote>
+</dd></dl>
+
+<dl class="object">
+<dt class="sig sig-object">
+<span class="sig-name descname"><span class="pre">function__return(str</span> <span class="pre">filename,</span> <span class="pre">str</span> <span class="pre">funcname,</span> <span class="pre">int</span> <span class="pre">lineno)</span></span></dt>
+<dd><p>This marker is the converse of <code class="xref c c-func docutils literal notranslate"><span class="pre">function__entry()</span></code>, and indicates that
+execution of a Python function has ended (either via <code class="docutils literal notranslate"><span class="pre">return</span></code>, or via an
+exception).  It is only triggered for pure-Python (bytecode) functions.</p>
+<p>The arguments are the same as for <code class="xref c c-func docutils literal notranslate"><span class="pre">function__entry()</span></code></p>
+</dd></dl>
+
+<dl class="object">
+<dt class="sig sig-object">
+<span class="sig-name descname"><span class="pre">line(str</span> <span class="pre">filename,</span> <span class="pre">str</span> <span class="pre">funcname,</span> <span class="pre">int</span> <span class="pre">lineno)</span></span></dt>
+<dd><p>This marker indicates a Python line is about to be executed.  It is
+the equivalent of line-by-line tracing with a Python profiler.  It is
+not triggered within C functions.</p>
+<p>The arguments are the same as for <code class="xref c c-func docutils literal notranslate"><span class="pre">function__entry()</span></code>.</p>
+</dd></dl>
+
+<dl class="object">
+<dt class="sig sig-object">
+<span class="sig-name descname"><span class="pre">gc__start(int</span> <span class="pre">generation)</span></span></dt>
+<dd><p>Fires when the Python interpreter starts a garbage collection cycle.
+<code class="docutils literal notranslate"><span class="pre">arg0</span></code> is the generation to scan, like <a class="reference internal" href="../library/gc.html#gc.collect" title="gc.collect"><code class="xref py py-func docutils literal notranslate"><span class="pre">gc.collect()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="object">
+<dt class="sig sig-object">
+<span class="sig-name descname"><span class="pre">gc__done(long</span> <span class="pre">collected)</span></span></dt>
+<dd><p>Fires when the Python interpreter finishes a garbage collection
+cycle. <code class="docutils literal notranslate"><span class="pre">arg0</span></code> is the number of collected objects.</p>
+</dd></dl>
+
+<dl class="object">
+<dt class="sig sig-object">
+<span class="sig-name descname"><span class="pre">import__find__load__start(str</span> <span class="pre">modulename)</span></span></dt>
+<dd><p>Fires before <a class="reference internal" href="../library/importlib.html#module-importlib" title="importlib: The implementation of the import machinery."><code class="xref py py-mod docutils literal notranslate"><span class="pre">importlib</span></code></a> attempts to find and load the module.
+<code class="docutils literal notranslate"><span class="pre">arg0</span></code> is the module name.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 3.7.</span></p>
+</div>
+</dd></dl>
+
+<dl class="object">
+<dt class="sig sig-object">
+<span class="sig-name descname"><span class="pre">import__find__load__done(str</span> <span class="pre">modulename,</span> <span class="pre">int</span> <span class="pre">found)</span></span></dt>
+<dd><p>Fires after <a class="reference internal" href="../library/importlib.html#module-importlib" title="importlib: The implementation of the import machinery."><code class="xref py py-mod docutils literal notranslate"><span class="pre">importlib</span></code></a>’s find_and_load function is called.
+<code class="docutils literal notranslate"><span class="pre">arg0</span></code> is the module name, <code class="docutils literal notranslate"><span class="pre">arg1</span></code> indicates if module was
+successfully loaded.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 3.7.</span></p>
+</div>
+</dd></dl>
+
+<dl class="object">
+<dt class="sig sig-object">
+<span class="sig-name descname"><span class="pre">audit(str</span> <span class="pre">event,</span> <span class="pre">void</span> <span class="pre">*tuple)</span></span></dt>
+<dd><p>Fires when <a class="reference internal" href="../library/sys.html#sys.audit" title="sys.audit"><code class="xref py py-func docutils literal notranslate"><span class="pre">sys.audit()</span></code></a> or <a class="reference internal" href="../c-api/sys.html#c.PySys_Audit" title="PySys_Audit"><code class="xref c c-func docutils literal notranslate"><span class="pre">PySys_Audit()</span></code></a> is called.
+<code class="docutils literal notranslate"><span class="pre">arg0</span></code> is the event name as C string, <code class="docutils literal notranslate"><span class="pre">arg1</span></code> is a <a class="reference internal" href="../c-api/structures.html#c.PyObject" title="PyObject"><code class="xref c c-type docutils literal notranslate"><span class="pre">PyObject</span></code></a>
+pointer to a tuple object.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 3.8.</span></p>
+</div>
+</dd></dl>
+
+</section>
+<section id="systemtap-tapsets">
+<h2>SystemTap Tapsets<a class="headerlink" href="#systemtap-tapsets" title="Link to this heading">¶</a></h2>
+<p>The higher-level way to use the SystemTap integration is to use a “tapset”:
+SystemTap’s equivalent of a library, which hides some of the lower-level
+details of the static markers.</p>
+<p>Here is a tapset file, based on a non-shared build of CPython:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>/*
+   Provide a higher-level wrapping around the function__entry and
+   function__return markers:
+ \*/
+probe python.function.entry = process(&quot;python&quot;).mark(&quot;function__entry&quot;)
+{
+    filename = user_string($arg1);
+    funcname = user_string($arg2);
+    lineno = $arg3;
+    frameptr = $arg4
+}
+probe python.function.return = process(&quot;python&quot;).mark(&quot;function__return&quot;)
+{
+    filename = user_string($arg1);
+    funcname = user_string($arg2);
+    lineno = $arg3;
+    frameptr = $arg4
+}
+</pre></div>
+</div>
+<p>If this file is installed in SystemTap’s tapset directory (e.g.
+<code class="docutils literal notranslate"><span class="pre">/usr/share/systemtap/tapset</span></code>), then these additional probepoints become
+available:</p>
+<dl class="object">
+<dt class="sig sig-object">
+<span class="sig-name descname"><span class="pre">python.function.entry(str</span> <span class="pre">filename,</span> <span class="pre">str</span> <span class="pre">funcname,</span> <span class="pre">int</span> <span class="pre">lineno,</span> <span class="pre">frameptr)</span></span></dt>
+<dd><p>This probe point indicates that execution of a Python function has begun.
+It is only triggered for pure-Python (bytecode) functions.</p>
+</dd></dl>
+
+<dl class="object">
+<dt class="sig sig-object">
+<span class="sig-name descname"><span class="pre">python.function.return(str</span> <span class="pre">filename,</span> <span class="pre">str</span> <span class="pre">funcname,</span> <span class="pre">int</span> <span class="pre">lineno,</span> <span class="pre">frameptr)</span></span></dt>
+<dd><p>This probe point is the converse of <code class="docutils literal notranslate"><span class="pre">python.function.return</span></code>, and
+indicates that execution of a Python function has ended (either via
+<code class="docutils literal notranslate"><span class="pre">return</span></code>, or via an exception).  It is only triggered for pure-Python
+(bytecode) functions.</p>
+</dd></dl>
+
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Link to this heading">¶</a></h2>
+<p>This SystemTap script uses the tapset above to more cleanly implement the
+example given above of tracing the Python function-call hierarchy, without
+needing to directly name the static markers:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>probe python.function.entry
+{
+  printf(&quot;%s =&gt; %s in %s:%d\n&quot;,
+         thread_indent(1), funcname, filename, lineno);
+}
+
+probe python.function.return
+{
+  printf(&quot;%s &lt;= %s in %s:%d\n&quot;,
+         thread_indent(-1), funcname, filename, lineno);
+}
+</pre></div>
+</div>
+<p>The following script uses the tapset above to provide a top-like view of all
+running CPython code, showing the top 20 most frequently entered bytecode
+frames, each second, across the whole system:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>global fn_calls;
+
+probe python.function.entry
+{
+    fn_calls[pid(), filename, funcname, lineno] += 1;
+}
+
+probe timer.ms(1000) {
+    printf(&quot;\033[2J\033[1;1H&quot;) /* clear screen \*/
+    printf(&quot;%6s %80s %6s %30s %6s\n&quot;,
+           &quot;PID&quot;, &quot;FILENAME&quot;, &quot;LINE&quot;, &quot;FUNCTION&quot;, &quot;CALLS&quot;)
+    foreach ([pid, filename, funcname, lineno] in fn_calls- limit 20) {
+        printf(&quot;%6d %80s %6d %30s %6d\n&quot;,
+            pid, filename, lineno, funcname,
+            fn_calls[pid, filename, funcname, lineno]);
+    }
+    delete fn_calls;
+}
+</pre></div>
+</div>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="../contents.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Instrumenting CPython with DTrace and SystemTap</a><ul>
+<li><a class="reference internal" href="#enabling-the-static-markers">Enabling the static markers</a></li>
+<li><a class="reference internal" href="#static-dtrace-probes">Static DTrace probes</a></li>
+<li><a class="reference internal" href="#static-systemtap-markers">Static SystemTap markers</a></li>
+<li><a class="reference internal" href="#available-static-markers">Available static markers</a></li>
+<li><a class="reference internal" href="#systemtap-tapsets">SystemTap Tapsets</a></li>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="ipaddress.html"
+                          title="previous chapter">An introduction to the ipaddress module</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="perf_profiling.html"
+                          title="next chapter">Python support for the Linux <code class="docutils literal notranslate"><span class="pre">perf</span></code> profiler</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../bugs.html">Report a Bug</a></li>
+      <li>
+        <a href="https://github.com/python/cpython/blob/main/Doc/howto/instrumentation.rst"
+            rel="nofollow">Show Source
+        </a>
+      </li>
+    </ul>
+  </div>
+        </div>
+<div id="sidebarbutton" title="Collapse sidebar">
+<span>«</span>
+</div>
+
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="perf_profiling.html" title="Python support for the Linux perf profiler"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="ipaddress.html" title="An introduction to the ipaddress module"
+             >previous</a> |</li>
+
+          <li><img src="../_static/py.svg" alt="Python logo" style="vertical-align: middle; margin-top: -1px"/></li>
+          <li><a href="https://www.python.org/">Python</a> &#187;</li>
+          <li class="switchers">
+            <div class="language_switcher_placeholder"></div>
+            <div class="version_switcher_placeholder"></div>
+          </li>
+          <li>
+              
+          </li>
+    <li id="cpython-language-and-version">
+      <a href="../index.html">3.12.3 Documentation</a> &#187;
+    </li>
+
+          <li class="nav-item nav-item-1"><a href="index.html" >Python HOWTOs</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Instrumenting CPython with DTrace and SystemTap</a></li>
+                <li class="right">
+                    
+
+    <div class="inline-search" role="search">
+        <form class="inline-search" action="../search.html" method="get">
+          <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" id="search-box" />
+          <input type="submit" value="Go" />
+        </form>
+    </div>
+                     |
+                </li>
+            <li class="right">
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected>Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label> |</li>
+            
+      </ul>
+    </div>  
+    <div class="footer">
+    &copy; 
+      <a href="../copyright.html">
+    
+    Copyright
+    
+      </a>
+     2001-2024, Python Software Foundation.
+    <br />
+    This page is licensed under the Python Software Foundation License Version 2.
+    <br />
+    Examples, recipes, and other code in the documentation are additionally licensed under the Zero Clause BSD License.
+    <br />
+    
+      See <a href="/license.html">History and License</a> for more information.<br />
+    
+    
+    <br />
+
+    The Python Software Foundation is a non-profit corporation.
+<a href="https://www.python.org/psf/donations/">Please donate.</a>
+<br />
+    <br />
+      Last updated on Apr 09, 2024 (13:47 UTC).
+    
+      <a href="/bugs.html">Found a bug</a>?
+    
+    <br />
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
+    </div>
+
+  </body>
+</html>
