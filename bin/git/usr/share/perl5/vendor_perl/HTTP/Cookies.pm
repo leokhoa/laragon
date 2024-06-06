@@ -5,7 +5,7 @@ use HTTP::Date qw(str2time parse_date time2str);
 use HTTP::Headers::Util qw(_split_header_words join_header_words);
 
 our $EPOCH_OFFSET;
-our $VERSION = '6.10';
+our $VERSION = '6.11';
 
 # Legacy: because "use "HTTP::Cookies" used be the ONLY way
 #  to load the class HTTP::Cookies::Netscape.
@@ -682,7 +682,7 @@ HTTP::Cookies - HTTP cookie jars
 
 =head1 VERSION
 
-version 6.10
+version 6.11
 
 =head1 SYNOPSIS
 
@@ -803,7 +803,7 @@ attributes like "Comment" and "CommentURL".
 
 =item $cookie_jar->save( file => $file, ignore_discard => $ignore_discard )
 
-This method file saves the state of the $cookie_jar to a file.
+This method saves the state of the $cookie_jar to a file.
 The state can then be restored later using the load() method.  If a
 filename is not specified we will use the name specified during
 construction.  If the $ignore_discard value is true (or not specified,

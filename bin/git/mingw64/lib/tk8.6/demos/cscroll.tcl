@@ -25,7 +25,7 @@ set btns [addSeeDismiss $w.buttons $w]
 pack $btns -side bottom -fill x
 
 frame $w.grid
-scrollbar $w.hscroll -orient horiz -command "$c xview"
+scrollbar $w.hscroll -orient horizontal -command "$c xview"
 scrollbar $w.vscroll -command "$c yview"
 canvas $c -relief sunken -borderwidth 2 -scrollregion {-11c -11c 50c 20c} \
 	-xscrollcommand "$w.hscroll set" \
@@ -114,7 +114,7 @@ if {[tk windowingsystem] eq "x11" && ![package vsatisfies [package provide Tk] 8
     # Support for mousewheels on Linux/Unix commonly comes through mapping
     # the wheel to the extended buttons.  If you have a mousewheel, find
     # Linux configuration info at:
-    #	http://linuxreviews.org/howtos/xfree/mouse/
+    #	https://linuxreviews.org/HOWTO_change_the_mouse_speed_in_X
     bind $c <Button-4> {
 	if {!$tk_strictMotif} {
 	    %W yview scroll -5 units

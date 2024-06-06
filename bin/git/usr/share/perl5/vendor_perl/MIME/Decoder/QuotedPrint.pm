@@ -1,7 +1,7 @@
 package MIME::Decoder::QuotedPrint;
 use strict;
 use warnings;
-
+use version;
 
 =head1 NAME
 
@@ -58,7 +58,7 @@ use MIME::QuotedPrint;
 @ISA = qw(MIME::Decoder);
 
 # The package version, both in 1.23 style *and* usable by MakeMaker:
-$VERSION = "5.509";
+$VERSION = "5.515";
 
 #------------------------------
 # If we have MIME::QuotedPrint 3.03 or later, use the three-argument
@@ -73,7 +73,8 @@ $VERSION = "5.509";
 # The following code is horrible.  I know.  Beat me up. --dfs
 BEGIN {
     if (!defined(&encode_qp_threearg)) {
-        if ($::MIME::QuotedPrint::VERSION >= 3.03) {
+        my $ver = version->parse($::MIME::QuotedPrint::VERSION);
+        if ($ver >= version->parse(3.03)) {
             eval 'sub encode_qp_threearg ( $$$ ) { encode_qp(shift, shift, shift); }';
         } else {
             eval 'sub encode_qp_threearg ( $$$ ) { encode_qp(shift); }';

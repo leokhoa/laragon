@@ -27,15 +27,15 @@ frame $w.frame -borderwidth 10
 pack $w.frame -side top -fill x -expand 1
 
 entry $w.frame.e1 -xscrollcommand "$w.frame.s1 set"
-ttk::scrollbar $w.frame.s1 -orient horiz -command \
+ttk::scrollbar $w.frame.s1 -orient horizontal -command \
 	"$w.frame.e1 xview"
 frame $w.frame.spacer1 -width 20 -height 10
 entry $w.frame.e2 -xscrollcommand "$w.frame.s2 set"
-ttk::scrollbar $w.frame.s2 -orient horiz -command \
+ttk::scrollbar $w.frame.s2 -orient horizontal -command \
 	"$w.frame.e2 xview"
 frame $w.frame.spacer2 -width 20 -height 10
 entry $w.frame.e3 -xscrollcommand "$w.frame.s3 set"
-ttk::scrollbar $w.frame.s3 -orient horiz -command \
+ttk::scrollbar $w.frame.s3 -orient horizontal -command \
 	"$w.frame.e3 xview"
 pack $w.frame.e1 $w.frame.s1 $w.frame.spacer1 $w.frame.e2 $w.frame.s2 \
 	$w.frame.spacer2 $w.frame.e3 $w.frame.s3 -side top -fill x

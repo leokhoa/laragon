@@ -3,7 +3,10 @@ package URI;
 use strict;
 use warnings;
 
-our $VERSION = '5.10';
+our $VERSION = '5.21';
+
+# 1=version 5.10 and earlier; 0=version 5.11 and later
+use constant HAS_RESERVED_SQUARE_BRACKETS => $ENV{URI_HAS_RESERVED_SQUARE_BRACKETS} ? 1 : 0;
 
 our ($ABS_REMOTE_LEADING_DOTS, $ABS_ALLOW_RELATIVE_SCHEME, $DEFAULT_QUERY_FORM_DELIMITER);
 
@@ -11,12 +14,28 @@ my %implements;  # mapping from scheme to implementor class
 
 # Some "official" character classes
 
-our $reserved   = q(;/?:@&=+$,[]);
+our $reserved   = HAS_RESERVED_SQUARE_BRACKETS ? q(;/?:@&=+$,[]) : q(;/?:@&=+$,);
 our $mark       = q(-_.!~*'());                                    #'; emacs
 our $unreserved = "A-Za-z0-9\Q$mark\E";
 our $uric       = quotemeta($reserved) . $unreserved . "%";
+our $uric4host  = $uric . ( HAS_RESERVED_SQUARE_BRACKETS ? '' : quotemeta( q([]) ) );
+our $uric4user  = quotemeta( q{!$'()*,;:._~%-+=%&} ) . "A-Za-z0-9" . ( HAS_RESERVED_SQUARE_BRACKETS ? quotemeta( q([]) ) : '' ); # RFC-3987: iuserinfo w/o UTF
 
 our $scheme_re  = '[a-zA-Z][a-zA-Z0-9.+\-]*';
+
+# These schemes don't have an IPv6+ address part.
+our $schemes_without_host_part_re = 'data|ldapi|urn|sqlite|sqlite3';
+
+# These schemes can have an IPv6+ authority part:
+#     file, ftp, gopher, http, https, ldap, ldaps, mms, news, nntp, nntps, pop, rlogin, rtsp, rtspu, rsync, sip, sips, snews,
+#     telnet, tn3270, ssh, sftp
+#     (all DB URIs, i.e. cassandra, couch, couchdb, etc.), except 'sqlite:', 'sqlite3:'. Others?
+#MAINT: URI has no test coverage for DB schemes
+#MAINT: decoupling - perhaps let each class decide itself by defining a member function 'scheme_has_authority_part()'?
+
+#MAINT: 'mailto:' needs special treatment for IPv* addresses / RFC 5321 (4.1.3). Until then: restore all '[', ']'
+# These schemes need fallback to previous (<= 5.10) encoding until a specific handler is available.
+our $fallback_schemes_re = 'mailto';
 
 use Carp ();
 use URI::Escape ();
@@ -38,7 +57,7 @@ sub new
 
     $uri = defined ($uri) ? "$uri" : "";   # stringify
     # Get rid of potential wrapping
-    $uri =~ s/^<(?:URL:)?(.*)>$/$1/;  # 
+    $uri =~ s/^<(?:URL:)?(.*)>$/$1/;  #
     $uri =~ s/^"(.*)"$/$1/;
     $uri =~ s/^\s+//;
     $uri =~ s/\s+$//;
@@ -86,10 +105,42 @@ sub _init
 }
 
 
+#-- Version: 5.11+
+#   Since the complete URI will be percent-encoded including '[' and ']',
+#   we selectively unescape square brackets from the authority/host part of the URI.
+#   Derived modules that implement _uric_escape() should take this into account
+#   if they do not rely on URI::_uric_escape().
+#   No unescaping is performed for the userinfo@ part of the authority part.
+sub _fix_uric_escape_for_host_part {
+  return if HAS_RESERVED_SQUARE_BRACKETS;
+  return if $_[0] !~ /%/;
+  return if $_[0] =~ m{^(?:$URI::schemes_without_host_part_re):}os;
+
+  # until a scheme specific handler is available, fall back to previous behavior of v5.10 (i.e. 'mailto:')
+  if ($_[0] =~ m{^(?:$URI::fallback_schemes_re):}os) {
+    $_[0]    =~ s/\%5B/[/gi;
+    $_[0]    =~ s/\%5D/]/gi;
+    return;
+  }
+
+  if ($_[0] =~ m{^((?:$URI::scheme_re:)?)//([^/?\#]+)(.*)$}os) {
+    my $orig          = $2;
+    my ($user, $host) = $orig =~ /^(.*@)?([^@]*)$/;
+    $user  ||= '';
+    my $port = $host =~ s/(:\d+)$// ? $1 : '';
+    #MAINT: die() here if scheme indicates TCP/UDP and port is out of range [0..65535] ?
+    $host    =~ s/\%5B/[/gi;
+    $host    =~ s/\%5D/]/gi;
+    $_[0]    =~ s/\Q$orig\E/$user$host$port/;
+  }
+}
+
+
 sub _uric_escape
 {
     my($class, $str) = @_;
     $str =~ s*([^$uric\#])* URI::Escape::escape_char($1) *ego;
+    _fix_uric_escape_for_host_part( $str );
     utf8::downgrade($str);
     return $str;
 }
@@ -179,7 +230,7 @@ sub _scheme
 	Carp::croak("Bad scheme '$new'") unless $new =~ /^$scheme_re$/o;
 	$old = $1 if $$self =~ s/^($scheme_re)://o;
 	my $newself = URI->new("$new:$$self");
-	$$self = $$newself; 
+	$$self = $$newself;
 	bless $self, ref($newself);
     }
     else {
@@ -708,8 +759,79 @@ documents as this avoids the trouble of escaping the "&" character.
 You might also set the $URI::DEFAULT_QUERY_FORM_DELIMITER variable to
 ";" for the same global effect.
 
-The C<URI::QueryParam> module can be loaded to add further methods to
-manipulate the form of a URI.  See L<URI::QueryParam> for details.
+=item @keys = $u->query_param
+
+=item @values = $u->query_param( $key )
+
+=item $first_value = $u->query_param( $key )
+
+=item $u->query_param( $key, $value,... )
+
+If $u->query_param is called with no arguments, it returns all the
+distinct parameter keys of the URI.  In a scalar context it returns the
+number of distinct keys.
+
+When a $key argument is given, the method returns the parameter values with the
+given key.  In a scalar context, only the first parameter value is
+returned.
+
+If additional arguments are given, they are used to update successive
+parameters with the given key.  If any of the values provided are
+array references, then the array is dereferenced to get the actual
+values.
+
+Please note that you can supply multiple values to this method, but you cannot
+supply multiple keys.
+
+Do this:
+
+    $uri->query_param( widget_id => 1, 5, 9 );
+
+Do NOT do this:
+
+    $uri->query_param( widget_id => 1, frobnicator_id => 99 );
+
+=item $u->query_param_append($key, $value,...)
+
+Adds new parameters with the given
+key without touching any old parameters with the same key.  It
+can be explained as a more efficient version of:
+
+   $u->query_param($key,
+                   $u->query_param($key),
+                   $value,...);
+
+One difference is that this expression would return the old values
+of $key, whereas the query_param_append() method does not.
+
+=item @values = $u->query_param_delete($key)
+
+=item $first_value = $u->query_param_delete($key)
+
+Deletes all key/value pairs with the given key.
+The old values are returned.  In a scalar context, only the first value
+is returned.
+
+Using the query_param_delete() method is slightly more efficient than
+the equivalent:
+
+   $u->query_param($key, []);
+
+=item $hashref = $u->query_form_hash
+
+=item $u->query_form_hash( \%new_form )
+
+Returns a reference to a hash that represents the
+query form's key/value pairs.  If a key occurs multiple times, then the hash
+value becomes an array reference.
+
+Note that sequence information is lost.  This means that:
+
+   $u->query_form_hash($u->query_form_hash);
+
+is not necessarily a no-op, as it may reorder the key/value pairs.
+The values returned by the query_param() method should stay the same
+though.
 
 =item $uri->query_keywords
 
@@ -754,7 +876,7 @@ every case where it has been used.
 
 Sets and returns the unescaped hostname.
 
-If the $new_host string ends with a colon and a number, then this
+If the C<$new_host> string ends with a colon and a number, then this
 number also sets the port.
 
 For IPv6 addresses the brackets around the raw address is removed in the return
@@ -762,9 +884,17 @@ value from $uri->host.  When setting the host attribute to an IPv6 address you
 can use a raw address or one enclosed in brackets.  The address needs to be
 enclosed in brackets if you want to pass in a new port value as well.
 
+  my $uri = URI->new("http://www.\xC3\xBCri-sample/foo/bar.html");
+  print $u->host; # www.xn--ri-sample-fra0f
+
+
 =item $uri->ihost
 
-Returns the host in Unicode form.  Any IDNA A-labels are turned into U-labels.
+Returns the host in Unicode form. Any IDNA A-labels (encoded unicode chars with
+I<xn--> prefix) are turned into U-labels (unicode chars).
+
+  my $uri = URI->new("http://www.\xC3\xBCri-sample/foo/bar.html");
+  print $u->ihost; # www.\xC3\xBCri-sample
 
 =item $uri->port
 
@@ -863,6 +993,21 @@ The I<https> URI scheme is a Netscape invention which is commonly
 implemented.  The scheme is used to reference HTTP servers through SSL
 connections.  Its syntax is the same as http, but the default
 port is different.
+
+=item B<icap>:
+
+The I<icap> URI scheme is specified in L<RFC 3507|http://tools.ietf.org/html/rfc3507>.
+The scheme is used to reference resources hosted by ICAP servers.
+
+C<URI> objects belonging to the icap scheme support the common,
+generic and server methods.
+
+=item B<icaps>:
+
+The I<icaps> URI scheme is specified in L<RFC 3507|http://tools.ietf.org/html/rfc3507> as well.
+The scheme is used to reference ICAP servers through SSL
+connections.  Its syntax is the same as icap, including the same
+default port.
 
 =item B<ldap>:
 
@@ -1087,6 +1232,34 @@ delimited by ";" instead of "&" which is the default.
 
 =back
 
+=head1 ENVIRONMENT VARIABLES
+
+=over 4
+
+=item URI_HAS_RESERVED_SQUARE_BRACKETS
+
+Before version 5.11, URI treated square brackets as reserved characters
+throughout the whole URI string. However, these brackets are reserved
+only within the authority/host part of the URI and nowhere else (RFC 3986).
+
+Starting with version 5.11, URI takes this distinction into account.
+Setting the environment variable C<URI_HAS_RESERVED_SQUARE_BRACKETS>
+(programmatically or via the shell), restores the old behavior.
+
+  #-- restore 5.10 behavior programmatically
+  BEGIN {
+    $ENV{URI_HAS_RESERVED_SQUARE_BRACKETS} = 1;
+  }
+  use URI ();
+
+I<Note>: This environment variable is just used during initialization and has to be set
+      I<before> module URI is used/required. Changing it at run time has no effect.
+
+Its value can be checked programmatically by accessing the constant
+C<URI::HAS_RESERVED_SQUARE_BRACKETS>.
+
+=back
+
 =head1 BUGS
 
 There are some things that are not quite right:
@@ -1129,7 +1302,7 @@ readable alternative.
 
 =head1 SEE ALSO
 
-L<URI::file>, L<URI::WithBase>, L<URI::QueryParam>, L<URI::Escape>,
+L<URI::file>, L<URI::WithBase>, L<URI::Escape>,
 L<URI::Split>, L<URI::Heuristic>
 
 RFC 2396: "Uniform Resource Identifiers (URI): Generic Syntax",

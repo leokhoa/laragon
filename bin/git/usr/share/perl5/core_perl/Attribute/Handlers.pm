@@ -4,9 +4,9 @@ use Carp;
 use warnings;
 use strict;
 our $AUTOLOAD;
-our $VERSION = '1.02'; # remember to update version in POD!
+our $VERSION = '1.03'; # remember to update version in POD!
 # $DB::single=1;
-
+my $debug= $ENV{DEBUG_ATTRIBUTE_HANDLERS} || 0;
 my %symcache;
 sub findsym {
 	my ($pkg, $ref, $type) = @_;
@@ -241,7 +241,8 @@ sub _apply_handler_AH_ {
 	my ($declaration, $phase) = @_;
 	my ($pkg, $ref, $attr, $data, $raw, $handlerphase, $filename, $linenum) = @$declaration;
 	return unless $handlerphase->{$phase};
-	# print STDERR "Handling $attr on $ref in $phase with [$data]\n";
+        print STDERR "Handling $attr on $ref in $phase with [$data]\n"
+            if $debug;
 	my $type = ref $ref;
 	my $handler = "_ATTR_${type}_${attr}";
 	my $sym = findsym($pkg, $ref);
@@ -249,12 +250,29 @@ sub _apply_handler_AH_ {
 	no warnings;
 	if (!$raw && defined($data)) {
 	    if ($data ne '') {
-		my $evaled = eval("package $pkg; no warnings; no strict;
-				   local \$SIG{__WARN__}=sub{die}; [$data]");
-		$data = $evaled unless $@;
+                # keeping the minimum amount of code inside the eval string
+                # makes debugging perl internals issues with this logic easier.
+                my $code= "package $pkg; my \$ref= [$data]; \$data= \$ref; 1";
+                print STDERR "Evaling: '$code'\n"
+                    if $debug;
+                local $SIG{__WARN__} = sub{ die };
+                no strict;
+                no warnings;
+                # Note in production we do not need to use the return value from
+                # the eval or even consult $@ after the eval - if the evaled code
+                # compiles and runs successfully then it will update $data with
+                # the compiled form, if it fails then $data stays unchanged. The
+                # return value and $@ are only used for debugging purposes.
+                # IOW we could just replace the following with eval($code);
+                eval($code) or do {
+                    print STDERR "Eval failed: $@"
+                        if $debug;
+                };
 	    }
 	    else { $data = undef }
 	}
+
+        # now call the handler with the $data decoded (maybe)
 	$pkg->$handler($sym,
 		       (ref $sym eq 'GLOB' ? *{$sym}{ref $ref}||$ref : $ref),
 		       $attr,
@@ -300,7 +318,7 @@ Attribute::Handlers - Simpler definition of attribute handlers
 
 =head1 VERSION
 
-This document describes version 1.02 of Attribute::Handlers.
+This document describes version 1.03 of Attribute::Handlers.
 
 =head1 SYNOPSIS
 

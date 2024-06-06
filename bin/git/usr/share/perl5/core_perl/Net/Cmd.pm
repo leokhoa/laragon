@@ -1,7 +1,7 @@
 # Net::Cmd.pm
 #
 # Copyright (C) 1995-2006 Graham Barr.  All rights reserved.
-# Copyright (C) 2013-2016, 2020 Steve Hay.  All rights reserved.
+# Copyright (C) 2013-2016, 2020, 2022 Steve Hay.  All rights reserved.
 # This module is free software; you can redistribute it and/or modify it under
 # the same terms as Perl itself, i.e. under the terms of either the GNU General
 # Public License or the Artistic License, as specified in the F<LICENCE> file.
@@ -26,7 +26,7 @@ BEGIN {
   }
 }
 
-our $VERSION = "3.14";
+our $VERSION = "3.15";
 our @ISA     = qw(Exporter);
 our @EXPORT  = qw(CMD_INFO CMD_OK CMD_MORE CMD_REJECT CMD_ERROR CMD_PENDING);
 
@@ -887,7 +887,7 @@ libnet as of version 1.22_02.
 
 Copyright (C) 1995-2006 Graham Barr.  All rights reserved.
 
-Copyright (C) 2013-2016, 2020 Steve Hay.  All rights reserved.
+Copyright (C) 2013-2016, 2020, 2022 Steve Hay.  All rights reserved.
 
 =head1 LICENCE
 
@@ -897,11 +897,11 @@ License or the Artistic License, as specified in the F<LICENCE> file.
 
 =head1 VERSION
 
-Version 3.14
+Version 3.15
 
 =head1 DATE
 
-23 Dec 2020
+20 March 2023
 
 =head1 HISTORY
 

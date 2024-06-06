@@ -3,17 +3,16 @@
 # modify it under the same terms as Perl itself.
 
 package Authen::SASL;
-
+$Authen::SASL::VERSION = '2.1700';
 use strict;
-use vars qw($VERSION @Plugins);
+use warnings;
+use vars qw(@Plugins);
 use Carp;
 
-$VERSION = "2.16";
 
 @Plugins = qw(
-	Authen::SASL::XS
-	Authen::SASL::Cyrus
-	Authen::SASL::Perl
+        Authen::SASL::XS
+        Authen::SASL::Perl
 );
 
 
@@ -124,7 +123,7 @@ sub initial {
 
 sub name {
   my $self = shift;
-  $self->{conn} ? $self->{conn}->mechanism : ($self->{mechanism} =~ /(\S+)/)[0];
+  $self->{conn} ? $self->{conn}->mechanism : (($self->{mechanism} || '') =~ /(\S+)/)[0];
 }
 
 1;

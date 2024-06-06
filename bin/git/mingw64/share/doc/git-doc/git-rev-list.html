@@ -449,7 +449,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <h2 id="_synopsis">SYNOPSIS</h2>
 <div class="sectionbody">
 <div class="verseblock">
-<pre class="content"><em>git rev-list</em> [&lt;options&gt;] &lt;commit&gt;&#8230;&#8203; [[--] &lt;path&gt;&#8230;&#8203;]</pre>
+<pre class="content"><em>git rev-list</em> [&lt;options&gt;] &lt;commit&gt;&#8230;&#8203; [--] [&lt;path&gt;&#8230;&#8203;]</pre>
 </div>
 </div>
 </div>
@@ -505,9 +505,9 @@ $ git rev-list A...B</pre>
 </div>
 </div>
 <div class="paragraph">
-<p><em>rev-list</em> is a very essential Git command, since it
+<p><em>rev-list</em> is an essential Git command, since it
 provides the ability to build and traverse commit ancestry graphs. For
-this reason, it has a lot of different options that enables it to be
+this reason, it has a lot of different options that enable it to be
 used by commands as different as <em>git bisect</em> and
 <em>git repack</em>.</p>
 </div>
@@ -585,7 +585,7 @@ error to use this option unless <code>--walk-reflogs</code> is in use.</p>
 </dd>
 <dt class="hdlist1">--grep=&lt;pattern&gt;</dt>
 <dd>
-<p>Limit the commits output to ones with log message that
+<p>Limit the commits output to ones with a log message that
 matches the specified pattern (regular expression).  With
 more than one <code>--grep=&lt;pattern&gt;</code>, commits whose message
 matches any of the given patterns are chosen (but see
@@ -598,7 +598,7 @@ instead of ones that match at least one.</p>
 </dd>
 <dt class="hdlist1">--invert-grep</dt>
 <dd>
-<p>Limit the commits output to ones with log message that do not
+<p>Limit the commits output to ones with a log message that do not
 match the pattern specified with <code>--grep=&lt;pattern&gt;</code>.</p>
 </dd>
 <dt class="hdlist1">-i</dt>
@@ -685,7 +685,11 @@ that arbitrary merges can be valid topic branch changes.</p>
 <dt class="hdlist1">--not</dt>
 <dd>
 <p>Reverses the meaning of the <em>^</em> prefix (or lack thereof)
-for all following revision specifiers, up to the next <code>--not</code>.</p>
+for all following revision specifiers, up to the next <code>--not</code>.
+When used on the command line before --stdin, the revisions passed
+through stdin will not be affected by it. Conversely, when passed
+via standard input, the revisions passed on the command line will
+not be affected by it.</p>
 </dd>
 <dt class="hdlist1">--all</dt>
 <dd>
@@ -736,6 +740,15 @@ or <code>--all</code>. If a trailing <em>/*</em> is intended, it must be given
 explicitly.</p>
 </div>
 </dd>
+<dt class="hdlist1">--exclude-hidden=[fetch|receive|uploadpack]</dt>
+<dd>
+<p>Do not include refs that would be hidden by <code>git-fetch</code>,
+<code>git-receive-pack</code> or <code>git-upload-pack</code> by consulting the appropriate
+<code>fetch.hideRefs</code>, <code>receive.hideRefs</code> or <code>uploadpack.hideRefs</code>
+configuration along with <code>transfer.hideRefs</code> (see
+<a href="git-config.html">git-config(1)</a>). This option affects the next pseudo-ref option
+<code>--all</code> or <code>--glob</code> and is cleared after processing them.</p>
+</dd>
 <dt class="hdlist1">--reflog</dt>
 <dd>
 <p>Pretend as if all objects mentioned by reflogs are listed on the
@@ -766,10 +779,13 @@ the bad input was not given.</p>
 </dd>
 <dt class="hdlist1">--stdin</dt>
 <dd>
-<p>In addition to the <em>&lt;commit&gt;</em> listed on the command
-line, read them from the standard input. If a <code>--</code> separator is
-seen, stop reading commits and start reading paths to limit the
-result.</p>
+<p>In addition to getting arguments from the command line, read
+them from standard input as well. This accepts commits and
+pseudo-options like <code>--all</code> and <code>--glob=</code>. When a <code>--</code> separator
+is seen, the following input is treated as paths and used to
+limit the result. Flags like <code>--not</code> which are read via standard input
+are only respected for arguments passed in the same way and will not
+influence any subsequent command line arguments.</p>
 </dd>
 <dt class="hdlist1">--quiet</dt>
 <dd>
@@ -780,6 +796,7 @@ connected (or not).  It is faster than redirecting stdout
 to <code>/dev/null</code> as the output does not have to be formatted.</p>
 </dd>
 <dt class="hdlist1">--disk-usage</dt>
+<dt class="hdlist1">--disk-usage=human</dt>
 <dd>
 <p>Suppress normal output; instead, print the sum of the bytes used
 for on-disk storage by the selected commits or objects. This is
@@ -787,7 +804,9 @@ equivalent to piping the output into <code>git cat-file
 --batch-check='%(objectsize:disk)'</code>, except that it runs much
 faster (especially with <code>--use-bitmap-index</code>). See the <code>CAVEATS</code>
 section in <a href="git-cat-file.html">git-cat-file(1)</a> for the limitations of what
-"on-disk storage" means.</p>
+"on-disk storage" means.
+With the optional value <code>human</code>, on-disk storage size is shown
+in human-readable string(e.g. 12.24 Kib, 3.50 Mib).</p>
 </dd>
 <dt class="hdlist1">--cherry-mark</dt>
 <dd>
@@ -843,8 +862,8 @@ and <em>commit1...commit2</em> notations cannot be used).</p>
 <p>With <code>--pretty</code> format other than <code>oneline</code> and <code>reference</code> (for obvious reasons),
 this causes the output to have two extra lines of information
 taken from the reflog.  The reflog designator in the output may be shown
-as <code>ref@{Nth}</code> (where <code>Nth</code> is the reverse-chronological index in the
-reflog) or as <code>ref@{timestamp}</code> (with the timestamp for that entry),
+as <code>ref@{&lt;Nth&gt;}</code> (where <em>&lt;Nth&gt;</em> is the reverse-chronological index in the
+reflog) or as <code>ref@{&lt;timestamp&gt;}</code> (with the <em>&lt;timestamp&gt;</em> for that entry),
 depending on a few rules:</p>
 </div>
 <div class="openblock">
@@ -852,7 +871,7 @@ depending on a few rules:</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>If the starting point is specified as <code>ref@{Nth}</code>, show the index
+<p>If the starting point is specified as <code>ref@{&lt;Nth&gt;}</code>, show the index
 format.</p>
 </li>
 <li>
@@ -882,8 +901,11 @@ See also <a href="git-reflog.html">git-reflog(1)</a>.</p>
 </dd>
 <dt class="hdlist1">--merge</dt>
 <dd>
-<p>After a failed merge, show refs that touch files having a
-conflict and don&#8217;t exist on all heads to merge.</p>
+<p>Show commits touching conflicted paths in the range <code>HEAD...&lt;other&gt;</code>,
+where <code>&lt;other&gt;</code> is the first existing pseudoref in <code>MERGE_HEAD</code>,
+<code>CHERRY_PICK_HEAD</code>, <code>REVERT_HEAD</code> or <code>REBASE_HEAD</code>. Only works
+when the index has unmerged entries. This option can be used to show
+relevant commits when resolving conflicts from a 3-way merge.</p>
 </dd>
 <dt class="hdlist1">--boundary</dt>
 <dd>
@@ -968,13 +990,15 @@ meaningful history.</p>
 merges from the resulting history, as there are no selected
 commits contributing to this merge.</p>
 </dd>
-<dt class="hdlist1">--ancestry-path</dt>
+<dt class="hdlist1">--ancestry-path[=&lt;commit&gt;]</dt>
 <dd>
 <p>When given a range of commits to display (e.g. <em>commit1..commit2</em>
-or <em>commit2 ^commit1</em>), only display commits that exist
-directly on the ancestry chain between the <em>commit1</em> and
-<em>commit2</em>, i.e. commits that are both descendants of <em>commit1</em>,
-and ancestors of <em>commit2</em>.</p>
+or <em>commit2 ^commit1</em>), only display commits in that range
+that are ancestors of &lt;commit&gt;, descendants of &lt;commit&gt;, or
+&lt;commit&gt; itself.  If no commit is specified, use <em>commit1</em> (the
+excluded part of the range) as &lt;commit&gt;.  Can be passed multiple
+times; if so, a commit is included if it is any of the commits
+given or if it is an ancestor or descendant of one of them.</p>
 </dd>
 </dl>
 </div>
@@ -1220,12 +1244,11 @@ parent and is TREESAME.</p>
 </div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1">--ancestry-path</dt>
+<dt class="hdlist1">--ancestry-path[=&lt;commit&gt;]</dt>
 <dd>
-<p>Limit the displayed commits to those directly on the ancestry
-chain between the &#8220;from&#8221; and &#8220;to&#8221; commits in the given commit
-range. I.e. only display commits that are ancestor of the &#8220;to&#8221;
-commit and descendants of the &#8220;from&#8221; commit.</p>
+<p>Limit the displayed commits to those which are an ancestor of
+&lt;commit&gt;, or which are a descendant of &lt;commit&gt;, or are &lt;commit&gt;
+itself.</p>
 <div class="paragraph">
 <p>As an example use case, consider the following commit history:</p>
 </div>
@@ -1260,6 +1283,34 @@ option does. Applied to the <em>D..M</em> range, it results in:</p>
                   G---H---I---J
                                \
                                 L--M</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We can also use <code>--ancestry-path=D</code> instead of <code>--ancestry-path</code> which
+means the same thing when applied to the <em>D..M</em> range but is just more
+explicit.</p>
+</div>
+<div class="paragraph">
+<p>If we instead are interested in a given topic within this range, and all
+commits affected by that topic, we may only want to view the subset of
+<code>D..M</code> which contain that topic in their ancestry path.  So, using
+<code>--ancestry-path=H D..M</code> for example would result in:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>                E
+                 \
+                  G---H---I---J
+                               \
+                                L--M</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Whereas <code>--ancestry-path=K D..M</code> would result in</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>                K---------------L--M</pre>
 </div>
 </div>
 </dd>
@@ -1328,7 +1379,7 @@ merge commits <code>O</code> and <code>P</code>. With parent rewriting, the resu
 not actually contribute a change to <code>file.txt</code>. They only merged a topic
 that was based on an older version of <code>file.txt</code>. This is a common
 issue in repositories using a workflow where many contributors work in
-parallel and merge their topic branches along a single trunk: manu
+parallel and merge their topic branches along a single trunk: many
 unrelated merges appear in the <code>--full-history</code> results.</p>
 </div>
 <div class="paragraph">
@@ -1561,7 +1612,7 @@ section above) in reverse order. Cannot be combined with
 <p>Print the object IDs of any object referenced by the listed
 commits.  <code>--objects foo ^bar</code> thus means &#8220;send me
 all object IDs which I need to download if I have the commit
-object <em>bar</em> but not <em>foo</em>&#8221;.</p>
+object <em>bar</em> but not <em>foo</em>&#8221;. See also <code>--object-names</code> below.</p>
 </dd>
 <dt class="hdlist1">--in-commit-order</dt>
 <dd>
@@ -1597,7 +1648,12 @@ in packs.</p>
 <dt class="hdlist1">--object-names</dt>
 <dd>
 <p>Only useful with <code>--objects</code>; print the names of the object IDs
-that are found. This is the default behavior.</p>
+that are found. This is the default behavior. Note that the
+"name" of each object is ambiguous, and mostly intended as a
+hint for packing objects. In particular: no distinction is made between
+the names of tags, trees, and blobs; path names may be modified
+to remove newlines; and if an object would appear multiple times
+with different names, only one name is shown.</p>
 </dd>
 <dt class="hdlist1">--no-object-names</dt>
 <dd>
@@ -1615,10 +1671,10 @@ may be one of the following:</p>
 <p>The form <em>--filter=blob:none</em> omits all blobs.</p>
 </div>
 <div class="paragraph">
-<p>The form <em>--filter=blob:limit=&lt;n&gt;[kmg]</em> omits blobs larger than n bytes
-or units.  n may be zero.  The suffixes k, m, and g can be used to name
-units in KiB, MiB, or GiB.  For example, <em>blob:limit=1k</em> is the same
-as <em>blob:limit=1024</em>.</p>
+<p>The form <em>--filter=blob:limit=&lt;n&gt;[kmg]</em> omits blobs of size at least n
+bytes or units.  n may be zero.  The suffixes k, m, and g can be used
+to name units in KiB, MiB, or GiB.  For example, <em>blob:limit=1k</em>
+is the same as <em>blob:limit=1024</em>.</p>
 </div>
 <div class="paragraph">
 <p>The form <em>--filter=object:type=(tag|commit|tree|blob)</em> omits all objects
@@ -1702,6 +1758,11 @@ Unexpected missing objects will raise an error.</p>
 <div class="paragraph">
 <p>The form <em>--missing=print</em> is like <em>allow-any</em>, but will also print a
 list of the missing objects.  Object IDs are prefixed with a &#8220;?&#8221; character.</p>
+</div>
+<div class="paragraph">
+<p>If some tips passed to the traversal are missing, they will be
+considered as missing too, and the traversal will ignore them. In case
+we cannot get their Object ID though, an error will be raised.</p>
 </div>
 </dd>
 <dt class="hdlist1">--exclude-promisor-objects</dt>
@@ -1796,7 +1857,7 @@ object verbatim.</p>
 <dt class="hdlist1">--no-expand-tabs</dt>
 <dd>
 <p>Perform a tab expansion (replace each tab with enough spaces
-to fill to the next display column that is multiple of <em>&lt;n&gt;</em>)
+to fill to the next display column that is a multiple of <em>&lt;n&gt;</em>)
 in the log message before showing it in the output.
 <code>--expand-tabs</code> is a short-hand for <code>--expand-tabs=8</code>, and
 <code>--no-expand-tabs</code> is a short-hand for <code>--expand-tabs=0</code>,
@@ -1894,20 +1955,13 @@ format placeholders. When using <code>-local</code>, the correct syntax is
 <code>--date=format-local:...</code>.</p>
 </div>
 <div class="paragraph">
-<p><code>--date=default</code> is the default format, and is similar to
-<code>--date=rfc2822</code>, with a few exceptions:</p>
+<p><code>--date=default</code> is the default format, and is based on ctime(3)
+output.  It shows a single line with three-letter day of the week,
+three-letter month, day-of-month, hour-minute-seconds in "HH:MM:SS"
+format, followed by 4-digit year, plus timezone information, unless
+the local time zone is used, e.g. <code>Thu Jan 1 00:00:00 1970 +0000</code>.</p>
 </div>
 </div>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>there is no comma after the day-of-week</p>
-</li>
-<li>
-<p>the time zone is omitted when the local time zone is used</p>
-</li>
-</ul>
 </div>
 </dd>
 <dt class="hdlist1">--header</dt>
@@ -2213,7 +2267,9 @@ The title was &gt;&gt;t4119: test autocomputing -p&lt;n&gt; for traditional diff
 </dd>
 <dt class="hdlist1"><em>%x00</em></dt>
 <dd>
-<p>print a byte from a hex code</p>
+<p><em>%x</em> followed by two hexadecimal digits is replaced with a
+byte with the hexadecimal digits' value (we will call this
+"literal formatting code" in the rest of this document).</p>
 </dd>
 </dl>
 </div>
@@ -2264,38 +2320,48 @@ again.</p>
 <p>switch line wrapping, like the -w option of
 <a href="git-shortlog.html">git-shortlog(1)</a>.</p>
 </dd>
-<dt class="hdlist1"><em>%&lt;(&lt;N&gt;[,trunc|ltrunc|mtrunc])</em></dt>
+<dt class="hdlist1"><em>%&lt;( &lt;N&gt; [,trunc|ltrunc|mtrunc])</em></dt>
 <dd>
 <p>make the next placeholder take at
-least N columns, padding spaces on
+least N column widths, padding spaces on
 the right if necessary.  Optionally
-truncate at the beginning (ltrunc),
-the middle (mtrunc) or the end
-(trunc) if the output is longer than
-N columns.  Note that truncating
-only works correctly with N &gt;= 2.</p>
+truncate (with ellipsis <em>..</em>) at the left (ltrunc) <code>..ft</code>,
+the middle (mtrunc) <code>mi..le</code>, or the end
+(trunc) <code>rig..</code>, if the output is longer than
+N columns.
+Note 1: that truncating
+only works correctly with N &gt;= 2.
+Note 2: spaces around the N and M (see below)
+values are optional.
+Note 3: Emojis and other wide characters
+will take two display columns, which may
+over-run column boundaries.
+Note 4: decomposed character combining marks
+may be misplaced at padding boundaries.</p>
 </dd>
-<dt class="hdlist1"><em>%&lt;|(&lt;N&gt;)</em></dt>
+<dt class="hdlist1"><em>%&lt;|( &lt;M&gt; )</em></dt>
 <dd>
-<p>make the next placeholder take at least until Nth
-columns, padding spaces on the right if necessary</p>
+<p>make the next placeholder take at least until Mth
+display column, padding spaces on the right if necessary.
+Use negative M values for column positions measured
+from the right hand edge of the terminal window.</p>
 </dd>
-<dt class="hdlist1"><em>%&gt;(&lt;N&gt;)</em>, <em>%&gt;|(&lt;N&gt;)</em></dt>
+<dt class="hdlist1"><em>%&gt;( &lt;N&gt; )</em>, <em>%&gt;|( &lt;M&gt; )</em></dt>
 <dd>
-<p>similar to <em>%&lt;(&lt;N&gt;)</em>, <em>%&lt;|(&lt;N&gt;)</em> respectively,
+<p>similar to <em>%&lt;( &lt;N&gt; )</em>, <em>%&lt;|( &lt;M&gt; )</em> respectively,
 but padding spaces on the left</p>
 </dd>
-<dt class="hdlist1"><em>%&gt;&gt;(&lt;N&gt;)</em>, <em>%&gt;&gt;|(&lt;N&gt;)</em></dt>
+<dt class="hdlist1"><em>%&gt;&gt;( &lt;N&gt; )</em>, <em>%&gt;&gt;|( &lt;M&gt; )</em></dt>
 <dd>
-<p>similar to <em>%&gt;(&lt;N&gt;)</em>, <em>%&gt;|(&lt;N&gt;)</em>
+<p>similar to <em>%&gt;( &lt;N&gt; )</em>, <em>%&gt;|( &lt;M&gt; )</em>
 respectively, except that if the next
 placeholder takes more spaces than given and
 there are spaces on its left, use those
 spaces</p>
 </dd>
-<dt class="hdlist1"><em>%&gt;&lt;(&lt;N&gt;)</em>, <em>%&gt;&lt;|(&lt;N&gt;)</em></dt>
+<dt class="hdlist1"><em>%&gt;&lt;( &lt;N&gt; )</em>, <em>%&gt;&lt;|( &lt;M&gt; )</em></dt>
 <dd>
-<p>similar to <em>%&lt;(&lt;N&gt;)</em>, <em>%&lt;|(&lt;N&gt;)</em>
+<p>similar to <em>%&lt;( &lt;N&gt; )</em>, <em>%&lt;|( &lt;M&gt; )</em>
 respectively, but padding both sides
 (i.e. the text is centered)</p>
 </dd>
@@ -2458,15 +2524,54 @@ or <a href="git-blame.html">git-blame(1)</a>)</p>
 <dd>
 <p>ref names without the " (", ")" wrapping.</p>
 </dd>
-<dt class="hdlist1"><em>%(describe[:options])</em></dt>
+<dt class="hdlist1"><em>%(decorate[:&lt;options&gt;])</em></dt>
 <dd>
-<p>human-readable name, like
-<a href="git-describe.html">git-describe(1)</a>; empty string for
-undescribable commits.  The <code>describe</code> string
-may be followed by a colon and zero or more
-comma-separated options.  Descriptions can be
-inconsistent when tags are added or removed at
-the same time.</p>
+<p>ref names with custom decorations. The <code>decorate</code> string may be followed by a
+colon and zero or more comma-separated options. Option values may contain
+literal formatting codes. These must be used for commas (<code>%x2C</code>) and closing
+parentheses (<code>%x29</code>), due to their role in the option syntax.</p>
+<div class="ulist">
+<ul>
+<li>
+<p><em>prefix=&lt;value&gt;</em>: Shown before the list of ref names.  Defaults to "&#160;<code>(</code>".</p>
+</li>
+<li>
+<p><em>suffix=&lt;value&gt;</em>: Shown after the list of ref names.  Defaults to "<code>)</code>".</p>
+</li>
+<li>
+<p><em>separator=&lt;value&gt;</em>: Shown between ref names.  Defaults to "<code>,</code>&#160;".</p>
+</li>
+<li>
+<p><em>pointer=&lt;value&gt;</em>: Shown between HEAD and the branch it points to, if any.
+Defaults to "&#160;<code>-&gt;</code>&#160;".</p>
+</li>
+<li>
+<p><em>tag=&lt;value&gt;</em>: Shown before tag names. Defaults to "<code>tag:</code>&#160;".</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>For example, to produce decorations with no wrapping
+or tag annotations, and spaces as separators:</p>
+</div>
+<div class="paragraph">
+<p>+
+<code>%(decorate:prefix=,suffix=,tag=,separator= )</code></p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><em>%(describe[:&lt;options&gt;])</em></dt>
+<dd>
+<p>human-readable name, like <a href="git-describe.html">git-describe(1)</a>; empty string for
+undescribable commits.  The <code>describe</code> string may be followed by a colon and
+zero or more comma-separated options.  Descriptions can be inconsistent when
+tags are added or removed at the same time.</p>
 <div class="ulist">
 <ul>
 <li>
@@ -2587,15 +2692,12 @@ portion is shortened for human readability (so
 <dd>
 <p>reflog subject</p>
 </dd>
-<dt class="hdlist1"><em>%(trailers[:options])</em></dt>
+<dt class="hdlist1"><em>%(trailers[:&lt;options&gt;])</em></dt>
 <dd>
-<p>display the trailers of the body as
-interpreted by
-<a href="git-interpret-trailers.html">git-interpret-trailers(1)</a>. The
-<code>trailers</code> string may be followed by a colon
-and zero or more comma-separated options.
-If any option is provided multiple times the
-last occurrence wins.</p>
+<p>display the trailers of the body as interpreted by
+<a href="git-interpret-trailers.html">git-interpret-trailers(1)</a>. The <code>trailers</code> string may be followed by
+a colon and zero or more comma-separated options. If any option is provided
+multiple times, the last occurrence wins.</p>
 <div class="ulist">
 <ul>
 <li>
@@ -2613,9 +2715,8 @@ desired it can be disabled with <code>only=false</code>.  E.g.,
 block should be included.</p>
 </li>
 <li>
-<p><em>separator=&lt;sep&gt;</em>: specify a separator inserted between trailer
-lines. When this option is not given each trailer line is
-terminated with a line feed character. The string &lt;sep&gt; may contain
+<p><em>separator=&lt;sep&gt;</em>: specify the separator inserted between trailer
+lines. Defaults to a line feed character. The string &lt;sep&gt; may contain
 the literal formatting codes described above. To use comma as
 separator one must use <code>%x2C</code> as it would otherwise be parsed as
 next option. E.g., <code>%(trailers:key=Ticket,separator=%x2C )</code>
@@ -2634,18 +2735,14 @@ option was given. E.g.,
 <p><em>valueonly[=&lt;bool&gt;]</em>: only show the value part of the trailer.</p>
 </li>
 <li>
-<p><em>key_value_separator=&lt;sep&gt;</em>: specify a separator inserted between
-trailer lines. When this option is not given each trailer key-value
-pair is separated by ": ". Otherwise it shares the same semantics
-as <em>separator=&lt;sep&gt;</em> above.</p>
+<p><em>key_value_separator=&lt;sep&gt;</em>: specify the separator inserted between
+the key and value of each trailer. Defaults to ": ". Otherwise it
+shares the same semantics as <em>separator=&lt;sep&gt;</em> above.</p>
 </li>
 </ul>
 </div>
 </dd>
 </dl>
-</div>
-</li>
-</ul>
 </div>
 </li>
 </ul>
@@ -2860,7 +2957,7 @@ repository size (taking the size of <code>origin</code> as a baseline).</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-08-30 21:40:02 UTC
+Last updated 2024-06-03 08:04:30 UTC
 </div>
 </div>
 </body>

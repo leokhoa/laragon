@@ -255,7 +255,7 @@ use MIME::Decoder;
 #------------------------------
 
 ### The package version, both in 1.23 style *and* usable by MakeMaker:
-$VERSION = "5.509";
+$VERSION = "5.515";
 
 ### Boundary counter:
 my $BCount = 0;
@@ -276,7 +276,6 @@ qw(
 ### Fallback preamble and epilogue:
 my $DefPreamble = [ "This is a multi-part message in MIME format..." ];
 my $DefEpilogue = [ ];
-
 
 #==============================
 #
@@ -350,6 +349,37 @@ sub new {
     $self;
 }
 
+=item ambiguous_content
+
+I<Instance method.>
+
+Returns true if this entity I<or any of its parts, recursively> has
+a C<MIME::Head> that indicates ambiguous content.
+
+Note carefully the difference between:
+
+    $entity->head->ambiguous_content();
+
+and
+
+    $entity->ambiguous_content();
+
+The first returns true only if this specific entity's headers indicate
+ambiguity.  The second returns true if this entity
+I<or any of its parts, recursively> has headers that indicate ambiguity.
+
+=cut
+sub ambiguous_content {
+    my ($self) = @_;
+
+    return 1 if $self->head->ambiguous_content;
+    return 0 unless $self->is_multipart;
+
+    foreach my $part ($self->parts) {
+        return 1 if $part->ambiguous_content;
+    }
+    return 0;
+}
 
 ###------------------------------
 
@@ -494,6 +524,11 @@ An alternative to Path (q.v.): the actual data, either as a scalar
 or an array reference (whose elements are joined together to make
 the actual scalar).  The body is opened on the data using
 MIME::Body::InCore.
+
+Note that for text parts, the Data scalar or array is assumed to be
+encoded in a suitable character encoding (as if by C<Encode::encode>)
+rather than a native Perl string.  The encoding you use must, of
+course, match the C<charset> option of the C<MIME-Type> header.
 
 =item Description
 
@@ -2264,7 +2299,7 @@ L<MIME::Tools>, L<MIME::Head>, L<MIME::Body>, L<MIME::Decoder>, L<Mail::Internet
 =head1 AUTHOR
 
 Eryq (F<eryq@zeegee.com>), ZeeGee Software Inc (F<http://www.zeegee.com>).
-Dianne Skoll (dfs@roaringpenguin.com) http://www.roaringpenguin.com
+Dianne Skoll (dianne@skoll.ca)
 
 All rights reserved.  This program is free software; you can redistribute
 it and/or modify it under the same terms as Perl itself.

@@ -482,7 +482,7 @@ our(@ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS, $VERSION);
 	      clearcache clearallcache disablecache enablecache);
 %EXPORT_TAGS=( all => [ @EXPORT, @EXPORT_OK ] ) ;
 
-$VERSION = 1.23;
+$VERSION = 1.24;
 
 # --- ':hireswallclock' special handling
 
@@ -683,9 +683,9 @@ sub runloop {
     my($t0, $t1, $td); # before, after, difference
 
     # find package of caller so we can execute code there
-    my($curpack) = caller(0);
+    my $curpack = caller(0);
     my($i, $pack)= 0;
-    while (($pack) = caller(++$i)) {
+    while ($pack = caller(++$i)) {
 	last if $pack ne $curpack;
     }
 

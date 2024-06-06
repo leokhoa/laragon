@@ -2988,8 +2988,7 @@ proc ::tcl::clock::GetSystemTimeZone {} {
 	set timezone $result
     } elseif {[set result [getenv TZ]] ne {}} {
 	set timezone $result
-    }
-    if {![info exists timezone]} {
+    } else {
         # Cache the time zone only if it was detected by one of the
         # expensive methods.
         if { [info exists CachedSystemTimeZone] } {

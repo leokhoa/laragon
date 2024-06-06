@@ -3969,7 +3969,7 @@ modify it under the same terms as Perl itself.
 
 =head1 SEE ALSO
 
-See L<h2xs>, L<ppport.h>.
+See L<h2xs>, F<ppport.h>.
 
 =cut
 
@@ -3978,7 +3978,7 @@ package Devel::PPPort;
 use strict;
 use vars qw($VERSION $data);
 
-$VERSION = '3.68';
+$VERSION = '3.71';
 
 sub _init_data
 {
@@ -9695,7 +9695,6 @@ nextargv|5.003007||Viu
 nextchar|5.005000||Viu
 NEXT_LINE_CHAR|5.007003||Viu
 NEXT_OFF|5.005000||Viu
-NEXTOPER|5.003007||Viu
 next_symbol|5.007003||Viu
 ninstr|5.003007|5.003007|n
 NL_LANGINFO_LOCK|5.033005||Viu
@@ -11748,7 +11747,6 @@ PREGf_VERBARG_SEEN|5.009005||Viu
 prepare_SV_for_RV|5.010001||Viu
 prescan_version|5.011004|5.011004|
 PRESCAN_VERSION|5.019008||Viu
-PREVOPER|5.003007||Viu
 PREV_RANGE_MATCHES_INVLIST|5.023002||Viu
 printbuf|5.009004||Viu
 print_bytes_for_locale|5.027002||Viu
@@ -12141,6 +12139,8 @@ reg_named_buff_nextkey|5.009005||cVu
 reg_named_buff_scalar|5.009005||cVu
 regnext|5.003007||cVu
 reg_node|5.005000||Viu
+REGNODE_AFTER|5.003007||Viu
+REGNODE_BEFORE|5.003007||Viu
 regnode_guts|5.021005||Viu
 regnode_guts_debug|||Viu
 REGNODE_MAX|5.009004||Viu
@@ -16837,17 +16837,12 @@ typedef NVTYPE NV;
 
 #undef STMT_START
 #undef STMT_END
-#if defined(VOIDFLAGS) && defined(PERL_USE_GCC_BRACE_GROUPS)
-#  define STMT_START    (void)( /* gcc supports ``({ STATEMENTS; })'' */
-#  define STMT_END      )
-#else
-#  if defined(VOIDFLAGS) && (VOIDFLAGS) && (defined(sun) || defined(__sun__)) && !defined(__GNUC__)
+#if defined(VOIDFLAGS) && (VOIDFLAGS) && (defined(sun) || defined(__sun__)) && !defined(__GNUC__)
 #    define STMT_START  if (1)
 #    define STMT_END    else (void)0
-#  else
+#else
 #    define STMT_START  do
 #    define STMT_END    while (0)
-#  endif
 #endif
 #ifndef boolSV
 #  define boolSV(b)                      ((b) ? &PL_sv_yes : &PL_sv_no)
@@ -19138,17 +19133,18 @@ DPPP_(my_my_strnlen)(const char *str, Size_t maxlen)
 #  else
 #    define D_PPP_FIX_UTF8_ERRSV_FOR_SV(sv) STMT_START {} STMT_END
 #  endif
-#  define croak_sv(sv)                         \
-    STMT_START {                               \
-        SV *_sv = (sv);                        \
-        if (SvROK(_sv)) {                      \
-            sv_setsv(ERRSV, _sv);              \
-            croak(NULL);                       \
-        } else {                               \
-            D_PPP_FIX_UTF8_ERRSV_FOR_SV(_sv);  \
-            croak("%" SVf, SVfARG(_sv));       \
-        }                                      \
-    } STMT_END
+PERL_STATIC_INLINE void D_PPP_croak_sv(SV *sv) {
+    dTHX;
+    SV *_sv = (sv);
+    if (SvROK(_sv)) {
+        sv_setsv(ERRSV, _sv);
+        croak(NULL);
+    } else {
+        D_PPP_FIX_UTF8_ERRSV_FOR_SV(_sv);
+        croak("%" SVf, SVfARG(_sv));
+    }
+}
+#  define croak_sv(sv) D_PPP_croak_sv(sv)
 #elif (PERL_BCDVERSION >= 0x5004000)
 #  define croak_sv(sv) croak("%" SVf, SVfARG(sv))
 #else
@@ -20459,10 +20455,10 @@ DPPP_(my_mg_findext)(const SV * sv, int type, const MGVTBL *vtbl) {
 
 #if !defined(sv_unmagicext)
 #if defined(NEED_sv_unmagicext)
-static int DPPP_(my_sv_unmagicext)(pTHX_ SV * const sv, const int type, MGVTBL * vtbl);
+static int DPPP_(my_sv_unmagicext)(pTHX_ SV * const sv, const int type, const MGVTBL * vtbl);
 static
 #else
-extern int DPPP_(my_sv_unmagicext)(pTHX_ SV * const sv, const int type, MGVTBL * vtbl);
+extern int DPPP_(my_sv_unmagicext)(pTHX_ SV * const sv, const int type, const MGVTBL * vtbl);
 #endif
 
 #if defined(NEED_sv_unmagicext) || defined(NEED_sv_unmagicext_GLOBAL)
@@ -20475,7 +20471,7 @@ extern int DPPP_(my_sv_unmagicext)(pTHX_ SV * const sv, const int type, MGVTBL *
 
 
 int
-DPPP_(my_sv_unmagicext)(pTHX_ SV *const sv, const int type, MGVTBL *vtbl)
+DPPP_(my_sv_unmagicext)(pTHX_ SV *const sv, const int type, const MGVTBL *vtbl)
 {
     MAGIC* mg;
     MAGIC** mgp;

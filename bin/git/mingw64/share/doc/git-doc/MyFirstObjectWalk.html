@@ -439,6 +439,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <body class="article">
 <div id="header">
 <h1>My First Object Walk</h1>
+<div class="details">
+<span id="revdate">2024-05-22</span>
+</div>
 </div>
 <div id="content">
 <div class="sect1">
@@ -502,6 +505,7 @@ Open up a new file <code>builtin/walken.c</code> and set up the command handler:
  */
 
 #include "builtin.h"
+#include "trace.h"
 
 int cmd_walken(int argc, const char **argv, const char *prefix)
 {
@@ -517,12 +521,13 @@ int cmd_walken(int argc, const char **argv, const char *prefix)
 <div class="title">Note</div>
 </td>
 <td class="content">
-<code>trace_printf()</code> differs from <code>printf()</code> in that it can be turned on or
-off at runtime. For the purposes of this tutorial, we will write <code>walken</code> as
-though it is intended for use as a "plumbing" command: that is, a command which
-is used primarily in scripts, rather than interactively by humans (a "porcelain"
-command). So we will send our debug output to <code>trace_printf()</code> instead. When
-running, enable trace output by setting the environment variable <code>GIT_TRACE</code>.
+<code>trace_printf()</code>, defined in <code>trace.h</code>, differs from <code>printf()</code> in
+that it can be turned on or off at runtime. For the purposes of this
+tutorial, we will write <code>walken</code> as though it is intended for use as
+a "plumbing" command: that is, a command which is used primarily in
+scripts, rather than interactively by humans (a "porcelain" command).
+So we will send our debug output to <code>trace_printf()</code> instead.
+When running, enable trace output by setting the environment variable <code>GIT_TRACE</code>.
 </td>
 </tr>
 </table>
@@ -629,7 +634,7 @@ parameters provided by the user over the CLI.</p>
 <p><code>nr</code> represents the number of <code>rev_cmdline_entry</code> present in the array.</p>
 </div>
 <div class="paragraph">
-<p><code>alloc</code> is used by the <code>ALLOC_GROW</code> macro. Check <code>cache.h</code> - this variable is
+<p><code>alloc</code> is used by the <code>ALLOC_GROW</code> macro. Check <code>alloc.h</code> - this variable is
 used to track the allocated size of the list.</p>
 </div>
 <div class="paragraph">
@@ -749,13 +754,14 @@ We&#8217;ll also need to include the <code>config.h</code> header:</p>
 
 ...
 
-static int git_walken_config(const char *var, const char *value, void *cb)
+static int git_walken_config(const char *var, const char *value,
+                             const struct config_context *ctx, void *cb)
 {
         /*
          * For now, we don't have any custom configuration, so fall back to
          * the default config.
          */
-        return git_default_config(var, value, cb);
+        return git_default_config(var, value, ctx, cb);
 }</pre>
 </div>
 </div>
@@ -923,7 +929,11 @@ the walk loop below the <code>prepare_revision_walk()</code> call within your
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>static void walken_commit_walk(struct rev_info *rev)
+<pre>#include "pretty.h"
+
+...
+
+static void walken_commit_walk(struct rev_info *rev)
 {
         struct commit *commit;
         struct strbuf prettybuf = STRBUF_INIT;
@@ -983,10 +993,11 @@ modifying <code>rev_info.grep_filter</code>, which is a <code>struct grep_opt</c
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>static int git_walken_config(const char *var, const char *value, void *cb)
+<pre>static int git_walken_config(const char *var, const char *value,
+                             const struct config_context *ctx, void *cb)
 {
-        grep_config(var, value, cb);
-        return git_default_config(var, value, cb);
+        grep_config(var, value, ctx, cb);
+        return git_default_config(var, value, ctx, cb);
 }</pre>
 </div>
 </div>
@@ -1163,7 +1174,7 @@ about each one.</p>
 <div class="paragraph">
 <p>We can base our work on an example. <code>git pack-objects</code> prepares all kinds of
 objects for packing into a bitmap or packfile. The work we are interested in
-resides in <code>builtins/pack-objects.c:get_object_list()</code>; examination of that
+resides in <code>builtin/pack-objects.c:get_object_list()</code>; examination of that
 function shows that the all-object walk is being performed by
 <code>traverse_commit_list()</code> or <code>traverse_commit_list_filtered()</code>. Those two
 functions reside in <code>list-objects.c</code>; examining the source shows that, despite
@@ -1192,7 +1203,7 @@ and <code>show_object</code>.</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>In addition, <code>traverse_commit_list_filtered()</code> has an additional paramter:</p>
+<p>In addition, <code>traverse_commit_list_filtered()</code> has an additional parameter:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -1443,8 +1454,8 @@ walk we&#8217;ve just performed:</p>
         } else {
                 trace_printf(
                         _("Filtered object walk with filterspec 'tree:1'.\n"));
-                CALLOC_ARRAY(rev-&gt;filter, 1);
-                parse_list_objects_filter(rev-&gt;filter, "tree:1");
+
+                parse_list_objects_filter(&amp;rev-&gt;filter, "tree:1");
         }
         traverse_commit_list(rev, walken_show_commit,
                              walken_show_object, NULL);</pre>
@@ -1467,17 +1478,23 @@ points to the same tree object as its grandparent.)</p>
 <h3 id="_counting_omitted_objects">Counting Omitted Objects</h3>
 <div class="paragraph">
 <p>We also have the capability to enumerate all objects which were omitted by a
-filter, like with <code>git log --filter=&lt;spec&gt; --filter-print-omitted</code>. Asking
-<code>traverse_commit_list_filtered()</code> to populate the <code>omitted</code> list means that our
-object walk does not perform any better than an unfiltered object walk; all
-reachable objects are walked in order to populate the list.</p>
+filter, like with <code>git log --filter=&lt;spec&gt; --filter-print-omitted</code>. To do this,
+change <code>traverse_commit_list()</code> to <code>traverse_commit_list_filtered()</code>, which is
+able to populate an <code>omitted</code> list.  Asking for this list of filtered objects
+may cause performance degradations, however, because in this case, despite
+filtering objects, the possibly much larger set of all reachable objects must
+be processed in order to populate that list.</p>
 </div>
 <div class="paragraph">
 <p>First, add the <code>struct oidset</code> and related items we will use to iterate it:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>static void walken_object_walk(
+<pre>#include "oidset.h"
+
+...
+
+static void walken_object_walk(
         ...
 
         struct oidset omitted;
@@ -1490,8 +1507,9 @@ reachable objects are walked in order to populate the list.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Modify the call to <code>traverse_commit_list_filtered()</code> to include your <code>omitted</code>
-object:</p>
+<p>Replace the call to <code>traverse_commit_list()</code> with
+<code>traverse_commit_list_filtered()</code> and pass a pointer to the <code>omitted</code> oidset
+defined and initialized above:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1536,7 +1554,11 @@ go:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>static void walken_show_commit(struct commit *cmt, void *buf)
+<pre>#include "hex.h"
+
+...
+
+static void walken_show_commit(struct commit *cmt, void *buf)
 {
         trace_printf("commit: %s\n", oid_to_hex(&amp;cmt-&gt;object.oid));
         commit_count++;
@@ -1573,7 +1595,7 @@ those lines without having to recompile.
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ GIT_TRACE=1 ./bin-wrappers/git walken | head -n 10</pre>
+<pre>$ GIT_TRACE=1 ./bin-wrappers/git walken 2&gt;&amp;1 | head -n 10</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1606,7 +1628,7 @@ of the first handful:</p>
 <div class="listingblock">
 <div class="content">
 <pre>$ make
-$ GIT_TRACE=1 ./bin-wrappers git walken | tail -n 10</pre>
+$ GIT_TRACE=1 ./bin-wrappers/git walken 2&gt;&amp;1 | tail -n 10</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1653,7 +1675,7 @@ initial commit, <code>e83c5163</code>.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-08-30 21:40:02 UTC
+Last updated 2024-06-03 08:04:30 UTC
 </div>
 </div>
 </body>

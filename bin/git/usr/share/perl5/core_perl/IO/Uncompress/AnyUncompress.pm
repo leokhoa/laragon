@@ -4,16 +4,16 @@ use strict;
 use warnings;
 use bytes;
 
-use IO::Compress::Base::Common 2.106 ();
+use IO::Compress::Base::Common 2.204 ();
 
-use IO::Uncompress::Base 2.106 ;
+use IO::Uncompress::Base 2.204 ;
 
 
 require Exporter ;
 
 our ($VERSION, @ISA, @EXPORT_OK, %EXPORT_TAGS, $AnyUncompressError);
 
-$VERSION = '2.106';
+$VERSION = '2.204';
 $AnyUncompressError = '';
 
 @ISA = qw(IO::Uncompress::Base Exporter);
@@ -33,26 +33,26 @@ BEGIN
    # Don't trigger any __DIE__ Hooks.
    local $SIG{__DIE__};
 
-   eval ' use IO::Uncompress::Adapter::Inflate 2.103 ;';
-   eval ' use IO::Uncompress::Adapter::Bunzip2 2.103 ;';
-   eval ' use IO::Uncompress::Adapter::LZO 2.103 ;';
-   eval ' use IO::Uncompress::Adapter::Lzf 2.103 ;';
-   eval ' use IO::Uncompress::Adapter::UnLzma 2.103 ;';
-   eval ' use IO::Uncompress::Adapter::UnXz 2.103 ;';
-   eval ' use IO::Uncompress::Adapter::UnZstd 2.103 ;';
-   eval ' use IO::Uncompress::Adapter::UnLzip 2.103 ;';
+   eval ' use IO::Uncompress::Adapter::Inflate 2.204 ;';
+   eval ' use IO::Uncompress::Adapter::Bunzip2 2.204 ;';
+   eval ' use IO::Uncompress::Adapter::LZO 2.204 ;';
+   eval ' use IO::Uncompress::Adapter::Lzf 2.204 ;';
+   eval ' use IO::Uncompress::Adapter::UnLzma 2.204 ;';
+   eval ' use IO::Uncompress::Adapter::UnXz 2.204 ;';
+   eval ' use IO::Uncompress::Adapter::UnZstd 2.204 ;';
+   eval ' use IO::Uncompress::Adapter::UnLzip 2.204 ;';
 
-   eval ' use IO::Uncompress::Bunzip2 2.103 ;';
-   eval ' use IO::Uncompress::UnLzop 2.103 ;';
-   eval ' use IO::Uncompress::Gunzip 2.103 ;';
-   eval ' use IO::Uncompress::Inflate 2.103 ;';
-   eval ' use IO::Uncompress::RawInflate 2.103 ;';
-   eval ' use IO::Uncompress::Unzip 2.103 ;';
-   eval ' use IO::Uncompress::UnLzf 2.103 ;';
-   eval ' use IO::Uncompress::UnLzma 2.103 ;';
-   eval ' use IO::Uncompress::UnXz 2.103 ;';
-   eval ' use IO::Uncompress::UnZstd 2.103 ;';
-   eval ' use IO::Uncompress::UnLzip 2.103 ;';
+   eval ' use IO::Uncompress::Bunzip2 2.204 ;';
+   eval ' use IO::Uncompress::UnLzop 2.204 ;';
+   eval ' use IO::Uncompress::Gunzip 2.204 ;';
+   eval ' use IO::Uncompress::Inflate 2.204 ;';
+   eval ' use IO::Uncompress::RawInflate 2.204 ;';
+   eval ' use IO::Uncompress::Unzip 2.204 ;';
+   eval ' use IO::Uncompress::UnLzf 2.204 ;';
+   eval ' use IO::Uncompress::UnLzma 2.204 ;';
+   eval ' use IO::Uncompress::UnXz 2.204 ;';
+   eval ' use IO::Uncompress::UnZstd 2.204 ;';
+   eval ' use IO::Uncompress::UnLzip 2.204 ;';
 
 }
 
@@ -1077,7 +1077,7 @@ See the Changes file.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2005-2022 Paul Marquess. All rights reserved.
+Copyright (c) 2005-2023 Paul Marquess. All rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

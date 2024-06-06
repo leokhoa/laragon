@@ -236,8 +236,8 @@ proc ttk::Repeatedly {args} {
     after cancel $Repeat(timer)
     set script [uplevel 1 [list namespace code $args]]
     set Repeat(script) $script
-    uplevel #0 $script
     set Repeat(timer) [after $Repeat(delay) ttk::Repeat]
+    uplevel #0 $script
 }
 
 ## Repeat --
@@ -245,8 +245,8 @@ proc ttk::Repeatedly {args} {
 #
 proc ttk::Repeat {} {
     variable Repeat
-    uplevel #0 $Repeat(script)
     set Repeat(timer) [after $Repeat(interval) ttk::Repeat]
+    uplevel #0 $Repeat(script)
 }
 
 ## ttk::CancelRepeat --
@@ -303,18 +303,13 @@ proc ttk::bindMouseWheel {bindtag callback} {
     }
     if {[tk windowingsystem] eq "aqua"} {
 	bind $bindtag <MouseWheel> "$callback \[expr {-%D}\]"
-	bind $bindtag <Option-MouseWheel> "$callback \[expr {-10*%D}\]"
+	bind $bindtag <Option-MouseWheel> "$callback \[expr {-10 * %D}\]"
     } else {
-	bind $bindtag <MouseWheel> "$callback \[expr {-%D/120}\]"
+	bind $bindtag <MouseWheel> "$callback \[expr {-%D / 120}\]"
     }
 }
 
 ## Mousewheel bindings for standard scrollable widgets.
-#
-# Usage: [ttk::copyBindings TtkScrollable $bindtag]
-#
-# $bindtag should be for a widget that supports the
-# standard scrollbar protocol.
 #
 
 if {[tk windowingsystem] eq "x11"} {
@@ -325,18 +320,18 @@ if {[tk windowingsystem] eq "x11"} {
 }
 if {[tk windowingsystem] eq "aqua"} {
     bind TtkScrollable <MouseWheel> \
-	    { %W yview scroll [expr {-(%D)}] units }
+	    { %W yview scroll [expr {-%D}] units }
     bind TtkScrollable <Shift-MouseWheel> \
-	    { %W xview scroll [expr {-(%D)}] units }
+	    { %W xview scroll [expr {-%D}] units }
     bind TtkScrollable <Option-MouseWheel> \
-	    { %W yview scroll  [expr {-10 * (%D)}] units }
+	    { %W yview scroll  [expr {-10 * %D}] units }
     bind TtkScrollable <Shift-Option-MouseWheel> \
-	    { %W xview scroll [expr {-10 * (%D)}] units }
+	    { %W xview scroll [expr {-10 * %D}] units }
 } else {
     bind TtkScrollable <MouseWheel> \
-	    { %W yview scroll [expr {-(%D / 120)}] units }
+	    { %W yview scroll [expr {-%D / 120}] units }
     bind TtkScrollable <Shift-MouseWheel> \
-	    { %W xview scroll [expr {-(%D / 120)}] units }
+	    { %W xview scroll [expr {-%D / 120}] units }
 }
 
 #*EOF*

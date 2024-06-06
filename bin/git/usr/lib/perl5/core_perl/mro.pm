@@ -12,7 +12,7 @@ use warnings;
 
 # mro.pm versions < 1.00 reserved for MRO::Compat
 #  for partial back-compat to 5.[68].x
-our $VERSION = '1.26';
+our $VERSION = '1.28';
 
 require XSLoader;
 XSLoader::load('mro');

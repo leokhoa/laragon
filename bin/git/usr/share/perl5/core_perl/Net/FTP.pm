@@ -1,7 +1,7 @@
 # Net::FTP.pm
 #
 # Copyright (C) 1995-2004 Graham Barr.  All rights reserved.
-# Copyright (C) 2013-2017, 2020 Steve Hay.  All rights reserved.
+# Copyright (C) 2013-2017, 2020, 2022 Steve Hay.  All rights reserved.
 # This module is free software; you can redistribute it and/or modify it under
 # the same terms as Perl itself, i.e. under the terms of either the GNU General
 # Public License or the Artistic License, as specified in the F<LICENCE> file.
@@ -23,7 +23,7 @@ use Net::Config;
 use Socket;
 use Time::Local;
 
-our $VERSION = '3.14';
+our $VERSION = '3.15';
 
 our $IOCLASS;
 my $family_key;
@@ -1052,14 +1052,7 @@ sub _dataconn {
       Timeout   => $ftp->timeout,
       can_ssl() ? (
         SSL_startHandshake => 0,
-        $ftp->is_SSL ? (
-          SSL_reuse_ctx => $ftp,
-          SSL_verifycn_name => ${*$ftp}{net_ftp_tlsargs}{SSL_verifycn_name},
-          # This will cause the use of SNI if supported by IO::Socket::SSL.
-          $ftp->can_client_sni ? (
-            SSL_hostname  => ${*$ftp}{net_ftp_tlsargs}{SSL_hostname}
-          ):(),
-        ) :( %{${*$ftp}{net_ftp_tlsargs}} ),
+        %{${*$ftp}{net_ftp_tlsargs}},
       ):(),
     ) or return;
   } elsif (my $listen =  delete ${*$ftp}{net_ftp_listen}) {
@@ -1966,19 +1959,6 @@ Reinitialize the connection, flushing all I/O and account information.
 
 =back
 
-=head1 EXAMPLES
-
-For an example of the use of Net::FTP see
-
-=over 4
-
-=item L<https://www.csh.rit.edu/~adam/Progs/>
-
-C<autoftp> is a program that can retrieve, send, or list files via
-the FTP protocol in a non-interactive manner.
-
-=back
-
 =head1 EXPORTS
 
 I<None>.
@@ -2034,7 +2014,7 @@ libnet as of version 1.22_02.
 
 Copyright (C) 1995-2004 Graham Barr.  All rights reserved.
 
-Copyright (C) 2013-2017, 2020 Steve Hay.  All rights reserved.
+Copyright (C) 2013-2017, 2020, 2022 Steve Hay.  All rights reserved.
 
 =head1 LICENCE
 
@@ -2044,11 +2024,11 @@ License or the Artistic License, as specified in the F<LICENCE> file.
 
 =head1 VERSION
 
-Version 3.14
+Version 3.15
 
 =head1 DATE
 
-23 Dec 2020
+20 March 2023
 
 =head1 HISTORY
 

@@ -153,7 +153,7 @@ use MIME::Parser::Results;
 #------------------------------
 
 ### The package version, both in 1.23 style *and* usable by MakeMaker:
-$VERSION = "5.509";
+$VERSION = "5.515";
 
 ### How to catenate:
 $CAT = '/bin/cat';
@@ -163,8 +163,6 @@ $CRLF = "\015\012";
 
 ### Who am I?
 my $ME = 'MIME::Parser';
-
-
 
 #------------------------------------------------------------
 
@@ -221,6 +219,7 @@ sub init {
     $self->{MP5_UUDecode}        = 0;
     $self->{MP5_MaxParts}        = -1;
     $self->{MP5_TmpDir}          = undef;
+    $self->{MP5_AmbiguousContent} = 0;
 
     $self->interface(ENTITY_CLASS => 'MIME::Entity');
     $self->interface(HEAD_CLASS   => 'MIME::Head');
@@ -249,6 +248,7 @@ sub init_parse {
     $self->{MP5_Filer}->purgeable([]);
     $self->{MP5_Filer}->init_parse();
     $self->{MP5_NumParts} = 0;
+    $self->{MP5_AmbiguousContent} = 0;
     1;
 }
 
@@ -635,6 +635,10 @@ sub process_header {
     }
     ($hdr_rdr->eos_type eq 'DONE') or
 	$self->error("unexpected end of header\n");
+
+
+    ### If header line begins with a UTF-8 Byte-Order mark, remove it.
+    $headstr =~ s/^\x{EF}\x{BB}\x{BF}//;
 
     ### Extract the header (note that zero-size headers are admissible!):
     open(my $readfh, '<:scalar', \$headstr) or die $!;
@@ -1023,6 +1027,11 @@ sub process_part {
        $ent->head($head);
        $ent->bodyhandle($self->new_body_for($head));
        $ent->bodyhandle->open("w")->close or die "$ME: can't close: $!";
+       if (!$self->{MP5_AmbiguousContent}) {
+           if ($ent->head->ambiguous_content) {
+               $self->{MP5_AmbiguousContent} = 1;
+           }
+       }
        $self->results->level(-1);
        return $ent;
     }
@@ -1032,6 +1041,13 @@ sub process_part {
     ### For example, multipart/digest messages default to type message/rfc822:
     $head->mime_type($p{Retype}) if $p{Retype};
 
+    # We have the header, so that's enough to check for
+    # ambiguous content...
+    if (!$self->{MP5_AmbiguousContent}) {
+        if ($ent->head->ambiguous_content) {
+            $self->{MP5_AmbiguousContent} = 1;
+        }
+    }
     ### Get the MIME type and subtype:
     my ($type, $subtype) = (split('/', $head->mime_type, -1), '');
     $self->debug("type = $type, subtype = $subtype");
@@ -1728,6 +1744,33 @@ sub last_error {
     join '', shift->results->errors;
 }
 
+=item ambiguous_content
+
+I<Instance method.>
+Returns true if the most recently parsed message has one or more
+entities with ambiguous content.  See the documentation of
+C<MIME::Entity>'s C<ambiguous_content> method for details.
+
+Note that while these two calls to ambuguous_content return the same
+thing:
+
+    $entity = $parser->parse($whatever_stream);
+    $parser->ambuguous_content();
+    $entity->ambuguous_content();
+
+the former is faster because it simply returns the results that were
+detected during the parse, while the latter actually executes the code
+that checks for ambiguous content again.
+
+Messages with ambiguous content should be treated as a security risk.
+In particular, if MIME::Parser is used in an email security tool,
+ambiguous messages should not be delivered to end-users.
+
+=cut
+sub ambiguous_content {
+    my ($self) = @_;
+    return $self->{MP5_AmbiguousContent};
+}
 
 #------------------------------
 
@@ -2001,7 +2044,7 @@ L<MIME::Tools>, L<MIME::Head>, L<MIME::Body>, L<MIME::Entity>, L<MIME::Decoder>
 =head1 AUTHOR
 
 Eryq (F<eryq@zeegee.com>), ZeeGee Software Inc (F<http://www.zeegee.com>).
-Dianne Skoll (dfs@roaringpenguin.com) http://www.roaringpenguin.com
+Dianne Skoll (dianne@skoll.ca)
 
 All rights reserved.  This program is free software; you can redistribute
 it and/or modify it under the same terms as Perl itself.

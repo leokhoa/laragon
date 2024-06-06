@@ -18,7 +18,7 @@ use Socket qw(inet_aton inet_ntoa);
 
 our @EXPORT  = qw(%NetConfig);
 our @ISA     = qw(Net::LocalCfg Exporter);
-our $VERSION = "3.14";
+our $VERSION = "3.15";
 
 our($CONFIGURE, $LIBNET_CFG);
 
@@ -368,11 +368,11 @@ License or the Artistic License, as specified in the F<LICENCE> file.
 
 =head1 VERSION
 
-Version 3.14
+Version 3.15
 
 =head1 DATE
 
-23 Dec 2020
+20 March 2023
 
 =head1 HISTORY
 

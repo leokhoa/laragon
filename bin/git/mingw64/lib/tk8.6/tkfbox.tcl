@@ -463,7 +463,7 @@ proc ::tk::dialog::file::Create {w class} {
     wm protocol $w WM_DELETE_WINDOW [list ::tk::dialog::file::CancelCmd $w]
     $data(upBtn)     configure -command [list ::tk::dialog::file::UpDirCmd $w]
     $data(cancelBtn) configure -command [list ::tk::dialog::file::CancelCmd $w]
-    bind $w <KeyPress-Escape> [list $data(cancelBtn) invoke]
+    bind $w <Escape> [list $data(cancelBtn) invoke]
     bind $w <Alt-Key> [list tk::AltKeyInDialog $w %A]
 
     # Set up event handlers specific to File or Directory Dialogs
@@ -581,9 +581,9 @@ proc ::tk::dialog::file::Update {w} {
     # so the user may still click and cause havoc ...
     #
     set entCursor [$data(ent) cget -cursor]
-    set dlgCursor [$w         cget -cursor]
+    set dlgCursor [$w cget -cursor]
     $data(ent) configure -cursor watch
-    $w         configure -cursor watch
+    $w configure -cursor watch
     update idletasks
 
     $data(icons) deleteall
@@ -633,7 +633,7 @@ proc ::tk::dialog::file::Update {w} {
     # turn off the busy cursor.
     #
     $data(ent) configure -cursor $entCursor
-    $w         configure -cursor $dlgCursor
+    $w configure -cursor $dlgCursor
 }
 
 # ::tk::dialog::file::SetPathSilently --
@@ -909,15 +909,15 @@ proc ::tk::dialog::file::VerifyFileName {w filename} {
 	    }
 	}
 	PATH {
-	    tk_messageBox -icon warning -type ok -parent $w \
-		    -message [mc "Directory \"%1\$s\" does not exist." $path]
+	    tk_messageBox -icon warning -type ok -parent $w -message \
+		    [mc "Directory \"%1\$s\" does not exist." $path]
 	    $data(ent) selection range 0 end
 	    $data(ent) icursor end
 	}
 	CHDIR {
 	    tk_messageBox -type ok -parent $w -icon warning -message  \
-		[mc "Cannot change to the directory\
-                     \"%1\$s\".\nPermission denied." $path]
+		    [mc "Cannot change to the directory\
+			\"%1\$s\".\nPermission denied." $path]
 	    $data(ent) selection range 0 end
 	    $data(ent) icursor end
 	}
@@ -1121,8 +1121,7 @@ proc ::tk::dialog::file::Done {w {selectFilePath ""}} {
 	} then {
 	    upvar #0 $data(-typevariable) typeVariable
 	    set typeVariable [lindex $data(origfiletypes) \
-	            [lsearch -exact $data(-filetypes) $data(filterType)] 0]
-
+		    [lsearch -exact $data(-filetypes) $data(filterType)] 0]
 	}
     }
     bind $data(okBtn) <Destroy> {}

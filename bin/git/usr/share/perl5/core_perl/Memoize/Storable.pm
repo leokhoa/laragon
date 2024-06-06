@@ -1,27 +1,19 @@
+use strict; use warnings;
+
 package Memoize::Storable;
+our $VERSION = '1.16';
 
-=head1 NAME
+use Storable 1.002 (); # for lock_* function variants
 
-Memoize::Storable - store Memoized data in Storable database
-
-=head1 DESCRIPTION
-
-See L<Memoize>.
-
-=cut
-
-use Storable ();
-$VERSION = '1.03';
-$Verbose = 0;
+our $Verbose;
 
 sub TIEHASH {
-  require Carp if $Verbose;
   my $package = shift;
   my $filename = shift;
-  my $truehash = (-e $filename) ? Storable::retrieve($filename) : {};
+  my $truehash = (-e $filename) ? Storable::lock_retrieve($filename) : {};
   my %options;
   print STDERR "Memoize::Storable::TIEHASH($filename, @_)\n" if $Verbose;
-  @options{@_} = ();
+  @options{@_} = (1) x @_;
   my $self = 
     {FILENAME => $filename, 
      H => $truehash, 
@@ -31,34 +23,30 @@ sub TIEHASH {
 }
 
 sub STORE {
-  require Carp if $Verbose;
   my $self = shift;
   print STDERR "Memoize::Storable::STORE(@_)\n" if $Verbose;
   $self->{H}{$_[0]} = $_[1];
 }
 
 sub FETCH {
-  require Carp if $Verbose;
   my $self = shift;
   print STDERR "Memoize::Storable::FETCH(@_)\n" if $Verbose;
   $self->{H}{$_[0]};
 }
 
 sub EXISTS {
-  require Carp if $Verbose;
   my $self = shift;
   print STDERR "Memoize::Storable::EXISTS(@_)\n" if $Verbose;
   exists $self->{H}{$_[0]};
 }
 
 sub DESTROY {
-  require Carp if $Verbose;
   my $self= shift;
   print STDERR "Memoize::Storable::DESTROY(@_)\n" if $Verbose;
   if ($self->{OPTIONS}{'nstore'}) {
-    Storable::nstore($self->{H}, $self->{FILENAME});
+    Storable::lock_nstore($self->{H}, $self->{FILENAME});
   } else {
-    Storable::store($self->{H}, $self->{FILENAME});
+    Storable::lock_store($self->{H}, $self->{FILENAME});
   }
 }
 
@@ -69,4 +57,19 @@ sub FIRSTKEY {
 sub NEXTKEY {
   undef;
 }
+
 1;
+
+__END__
+
+=pod
+
+=head1 NAME
+
+Memoize::Storable - store Memoized data in Storable database
+
+=head1 DESCRIPTION
+
+See L<Memoize>.
+
+=cut

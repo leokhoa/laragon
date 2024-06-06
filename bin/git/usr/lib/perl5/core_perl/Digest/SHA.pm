@@ -6,9 +6,10 @@ use strict;
 use warnings;
 use vars qw($VERSION @ISA @EXPORT_OK $errmsg);
 use Fcntl qw(O_RDONLY O_RDWR);
+use Cwd qw(getcwd);
 use integer;
 
-$VERSION = '6.02';
+$VERSION = '6.04';
 
 require Exporter;
 @ISA = qw(Exporter);
@@ -120,9 +121,18 @@ sub addfile {
 		##	by attempting to open with mode O_RDWR
 
 	local *FH;
-	$file eq '-' and open(FH, '< -')
-		or sysopen(FH, $file, -d $file ? O_RDWR : O_RDONLY)
+	if ($file eq '-') {
+		if (-d STDIN) {
+			sysopen(FH, getcwd(), O_RDWR)
+				or _bail('Open failed');
+		}
+		open(FH, '< -')
 			or _bail('Open failed');
+	}
+	else {
+		sysopen(FH, $file, -d $file ? O_RDWR : O_RDONLY)
+			or _bail('Open failed');
+	}
 
 	if ($BITS) {
 		my ($n, $buf) = (0, "");
@@ -810,7 +820,7 @@ darkness and moored it in so perfect a calm and in so brilliant a light"
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2003-2018 Mark Shelor
+Copyright (C) 2003-2022 Mark Shelor
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

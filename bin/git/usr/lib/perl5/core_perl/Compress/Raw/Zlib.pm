@@ -10,7 +10,7 @@ use warnings ;
 use bytes ;
 our ($VERSION, $XS_VERSION, @ISA, @EXPORT, %EXPORT_TAGS, @EXPORT_OK, $AUTOLOAD, %DEFLATE_CONSTANTS, @DEFLATE_CONSTANTS);
 
-$VERSION = '2.105';
+$VERSION = '2.204_001';
 $XS_VERSION = $VERSION;
 $VERSION = eval $VERSION;
 
@@ -95,6 +95,14 @@ $VERSION = eval $VERSION;
         Z_TREES
         Z_UNKNOWN
         Z_VERSION_ERROR
+
+        ZLIBNG_VERSION
+        ZLIBNG_VERNUM
+        ZLIBNG_VER_MAJOR
+        ZLIBNG_VER_MINOR
+        ZLIBNG_VER_REVISION
+        ZLIBNG_VER_STATUS
+        ZLIBNG_VER_MODIFIED
 
         WANT_GZIP
         WANT_GZIP_OR_ZLIB
@@ -598,7 +606,7 @@ __END__
 
 =head1 NAME
 
-Compress::Raw::Zlib - Low-Level Interface to zlib compression library
+Compress::Raw::Zlib - Low-Level Interface to zlib or zlib-ng compression library
 
 =head1 SYNOPSIS
 
@@ -641,11 +649,18 @@ Compress::Raw::Zlib - Low-Level Interface to zlib compression library
     my $version = Compress::Raw::Zlib::zlib_version();
     my $flags = Compress::Raw::Zlib::zlibCompileFlags();
 
+    is_zlib_native();
+    is_zlibng_native();
+    is_zlibng_compat();
+    is_zlibng();
+
 =head1 DESCRIPTION
 
-The I<Compress::Raw::Zlib> module provides a Perl interface to the I<zlib>
-compression library (see L</SEE ALSO> for details about where to get
-I<zlib>).
+The I<Compress::Raw::Zlib> module provides a Perl interface to the I<zlib> or I<zlib-ng>
+compression libraries (see L</SEE ALSO> for details about where to get
+I<zlib> or I<zlib-ng>).
+
+In the text below all references to I<zlib> are also applicable to I<zlib-ng> unless otherwise stated.
 
 =head1 Compress::Raw::Zlib::Deflate
 
@@ -1300,18 +1315,41 @@ Refer to the I<zlib> documentation for more details.
 
 =head2 my $version = Compress::Raw::Zlib::zlib_version();
 
-Returns the version of the zlib library.
+Returns the version of the I<zlib> library if this module has been built with the I<zlib> library.
+If this module has been built with I<zlib-ng> in native mode, this function will return a empty string.
+If this module has been built with I<zlib-ng> in compat mode, this function will return the Izlib> API
+verion that I<zlib-ng> is supporting.
+
+=head2 my $version = Compress::Raw::Zlib::zlibng_version();
+
+Returns the version of the zlib-ng library if this module has been built with the I<zlib-ng> library.
+If this module has been built with I<zlib>, this function will return a empty string.
 
 =head2  my $flags = Compress::Raw::Zlib::zlibCompileFlags();
 
 Returns the flags indicating compile-time options that were used to build
-the zlib library. See the zlib documentation for a description of the flags
+the zlib or zlib-ng library. See the zlib documentation for a description of the flags
 returned by C<zlibCompileFlags>.
 
 Note that when the zlib sources are built along with this module the
 C<sprintf> flags (bits 24, 25 and 26) should be ignored.
 
 If you are using zlib 1.2.0 or older, C<zlibCompileFlags> will return 0.
+
+=head2 is_zlib_native();
+=head2 is_zlibng_native();
+=head2 is_zlibng_compat();
+=head2 is_zlibng();
+
+These function can use used to check if C<Compress::Raw::Zlib> was been built with I<zlib> or I<zlib-ng>.
+
+The function C<is_zlib_native> returns true if C<Compress::Raw::Zlib> was built with I<zlib>.
+The function C<is_zlibng> returns true if C<Compress::Raw::Zlib> was built with I<zlib-ng>.
+
+The I<zlib-ng> library has an option to build with a zlib-compataible API.
+The c<is_zlibng_compat> function retuens true if zlib-ng has ben built with this API.
+
+Finally, C<is_zlibng_native> returns true if I<zlib-ng> was built with its native API.
 
 =head1 The LimitOutput option.
 
@@ -1584,6 +1622,9 @@ C<gzip@prep.ai.mit.edu> and Mark Adler C<madler@alumni.caltech.edu>.
 The primary site for the I<zlib> compression library is
 L<http://www.zlib.org>.
 
+The primary site for the I<zlib-ng> compression library is
+L<https://github.com/zlib-ng/zlib-ng>.
+
 The primary site for gzip is L<http://www.gzip.org>.
 
 =head1 AUTHOR
@@ -1596,7 +1637,7 @@ See the Changes file.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2005-2022 Paul Marquess. All rights reserved.
+Copyright (c) 2005-2023 Paul Marquess. All rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

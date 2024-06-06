@@ -3,7 +3,7 @@ package Socket;
 use strict;
 { use v5.6.1; }
 
-our $VERSION = '2.033';
+our $VERSION = '2.036';
 
 =head1 NAME
 
@@ -793,7 +793,8 @@ our @EXPORT_OK = qw(
 	IPV6_MULTICAST_IF IPV6_MULTICAST_LOOP IPV6_RECVERR IPV6_ROUTER_ALERT
 	IPV6_UNICAST_HOPS IPV6_V6ONLY
 
-	SO_LOCK_FILTER SO_RCVBUFFORCE SO_SNDBUFFORCE
+	SO_INCOMING_CPU SO_INCOMING_NAPI_ID SO_LOCK_FILTER SO_RCVBUFFORCE
+	SO_SNDBUFFORCE
 
 	pack_ip_mreq unpack_ip_mreq pack_ip_mreq_source unpack_ip_mreq_source
 

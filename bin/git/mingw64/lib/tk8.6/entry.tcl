@@ -211,6 +211,7 @@ bind Entry <Prior> {# nothing}
 bind Entry <Next> {# nothing}
 if {[tk windowingsystem] eq "aqua"} {
     bind Entry <Command-Key> {# nothing}
+    bind Entry <Mod4-Key> {# nothing}
 }
 # Tk-on-Cocoa generates characters for these two keys. [Bug 2971663]
 bind Entry <<NextLine>> {# nothing}

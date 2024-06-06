@@ -450,10 +450,12 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="sectionbody">
 <div class="verseblock">
 <pre class="content"><em>git for-each-ref</em> [--count=&lt;count&gt;] [--shell|--perl|--python|--tcl]
-                   [(--sort=&lt;key&gt;)&#8230;&#8203;] [--format=&lt;format&gt;] [&lt;pattern&gt;&#8230;&#8203;]
+                   [(--sort=&lt;key&gt;)&#8230;&#8203;] [--format=&lt;format&gt;]
+                   [--include-root-refs] [ --stdin | &lt;pattern&gt;&#8230;&#8203; ]
                    [--points-at=&lt;object&gt;]
                    [--merged[=&lt;object&gt;]] [--no-merged[=&lt;object&gt;]]
-                   [--contains[=&lt;object&gt;]] [--no-contains[=&lt;object&gt;]]</pre>
+                   [--contains[=&lt;object&gt;]] [--no-contains[=&lt;object&gt;]]
+                   [--exclude=&lt;pattern&gt; &#8230;&#8203;]</pre>
 </div>
 </div>
 </div>
@@ -482,6 +484,11 @@ match against at least one pattern, either using fnmatch(3) or
 literally, in the latter case matching completely or from the
 beginning up to a slash.</p>
 </dd>
+<dt class="hdlist1">--stdin</dt>
+<dd>
+<p>If <code>--stdin</code> is supplied, then the list of patterns is read from
+standard input instead of from the argument list.</p>
+</dd>
 <dt class="hdlist1">--count=&lt;count&gt;</dt>
 <dd>
 <p>By default the command shows all refs that match
@@ -498,17 +505,15 @@ key.</p>
 </dd>
 <dt class="hdlist1">--format=&lt;format&gt;</dt>
 <dd>
-<p>A string that interpolates <code>%(fieldname)</code> from a ref being shown
-and the object it points at.  If <code>fieldname</code>
-is prefixed with an asterisk (<code>*</code>) and the ref points
-at a tag object, use the value for the field in the object
-which the tag object refers to (instead of the field in the tag object).
-When unspecified, <code>&lt;format&gt;</code> defaults to
-<code>%(objectname) SPC %(objecttype) TAB %(refname)</code>.
-It also interpolates <code>%%</code> to <code>%</code>, and <code>%xx</code> where <code>xx</code>
-are hex digits interpolates to character with hex code
-<code>xx</code>; for example <code>%00</code> interpolates to <code>\0</code> (NUL),
-<code>%09</code> to <code>\t</code> (TAB) and <code>%0a</code> to <code>\n</code> (LF).</p>
+<p>A string that interpolates <code>%(fieldname)</code> from a ref being shown and
+the object it points at. In addition, the string literal <code>%%</code>
+renders as <code>%</code> and <code>%xx</code> - where <code>xx</code> are hex digits - renders as
+the character with hex code <code>xx</code>. For example, <code>%00</code> interpolates to
+<code>\0</code> (NUL), <code>%09</code> to <code>\t</code> (TAB), and <code>%0a</code> to <code>\n</code> (LF).</p>
+<div class="paragraph">
+<p>When unspecified, <code>&lt;format&gt;</code> defaults to <code>%(objectname) SPC %(objecttype)
+TAB %(refname)</code>.</p>
+</div>
 </dd>
 <dt class="hdlist1">--color[=&lt;when&gt;]</dt>
 <dd>
@@ -553,6 +558,21 @@ if not specified).</p>
 <dt class="hdlist1">--ignore-case</dt>
 <dd>
 <p>Sorting and filtering refs are case insensitive.</p>
+</dd>
+<dt class="hdlist1">--omit-empty</dt>
+<dd>
+<p>Do not print a newline after formatted refs where the format expands
+to the empty string.</p>
+</dd>
+<dt class="hdlist1">--exclude=&lt;pattern&gt;</dt>
+<dd>
+<p>If one or more patterns are given, only refs which do not match
+any excluded pattern(s) are shown. Matching is done using the
+same rules as <code>&lt;pattern&gt;</code> above.</p>
+</dd>
+<dt class="hdlist1">--include-root-refs</dt>
+<dd>
+<p>List root refs (HEAD and pseudorefs) apart from regular refs.</p>
 </dd>
 </dl>
 </div>
@@ -698,11 +718,88 @@ symbolic ref, nothing is printed. Respects the <code>:short</code>,
 <code>:lstrip</code> and <code>:rstrip</code> options in the same way as <code>refname</code>
 above.</p>
 </dd>
+<dt class="hdlist1">signature</dt>
+<dd>
+<p>The GPG signature of a commit.</p>
+</dd>
+<dt class="hdlist1">signature:grade</dt>
+<dd>
+<p>Show "G" for a good (valid) signature, "B" for a bad
+signature, "U" for a good signature with unknown validity, "X"
+for a good signature that has expired, "Y" for a good
+signature made by an expired key, "R" for a good signature
+made by a revoked key, "E" if the signature cannot be
+checked (e.g. missing key) and "N" for no signature.</p>
+</dd>
+<dt class="hdlist1">signature:signer</dt>
+<dd>
+<p>The signer of the GPG signature of a commit.</p>
+</dd>
+<dt class="hdlist1">signature:key</dt>
+<dd>
+<p>The key of the GPG signature of a commit.</p>
+</dd>
+<dt class="hdlist1">signature:fingerprint</dt>
+<dd>
+<p>The fingerprint of the GPG signature of a commit.</p>
+</dd>
+<dt class="hdlist1">signature:primarykeyfingerprint</dt>
+<dd>
+<p>The primary key fingerprint of the GPG signature of a commit.</p>
+</dd>
+<dt class="hdlist1">signature:trustlevel</dt>
+<dd>
+<p>The trust level of the GPG signature of a commit. Possible
+outputs are <code>ultimate</code>, <code>fully</code>, <code>marginal</code>, <code>never</code> and <code>undefined</code>.</p>
+</dd>
 <dt class="hdlist1">worktreepath</dt>
 <dd>
 <p>The absolute path to the worktree in which the ref is checked
 out, if it is checked out in any linked worktree. Empty string
 otherwise.</p>
+</dd>
+<dt class="hdlist1">ahead-behind:&lt;committish&gt;</dt>
+<dd>
+<p>Two integers, separated by a space, demonstrating the number of
+commits ahead and behind, respectively, when comparing the output
+ref to the <code>&lt;committish&gt;</code> specified in the format.</p>
+</dd>
+<dt class="hdlist1">describe[:options]</dt>
+<dd>
+<p>A human-readable name, like <a href="git-describe.html">git-describe(1)</a>;
+empty string for undescribable commits. The <code>describe</code> string may
+be followed by a colon and one or more comma-separated options.</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist">
+<dl>
+<dt class="hdlist1">tags=&lt;bool-value&gt;</dt>
+<dd>
+<p>Instead of only considering annotated tags, consider
+lightweight tags as well; see the corresponding option in
+<a href="git-describe.html">git-describe(1)</a> for details.</p>
+</dd>
+<dt class="hdlist1">abbrev=&lt;number&gt;</dt>
+<dd>
+<p>Use at least &lt;number&gt; hexadecimal digits; see the corresponding
+option in <a href="git-describe.html">git-describe(1)</a> for details.</p>
+</dd>
+<dt class="hdlist1">match=&lt;pattern&gt;</dt>
+<dd>
+<p>Only consider tags matching the given <code>glob(7)</code> pattern,
+excluding the "refs/tags/" prefix; see the corresponding option
+in <a href="git-describe.html">git-describe(1)</a> for details.</p>
+</dd>
+<dt class="hdlist1">exclude=&lt;pattern&gt;</dt>
+<dd>
+<p>Do not consider tags matching the given <code>glob(7)</code> pattern,
+excluding the "refs/tags/" prefix; see the corresponding option
+in <a href="git-describe.html">git-describe(1)</a> for details.</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
 </dd>
 </dl>
 </div>
@@ -720,12 +817,21 @@ from the <code>committer</code> or <code>tagger</code> fields depending on the o
 These are intended for working on a mix of annotated and lightweight tags.</p>
 </div>
 <div class="paragraph">
+<p>For tag objects, a <code>fieldname</code> prefixed with an asterisk (<code>*</code>) expands to
+the <code>fieldname</code> value of the peeled object, rather than that of the tag
+object itself.</p>
+</div>
+<div class="paragraph">
 <p>Fields that have name-email-date tuple as its value (<code>author</code>,
 <code>committer</code>, and <code>tagger</code>) can be suffixed with <code>name</code>, <code>email</code>,
 and <code>date</code> to extract the named component.  For email fields (<code>authoremail</code>,
 <code>committeremail</code> and <code>taggeremail</code>), <code>:trim</code> can be appended to get the email
 without angle brackets, and <code>:localpart</code> to get the part before the <code>@</code> symbol
-out of the trimmed email.</p>
+out of the trimmed email. In addition to these, the <code>:mailmap</code> option and the
+corresponding <code>:mailmap,trim</code> and <code>:mailmap,localpart</code> can be used (order does
+not matter) to get values of the name and email according to the .mailmap file
+or according to the file set in the mailmap.file or mailmap.blob configuration
+variable (see <a href="gitmailmap.html">gitmailmap(5)</a>).</p>
 </div>
 <div class="paragraph">
 <p>The raw data in an object is <code>raw</code>.</p>
@@ -798,9 +904,11 @@ the object referred by the ref does not cause an error.  It
 returns an empty string instead.</p>
 </div>
 <div class="paragraph">
-<p>As a special case for the date-type fields, you may specify a format for
-the date by adding <code>:</code> followed by date format name (see the
-values the <code>--date</code> option to <a href="git-rev-list.html">git-rev-list(1)</a> takes).</p>
+<p>As a special case for the date-type fields, you may specify a format for the
+date by adding <code>:</code> followed by date format name (see the values the <code>--date</code>
+option to <a href="git-rev-list.html">git-rev-list(1)</a> takes). If this formatting is provided in
+a <code>--sort</code> key, references will be sorted according to the byte-value of the
+formatted string rather than the numeric value of the underlying timestamp.</p>
 </div>
 <div class="paragraph">
 <p>Some atoms like %(align) and %(if) always require a matching %(end).
@@ -978,7 +1086,7 @@ commits and from none of the <code>--no-merged</code> commits are shown.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-08-30 21:40:02 UTC
+Last updated 2024-06-03 08:04:30 UTC
 </div>
 </div>
 </body>

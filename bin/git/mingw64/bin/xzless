@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-or-later
 
 # Copyright (C) 1998, 2002, 2006, 2007 Free Software Foundation
 
@@ -23,14 +24,14 @@
 # specified via XZ_OPT.
 xz='xz --format=auto'
 
-version='xzless (XZ Utils) 5.2.6'
+version='xzless (XZ Utils) 5.6.2'
 
 usage="Usage: ${0##*/} [OPTION]... [FILE]...
 Like 'less', but operate on the uncompressed contents of xz compressed FILEs.
 
 Options are the same as for 'less'.
 
-Report bugs to <lasse.collin@tukaani.org>."
+Report bugs to <xz@tukaani.org>."
 
 case $1 in
 	--help)    printf '%s\n' "$usage" || exit 2; exit;;
@@ -47,13 +48,27 @@ if test "${LESSMETACHARS+set}" != set; then
 	LESSMETACHARS="$space$tab$nl'"';*?"()<>[|&^`#\$%=~'
 fi
 
-if test "$(less -V | { read _ ver _ && echo ${ver%%.*}; })" -ge 429; then
+VER=$(less -V | { read _ ver _ && echo ${ver%%.*}; })
+if test "$VER" -ge 451; then
+	# less 451 or later: If the compressed file is valid but has
+	# zero bytes of uncompressed data, using two vertical bars ||- makes
+	# "less" check the exit status of xz and if it is zero then display
+	# an empty file. With a single vertical bar |- and no output from xz,
+	# "less" would attempt to display the raw input file instead.
+	LESSOPEN="||-$xz -cdfqQ -- %s"
+elif test "$VER" -ge 429; then
 	# less 429 or later: LESSOPEN pipe will be used on
 	# standard input if $LESSOPEN begins with |-.
-	LESSOPEN="|-$xz -cdfq -- %s"
+	LESSOPEN="|-$xz -cdfqQ -- %s"
 else
-	LESSOPEN="|$xz -cdfq -- %s"
+	LESSOPEN="|$xz -cdfqQ -- %s"
 fi
+
+SHOW_PREPROC_ERRORS=
+if test "$VER" -ge 632; then
+	SHOW_PREPROC_ERRORS=--show-preproc-errors
+fi
+
 export LESSMETACHARS LESSOPEN
 
-exec less "$@"
+exec less $SHOW_PREPROC_ERRORS "$@"

@@ -7,7 +7,7 @@ use HTTP::Date qw(str2time);
 use Exporter 5.57 qw( import );
 
 # ABSTRACT: Parse directory listing
-our $VERSION = '6.15'; # VERSION
+our $VERSION = '6.16'; # VERSION
 
 sub Version { $File::Listing::VERSION; }
 
@@ -246,10 +246,14 @@ sub line
 
     my ($date, $size_or_dir, $name, $size);
 
+    # usual format:
     # 02-05-96  10:48AM                 1415 src.slf
     # 09-10-96  09:18AM       <DIR>          sl_util
+    # alternative dos format with four-digit year:
+    # 02-05-2022  10:48AM                 1415 src.slf
+    # 09-10-2022  09:18AM       <DIR>          sl_util
     if (($date, $size_or_dir, $name) =
-        /^(\d\d-\d\d-\d\d\s+\d\d:\d\d\wM)         # Date and time info
+        /^(\d\d-\d\d-\d{2,4}\s+\d\d:\d\d\wM)      # Date and time info
          \s+                                      # Some space
          (<\w{3}>|\d+)                            # Dir or Size
          \s+                                      # Some more space
@@ -399,7 +403,7 @@ File::Listing - Parse directory listing
 
 =head1 VERSION
 
-version 6.15
+version 6.16
 
 =head1 SYNOPSIS
 
@@ -544,6 +548,8 @@ Gavin Peters
 
 Graeme Thompson
 
+Grant Street Group
+
 Hans-H. Froehlich
 
 Ian Kilgore
@@ -608,7 +614,7 @@ uid39246
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 1996-2020 by Gisle Aas.
+This software is copyright (c) 1996-2022 by Gisle Aas.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

@@ -541,13 +541,25 @@ otherwise, <code>auto</code>.</p>
 <dt class="hdlist1">--decorate-refs=&lt;pattern&gt;</dt>
 <dt class="hdlist1">--decorate-refs-exclude=&lt;pattern&gt;</dt>
 <dd>
-<p>If no <code>--decorate-refs</code> is given, pretend as if all refs were
-included.  For each candidate, do not use it for decoration if it
+<p>For each candidate reference, do not use it for decoration if it
 matches any patterns given to <code>--decorate-refs-exclude</code> or if it
 doesn&#8217;t match any of the patterns given to <code>--decorate-refs</code>. The
 <code>log.excludeDecoration</code> config option allows excluding refs from
 the decorations, but an explicit <code>--decorate-refs</code> pattern will
 override a match in <code>log.excludeDecoration</code>.</p>
+<div class="paragraph">
+<p>If none of these options or config settings are given, then references are
+used as decoration if they match <code>HEAD</code>, <code>refs/heads/</code>, <code>refs/remotes/</code>,
+<code>refs/stash/</code>, or <code>refs/tags/</code>.</p>
+</div>
+</dd>
+<dt class="hdlist1">--clear-decorations</dt>
+<dd>
+<p>When specified, this option clears all previous <code>--decorate-refs</code>
+or <code>--decorate-refs-exclude</code> options and relaxes the default
+decoration filter to include all references. This option is
+assumed if the config value <code>log.initialDecorationSet</code> is set to
+<code>all</code>.</p>
 </dd>
 <dt class="hdlist1">--source</dt>
 <dd>
@@ -723,7 +735,7 @@ error to use this option unless <code>--walk-reflogs</code> is in use.</p>
 </dd>
 <dt class="hdlist1">--grep=&lt;pattern&gt;</dt>
 <dd>
-<p>Limit the commits output to ones with log message that
+<p>Limit the commits output to ones with a log message that
 matches the specified pattern (regular expression).  With
 more than one <code>--grep=&lt;pattern&gt;</code>, commits whose message
 matches any of the given patterns are chosen (but see
@@ -740,7 +752,7 @@ instead of ones that match at least one.</p>
 </dd>
 <dt class="hdlist1">--invert-grep</dt>
 <dd>
-<p>Limit the commits output to ones with log message that do not
+<p>Limit the commits output to ones with a log message that do not
 match the pattern specified with <code>--grep=&lt;pattern&gt;</code>.</p>
 </dd>
 <dt class="hdlist1">-i</dt>
@@ -831,7 +843,11 @@ that arbitrary merges can be valid topic branch changes.</p>
 <dt class="hdlist1">--not</dt>
 <dd>
 <p>Reverses the meaning of the <em>^</em> prefix (or lack thereof)
-for all following revision specifiers, up to the next <code>--not</code>.</p>
+for all following revision specifiers, up to the next <code>--not</code>.
+When used on the command line before --stdin, the revisions passed
+through stdin will not be affected by it. Conversely, when passed
+via standard input, the revisions passed on the command line will
+not be affected by it.</p>
 </dd>
 <dt class="hdlist1">--all</dt>
 <dd>
@@ -882,6 +898,15 @@ or <code>--all</code>. If a trailing <em>/*</em> is intended, it must be given
 explicitly.</p>
 </div>
 </dd>
+<dt class="hdlist1">--exclude-hidden=[fetch|receive|uploadpack]</dt>
+<dd>
+<p>Do not include refs that would be hidden by <code>git-fetch</code>,
+<code>git-receive-pack</code> or <code>git-upload-pack</code> by consulting the appropriate
+<code>fetch.hideRefs</code>, <code>receive.hideRefs</code> or <code>uploadpack.hideRefs</code>
+configuration along with <code>transfer.hideRefs</code> (see
+<a href="git-config.html">git-config(1)</a>). This option affects the next pseudo-ref option
+<code>--all</code> or <code>--glob</code> and is cleared after processing them.</p>
+</dd>
 <dt class="hdlist1">--reflog</dt>
 <dd>
 <p>Pretend as if all objects mentioned by reflogs are listed on the
@@ -919,10 +944,13 @@ line.</p>
 </dd>
 <dt class="hdlist1">--stdin</dt>
 <dd>
-<p>In addition to the <em>&lt;commit&gt;</em> listed on the command
-line, read them from the standard input. If a <code>--</code> separator is
-seen, stop reading commits and start reading paths to limit the
-result.</p>
+<p>In addition to getting arguments from the command line, read
+them from standard input as well. This accepts commits and
+pseudo-options like <code>--all</code> and <code>--glob=</code>. When a <code>--</code> separator
+is seen, the following input is treated as paths and used to
+limit the result. Flags like <code>--not</code> which are read via standard input
+are only respected for arguments passed in the same way and will not
+influence any subsequent command line arguments.</p>
 </dd>
 <dt class="hdlist1">--cherry-mark</dt>
 <dd>
@@ -978,8 +1006,8 @@ and <em>commit1...commit2</em> notations cannot be used).</p>
 <p>With <code>--pretty</code> format other than <code>oneline</code> and <code>reference</code> (for obvious reasons),
 this causes the output to have two extra lines of information
 taken from the reflog.  The reflog designator in the output may be shown
-as <code>ref@{Nth}</code> (where <code>Nth</code> is the reverse-chronological index in the
-reflog) or as <code>ref@{timestamp}</code> (with the timestamp for that entry),
+as <code>ref@{&lt;Nth&gt;}</code> (where <em>&lt;Nth&gt;</em> is the reverse-chronological index in the
+reflog) or as <code>ref@{&lt;timestamp&gt;}</code> (with the <em>&lt;timestamp&gt;</em> for that entry),
 depending on a few rules:</p>
 </div>
 <div class="openblock">
@@ -987,7 +1015,7 @@ depending on a few rules:</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>If the starting point is specified as <code>ref@{Nth}</code>, show the index
+<p>If the starting point is specified as <code>ref@{&lt;Nth&gt;}</code>, show the index
 format.</p>
 </li>
 <li>
@@ -1017,8 +1045,11 @@ See also <a href="git-reflog.html">git-reflog(1)</a>.</p>
 </dd>
 <dt class="hdlist1">--merge</dt>
 <dd>
-<p>After a failed merge, show refs that touch files having a
-conflict and don&#8217;t exist on all heads to merge.</p>
+<p>Show commits touching conflicted paths in the range <code>HEAD...&lt;other&gt;</code>,
+where <code>&lt;other&gt;</code> is the first existing pseudoref in <code>MERGE_HEAD</code>,
+<code>CHERRY_PICK_HEAD</code>, <code>REVERT_HEAD</code> or <code>REBASE_HEAD</code>. Only works
+when the index has unmerged entries. This option can be used to show
+relevant commits when resolving conflicts from a 3-way merge.</p>
 </dd>
 <dt class="hdlist1">--boundary</dt>
 <dd>
@@ -1092,13 +1123,15 @@ meaningful history.</p>
 merges from the resulting history, as there are no selected
 commits contributing to this merge.</p>
 </dd>
-<dt class="hdlist1">--ancestry-path</dt>
+<dt class="hdlist1">--ancestry-path[=&lt;commit&gt;]</dt>
 <dd>
 <p>When given a range of commits to display (e.g. <em>commit1..commit2</em>
-or <em>commit2 ^commit1</em>), only display commits that exist
-directly on the ancestry chain between the <em>commit1</em> and
-<em>commit2</em>, i.e. commits that are both descendants of <em>commit1</em>,
-and ancestors of <em>commit2</em>.</p>
+or <em>commit2 ^commit1</em>), only display commits in that range
+that are ancestors of &lt;commit&gt;, descendants of &lt;commit&gt;, or
+&lt;commit&gt; itself.  If no commit is specified, use <em>commit1</em> (the
+excluded part of the range) as &lt;commit&gt;.  Can be passed multiple
+times; if so, a commit is included if it is any of the commits
+given or if it is an ancestor or descendant of one of them.</p>
 </dd>
 </dl>
 </div>
@@ -1344,12 +1377,11 @@ parent and is TREESAME.</p>
 </div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1">--ancestry-path</dt>
+<dt class="hdlist1">--ancestry-path[=&lt;commit&gt;]</dt>
 <dd>
-<p>Limit the displayed commits to those directly on the ancestry
-chain between the &#8220;from&#8221; and &#8220;to&#8221; commits in the given commit
-range. I.e. only display commits that are ancestor of the &#8220;to&#8221;
-commit and descendants of the &#8220;from&#8221; commit.</p>
+<p>Limit the displayed commits to those which are an ancestor of
+&lt;commit&gt;, or which are a descendant of &lt;commit&gt;, or are &lt;commit&gt;
+itself.</p>
 <div class="paragraph">
 <p>As an example use case, consider the following commit history:</p>
 </div>
@@ -1384,6 +1416,34 @@ option does. Applied to the <em>D..M</em> range, it results in:</p>
                   G---H---I---J
                                \
                                 L--M</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We can also use <code>--ancestry-path=D</code> instead of <code>--ancestry-path</code> which
+means the same thing when applied to the <em>D..M</em> range but is just more
+explicit.</p>
+</div>
+<div class="paragraph">
+<p>If we instead are interested in a given topic within this range, and all
+commits affected by that topic, we may only want to view the subset of
+<code>D..M</code> which contain that topic in their ancestry path.  So, using
+<code>--ancestry-path=H D..M</code> for example would result in:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>                E
+                 \
+                  G---H---I---J
+                               \
+                                L--M</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Whereas <code>--ancestry-path=K D..M</code> would result in</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>                K---------------L--M</pre>
 </div>
 </div>
 </dd>
@@ -1452,7 +1512,7 @@ merge commits <code>O</code> and <code>P</code>. With parent rewriting, the resu
 not actually contribute a change to <code>file.txt</code>. They only merged a topic
 that was based on an older version of <code>file.txt</code>. This is a common
 issue in repositories using a workflow where many contributors work in
-parallel and merge their topic branches along a single trunk: manu
+parallel and merge their topic branches along a single trunk: many
 unrelated merges appear in the <code>--full-history</code> results.</p>
 </div>
 <div class="paragraph">
@@ -1692,7 +1752,7 @@ object verbatim.</p>
 <dt class="hdlist1">--no-expand-tabs</dt>
 <dd>
 <p>Perform a tab expansion (replace each tab with enough spaces
-to fill to the next display column that is multiple of <em>&lt;n&gt;</em>)
+to fill to the next display column that is a multiple of <em>&lt;n&gt;</em>)
 in the log message before showing it in the output.
 <code>--expand-tabs</code> is a short-hand for <code>--expand-tabs=8</code>, and
 <code>--no-expand-tabs</code> is a short-hand for <code>--expand-tabs=0</code>,
@@ -1719,7 +1779,7 @@ environment overrides). See <a href="git-config.html">git-config(1)</a> for more
 <p>With an optional <em>&lt;ref&gt;</em> argument, use the ref to find the notes
 to display.  The ref can specify the full refname when it begins
 with <code>refs/notes/</code>; when it begins with <code>notes/</code>, <code>refs/</code> and otherwise
-<code>refs/notes/</code> is prefixed to form a full name of the ref.</p>
+<code>refs/notes/</code> is prefixed to form the full name of the ref.</p>
 </div>
 <div class="paragraph">
 <p>Multiple --notes options can be combined to control which notes are
@@ -1735,6 +1795,11 @@ resetting the list of notes refs from which notes are shown.
 Options are parsed in the order given on the command line, so e.g.
 "--notes --notes=foo --no-notes --notes=bar" will only show notes
 from "refs/notes/bar".</p>
+</dd>
+<dt class="hdlist1">--show-notes-by-default</dt>
+<dd>
+<p>Show the default notes unless options for displaying specific
+notes are given.</p>
 </dd>
 <dt class="hdlist1">--show-notes[=&lt;ref&gt;]</dt>
 <dt class="hdlist1">--[no-]standard-notes</dt>
@@ -1829,20 +1894,13 @@ format placeholders. When using <code>-local</code>, the correct syntax is
 <code>--date=format-local:...</code>.</p>
 </div>
 <div class="paragraph">
-<p><code>--date=default</code> is the default format, and is similar to
-<code>--date=rfc2822</code>, with a few exceptions:</p>
+<p><code>--date=default</code> is the default format, and is based on ctime(3)
+output.  It shows a single line with three-letter day of the week,
+three-letter month, day-of-month, hour-minute-seconds in "HH:MM:SS"
+format, followed by 4-digit year, plus timezone information, unless
+the local time zone is used, e.g. <code>Thu Jan 1 00:00:00 1970 +0000</code>.</p>
 </div>
 </div>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>there is no comma after the day-of-week</p>
-</li>
-<li>
-<p>the time zone is omitted when the local time zone is used</p>
-</li>
-</ul>
 </div>
 </dd>
 <dt class="hdlist1">--parents</dt>
@@ -2119,7 +2177,9 @@ The title was &gt;&gt;t4119: test autocomputing -p&lt;n&gt; for traditional diff
 </dd>
 <dt class="hdlist1"><em>%x00</em></dt>
 <dd>
-<p>print a byte from a hex code</p>
+<p><em>%x</em> followed by two hexadecimal digits is replaced with a
+byte with the hexadecimal digits' value (we will call this
+"literal formatting code" in the rest of this document).</p>
 </dd>
 </dl>
 </div>
@@ -2170,38 +2230,48 @@ again.</p>
 <p>switch line wrapping, like the -w option of
 <a href="git-shortlog.html">git-shortlog(1)</a>.</p>
 </dd>
-<dt class="hdlist1"><em>%&lt;(&lt;N&gt;[,trunc|ltrunc|mtrunc])</em></dt>
+<dt class="hdlist1"><em>%&lt;( &lt;N&gt; [,trunc|ltrunc|mtrunc])</em></dt>
 <dd>
 <p>make the next placeholder take at
-least N columns, padding spaces on
+least N column widths, padding spaces on
 the right if necessary.  Optionally
-truncate at the beginning (ltrunc),
-the middle (mtrunc) or the end
-(trunc) if the output is longer than
-N columns.  Note that truncating
-only works correctly with N &gt;= 2.</p>
+truncate (with ellipsis <em>..</em>) at the left (ltrunc) <code>..ft</code>,
+the middle (mtrunc) <code>mi..le</code>, or the end
+(trunc) <code>rig..</code>, if the output is longer than
+N columns.
+Note 1: that truncating
+only works correctly with N &gt;= 2.
+Note 2: spaces around the N and M (see below)
+values are optional.
+Note 3: Emojis and other wide characters
+will take two display columns, which may
+over-run column boundaries.
+Note 4: decomposed character combining marks
+may be misplaced at padding boundaries.</p>
 </dd>
-<dt class="hdlist1"><em>%&lt;|(&lt;N&gt;)</em></dt>
+<dt class="hdlist1"><em>%&lt;|( &lt;M&gt; )</em></dt>
 <dd>
-<p>make the next placeholder take at least until Nth
-columns, padding spaces on the right if necessary</p>
+<p>make the next placeholder take at least until Mth
+display column, padding spaces on the right if necessary.
+Use negative M values for column positions measured
+from the right hand edge of the terminal window.</p>
 </dd>
-<dt class="hdlist1"><em>%&gt;(&lt;N&gt;)</em>, <em>%&gt;|(&lt;N&gt;)</em></dt>
+<dt class="hdlist1"><em>%&gt;( &lt;N&gt; )</em>, <em>%&gt;|( &lt;M&gt; )</em></dt>
 <dd>
-<p>similar to <em>%&lt;(&lt;N&gt;)</em>, <em>%&lt;|(&lt;N&gt;)</em> respectively,
+<p>similar to <em>%&lt;( &lt;N&gt; )</em>, <em>%&lt;|( &lt;M&gt; )</em> respectively,
 but padding spaces on the left</p>
 </dd>
-<dt class="hdlist1"><em>%&gt;&gt;(&lt;N&gt;)</em>, <em>%&gt;&gt;|(&lt;N&gt;)</em></dt>
+<dt class="hdlist1"><em>%&gt;&gt;( &lt;N&gt; )</em>, <em>%&gt;&gt;|( &lt;M&gt; )</em></dt>
 <dd>
-<p>similar to <em>%&gt;(&lt;N&gt;)</em>, <em>%&gt;|(&lt;N&gt;)</em>
+<p>similar to <em>%&gt;( &lt;N&gt; )</em>, <em>%&gt;|( &lt;M&gt; )</em>
 respectively, except that if the next
 placeholder takes more spaces than given and
 there are spaces on its left, use those
 spaces</p>
 </dd>
-<dt class="hdlist1"><em>%&gt;&lt;(&lt;N&gt;)</em>, <em>%&gt;&lt;|(&lt;N&gt;)</em></dt>
+<dt class="hdlist1"><em>%&gt;&lt;( &lt;N&gt; )</em>, <em>%&gt;&lt;|( &lt;M&gt; )</em></dt>
 <dd>
-<p>similar to <em>%&lt;(&lt;N&gt;)</em>, <em>%&lt;|(&lt;N&gt;)</em>
+<p>similar to <em>%&lt;( &lt;N&gt; )</em>, <em>%&lt;|( &lt;M&gt; )</em>
 respectively, but padding both sides
 (i.e. the text is centered)</p>
 </dd>
@@ -2364,15 +2434,54 @@ or <a href="git-blame.html">git-blame(1)</a>)</p>
 <dd>
 <p>ref names without the " (", ")" wrapping.</p>
 </dd>
-<dt class="hdlist1"><em>%(describe[:options])</em></dt>
+<dt class="hdlist1"><em>%(decorate[:&lt;options&gt;])</em></dt>
 <dd>
-<p>human-readable name, like
-<a href="git-describe.html">git-describe(1)</a>; empty string for
-undescribable commits.  The <code>describe</code> string
-may be followed by a colon and zero or more
-comma-separated options.  Descriptions can be
-inconsistent when tags are added or removed at
-the same time.</p>
+<p>ref names with custom decorations. The <code>decorate</code> string may be followed by a
+colon and zero or more comma-separated options. Option values may contain
+literal formatting codes. These must be used for commas (<code>%x2C</code>) and closing
+parentheses (<code>%x29</code>), due to their role in the option syntax.</p>
+<div class="ulist">
+<ul>
+<li>
+<p><em>prefix=&lt;value&gt;</em>: Shown before the list of ref names.  Defaults to "&#160;<code>(</code>".</p>
+</li>
+<li>
+<p><em>suffix=&lt;value&gt;</em>: Shown after the list of ref names.  Defaults to "<code>)</code>".</p>
+</li>
+<li>
+<p><em>separator=&lt;value&gt;</em>: Shown between ref names.  Defaults to "<code>,</code>&#160;".</p>
+</li>
+<li>
+<p><em>pointer=&lt;value&gt;</em>: Shown between HEAD and the branch it points to, if any.
+Defaults to "&#160;<code>-&gt;</code>&#160;".</p>
+</li>
+<li>
+<p><em>tag=&lt;value&gt;</em>: Shown before tag names. Defaults to "<code>tag:</code>&#160;".</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>For example, to produce decorations with no wrapping
+or tag annotations, and spaces as separators:</p>
+</div>
+<div class="paragraph">
+<p>+
+<code>%(decorate:prefix=,suffix=,tag=,separator= )</code></p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><em>%(describe[:&lt;options&gt;])</em></dt>
+<dd>
+<p>human-readable name, like <a href="git-describe.html">git-describe(1)</a>; empty string for
+undescribable commits.  The <code>describe</code> string may be followed by a colon and
+zero or more comma-separated options.  Descriptions can be inconsistent when
+tags are added or removed at the same time.</p>
 <div class="ulist">
 <ul>
 <li>
@@ -2497,15 +2606,12 @@ portion is shortened for human readability (so
 <dd>
 <p>reflog subject</p>
 </dd>
-<dt class="hdlist1"><em>%(trailers[:options])</em></dt>
+<dt class="hdlist1"><em>%(trailers[:&lt;options&gt;])</em></dt>
 <dd>
-<p>display the trailers of the body as
-interpreted by
-<a href="git-interpret-trailers.html">git-interpret-trailers(1)</a>. The
-<code>trailers</code> string may be followed by a colon
-and zero or more comma-separated options.
-If any option is provided multiple times the
-last occurrence wins.</p>
+<p>display the trailers of the body as interpreted by
+<a href="git-interpret-trailers.html">git-interpret-trailers(1)</a>. The <code>trailers</code> string may be followed by
+a colon and zero or more comma-separated options. If any option is provided
+multiple times, the last occurrence wins.</p>
 <div class="ulist">
 <ul>
 <li>
@@ -2523,9 +2629,8 @@ desired it can be disabled with <code>only=false</code>.  E.g.,
 block should be included.</p>
 </li>
 <li>
-<p><em>separator=&lt;sep&gt;</em>: specify a separator inserted between trailer
-lines. When this option is not given each trailer line is
-terminated with a line feed character. The string &lt;sep&gt; may contain
+<p><em>separator=&lt;sep&gt;</em>: specify the separator inserted between trailer
+lines. Defaults to a line feed character. The string &lt;sep&gt; may contain
 the literal formatting codes described above. To use comma as
 separator one must use <code>%x2C</code> as it would otherwise be parsed as
 next option. E.g., <code>%(trailers:key=Ticket,separator=%x2C )</code>
@@ -2544,18 +2649,14 @@ option was given. E.g.,
 <p><em>valueonly[=&lt;bool&gt;]</em>: only show the value part of the trailer.</p>
 </li>
 <li>
-<p><em>key_value_separator=&lt;sep&gt;</em>: specify a separator inserted between
-trailer lines. When this option is not given each trailer key-value
-pair is separated by ": ". Otherwise it shares the same semantics
-as <em>separator=&lt;sep&gt;</em> above.</p>
+<p><em>key_value_separator=&lt;sep&gt;</em>: specify the separator inserted between
+the key and value of each trailer. Defaults to ": ". Otherwise it
+shares the same semantics as <em>separator=&lt;sep&gt;</em> above.</p>
 </li>
 </ul>
 </div>
 </dd>
 </dl>
-</div>
-</li>
-</ul>
 </div>
 </li>
 </ul>
@@ -2649,11 +2750,11 @@ below can be used to show the changes made by each commit.</p>
 </div>
 <div class="paragraph">
 <p>Note that unless one of <code>--diff-merges</code> variants (including short
-<code>-m</code>, <code>-c</code>, and <code>--cc</code> options) is explicitly given, merge commits
+<code>-m</code>, <code>-c</code>, <code>--cc</code>, and <code>--dd</code> options) is explicitly given, merge commits
 will not show a diff, even if a diff format like <code>--patch</code> is
 selected, nor will they match search options like <code>-S</code>. The exception
 is when <code>--first-parent</code> is in use, in which case <code>first-parent</code> is
-the default format.</p>
+the default format for merge commits.</p>
 </div>
 <div class="dlist">
 <dl>
@@ -2661,86 +2762,110 @@ the default format.</p>
 <dt class="hdlist1">-u</dt>
 <dt class="hdlist1">--patch</dt>
 <dd>
-<p>Generate patch (see section on generating patches).</p>
+<p>Generate patch (see <a href="#generate_patch_text_with_p">Generating patch text with -p</a>).</p>
 </dd>
 <dt class="hdlist1">-s</dt>
 <dt class="hdlist1">--no-patch</dt>
 <dd>
-<p>Suppress diff output. Useful for commands like <code>git show</code> that
-show the patch by default, or to cancel the effect of <code>--patch</code>.</p>
+<p>Suppress all output from the diff machinery.  Useful for
+commands like <code>git show</code> that show the patch by default to
+squelch their output, or to cancel the effect of options like
+<code>--patch</code>, <code>--stat</code> earlier on the command line in an alias.</p>
 </dd>
-<dt class="hdlist1">--diff-merges=(off|none|on|first-parent|1|separate|m|combined|c|dense-combined|cc|remerge|r)</dt>
+<dt class="hdlist1">-m</dt>
+<dd>
+<p>Show diffs for merge commits in the default format. This is
+similar to <em>--diff-merges=on</em>, except <code>-m</code> will
+produce no output unless <code>-p</code> is given as well.</p>
+</dd>
+<dt class="hdlist1">-c</dt>
+<dd>
+<p>Produce combined diff output for merge commits.
+Shortcut for <em>--diff-merges=combined -p</em>.</p>
+</dd>
+<dt class="hdlist1">--cc</dt>
+<dd>
+<p>Produce dense combined diff output for merge commits.
+Shortcut for <em>--diff-merges=dense-combined -p</em>.</p>
+</dd>
+<dt class="hdlist1">--dd</dt>
+<dd>
+<p>Produce diff with respect to first parent for both merge and
+regular commits.
+Shortcut for <em>--diff-merges=first-parent -p</em>.</p>
+</dd>
+<dt class="hdlist1">--remerge-diff</dt>
+<dd>
+<p>Produce remerge-diff output for merge commits.
+Shortcut for <em>--diff-merges=remerge -p</em>.</p>
+</dd>
 <dt class="hdlist1">--no-diff-merges</dt>
 <dd>
+<p>Synonym for <em>--diff-merges=off</em>.</p>
+</dd>
+<dt class="hdlist1">--diff-merges=&lt;format&gt;</dt>
+<dd>
 <p>Specify diff format to be used for merge commits. Default is
-`off` unless <code>--first-parent</code> is in use, in which case
-<code>first-parent</code> is the default.</p>
+`off` unless <code>--first-parent</code> is in use, in
+which case <code>first-parent</code> is the default.</p>
+<div class="paragraph">
+<p>The following formats are supported:</p>
+</div>
+<div class="openblock">
+<div class="content">
 <div class="dlist">
 <dl>
-<dt class="hdlist1">--diff-merges=(off|none)</dt>
-<dt class="hdlist1">--no-diff-merges</dt>
+<dt class="hdlist1">off, none</dt>
 <dd>
 <p>Disable output of diffs for merge commits. Useful to override
 implied value.</p>
 </dd>
-<dt class="hdlist1">--diff-merges=on</dt>
-<dt class="hdlist1">--diff-merges=m</dt>
-<dt class="hdlist1">-m</dt>
+<dt class="hdlist1">on, m</dt>
 <dd>
-<p>This option makes diff output for merge commits to be shown in
-the default format. <code>-m</code> will produce the output only if <code>-p</code>
-is given as well. The default format could be changed using
-<code>log.diffMerges</code> configuration parameter, which default value
+<p>Make diff output for merge commits to be shown in the default
+format. The default format can be changed using
+<code>log.diffMerges</code> configuration variable, whose default value
 is <code>separate</code>.</p>
 </dd>
-<dt class="hdlist1">--diff-merges=first-parent</dt>
-<dt class="hdlist1">--diff-merges=1</dt>
+<dt class="hdlist1">first-parent, 1</dt>
 <dd>
-<p>This option makes merge commits show the full diff with
-respect to the first parent only.</p>
+<p>Show full diff with respect to first parent. This is the same
+format as <code>--patch</code> produces for non-merge commits.</p>
 </dd>
-<dt class="hdlist1">--diff-merges=separate</dt>
+<dt class="hdlist1">separate</dt>
 <dd>
-<p>This makes merge commits show the full diff with respect to
-each of the parents. Separate log entry and diff is generated
-for each parent.</p>
+<p>Show full diff with respect to each of parents.
+Separate log entry and diff is generated for each parent.</p>
 </dd>
-<dt class="hdlist1">--diff-merges=remerge</dt>
-<dt class="hdlist1">--diff-merges=r</dt>
-<dt class="hdlist1">--remerge-diff</dt>
+<dt class="hdlist1">combined, c</dt>
 <dd>
-<p>With this option, two-parent merge commits are remerged to
-create a temporary tree object&#8201;&#8212;&#8201;potentially containing files
-with conflict markers and such.  A diff is then shown between
-that temporary tree and the actual merge commit.</p>
+<p>Show differences from each of the parents to the merge
+result simultaneously instead of showing pairwise diff between
+a parent and the result one at a time. Furthermore, it lists
+only files which were modified from all parents.</p>
+</dd>
+<dt class="hdlist1">dense-combined, cc</dt>
+<dd>
+<p>Further compress output produced by <code>--diff-merges=combined</code>
+by omitting uninteresting hunks whose contents in the parents
+have only two variants and the merge result picks one of them
+without modification.</p>
+</dd>
+<dt class="hdlist1">remerge, r</dt>
+<dd>
+<p>Remerge two-parent merge commits to create a temporary tree
+object&#8212;&#8203;potentially containing files with conflict markers
+and such.  A diff is then shown between that temporary tree
+and the actual merge commit.</p>
 <div class="paragraph">
 <p>The output emitted when this option is used is subject to change, and
 so is its interaction with other options (unless explicitly
 documented).</p>
 </div>
 </dd>
-<dt class="hdlist1">--diff-merges=combined</dt>
-<dt class="hdlist1">--diff-merges=c</dt>
-<dt class="hdlist1">-c</dt>
-<dd>
-<p>With this option, diff output for a merge commit shows the
-differences from each of the parents to the merge result
-simultaneously instead of showing pairwise diff between a
-parent and the result one at a time. Furthermore, it lists
-only files which were modified from all parents. <code>-c</code> implies
-<code>-p</code>.</p>
-</dd>
-<dt class="hdlist1">--diff-merges=dense-combined</dt>
-<dt class="hdlist1">--diff-merges=cc</dt>
-<dt class="hdlist1">--cc</dt>
-<dd>
-<p>With this option the output produced by
-<code>--diff-merges=combined</code> is further compressed by omitting
-uninteresting hunks whose contents in the parents have only
-two variants and the merge result picks one of them without
-modification.  <code>--cc</code> implies <code>-p</code>.</p>
-</dd>
 </dl>
+</div>
+</div>
 </div>
 </dd>
 <dt class="hdlist1">--combined-all-paths</dt>
@@ -2863,14 +2988,15 @@ will be used for the filename part, and the rest for the graph
 part. Maximum width defaults to terminal width, or 80 columns
 if not connected to a terminal, and can be overridden by
 <code>&lt;width&gt;</code>. The width of the filename part can be limited by
-giving another width <code>&lt;name-width&gt;</code> after a comma. The width
-of the graph part can be limited by using
-<code>--stat-graph-width=&lt;width&gt;</code> (affects all commands generating
-a stat graph) or by setting <code>diff.statGraphWidth=&lt;width&gt;</code>
-(does not affect <code>git format-patch</code>).
-By giving a third parameter <code>&lt;count&gt;</code>, you can limit the
-output to the first <code>&lt;count&gt;</code> lines, followed by <code>...</code> if
-there are more.</p>
+giving another width <code>&lt;name-width&gt;</code> after a comma or by setting
+<code>diff.statNameWidth=&lt;width&gt;</code>. The width of the graph part can be
+limited by using <code>--stat-graph-width=&lt;width&gt;</code> or by setting
+<code>diff.statGraphWidth=&lt;width&gt;</code>. Using <code>--stat</code> or
+<code>--stat-graph-width</code> affects all commands generating a stat graph,
+while setting <code>diff.statNameWidth</code> or <code>diff.statGraphWidth</code>
+does not affect <code>git format-patch</code>.
+By giving a third parameter <code>&lt;count&gt;</code>, you can limit the output to
+the first <code>&lt;count&gt;</code> lines, followed by <code>...</code> if there are more.</p>
 <div class="paragraph">
 <p>These parameters can also be set individually with <code>--stat-width=&lt;width&gt;</code>,
 <code>--stat-name-width=&lt;name-width&gt;</code> and <code>--stat-count=&lt;count&gt;</code>.</p>
@@ -2967,7 +3093,7 @@ and accumulating child directory counts in the parent directories:
 </dd>
 <dt class="hdlist1">--dirstat-by-file[=&lt;param1,param2&gt;&#8230;&#8203;]</dt>
 <dd>
-<p>Synonym for --dirstat=files,param1,param2&#8230;&#8203;</p>
+<p>Synonym for --dirstat=files,&lt;param1&gt;,&lt;param2&gt;&#8230;&#8203;</p>
 </dd>
 <dt class="hdlist1">--summary</dt>
 <dd>
@@ -2980,7 +3106,7 @@ such as creations, renames and mode changes.</p>
 </dd>
 <dt class="hdlist1">-z</dt>
 <dd>
-<p>Separate the commits with NULs instead of with new newlines.</p>
+<p>Separate the commits with NULs instead of newlines.</p>
 <div class="paragraph">
 <p>Also, when <code>--raw</code> or <code>--numstat</code> has been given, do not munge
 pathnames and use NULs as output field terminators.</p>
@@ -3489,7 +3615,7 @@ matches "<code>fooasdfbar</code>" and "<code>foo/bar/baz/asdf</code>" but not "<
 <dd>
 <p>Discard the files before the named &lt;file&gt; from the output
 (i.e. <em>skip to</em>), or move them to the end of the output
-(i.e. <em>rotate to</em>).  These were invented primarily for use
+(i.e. <em>rotate to</em>).  These options were invented primarily for the use
 of the <code>git difftool</code> command, and may not be very useful
 otherwise.</p>
 </dd>
@@ -3610,6 +3736,13 @@ the behavior until 1.7.0). Using "all" hides all changes to submodules.</p>
 <dd>
 <p>Do not show any source or destination prefix.</p>
 </dd>
+<dt class="hdlist1">--default-prefix</dt>
+<dd>
+<p>Use the default source and destination prefixes ("a/" and "b/").
+This overrides configuration variables such as <code>diff.noprefix</code>,
+<code>diff.srcPrefix</code>, <code>diff.dstPrefix</code>, and <code>diff.mnemonicPrefix</code>
+(see <code>git-config</code>(1)).</p>
+</dd>
 <dt class="hdlist1">--line-prefix=&lt;prefix&gt;</dt>
 <dd>
 <p>Prepend an additional prefix to every line of output.</p>
@@ -3632,7 +3765,7 @@ experimental and could be removed in future.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_generating_patch_text_with_p">Generating patch text with -p</h2>
+<h2 id="generate_patch_text_with_p">Generating patch text with -p</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Running
@@ -3654,7 +3787,7 @@ diff format:</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>It is preceded with a "git diff" header that looks like this:</p>
+<p>It is preceded by a "git diff" header that looks like this:</p>
 <div class="literalblock">
 <div class="content">
 <pre>diff --git a/file1 b/file2</pre>
@@ -3666,9 +3799,9 @@ involved.  Especially, even for a creation or a deletion,
 <code>/dev/null</code> is <em>not</em> used in place of the <code>a/</code> or <code>b/</code> filenames.</p>
 </div>
 <div class="paragraph">
-<p>When rename/copy is involved, <code>file1</code> and <code>file2</code> show the
+<p>When a rename/copy is involved, <code>file1</code> and <code>file2</code> show the
 name of the source file of the rename/copy and the name of
-the file that rename/copy produces, respectively.</p>
+the file that the rename/copy produces, respectively.</p>
 </div>
 </li>
 <li>
@@ -3733,7 +3866,7 @@ rename to a</pre>
 <li>
 <p>Hunk headers mention the name of the function to which the hunk
 applies.  See "Defining a custom hunk-header" in
-<a href="gitattributes.html">gitattributes(5)</a> for details of how to tailor to this to
+<a href="gitattributes.html">gitattributes(5)</a> for details of how to tailor this to
 specific languages.</p>
 </li>
 </ol>
@@ -3749,7 +3882,7 @@ produce a <em>combined diff</em> when showing a merge. This is the default
 format when showing merges with <a href="git-diff.html">git-diff(1)</a> or
 <a href="git-show.html">git-show(1)</a>. Note also that you can give suitable
 <code>--diff-merges</code> option to any of these commands to force generation of
-diffs in specific format.</p>
+diffs in a specific format.</p>
 </div>
 <div class="paragraph">
 <p>A "combined diff" format looks like this:</p>
@@ -3788,7 +3921,7 @@ index fabadb8,cc95eb0..4866510
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>It is preceded with a "git diff" header, that looks like
+<p>It is preceded by a "git diff" header, that looks like
 this (when the <code>-c</code> option is used):</p>
 <div class="literalblock">
 <div class="content">
@@ -3818,13 +3951,13 @@ deleted file mode &lt;mode&gt;,&lt;mode&gt;</pre>
 <div class="paragraph">
 <p>The <code>mode &lt;mode&gt;,&lt;mode&gt;..&lt;mode&gt;</code> line appears only if at least one of
 the &lt;mode&gt; is different from the rest. Extended headers with
-information about detected contents movement (renames and
-copying detection) are designed to work with diff of two
+information about detected content movement (renames and
+copying detection) are designed to work with the diff of two
 &lt;tree-ish&gt; and are not used by combined diff format.</p>
 </div>
 </li>
 <li>
-<p>It is followed by two-line from-file/to-file header</p>
+<p>It is followed by a two-line from-file/to-file header:</p>
 <div class="literalblock">
 <div class="content">
 <pre>--- a/file
@@ -3832,14 +3965,14 @@ copying detection) are designed to work with diff of two
 </div>
 </div>
 <div class="paragraph">
-<p>Similar to two-line header for traditional <em>unified</em> diff
+<p>Similar to the two-line header for the traditional <em>unified</em> diff
 format, <code>/dev/null</code> is used to signal created or deleted
 files.</p>
 </div>
 <div class="paragraph">
 <p>However, if the --combined-all-paths option is provided, instead of a
-two-line from-file/to-file you get a N+1 line from-file/to-file header,
-where N is the number of parents in the merge commit</p>
+two-line from-file/to-file, you get an N+1 line from-file/to-file header,
+where N is the number of parents in the merge commit:</p>
 </div>
 <div class="literalblock">
 <div class="content">
@@ -3893,7 +4026,7 @@ added, from the point of view of that parent).</p>
 <p>In the above example output, the function signature was changed
 from both files (hence two <code>-</code> removals from both file1 and
 file2, plus <code>++</code> to mean one line that was added does not appear
-in either file1 or file2).  Also eight other lines are the same
+in either file1 or file2).  Also, eight other lines are the same
 from file1 but do not appear in file2 (hence prefixed with <code>+</code>).</p>
 </div>
 <div class="paragraph">
@@ -4022,7 +4155,7 @@ mind.</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p><em>git commit</em> and <em>git commit-tree</em> issues
+<p><em>git commit</em> and <em>git commit-tree</em> issue
 a warning if the commit log message given to it does not look
 like a valid UTF-8 string, unless you explicitly say your
 project uses a legacy encoding.  The way to say this is to
@@ -4035,7 +4168,7 @@ have <code>i18n.commitEncoding</code> in <code>.git/config</code> file, like thi
 </div>
 <div class="paragraph">
 <p>Commit objects created with the above setting record the value
-of <code>i18n.commitEncoding</code> in its <code>encoding</code> header.  This is to
+of <code>i18n.commitEncoding</code> in their <code>encoding</code> header.  This is to
 help other people who look at them later.  Lack of this header
 implies that the commit log message is encoded in UTF-8.</p>
 </div>
@@ -4087,16 +4220,61 @@ Defaults to <code>medium</code>.</p>
 Defaults to the value of <code>i18n.commitEncoding</code> if set, and UTF-8
 otherwise.</p>
 </dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>Everything above this line in this section isn&#8217;t included from the
+<a href="git-config.html">git-config(1)</a> documentation. The content that follows is the
+same as what&#8217;s found there:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">log.abbrevCommit</dt>
+<dd>
+<p>If true, makes <a href="git-log.html">git-log(1)</a>, <a href="git-show.html">git-show(1)</a>, and
+<a href="git-whatchanged.html">git-whatchanged(1)</a> assume <code>--abbrev-commit</code>. You may
+override this option with <code>--no-abbrev-commit</code>.</p>
+</dd>
 <dt class="hdlist1">log.date</dt>
 <dd>
-<p>Default format for human-readable dates.  (Compare the
-<code>--date</code> option.)  Defaults to "default", which means to write
-dates like <code>Sat May 8 19:35:34 2010 -0500</code>.</p>
+<p>Set the default date-time mode for the <em>log</em> command.
+Setting a value for log.date is similar to using <em>git log</em>'s
+<code>--date</code> option.  See <a href="git-log.html">git-log(1)</a> for details.</p>
 <div class="paragraph">
 <p>If the format is set to "auto:foo" and the pager is in use, format
-"foo" will be the used for the date format. Otherwise "default" will
+"foo" will be used for the date format. Otherwise, "default" will
 be used.</p>
 </div>
+</dd>
+<dt class="hdlist1">log.decorate</dt>
+<dd>
+<p>Print out the ref names of any commits that are shown by the log
+command. If <em>short</em> is specified, the ref name prefixes <em>refs/heads/</em>,
+<em>refs/tags/</em> and <em>refs/remotes/</em> will not be printed. If <em>full</em> is
+specified, the full ref name (including prefix) will be printed.
+If <em>auto</em> is specified, then if the output is going to a terminal,
+the ref names are shown as if <em>short</em> were given, otherwise no ref
+names are shown. This is the same as the <code>--decorate</code> option
+of the <code>git log</code>.</p>
+</dd>
+<dt class="hdlist1">log.initialDecorationSet</dt>
+<dd>
+<p>By default, <code>git log</code> only shows decorations for certain known ref
+namespaces. If <em>all</em> is specified, then show all refs as
+decorations.</p>
+</dd>
+<dt class="hdlist1">log.excludeDecoration</dt>
+<dd>
+<p>Exclude the specified patterns from the log decorations. This is
+similar to the <code>--decorate-refs-exclude</code> command-line option, but
+the config option can be overridden by the <code>--decorate-refs</code>
+option.</p>
+</dd>
+<dt class="hdlist1">log.diffMerges</dt>
+<dd>
+<p>Set diff format to be used when <code>--diff-merges=on</code> is
+specified, see <code>--diff-merges</code> in <a href="git-log.html">git-log(1)</a> for
+details. Defaults to <code>separate</code>.</p>
 </dd>
 <dt class="hdlist1">log.follow</dt>
 <dd>
@@ -4105,37 +4283,111 @@ a single &lt;path&gt; is given.  This has the same limitations as <code>--follow
 i.e. it cannot be used to follow multiple files and does not work well
 on non-linear history.</p>
 </dd>
+<dt class="hdlist1">log.graphColors</dt>
+<dd>
+<p>A list of colors, separated by commas, that can be used to draw
+history lines in <code>git log --graph</code>.</p>
+</dd>
 <dt class="hdlist1">log.showRoot</dt>
 <dd>
-<p>If <code>false</code>, <code>git log</code> and related commands will not treat the
-initial commit as a big creation event.  Any root commits in
-<code>git log -p</code> output would be shown without a diff attached.
-The default is <code>true</code>.</p>
+<p>If true, the initial commit will be shown as a big creation event.
+This is equivalent to a diff against an empty tree.
+Tools like <a href="git-log.html">git-log(1)</a> or <a href="git-whatchanged.html">git-whatchanged(1)</a>, which
+normally hide the root commit will now show it. True by default.</p>
 </dd>
 <dt class="hdlist1">log.showSignature</dt>
 <dd>
-<p>If <code>true</code>, <code>git log</code> and related commands will act as if the
-<code>--show-signature</code> option was passed to them.</p>
+<p>If true, makes <a href="git-log.html">git-log(1)</a>, <a href="git-show.html">git-show(1)</a>, and
+<a href="git-whatchanged.html">git-whatchanged(1)</a> assume <code>--show-signature</code>.</p>
 </dd>
-<dt class="hdlist1">mailmap.*</dt>
+<dt class="hdlist1">log.mailmap</dt>
 <dd>
-<p>See <a href="git-shortlog.html">git-shortlog(1)</a>.</p>
+<p>If true, makes <a href="git-log.html">git-log(1)</a>, <a href="git-show.html">git-show(1)</a>, and
+<a href="git-whatchanged.html">git-whatchanged(1)</a> assume <code>--use-mailmap</code>, otherwise
+assume <code>--no-use-mailmap</code>. True by default.</p>
+</dd>
+<dt class="hdlist1">notes.mergeStrategy</dt>
+<dd>
+<p>Which merge strategy to choose by default when resolving notes
+conflicts.  Must be one of <code>manual</code>, <code>ours</code>, <code>theirs</code>, <code>union</code>, or
+<code>cat_sort_uniq</code>.  Defaults to <code>manual</code>.  See the "NOTES MERGE STRATEGIES"
+section of <a href="git-notes.html">git-notes(1)</a> for more information on each strategy.</p>
+<div class="paragraph">
+<p>This setting can be overridden by passing the <code>--strategy</code> option to
+<a href="git-notes.html">git-notes(1)</a>.</p>
+</div>
+</dd>
+<dt class="hdlist1">notes.&lt;name&gt;.mergeStrategy</dt>
+<dd>
+<p>Which merge strategy to choose when doing a notes merge into
+refs/notes/&lt;name&gt;.  This overrides the more general
+"notes.mergeStrategy".  See the "NOTES MERGE STRATEGIES" section in
+<a href="git-notes.html">git-notes(1)</a> for more information on the available strategies.</p>
 </dd>
 <dt class="hdlist1">notes.displayRef</dt>
 <dd>
-<p>Which refs, in addition to the default set by <code>core.notesRef</code>
-or <code>GIT_NOTES_REF</code>, to read notes from when showing commit
-messages with the <code>log</code> family of commands.  See
-<a href="git-notes.html">git-notes(1)</a>.</p>
+<p>Which ref (or refs, if a glob or specified more than once), in
+addition to the default set by <code>core.notesRef</code> or
+<code>GIT_NOTES_REF</code>, to read notes from when showing commit
+messages with the <em>git log</em> family of commands.</p>
 <div class="paragraph">
-<p>May be an unabbreviated ref name or a glob and may be specified
-multiple times.  A warning will be issued for refs that do not exist,
+<p>This setting can be overridden with the <code>GIT_NOTES_DISPLAY_REF</code>
+environment variable, which must be a colon separated list of refs or
+globs.</p>
+</div>
+<div class="paragraph">
+<p>A warning will be issued for refs that do not exist,
 but a glob that does not match any refs is silently ignored.</p>
 </div>
 <div class="paragraph">
-<p>This setting can be disabled by the <code>--no-notes</code> option,
-overridden by the <code>GIT_NOTES_DISPLAY_REF</code> environment variable,
-and overridden by the <code>--notes=&lt;ref&gt;</code> option.</p>
+<p>This setting can be disabled by the <code>--no-notes</code> option to the <em>git
+log</em> family of commands, or by the <code>--notes=&lt;ref&gt;</code> option accepted by
+those commands.</p>
+</div>
+<div class="paragraph">
+<p>The effective value of "core.notesRef" (possibly overridden by
+GIT_NOTES_REF) is also implicitly added to the list of refs to be
+displayed.</p>
+</div>
+</dd>
+<dt class="hdlist1">notes.rewrite.&lt;command&gt;</dt>
+<dd>
+<p>When rewriting commits with &lt;command&gt; (currently <code>amend</code> or
+<code>rebase</code>), if this variable is <code>false</code>, git will not copy
+notes from the original to the rewritten commit.  Defaults to
+<code>true</code>.  See also "<code>notes.rewriteRef</code>" below.</p>
+<div class="paragraph">
+<p>This setting can be overridden with the <code>GIT_NOTES_REWRITE_REF</code>
+environment variable, which must be a colon separated list of refs or
+globs.</p>
+</div>
+</dd>
+<dt class="hdlist1">notes.rewriteMode</dt>
+<dd>
+<p>When copying notes during a rewrite (see the
+"notes.rewrite.&lt;command&gt;" option), determines what to do if
+the target commit already has a note.  Must be one of
+<code>overwrite</code>, <code>concatenate</code>, <code>cat_sort_uniq</code>, or <code>ignore</code>.
+Defaults to <code>concatenate</code>.</p>
+<div class="paragraph">
+<p>This setting can be overridden with the <code>GIT_NOTES_REWRITE_MODE</code>
+environment variable.</p>
+</div>
+</dd>
+<dt class="hdlist1">notes.rewriteRef</dt>
+<dd>
+<p>When copying notes during a rewrite, specifies the (fully
+qualified) ref whose notes should be copied.  May be a glob,
+in which case notes in all matching refs will be copied.  You
+may also specify this configuration several times.</p>
+<div class="paragraph">
+<p>Does not have a default value; you must configure this variable to
+enable note rewriting.  Set it to <code>refs/notes/commits</code> to enable
+rewriting for the default commit notes.</p>
+</div>
+<div class="paragraph">
+<p>Can be overridden with the <code>GIT_NOTES_REWRITE_REF</code> environment variable.
+See <code>notes.rewrite.&lt;command&gt;</code> above for a further description of its format.</p>
 </div>
 </dd>
 </dl>
@@ -4153,7 +4405,7 @@ and overridden by the <code>--notes=&lt;ref&gt;</code> option.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-08-30 21:40:02 UTC
+Last updated 2024-06-03 08:04:30 UTC
 </div>
 </div>
 </body>

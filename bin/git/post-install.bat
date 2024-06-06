@@ -11,7 +11,11 @@
 @REM <percent>~fI Expands <percent>I to a fully qualified path name.
 @FOR /F "delims=" %%D IN ("%~dp0") DO @CD %%~fD
 
-@FOR /F "tokens=4 delims=.[XP " %%i IN ('ver') DO @SET ver=%%i
+@SET /A "version=0" & FOR /F "tokens=2 delims=[]" %%i IN ('"VER"') DO @(
+	@FOR /F "tokens=2 delims=. " %%v IN ("%%~i") DO @(
+		@SET /A "version=%%~v + 0"
+	)
+)
 
 @REM If this is a 32-bit Git for Windows, adjust the DLL address ranges.
 @REM We cannot use %PROCESSOR_ARCHITECTURE% for this test because it is
@@ -19,7 +23,7 @@
 @IF EXIST mingw32\bin\git.exe @(
 	@REM We need to rebase just to make sure that it still works even with
 	@REM 32-bit Windows 10
-	@IF 10 LEQ %ver% @(
+	@IF %version% GEQ 10 @(
 		@REM We copy `rebase.exe` because it links to `msys-2.0.dll`
 		@REM (and @REM thus prevents modifying it). It is okay to
 		@REM execute `rebase.exe`, though, because the DLL base address
@@ -41,6 +45,9 @@
 @echo "running post-install"
 @REM Run the post-install scripts
 @usr\bin\bash.exe --norc -c "export PATH=/usr/bin:$PATH; export SYSCONFDIR=/etc; for p in $(export LC_COLLATE=C; echo /etc/post-install/*.post); do test -e \"$p\" && . \"$p\"; done"
+
+@REM Unset environment variables set by this script
+@SET "version="
 
 @REM Remove this script
 @DEL post-install.bat

@@ -476,7 +476,7 @@ repository.  For push operations, see <em>git send-pack</em>.</p>
 <dl>
 <dt class="hdlist1">--[no-]strict</dt>
 <dd>
-<p>Do not try &lt;directory&gt;/.git/ if &lt;directory&gt; is no Git directory.</p>
+<p>Do not try &lt;directory&gt;/.git/ if &lt;directory&gt; is not a Git directory.</p>
 </dd>
 <dt class="hdlist1">--timeout=&lt;n&gt;</dt>
 <dd>
@@ -492,10 +492,9 @@ a program may read the request, write a response, and must exit.</p>
 <dd>
 <p>Used by <a href="git-http-backend.html">git-http-backend(1)</a> to serve up
 <code>$GIT_URL/info/refs?service=git-upload-pack</code> requests. See
-"Smart Clients" in <a href="technical/http-protocol.html">the HTTP
-transfer protocols</a> documentation and "HTTP Transport" in
-<a href="technical/protocol-v2.html">the Git Wire Protocol, Version
-2</a> documentation. Also understood by
+"Smart Clients" in <a href="gitprotocol-http.html">gitprotocol-http(5)</a> and "HTTP
+Transport" in the <a href="gitprotocol-v2.html">gitprotocol-v2(5)</a>
+documentation. Also understood by
 <a href="git-receive-pack.html">git-receive-pack(1)</a>.</p>
 </dd>
 <dt class="hdlist1">&lt;directory&gt;</dt>
@@ -517,7 +516,47 @@ transfer protocols</a> documentation and "HTTP Transport" in
 admins may need to configure some transports to allow this
 variable to be passed. See the discussion in <a href="git.html">git(1)</a>.</p>
 </dd>
+<dt class="hdlist1"><code>GIT_NO_LAZY_FETCH</code></dt>
+<dd>
+<p>When cloning or fetching from a partial repository (i.e., one
+itself cloned with <code>--filter</code>), the server-side <code>upload-pack</code>
+may need to fetch extra objects from its upstream in order to
+complete the request. By default, <code>upload-pack</code> will refuse to
+perform such a lazy fetch, because <code>git fetch</code> may run arbitrary
+commands specified in configuration and hooks of the source
+repository (and <code>upload-pack</code> tries to be safe to run even in
+untrusted <code>.git</code> directories).</p>
+<div class="paragraph">
+<p>This is implemented by having <code>upload-pack</code> internally set the
+<code>GIT_NO_LAZY_FETCH</code> variable to <code>1</code>. If you want to override it
+(because you are fetching from a partial clone, and you are sure
+you trust it), you can explicitly set <code>GIT_NO_LAZY_FETCH</code> to
+<code>0</code>.</p>
+</div>
+</dd>
 </dl>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_security">SECURITY</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Most Git commands should not be run in an untrusted <code>.git</code> directory
+(see the section <code>SECURITY</code> in <a href="git.html">git(1)</a>). <code>upload-pack</code> tries to
+avoid any dangerous configuration options or hooks from the repository
+it&#8217;s serving, making it safe to clone an untrusted directory and run
+commands on the resulting clone.</p>
+</div>
+<div class="paragraph">
+<p>For an extra level of safety, you may be able to run <code>upload-pack</code> as an
+alternate user. The details will be platform dependent, but on many
+systems you can run:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>git clone --no-local --upload-pack='sudo -u nobody git-upload-pack' ...</pre>
+</div>
 </div>
 </div>
 </div>
@@ -540,7 +579,7 @@ variable to be passed. See the discussion in <a href="git.html">git(1)</a>.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-08-30 21:40:02 UTC
+Last updated 2024-06-03 08:04:30 UTC
 </div>
 </div>
 </body>

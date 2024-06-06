@@ -11,7 +11,7 @@ package require Tk
 
 # puzzleSwitch --
 # This procedure is invoked when the user clicks on a particular button;
-# if the button is next to the empty space, it moves the button into th
+# if the button is next to the empty space, it moves the button into the
 # empty space.
 
 proc puzzleSwitch {w num} {

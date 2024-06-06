@@ -30,12 +30,9 @@ of course).
 
 =item *
 
-When B<encoding>, the input is read 45 bytes at a time: this ensures
-that the output lines are not too long.   We chose 45 since it is
-a multiple of 3 and produces lines under 76 characters, as RFC 2045
-specifies:
-    The encoded output stream must be represented in lines of no more
-    than 76 characters each.
+When B<encoding>, the input is read 6840 (120 * 57) bytes at a time.
+Each section of 57 bytes is encoded as a line containing 76 Base64
+characters.
 
 =back
 
@@ -60,11 +57,10 @@ use MIME::Tools qw(debug);
 @ISA = qw(MIME::Decoder);
 
 ### The package version, both in 1.23 style *and* usable by MakeMaker:
-$VERSION = "5.509";
+$VERSION = "5.515";
 
-### How many bytes to encode at a time (must be a multiple of 3, and
-### less than (76 * 0.75)!
-my $EncodeChunkLength = 45;
+### How many bytes to encode at a time (must be a multiple of 3)
+my $EncodeChunkLength = 120 * 57;
 
 ### How many bytes to decode at a time?
 my $DecodeChunkLength = 32 * 1024;

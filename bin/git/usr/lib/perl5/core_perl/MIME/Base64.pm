@@ -8,7 +8,7 @@ our @ISA = qw(Exporter);
 our @EXPORT = qw(encode_base64 decode_base64);
 our @EXPORT_OK = qw(encode_base64url decode_base64url encoded_base64_length decoded_base64_length);
 
-our $VERSION = '3.16';
+our $VERSION = '3.16_01';
 
 require XSLoader;
 XSLoader::load('MIME::Base64', $VERSION);

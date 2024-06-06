@@ -2,7 +2,7 @@ package Net::servent;
 use strict;
 
 use 5.006_001;
-our $VERSION = '1.02';
+our $VERSION = '1.03';
 our(@EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 our ( $s_name, @s_aliases, $s_port, $s_proto );
 BEGIN {
@@ -53,7 +53,7 @@ Net::servent - by-name interface to Perl's built-in getserv*() functions
 =head1 SYNOPSIS
 
  use Net::servent;
- $s = getservbyname(shift || 'ftp') || die "no service";
+ my $s = getservbyname(shift || 'ftp') || die "no service";
  printf "port for %s is %s, aliases are %s\n",
     $s->name, $s->port, "@{$s->aliases}";
 

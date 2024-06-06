@@ -13,7 +13,7 @@ use strict;
 use Carp;
 use Symbol;
 
-our $VERSION = "1.49";
+our $VERSION = "1.52";
 
 sub new {
     my $type = shift;
@@ -203,7 +203,7 @@ processes.
 =item new ( [READER, WRITER] )
 
 Creates an C<IO::Pipe>, which is a reference to a newly created symbol
-(see the C<Symbol> package). C<IO::Pipe::new> optionally takes two
+(see the L<Symbol> package). C<IO::Pipe::new> optionally takes two
 arguments, which should be objects blessed into C<IO::Handle>, or a
 subclass thereof. These two objects will be used for the system call
 to C<pipe>. If no arguments are given then method C<handles> is called

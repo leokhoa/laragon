@@ -10,29 +10,29 @@ IO::File - supply object methods for filehandles
 
     use IO::File;
 
-    $fh = IO::File->new();
+    my $fh = IO::File->new();
     if ($fh->open("< file")) {
         print <$fh>;
         $fh->close;
     }
 
-    $fh = IO::File->new("> file");
+    my $fh = IO::File->new("> file");
     if (defined $fh) {
         print $fh "bar\n";
         $fh->close;
     }
 
-    $fh = IO::File->new("file", "r");
+    my $fh = IO::File->new("file", "r");
     if (defined $fh) {
         print <$fh>;
         undef $fh;       # automatically closes the file
     }
 
-    $fh = IO::File->new("file", O_WRONLY|O_APPEND);
+    my $fh = IO::File->new("file", O_WRONLY|O_APPEND);
     if (defined $fh) {
         print $fh "corge\n";
 
-        $pos = $fh->getpos;
+        my $pos = $fh->getpos;
         $fh->setpos($pos);
 
         undef $fh;       # automatically closes the file
@@ -135,7 +135,7 @@ require Exporter;
 
 our @ISA = qw(IO::Handle IO::Seekable Exporter);
 
-our $VERSION = "1.48";
+our $VERSION = "1.52";
 
 our @EXPORT = @IO::Seekable::EXPORT;
 

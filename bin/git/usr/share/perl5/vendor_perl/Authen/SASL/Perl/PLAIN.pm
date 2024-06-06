@@ -3,11 +3,11 @@
 # modify it under the same terms as Perl itself.
 
 package Authen::SASL::Perl::PLAIN;
-
+$Authen::SASL::Perl::PLAIN::VERSION = '2.1700';
 use strict;
-use vars qw($VERSION @ISA);
+use warnings;
+use vars qw(@ISA);
 
-$VERSION = "2.14";
 @ISA	 = qw(Authen::SASL::Perl);
 
 my %secflags = (
@@ -102,6 +102,10 @@ __END__
 
 Authen::SASL::Perl::PLAIN - Plain Login Authentication class
 
+=head1 VERSION
+
+version 2.1700
+
 =head1 SYNOPSIS
 
   use Authen::SASL qw(Perl);
@@ -143,7 +147,7 @@ The user's password to be used for authentication.
 
 =head3 Server
 
-=over4
+=over 4
 
 =item checkpass(username, password, realm)
 

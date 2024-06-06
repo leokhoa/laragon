@@ -4,13 +4,13 @@ use strict;
 use warnings;
 use bytes;
 
-use IO::Compress::Base::Common 2.106 qw(:Status);
-use Compress::Raw::Zlib  2.103 qw( !crc32 !adler32 ) ;
+use IO::Compress::Base::Common 2.204 qw(:Status);
+use Compress::Raw::Zlib  2.204 qw( !crc32 !adler32 ) ;
 
 require Exporter;
 our ($VERSION, @ISA, @EXPORT_OK, %EXPORT_TAGS, @EXPORT, %DEFLATE_CONSTANTS);
 
-$VERSION = '2.106';
+$VERSION = '2.204';
 @ISA = qw(Exporter);
 @EXPORT_OK = @Compress::Raw::Zlib::DEFLATE_CONSTANTS;
 %EXPORT_TAGS = %Compress::Raw::Zlib::DEFLATE_CONSTANTS;
@@ -31,6 +31,29 @@ sub mkCompObject
                                 -Level          => $level,
                                 -Strategy       => $strategy,
                                 -WindowBits     => - MAX_WBITS);
+
+    return (undef, "Cannot create Deflate object: $status", $status)
+        if $status != Z_OK;
+
+    return bless {'Def'        => $def,
+                  'Error'      => '',
+                 } ;
+}
+
+sub mkCompObject1
+{
+    my $crc32    = shift ;
+    my $adler32  = shift ;
+    my $level    = shift ;
+    my $strategy = shift ;
+
+    my ($def, $status) = Compress::Raw::Zlib::Deflate->new(
+                                -AppendOutput   => 1,
+                                -CRC32          => $crc32,
+                                -ADLER32        => $adler32,
+                                -Level          => $level,
+                                -Strategy       => $strategy,
+                                -WindowBits     => MAX_WBITS);
 
     return (undef, "Cannot create Deflate object: $status", $status)
         if $status != Z_OK;

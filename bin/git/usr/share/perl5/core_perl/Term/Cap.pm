@@ -19,7 +19,7 @@ use strict;
 use vars qw($VERSION $VMS_TERMCAP);
 use vars qw($termpat $state $first $entry);
 
-$VERSION = '1.17';
+$VERSION = '1.18';
 
 # TODO:
 # support Berkeley DB termcaps
@@ -33,7 +33,7 @@ Term::Cap - Perl termcap interface
 =head1 SYNOPSIS
 
     require Term::Cap;
-    $terminal = Tgetent Term::Cap { TERM => undef, OSPEED => $ospeed };
+    $terminal = Term::Cap->Tgetent({ TERM => undef, OSPEED => $ospeed });
     $terminal->Trequire(qw/ce ku kd/);
     $terminal->Tgoto('cm', $col, $row, $FH);
     $terminal->Tputs('dl', $count, $FH);
@@ -91,7 +91,7 @@ sub termcap_path
     {
 
         # Add the users $TERMPATH
-        push( @termcap_path, split( /(:|\s+)/, $ENV{TERMPATH} ) );
+        push( @termcap_path, split( /:|\s+/, $ENV{TERMPATH} ) );
     }
     else
     {
@@ -702,7 +702,7 @@ sub Trequire
 
     # Get terminal output speed
     require POSIX;
-    my $termios = new POSIX::Termios;
+    my $termios = POSIX::Termios->new;
     $termios->getattr;
     my $ospeed = $termios->getospeed;
 
@@ -712,7 +712,7 @@ sub Trequire
     #     ($ispeed,$ospeed) = unpack('cc',$sgtty);
 
     # allocate and initialize a terminal structure
-    $terminal = Tgetent Term::Cap { TERM => undef, OSPEED => $ospeed };
+    my $terminal = Term::Cap->Tgetent({ TERM => undef, OSPEED => $ospeed });
 
     # require certain capabilities to be available
     $terminal->Trequire(qw/ce ku kd/);

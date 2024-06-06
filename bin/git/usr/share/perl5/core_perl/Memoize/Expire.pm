@@ -1,22 +1,15 @@
+use strict; use warnings;
 
 package Memoize::Expire;
-# require 5.00556;
-use Carp;
-$DEBUG = 0;
-$VERSION = '1.03';
+our $VERSION = '1.16';
 
-# This package will implement expiration by prepending a fixed-length header
-# to the font of the cached data.  The format of the header will be:
+use Carp;
+our $DEBUG;
+
+# The format of the metadata is:
 # (4-byte number of last-access-time)  (For LRU when I implement it)
 # (4-byte expiration time: unsigned seconds-since-unix-epoch)
 # (2-byte number-of-uses-before-expire)
-
-sub _header_fmt () { "N N n" }
-sub _header_size () { length(_header_fmt) }
-
-# Usage:  memoize func 
-#         TIE => [Memoize::Expire, LIFETIME => sec, NUM_USES => n,
-#                 TIE => [...] ]
 
 BEGIN {
   eval {require Time::HiRes};
@@ -43,7 +36,7 @@ sub TIEHASH {
   }
   $args{LIFETIME} ||= 0;
   $args{NUM_USES} ||= 0;
-  $args{C} = \%cache;
+  $args{C} = delete $args{HASH} || \%cache;
   bless \%args => $package;
 }
 
@@ -54,27 +47,25 @@ sub STORE {
   # The call that results in a value to store into the cache is the
   # first of the NUM_USES allowed calls.
   my $header = _make_header(time, $expire_time, $self->{NUM_USES}-1);
-  $self->{C}{$key} = $header . $value;
+  @{$self->{C}}{"H$key", "V$key"} = ($header, $value);
   $value;
 }
 
 sub FETCH {
   $DEBUG and print STDERR " >> Fetch cached value for $_[1]\n";
-  my ($data, $last_access, $expire_time, $num_uses_left) = _get_item($_[0]{C}{$_[1]});
+  my ($last_access, $expire_time, $num_uses_left) = _get_header($_[0]{C}{"H$_[1]"});
   $DEBUG and print STDERR " >>   (ttl: ", ($expire_time-time()), ", nuses: $num_uses_left)\n";
-  $num_uses_left--;
-  $last_access = time;
-  _set_header(@_, $data, $last_access, $expire_time, $num_uses_left);
-  $data;
+  $_[0]{C}{"H$_[1]"} = _make_header(time, $expire_time, --$num_uses_left);
+  $_[0]{C}{"V$_[1]"};
 }
 
 sub EXISTS {
   $DEBUG and print STDERR " >> Exists $_[1]\n";
-  unless (exists $_[0]{C}{$_[1]}) {
+  unless (exists $_[0]{C}{"V$_[1]"}) {
     $DEBUG and print STDERR "    Not in underlying hash at all.\n";
     return 0;
   }
-  my $item = $_[0]{C}{$_[1]};
+  my $item = $_[0]{C}{"H$_[1]"};
   my ($last_access, $expire_time, $num_uses_left) = _get_header($item);
   my $ttl = $expire_time - time;
   if ($DEBUG) {
@@ -91,26 +82,21 @@ sub EXISTS {
   }
 }
 
+sub FIRSTKEY {
+  scalar keys %{$_[0]{C}};
+  &NEXTKEY;
+}
+
+sub NEXTKEY {
+  while (defined(my $key = each %{$_[0]{C}})) {
+    return substr $key, 1 if 'V' eq substr $key, 0, 1;
+  }
+  undef;
+}
+
 # Arguments: last access time, expire time, number of uses remaining
 sub _make_header {
   pack "N N n", @_;
-}
-
-sub _strip_header {
-  substr($_[0], 10);
-}
-
-# Arguments: last access time, expire time, number of uses remaining
-sub _set_header {
-  my ($self, $key, $data, @header) = @_;
-  $self->{C}{$key} = _make_header(@header) . $data;
-}
-
-sub _get_item {
-  my $data = substr($_[0], 10);
-  my @header = unpack "N N n", substr($_[0], 0, 10);
-#  print STDERR " >> _get_item: $data => $data @header\n";
-  ($data, @header);
 }
 
 # Return last access time, expire time, number of uses remaining
@@ -119,6 +105,10 @@ sub _get_header  {
 }
 
 1;
+
+__END__
+
+=pod
 
 =head1 NAME 
 
@@ -249,7 +239,7 @@ the cache, and it should return the cache object to the caller.
 For example, MyExpirePolicy::TIEHASH might create an object that
 contains a regular Perl hash (which it will to store the cached
 values) and some extra information about the arguments and how old the
-data is and things like that.  Let us call this object `C'.
+data is and things like that. Let us call this object I<C<C>>.
 
 When Memoize needs to check to see if an entry is in the cache
 already, it will invoke C<< C->EXISTS(key) >>.  C<key> is the normalized
@@ -282,7 +272,7 @@ cache item after ten seconds.
               $cache->{$key}{EXPIRE_TIME} > time) {
 	    return 1
 	  } else {
-	    return 0;  # Do NOT return `undef' here.
+	    return 0;  # Do NOT return undef here
 	  }
 	}
 
@@ -318,11 +308,10 @@ See the documentation for details.
 
 =head1 ALTERNATIVES
 
-Brent Powers has a C<Memoize::ExpireLRU> module that was designed to
+Brent Powers has a L<Memoize::ExpireLRU> module that was designed to
 work with Memoize and provides expiration of least-recently-used data.
 The cache is held at a fixed number of entries, and when new data
-comes in, the least-recently used data is expired.  See
-L<http://search.cpan.org/search?mode=module&query=ExpireLRU>.
+comes in, the least-recently used data is expired.
 
 Joshua Chamas's Tie::Cache module may be useful as an expiration
 manager.  (If you try this, let me know how it works out.)
@@ -349,7 +338,7 @@ C<Time::HiRes> installed.
 
 =head1 AUTHOR
 
-Mark-Jason Dominus (mjd-perl-memoize+@plover.com)
+Mark-Jason Dominus
 
 Mike Cariaso provided valuable insight into the best way to solve this
 problem.
@@ -359,12 +348,5 @@ problem.
 perl(1)
 
 The Memoize man page.
-
-http://www.plover.com/~mjd/perl/Memoize/  (for news and updates)
-
-I maintain a mailing list on which I occasionally announce new
-versions of Memoize.  The list is for announcements only, not
-discussion.  To join, send an empty message to
-mjd-perl-memoize-request@Plover.com.
 
 =cut

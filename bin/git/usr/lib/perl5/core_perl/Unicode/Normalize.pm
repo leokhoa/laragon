@@ -7,7 +7,7 @@ use Carp;
 
 no warnings 'utf8';
 
-our $VERSION = '1.31';
+our $VERSION = '1.32';
 our $PACKAGE = __PACKAGE__;
 
 our @EXPORT = qw( NFC NFD NFKC NFKD );
@@ -376,7 +376,7 @@ Note that C<$unprocessed> will be modified as a side-effect.
 
 =head2 Quick Check
 
-(see Annex 8, UAX #15; and F<DerivedNormalizationProps.txt>)
+(see Annex 8, UAX #15; and F<lib/unicore/DerivedNormalizationProps.txt>)
 
 The following functions check whether the string is in that normalization form.
 
@@ -604,8 +604,10 @@ so one could cause Unicode 3.2 to be used in any perl version starting with
 
 In older Unicode versions, a small number of characters (all of which are
 CJK compatibility ideographs as far as they have been found) may have
-an erroneous decomposition mapping (see F<NormalizationCorrections.txt>).
-Anyhow, this module will neither refer to F<NormalizationCorrections.txt>
+an erroneous decomposition mapping (see
+F<lib/unicore/NormalizationCorrections.txt>).
+Anyhow, this module will neither refer to
+F<lib/unicore/NormalizationCorrections.txt>
 nor provide any specific version of normalization. Therefore this module
 running on an older perl with an older Unicode database may use
 the erroneous decomposition mapping blindly conforming to the Unicode database.

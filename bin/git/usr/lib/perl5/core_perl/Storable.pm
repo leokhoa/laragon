@@ -28,7 +28,7 @@ our @EXPORT_OK = qw(
 our ($canonical, $forgive_me);
 
 BEGIN {
-  our $VERSION = '3.26';
+  our $VERSION = '3.32';
 }
 
 our $recursion_limit;
@@ -1197,11 +1197,16 @@ compartment:
 
 =head1 SECURITY WARNING
 
-B<Do not accept Storable documents from untrusted sources!>
+B<Do not accept Storable documents from untrusted sources!> There is
+B<no> way to configure Storable so that it can be used safely to process
+untrusted data.  While there I<are> various options that can be used to
+mitigate specific security issues these options do I<not> comprise a
+complete safety net for the user, and processing untrusted data may
+result in segmentation faults, remote code execution, or privilege
+escalation.  The following lists some known features which represent
+security issues that should be considered by users of this module.
 
-Some features of Storable can lead to security vulnerabilities if you
-accept Storable documents from untrusted sources with the default
-flags. Most obviously, the optional (off by default) CODE reference
+Most obviously, the optional (off by default) CODE reference
 serialization feature allows transfer of code to the deserializing
 process. Furthermore, any serialized object will cause Storable to
 helpfully load the module corresponding to the class of the object in
@@ -1224,12 +1229,15 @@ With the default setting of C<$Storable::flags> = 6, creating or destroying
 random objects, even renamed objects can be controlled by an attacker.
 See CVE-2015-1592 and its metasploit module.
 
-If your application requires accepting data from untrusted sources,
-you are best off with a less powerful and more-likely safe
-serialization format and implementation. If your data is sufficiently
-simple, L<Cpanel::JSON::XS>, L<Data::MessagePack> or L<Sereal> are the best
-choices and offer maximum interoperability, but note that Sereal is
-L<unsafe by default|Sereal::Decoder/ROBUSTNESS>.
+If your application requires accepting data from untrusted sources, you
+are best off with a less powerful and more-likely safe serialization
+format and implementation.  If your data is sufficiently simple,
+L<Cpanel::JSON::XS> or L<Data::MessagePack> are fine alternatives.  For
+more complex data structures containing various Perl specific data types
+like regular expressions or aliased data L<Sereal> is the best
+alternative and offers maximum interoperability.  Note that Sereal is
+L<unsafe by default|Sereal::Decoder/ROBUSTNESS>, but you can configure
+the encoder and decoder to mitigate any security issues.
 
 =head1 WARNING
 

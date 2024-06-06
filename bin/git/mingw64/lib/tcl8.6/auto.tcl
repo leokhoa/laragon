@@ -70,9 +70,9 @@ proc tcl_findLibrary {basename version patch initScript enVarName varName} {
 	#    gives the end-user ultimate control to work-around any bugs, or
 	#    to customize.
 
-        if {[info exists env($enVarName)]} {
-            lappend dirs $env($enVarName)
-        }
+	if {[info exists env($enVarName)]} {
+	    lappend dirs $env($enVarName)
+	}
 
 	# 2. In the package script directory registered within the
 	#    configuration of the package itself.
@@ -107,11 +107,11 @@ proc tcl_findLibrary {basename version patch initScript enVarName varName} {
 	# ../../../foo1.0.1/library
 	#		(From unix/arch directory in parallel build hierarchy)
 
-        set parentDir [file dirname [file dirname [info nameofexecutable]]]
-        set grandParentDir [file dirname $parentDir]
-        lappend dirs [file join $parentDir lib $basename$version]
-        lappend dirs [file join $grandParentDir lib $basename$version]
-        lappend dirs [file join $parentDir library]
+	set parentDir [file dirname [file dirname [info nameofexecutable]]]
+	set grandParentDir [file dirname $parentDir]
+	lappend dirs [file join $parentDir lib $basename$version]
+	lappend dirs [file join $grandParentDir lib $basename$version]
+	lappend dirs [file join $parentDir library]
 	if {0} {
 	    lappend dirs [file join $grandParentDir library]
 	    lappend dirs [file join $grandParentDir $basename$patch library]
@@ -134,8 +134,8 @@ proc tcl_findLibrary {basename version patch initScript enVarName varName} {
 	}
 	set seen($norm) {}
 
-        set the_library $i
-        set file [file join $i $initScript]
+	set the_library $i
+	set file [file join $i $initScript]
 
 	# source everything when in a safe interpreter because we have a
 	# source command, but no file exists command
@@ -185,7 +185,7 @@ if {[interp issafe]} {
 
 proc auto_mkindex {dir args} {
     if {[interp issafe]} {
-        error "can't generate index within safe interpreter"
+	error "can't generate index within safe interpreter"
     }
 
     set oldDir [pwd]
@@ -240,7 +240,7 @@ proc auto_mkindex_old {dir args} {
 	set f ""
 	set error [catch {
 	    set f [open $file]
-	    fconfigure $f -eofchar \032
+	    fconfigure $f -eofchar "\032 {}"
 	    while {[gets $f line] >= 0} {
 		if {[regexp {^proc[ 	]+([^ 	]*)} $line match procName]} {
 		    set procName [lindex [auto_qualify $procName "::"] 0]
@@ -351,7 +351,7 @@ proc auto_mkindex_parser::mkindex {file} {
     set scriptFile $file
 
     set fid [open $file]
-    fconfigure $fid -eofchar \032
+    fconfigure $fid -eofchar "\032 {}"
     set contents [read $fid]
     close $fid
 
@@ -371,7 +371,7 @@ proc auto_mkindex_parser::mkindex {file} {
     $parser eval $contents
 
     foreach name $imports {
-        catch {$parser eval [list _%@namespace forget $name]}
+	catch {$parser eval [list _%@namespace forget $name]}
     }
     return $index
 }
@@ -441,9 +441,9 @@ proc auto_mkindex_parser::commandInit {name arglist body} {
     set ns [namespace qualifiers $name]
     set tail [namespace tail $name]
     if {$ns eq ""} {
-        set fakeName [namespace current]::_%@fake_$tail
+	set fakeName [namespace current]::_%@fake_$tail
     } else {
-        set fakeName [namespace current]::[string map {:: _} _%@fake_$name]
+	set fakeName [namespace current]::[string map {:: _} _%@fake_$name]
     }
     proc $fakeName $arglist $body
 
@@ -452,8 +452,8 @@ proc auto_mkindex_parser::commandInit {name arglist body} {
     # the fully qualified names, and have the procs point to the aliases.
 
     if {[string match *::* $name]} {
-        set exportCmd [list _%@namespace export [namespace tail $name]]
-        $parser eval [list _%@namespace eval $ns $exportCmd]
+	set exportCmd [list _%@namespace export [namespace tail $name]]
+	$parser eval [list _%@namespace eval $ns $exportCmd]
 
 	# The following proc definition does not work if you want to tolerate
 	# space or something else diabolical in the procedure name, (i.e.,
@@ -465,11 +465,11 @@ proc auto_mkindex_parser::commandInit {name arglist body} {
 	# A gold star to someone that can make test autoMkindex-3.3 work
 	# properly
 
-        set alias [namespace tail $fakeName]
-        $parser invokehidden proc $name {args} "_%@eval {$alias} \$args"
-        $parser alias $alias $fakeName
+	set alias [namespace tail $fakeName]
+	$parser invokehidden proc $name {args} "_%@eval {$alias} \$args"
+	$parser alias $alias $fakeName
     } else {
-        $parser alias $name $fakeName
+	$parser alias $name $fakeName
     }
     return
 }
@@ -491,18 +491,18 @@ proc auto_mkindex_parser::fullname {name} {
     variable contextStack
 
     if {![string match ::* $name]} {
-        foreach ns $contextStack {
-            set name "${ns}::$name"
-            if {[string match ::* $name]} {
-                break
-            }
-        }
+	foreach ns $contextStack {
+	    set name "${ns}::$name"
+	    if {[string match ::* $name]} {
+		break
+	    }
+	}
     }
 
     if {[namespace qualifiers $name] eq ""} {
-        set name [namespace tail $name]
+	set name [namespace tail $name]
     } elseif {![string match ::* $name]} {
-        set name "::$name"
+	set name "::$name"
     }
 
     # Earlier, mkindex replaced all $'s with \0.  Now, we have to reverse that
@@ -592,27 +592,27 @@ auto_mkindex_parser::hook {
 
 auto_mkindex_parser::command namespace {op args} {
     switch -- $op {
-        eval {
-            variable parser
-            variable contextStack
+	eval {
+	    variable parser
+	    variable contextStack
 
-            set name [lindex $args 0]
-            set args [lrange $args 1 end]
+	    set name [lindex $args 0]
+	    set args [lrange $args 1 end]
 
-            set contextStack [linsert $contextStack 0 $name]
+	    set contextStack [linsert $contextStack 0 $name]
 	    $parser eval [list _%@namespace eval $name] $args
-            set contextStack [lrange $contextStack 1 end]
-        }
-        import {
-            variable parser
-            variable imports
-            foreach pattern $args {
-                if {$pattern ne "-force"} {
-                    lappend imports $pattern
-                }
-            }
-            catch {$parser eval "_%@namespace import $args"}
-        }
+	    set contextStack [lrange $contextStack 1 end]
+	}
+	import {
+	    variable parser
+	    variable imports
+	    foreach pattern $args {
+		if {$pattern ne "-force"} {
+		    lappend imports $pattern
+		}
+	    }
+	    catch {$parser eval "_%@namespace import $args"}
+	}
 	ensemble {
 	    variable parser
 	    variable contextStack

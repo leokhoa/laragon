@@ -210,7 +210,20 @@ proc ::tk::ScaleEndDrag {w} {
 
 proc ::tk::ScaleIncrement {w dir big repeat} {
     variable ::tk::Priv
+
     if {![winfo exists $w]} return
+
+    # give the cancel callback a chance to be serviced if the execution time of
+    # the -command script lasts longer than -repeatdelay
+    set clockms [clock milliseconds]
+    if {$repeat eq "again" &&
+            [expr {$clockms - $Priv(clockms)}] > [expr {[$w cget -repeatinterval] * 1.1}]} {
+        set Priv(clockms) $clockms
+	set Priv(afterId) [after [$w cget -repeatinterval] \
+		[list tk::ScaleIncrement $w $dir $big again]]
+	return
+    }
+
     if {$big eq "big"} {
 	set inc [$w cget -bigincrement]
 	if {$inc == 0} {
@@ -231,14 +244,18 @@ proc ::tk::ScaleIncrement {w dir big repeat} {
             set inc [expr {-$inc}]
         }
     }
+    # this will run the -command script (if any) during the redrawing
+    # of the scale at idle time
     $w set [expr {[$w get] + $inc}]
 
     if {$repeat eq "again"} {
+        set Priv(clockms) $clockms
 	set Priv(afterId) [after [$w cget -repeatinterval] \
 		[list tk::ScaleIncrement $w $dir $big again]]
     } elseif {$repeat eq "initial"} {
 	set delay [$w cget -repeatdelay]
 	if {$delay > 0} {
+	    set Priv(clockms) $clockms
 	    set Priv(afterId) [after $delay \
 		    [list tk::ScaleIncrement $w $dir $big again]]
 	}

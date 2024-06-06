@@ -1,6 +1,6 @@
 package Env;
 
-our $VERSION = '1.05';
+our $VERSION = '1.06';
 
 =head1 NAME
 
@@ -75,7 +75,7 @@ Gregor N. Purdy E<lt>F<gregor@focusresearch.com>E<gt>
 =cut
 
 sub import {
-    my ($callpack) = caller(0);
+    my $callpack = caller(0);
     my $pack = shift;
     my @vars = grep /^[\$\@]?[A-Za-z_]\w*$/, (@_ ? @_ : keys(%ENV));
     return unless @vars;

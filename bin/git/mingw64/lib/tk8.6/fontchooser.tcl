@@ -12,34 +12,48 @@ namespace eval ::tk::fontchooser {
     variable S
 
     set S(W) .__tk__fontchooser
-    set S(fonts) [lsort -dictionary [font families]]
+    set S(fonts) [lsort -dictionary -unique [font families]]
     set S(styles) [list \
-	[::msgcat::mc "Regular"] \
-	[::msgcat::mc "Italic"] \
-	[::msgcat::mc "Bold"] \
-	[::msgcat::mc "Bold Italic"] \
+            [::msgcat::mc Regular] \
+            [::msgcat::mc Italic] \
+            [::msgcat::mc Bold] \
+            [::msgcat::mc {Bold Italic}] \
     ]
-
     set S(sizes) {8 9 10 11 12 14 16 18 20 22 24 26 28 36 48 72}
     set S(strike) 0
     set S(under) 0
     set S(first) 1
-    set S(sampletext) [::msgcat::mc "AaBbYyZz01"]
     set S(-parent) .
-    set S(-title) [::msgcat::mc "Font"]
+    set S(-title) {}
     set S(-command) ""
     set S(-font) TkDefaultFont
+    set S(bad) [list ]
+}
+
+proc ::tk::fontchooser::Canonical {} {
+    variable S
+
+    foreach style $S(styles) {
+        lappend S(styles,lcase) [string tolower $style]
+    }
+    set S(sizes,lcase) $S(sizes)
+    set S(sampletext) [::msgcat::mc "AaBbYyZz01"]
+
+    # Canonical versions of font families, styles, etc. for easier searching
+    set S(fonts,lcase) {}
+    foreach font $S(fonts) {
+        lappend S(fonts,lcase) [string tolower $font]
+    }
+    set S(styles,lcase) {}
+    foreach style $S(styles) {
+        lappend S(styles,lcase) [string tolower $style]
+    }
 }
 
 proc ::tk::fontchooser::Setup {} {
     variable S
 
-    # Canonical versions of font families, styles, etc. for easier searching
-    set S(fonts,lcase) {}
-    foreach font $S(fonts) {lappend S(fonts,lcase) [string tolower $font]}
-    set S(styles,lcase) {}
-    foreach style $S(styles) {lappend S(styles,lcase) [string tolower $style]}
-    set S(sizes,lcase) $S(sizes)
+    Canonical
 
     ::ttk::style layout FontchooserFrame {
         Entry.field -sticky news -border true -children {
@@ -47,8 +61,8 @@ proc ::tk::fontchooser::Setup {} {
         }
     }
     bind [winfo class .] <<ThemeChanged>> \
-        [list +ttk::style layout FontchooserFrame \
-             [ttk::style layout FontchooserFrame]]
+            [list +ttk::style layout FontchooserFrame \
+                    [ttk::style layout FontchooserFrame]]
 
     namespace ensemble create -map {
         show ::tk::fontchooser::Show
@@ -60,14 +74,24 @@ proc ::tk::fontchooser::Setup {} {
 
 proc ::tk::fontchooser::Show {} {
     variable S
+
+    Canonical
+
     if {![winfo exists $S(W)]} {
         Create
         wm transient $S(W) [winfo toplevel $S(-parent)]
         tk::PlaceWindow $S(W) widget $S(-parent)
+        if {[string trim $S(-title)] eq ""} {
+            wm title $S(W) [::msgcat::mc "Font"]
+        } else {
+            wm title $S(W) $S(-title)
+        }
     }
-    set S(fonts) [lsort -dictionary [font families]]
+    set S(fonts) [lsort -dictionary -unique [font families]]
     set S(fonts,lcase) {}
-    foreach font $S(fonts) { lappend S(fonts,lcase) [string tolower $font]}
+    foreach font $S(fonts) {
+        lappend S(fonts,lcase) [string tolower $font]
+    }
     wm deiconify $S(W)
 }
 
@@ -91,10 +115,10 @@ proc ::tk::fontchooser::Configure {args} {
         foreach spec $specs {
             foreach {name xx yy default} $spec break
             lappend result $name \
-                [expr {[info exists S($name)] ? $S($name) : $default}]
+                    [expr {[info exists S($name)] ? $S($name) : $default}]
         }
         lappend result -visible \
-            [expr {[winfo exists $S(W)] && [winfo ismapped $S(W)]}]
+                [expr {[winfo exists $S(W)] && [winfo ismapped $S(W)]}]
         return $result
     }
     if {[llength $args] == 1} {
@@ -105,25 +129,32 @@ proc ::tk::fontchooser::Configure {args} {
             return $S($option)
         }
         return -code error -errorcode [list TK LOOKUP OPTION $option] \
-	    "bad option \"$option\": must be\
-            -command, -font, -parent, -title or -visible"
+                "bad option \"$option\": must be\
+                -command, -font, -parent, -title or -visible"
     }
-
     set cache [dict create -parent $S(-parent) -title $S(-title) \
-                   -font $S(-font) -command $S(-command)]
+            -font $S(-font) -command $S(-command)]
     set r [tclParseConfigSpec [namespace which -variable S] $specs DONTSETDEFAULTS $args]
     if {![winfo exists $S(-parent)]} {
-	set code [list TK LOOKUP WINDOW $S(-parent)]
+        set code [list TK LOOKUP WINDOW $S(-parent)]
         set err "bad window path name \"$S(-parent)\""
         array set S $cache
         return -code error -errorcode $code $err
     }
-    if {[string trim $S(-title)] eq ""} {
-        set S(-title) [::msgcat::mc "Font"]
-    }
-    if {[winfo exists $S(W)] && ("-font" in $args)} {
-	Init $S(-font)
-	event generate $S(-parent) <<TkFontchooserFontChanged>>
+
+    if {[winfo exists $S(W)]} {
+        if {{-font} in $args} {
+            Init $S(-font)
+            event generate $S(-parent) <<TkFontchooserFontChanged>>
+        }
+
+        if {[string trim $S(-title)] eq {}} {
+            wm title $S(W) [::msgcat::mc Font]
+        } else {
+            wm title $S(W) $S(-title)
+        }
+        $S(W).ok configure -state $S(nstate)
+        $S(W).apply configure -state $S(nstate)
     }
     return $r
 }
@@ -140,7 +171,9 @@ proc ::tk::fontchooser::Create {} {
     # Now build the dialog
     if {![winfo exists $S(W)]} {
         toplevel $S(W) -class TkFontDialog
-        if {[package provide tcltest] ne {}} {set ::tk_dialog $S(W)}
+        if {[package provide tcltest] ne {}} {
+            set ::tk_dialog $S(W)
+        }
         wm withdraw $S(W)
         wm title $S(W) $S(-title)
         wm transient $S(W) [winfo toplevel $S(-parent)]
@@ -153,40 +186,40 @@ proc ::tk::fontchooser::Create {} {
         ::tk::AmpWidget ::ttk::label $S(W).style -text [::msgcat::mc "Font st&yle:"]
         ::tk::AmpWidget ::ttk::label $S(W).size -text [::msgcat::mc "&Size:"] -width $sizeWidth
         ttk::entry $S(W).efont -width 18 \
-            -textvariable [namespace which -variable S](font)
+                -textvariable [namespace which -variable S](font)
         ttk::entry $S(W).estyle -width 10 \
-            -textvariable [namespace which -variable S](style)
+                -textvariable [namespace which -variable S](style)
         ttk::entry $S(W).esize -textvariable [namespace which -variable S](size) \
-            -width 3 -validate key -validatecommand {string is double %P}
+                -width 3 -validate key -validatecommand {regexp -- {^-*[0-9]*$} %P}
 
         ttk_slistbox $S(W).lfonts -height 7 -exportselection 0 \
-            -selectmode browse -activestyle none \
-            -listvariable [namespace which -variable S](fonts)
+                -selectmode browse -activestyle none \
+                -listvariable [namespace which -variable S](fonts)
         ttk_slistbox $S(W).lstyles -width 5 -height 7 -exportselection 0 \
-            -selectmode browse -activestyle none \
-            -listvariable [namespace which -variable S](styles)
+                -selectmode browse -activestyle none \
+                -listvariable [namespace which -variable S](styles)
         ttk_slistbox $S(W).lsizes -width 4 -height 7 -exportselection 0 \
-            -selectmode browse -activestyle none \
-            -listvariable [namespace which -variable S](sizes)
+                -selectmode browse -activestyle none \
+                -listvariable [namespace which -variable S](sizes)
 
         set WE $S(W).effects
         ::ttk::labelframe $WE -text [::msgcat::mc "Effects"]
         ::tk::AmpWidget ::ttk::checkbutton $WE.strike \
-            -variable [namespace which -variable S](strike) \
-            -text [::msgcat::mc "Stri&keout"] \
-            -command [namespace code [list Click strike]]
+                -variable [namespace which -variable S](strike) \
+                -text [::msgcat::mc "Stri&keout"] \
+                -command [namespace code [list Click strike]]
         ::tk::AmpWidget ::ttk::checkbutton $WE.under \
-            -variable [namespace which -variable S](under) \
-            -text [::msgcat::mc "&Underline"] \
-            -command [namespace code [list Click under]]
+                -variable [namespace which -variable S](under) \
+                -text [::msgcat::mc "&Underline"] \
+                -command [namespace code [list Click under]]
 
         set bbox [::ttk::frame $S(W).bbox]
         ::ttk::button $S(W).ok -text [::msgcat::mc OK] -default active\
-            -command [namespace code [list Done 1]]
+                -command [namespace code [list Done 1]]
         ::ttk::button $S(W).cancel -text [::msgcat::mc Cancel] \
-            -command [namespace code [list Done 0]]
+                -command [namespace code [list Done 0]]
         ::tk::AmpWidget ::ttk::button $S(W).apply -text [::msgcat::mc "&Apply"] \
-            -command [namespace code [list Apply]]
+                -command [namespace code [list Apply]]
         wm protocol $S(W) WM_DELETE_WINDOW [namespace code [list Done 0]]
 
         # Calculate minimum sizes
@@ -196,13 +229,15 @@ proc ::tk::fontchooser::Create {} {
         set minsize(gap) 10
         set minsize(bbox) [winfo reqwidth $S(W).ok]
         set minsize(fonts) \
-            [expr {[font measure TkDefaultFont "Helvetica"] + $scroll_width}]
+                [expr {[font measure TkDefaultFont "Helvetica"] + $scroll_width}]
         set minsize(styles) \
-            [expr {[font measure TkDefaultFont "Bold Italic"] + $scroll_width}]
+                [expr {[font measure TkDefaultFont "Bold Italic"] + $scroll_width}]
         set minsize(sizes) \
-            [expr {[font measure TkDefaultFont "-99"] + $scroll_width}]
+                [expr {[font measure TkDefaultFont "-99"] + $scroll_width}]
         set min [expr {$minsize(gap) * 4}]
-        foreach {what width} [array get minsize] {incr min $width}
+        foreach {what width} [array get minsize] {
+            incr min $width
+        }
         wm minsize $S(W) $min 260
 
         bind $S(W) <Return> [namespace code [list Done 1]]
@@ -224,7 +259,7 @@ proc ::tk::fontchooser::Create {} {
         set WS $S(W).sample
         ::ttk::labelframe $WS -text [::msgcat::mc "Sample"]
         ::ttk::label $WS.sample -relief sunken -anchor center \
-            -textvariable [namespace which -variable S](sampletext)
+                -textvariable [namespace which -variable S](sampletext)
         set S(sample) $WS.sample
         grid $WS.sample -sticky news -padx 6 -pady 4
         grid rowconfigure $WS 0 -weight 1
@@ -233,9 +268,7 @@ proc ::tk::fontchooser::Create {} {
 
         grid $S(W).ok     -in $bbox -sticky new -pady {0 2}
         grid $S(W).cancel -in $bbox -sticky new -pady 2
-        if {$S(-command) ne ""} {
-            grid $S(W).apply -in $bbox -sticky new -pady 2
-        }
+        grid $S(W).apply  -in $bbox -sticky new -pady 2
         grid columnconfigure $bbox 0 -weight 1
 
         grid $WE.strike -sticky w -padx 10
@@ -247,6 +280,7 @@ proc ::tk::fontchooser::Create {} {
         grid $S(W).lfonts x $S(W).lstyles x $S(W).lsizes x ^     -in $outer -sticky news
         grid $WE          x $WS           - -            x ^     -in $outer -sticky news -pady {15 30}
         grid configure $bbox -sticky n
+        grid rowconfigure $outer 2 -weight 1
         grid columnconfigure $outer {1 3 5} -minsize $minsize(gap)
         grid columnconfigure $outer {0 2 4} -weight 1
         grid columnconfigure $outer 0 -minsize $minsize(fonts)
@@ -261,14 +295,18 @@ proc ::tk::fontchooser::Create {} {
         Init $S(-font)
 
         trace add variable [namespace which -variable S](size) \
-            write [namespace code [list Tracer]]
+                write [namespace code [list Tracer]]
         trace add variable [namespace which -variable S](style) \
-            write [namespace code [list Tracer]]
+                write [namespace code [list Tracer]]
         trace add variable [namespace which -variable S](font) \
-            write [namespace code [list Tracer]]
-    } else {
-        Init $S(-font)
+                write [namespace code [list Tracer]]
+        trace add variable [namespace which -variable S](strike) \
+                write [namespace code [list Tracer]]
+        trace add variable [namespace which -variable S](under) \
+                write [namespace code [list Tracer]]
     }
+
+    Init $S(-font)
 
     return
 }
@@ -289,9 +327,14 @@ proc ::tk::fontchooser::Done {ok} {
     trace vdelete S(size) w [namespace code [list Tracer]]
     trace vdelete S(style) w [namespace code [list Tracer]]
     trace vdelete S(font) w [namespace code [list Tracer]]
+    trace vdelete S(strike) w [namespace code [list Tracer]]
+    trace vdelete S(under) w [namespace code [list Tracer]]
     destroy $S(W)
-    if {$ok && $S(-command) ne ""} {
-        uplevel #0 $S(-command) [list $S(result)]
+    if {$ok} {
+        if {$S(-command) ne ""} {
+            uplevel #0 $S(-command) [list $S(result)]
+        }
+        event generate $S(-parent) <<TkFontchooserFontChanged>>
     }
 }
 
@@ -321,16 +364,17 @@ proc ::tk::fontchooser::Init {{defaultFont ""}} {
     variable S
 
     if {$S(first) || $defaultFont ne ""} {
+        Canonical
         if {$defaultFont eq ""} {
             set defaultFont [[entry .___e] cget -font]
             destroy .___e
         }
         array set F [font actual $defaultFont]
         set S(font) $F(-family)
+        set S(style) [::msgcat::mc "Regular"]
         set S(size) $F(-size)
         set S(strike) $F(-overstrike)
         set S(under) $F(-underline)
-        set S(style) [::msgcat::mc "Regular"]
         if {$F(-weight) eq "bold" && $F(-slant) eq "italic"} {
             set S(style) [::msgcat::mc "Bold Italic"]
         } elseif {$F(-weight) eq "bold"} {
@@ -338,12 +382,8 @@ proc ::tk::fontchooser::Init {{defaultFont ""}} {
         } elseif {$F(-slant) eq "italic"} {
             set S(style) [::msgcat::mc "Italic"]
         }
-
         set S(first) 0
     }
-
-    Tracer a b c
-    Update
 }
 
 # ::tk::fontchooser::Click --
@@ -355,7 +395,6 @@ proc ::tk::fontchooser::Init {{defaultFont ""}} {
 #
 proc ::tk::fontchooser::Click {who} {
     variable S
-
     if {$who eq "font"} {
         set S(font) [$S(W).lfonts get [$S(W).lfonts curselection]]
     } elseif {$who eq "style"} {
@@ -363,7 +402,6 @@ proc ::tk::fontchooser::Click {who} {
     } elseif {$who eq "size"} {
         set S(size) [$S(W).lsizes get [$S(W).lsizes curselection]]
     }
-    Update
 }
 
 # ::tk::fontchooser::Tracer --
@@ -375,32 +413,43 @@ proc ::tk::fontchooser::Click {who} {
 #
 proc ::tk::fontchooser::Tracer {var1 var2 op} {
     variable S
-
-    set bad 0
-    set nstate normal
-    # Make selection in each listbox
-    foreach var {font style size} {
-        set value [string tolower $S($var)]
-        $S(W).l${var}s selection clear 0 end
-        set n [lsearch -exact $S(${var}s,lcase) $value]
-        $S(W).l${var}s selection set $n
+    # We don't need to process strike and under
+    if {$var2 ni [list strike under]} {
+        # Make selection in listbox
+        set value [string tolower $S($var2)]
+        $S(W).l${var2}s selection clear 0 end
+        set n [lsearch -exact $S(${var2}s,lcase) $value]
+        $S(W).l${var2}s selection set $n
         if {$n >= 0} {
-            set S($var) [lindex $S(${var}s) $n]
-            $S(W).e$var icursor end
-            $S(W).e$var selection clear
-        } else {                                ;# No match, try prefix
-            # Size is weird: valid numbers are legal but don't display
-            # unless in the font size list
-            set n [lsearch -glob $S(${var}s,lcase) "$value*"]
-            set bad 1
-            if {$var ne "size" || ! [string is double -strict $value]} {
-                set nstate disabled
+            set S($var2) [lindex $S(${var2}s) $n]
+            $S(W).e$var2 icursor end
+            $S(W).e$var2 selection clear
+            if {[set i [lsearch $S(bad) $var2]] >= 0} {
+                set S(bad) [lreplace $S(bad) $i $i]
+            }
+        } else {
+            # No match, try prefix
+            set n [lsearch -glob $S(${var2}s,lcase) "$value*"]
+            if {$var2 ne "size" || !([regexp -- {^(-[0-9]+|[0-9]+)$} $value] && $value >= -4096 && $value <= 4096)} {
+                 if {[lsearch $S(bad) $var2] < 0} {
+                     lappend S(bad) $var2
+                 }
+            } else {
+                if {[set i [lsearch $S(bad) $var2]] >= 0} {
+                    set S(bad) [lreplace $S(bad) $i $i]
+                }
             }
         }
-        $S(W).l${var}s see $n
+        $S(W).l${var2}s see $n
     }
-    if {!$bad} {Update}
-    $S(W).ok configure -state $nstate
+    if {[llength $S(bad)] == 0} {
+        set S(nstate) normal
+        Update
+    } else {
+        set S(nstate) disabled
+    }
+    $S(W).ok configure -state $S(nstate)
+    $S(W).apply configure -state $S(nstate)
 }
 
 # ::tk::fontchooser::Update --
@@ -411,13 +460,24 @@ proc ::tk::fontchooser::Update {} {
     variable S
 
     set S(result) [list $S(font) $S(size)]
-    if {$S(style) eq [::msgcat::mc "Bold"]} {lappend S(result) bold}
-    if {$S(style) eq [::msgcat::mc "Italic"]} {lappend S(result) italic}
-    if {$S(style) eq [::msgcat::mc "Bold Italic"]} {lappend S(result) bold italic}
-    if {$S(strike)} {lappend S(result) overstrike}
-    if {$S(under)} {lappend S(result) underline}
+    if {$S(style) eq [::msgcat::mc "Bold"]} {
+        lappend S(result) bold
+    }
+    if {$S(style) eq [::msgcat::mc "Italic"]} {
+        lappend S(result) italic
+    }
+    if {$S(style) eq [::msgcat::mc "Bold Italic"]} {
+        lappend S(result) bold italic
+    }
+    if {$S(strike)} {
+        lappend S(result) overstrike
+    }
+    if {$S(under)} {
+        lappend S(result) underline
+    }
 
     $S(sample) configure -font $S(result)
+    set S(-font) $S(result)
 }
 
 # ::tk::fontchooser::Visibility --
@@ -431,7 +491,7 @@ proc ::tk::fontchooser::Visibility {w visible} {
     }
 }
 
-# ::tk::fontchooser::ttk_listbox --
+# ::tk::fontchooser::ttk_slistbox --
 #
 #	Create a properly themed scrolled listbox.
 #	This is exactly right on XP but may need adjusting on other platforms.

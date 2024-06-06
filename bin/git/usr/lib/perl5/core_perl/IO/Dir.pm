@@ -18,7 +18,7 @@ use File::stat;
 use File::Spec;
 
 our @ISA = qw(Tie::Hash Exporter);
-our $VERSION = "1.49";
+our $VERSION = "1.52";
 
 our @EXPORT_OK = qw(DIR_UNLINK);
 
@@ -153,7 +153,7 @@ IO::Dir - supply object methods for directory handles
 =head1 SYNOPSIS
 
     use IO::Dir;
-    $d = IO::Dir->new(".");
+    my $d = IO::Dir->new(".");
     if (defined $d) {
         while (defined($_ = $d->read)) { something($_); }
         $d->rewind;
@@ -161,7 +161,7 @@ IO::Dir - supply object methods for directory handles
         undef $d;
     }
 
-    tie %dir, 'IO::Dir', ".";
+    tie my %dir, 'IO::Dir', ".";
     foreach (keys %dir) {
 	print $_, " " , $dir{$_}->size,"\n";
     }

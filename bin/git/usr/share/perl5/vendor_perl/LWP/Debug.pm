@@ -1,6 +1,6 @@
 package LWP::Debug;    # legacy
 
-our $VERSION = '6.60';
+our $VERSION = '6.72';
 
 require Exporter;
 our @ISA       = qw(Exporter);

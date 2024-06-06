@@ -9,14 +9,14 @@ use warnings;
 use bytes;
 
 use IO::File;
-use IO::Uncompress::RawInflate  2.106 ;
-use IO::Compress::Base::Common  2.106 qw(:Status );
-use IO::Uncompress::Adapter::Inflate  2.106 ;
-use IO::Uncompress::Adapter::Identity 2.106 ;
-use IO::Compress::Zlib::Extra 2.106 ;
-use IO::Compress::Zip::Constants 2.106 ;
+use IO::Uncompress::RawInflate  2.204 ;
+use IO::Compress::Base::Common  2.204 qw(:Status );
+use IO::Uncompress::Adapter::Inflate  2.204 ;
+use IO::Uncompress::Adapter::Identity 2.204 ;
+use IO::Compress::Zlib::Extra 2.204 ;
+use IO::Compress::Zip::Constants 2.204 ;
 
-use Compress::Raw::Zlib  2.103 () ;
+use Compress::Raw::Zlib  2.204 () ;
 
 BEGIN
 {
@@ -38,7 +38,7 @@ require Exporter ;
 
 our ($VERSION, @ISA, @EXPORT_OK, %EXPORT_TAGS, $UnzipError, %headerLookup);
 
-$VERSION = '2.106';
+$VERSION = '2.204';
 $UnzipError = '';
 
 @ISA    = qw(IO::Uncompress::RawInflate Exporter);
@@ -812,12 +812,11 @@ sub _dosToUnixTime
 	my $min  = ( ( $dt >> 5 ) & 0x3f );
 	my $sec  = ( ( $dt << 1 ) & 0x3e );
 
-
-    use POSIX 'mktime';
-
-    my $time_t = mktime( $sec, $min, $hour, $mday, $mon, $year, 0, 0, -1 );
+    use Time::Local ;
+    my $time_t = Time::Local::timelocal( $sec, $min, $hour, $mday, $mon, $year);
     return 0 if ! defined $time_t;
-	return $time_t;
+    return $time_t;
+
 }
 
 #sub scanCentralDirectory
@@ -1953,6 +1952,9 @@ C<gzip@prep.ai.mit.edu> and Mark Adler C<madler@alumni.caltech.edu>.
 The primary site for the I<zlib> compression library is
 L<http://www.zlib.org>.
 
+The primary site for the I<zlib-ng> compression library is
+L<https://github.com/zlib-ng/zlib-ng>.
+
 The primary site for gzip is L<http://www.gzip.org>.
 
 =head1 AUTHOR
@@ -1965,7 +1967,7 @@ See the Changes file.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2005-2022 Paul Marquess. All rights reserved.
+Copyright (c) 2005-2023 Paul Marquess. All rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

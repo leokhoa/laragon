@@ -251,6 +251,18 @@ sub init {
 }
 
 #------------------------------
+# My PID, but untainted
+#
+sub untainted_pid
+{
+        if ($$ =~ /^(\d+)$/) {
+                return $1;
+        }
+        # Can't happen...
+        return "0";
+}
+
+#------------------------------
 #
 # cleanup_dir
 #
@@ -556,7 +568,7 @@ sub output_filename {
 
     ### Get a prefix:
     ++$GFileNo;
-    return ($self->output_prefix . "-$$-$GFileNo$ext");
+    return ($self->output_prefix . "-" . untainted_pid() . "-$GFileNo$ext");
 }
 
 #------------------------------
@@ -689,7 +701,13 @@ sub output_path {
 			 "I'm ignoring it and supplying my own.");
 	    $fname = $self->output_filename($head);
 	}
+    } else {
+            # Untaint $fname... we know it's not evil
+            if ($fname =~ /^(.*)$/) {
+                    $fname = $1;
+            }
     }
+
     $self->debug("planning to use '$fname'");
 
     ### Resolve collisions and return final path:
@@ -892,7 +910,8 @@ sub init_parse {
     ### Determine the subdirectory of their base to use:
     my $subdir = (defined($self->{MPFU_DirName})
 		  ?       $self->{MPFU_DirName}
-		  :       ("msg-".scalar(time)."-$$-".$GSubdirNo++));
+		  :       ("msg-" . scalar(time) . "-" .
+                           MIME::Parser::Filer::untainted_pid() . "-" . $GSubdirNo++));
     $self->debug("subdir = $subdir");
 
     ### Determine full path to the per-message output directory:

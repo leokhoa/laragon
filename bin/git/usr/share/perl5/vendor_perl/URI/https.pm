@@ -3,7 +3,7 @@ package URI::https;
 use strict;
 use warnings;
 
-our $VERSION = '5.10';
+our $VERSION = '5.21';
 
 use parent 'URI::http';
 

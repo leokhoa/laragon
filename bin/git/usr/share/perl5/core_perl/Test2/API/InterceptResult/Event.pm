@@ -2,7 +2,7 @@ package Test2::API::InterceptResult::Event;
 use strict;
 use warnings;
 
-our $VERSION = '1.302190';
+our $VERSION = '1.302194';
 
 use List::Util   qw/first/;
 use Test2::Util  qw/pkg_to_file/;

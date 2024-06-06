@@ -7,14 +7,14 @@
 # This is based on the module of the same name by Malcolm Beattie,
 # but essentially none of his code remains.
 
-package B::Deparse;
+package B::Deparse 1.74;
 use strict;
 use Carp;
 use B qw(class main_root main_start main_cv svref_2object opnumber perlstring
 	 OPf_WANT OPf_WANT_VOID OPf_WANT_SCALAR OPf_WANT_LIST
 	 OPf_KIDS OPf_REF OPf_STACKED OPf_SPECIAL OPf_MOD OPf_PARENS
 	 OPpLVAL_INTRO OPpOUR_INTRO OPpENTERSUB_AMPER OPpSLICE OPpKVSLICE
-         OPpCONST_BARE
+         OPpCONST_BARE OPpEMPTYAVHV_IS_HV
 	 OPpTRANS_SQUASH OPpTRANS_DELETE OPpTRANS_COMPLEMENT OPpTARGET_MY
 	 OPpEXISTS_SUB OPpSORT_NUMERIC OPpSORT_INTEGER OPpREPEAT_DOLIST
 	 OPpSORT_REVERSE OPpMULTIDEREF_EXISTS OPpMULTIDEREF_DELETE
@@ -23,12 +23,13 @@ use B qw(class main_root main_start main_cv svref_2object opnumber perlstring
          OPpCONCAT_NESTED
          OPpMULTICONCAT_APPEND OPpMULTICONCAT_STRINGIFY OPpMULTICONCAT_FAKE
          OPpTRUEBOOL OPpINDEX_BOOLNEG OPpDEFER_FINALLY
-	 SVf_IOK SVf_NOK SVf_ROK SVf_POK SVpad_OUR SVf_FAKE SVs_RMG SVs_SMG
-	 SVs_PADTMP SVpad_TYPED
-         CVf_METHOD CVf_LVALUE
+         OPpARG_IF_UNDEF OPpARG_IF_FALSE
+	 SVf_IOK SVf_NOK SVf_ROK SVf_POK SVf_FAKE SVs_RMG SVs_SMG
+	 SVs_PADTMP
+         CVf_NOWARN_AMBIGUOUS CVf_LVALUE
 	 PMf_KEEP PMf_GLOBAL PMf_CONTINUE PMf_EVAL PMf_ONCE
 	 PMf_MULTILINE PMf_SINGLELINE PMf_FOLD PMf_EXTENDED PMf_EXTENDED_MORE
-	 PADNAMEt_OUTER
+	 PADNAMEf_OUTER PADNAMEf_OUR PADNAMEf_TYPED
         MDEREF_reload
         MDEREF_AV_pop_rv2av_aelem
         MDEREF_AV_gvsv_vivify_rv2av_aelem
@@ -53,7 +54,6 @@ use B qw(class main_root main_start main_cv svref_2object opnumber perlstring
         MDEREF_SHIFT
     );
 
-our $VERSION = '1.64';
 our $AUTOLOAD;
 use warnings ();
 require feature;
@@ -450,7 +450,7 @@ sub next_todo {
 	my $flags = $name->FLAGS;
         my $category =
 	    !$cv || $seq <= $name->COP_SEQ_RANGE_LOW
-		? $self->keyword($flags & SVpad_OUR
+		? $self->keyword($flags & PADNAMEf_OUR
 				    ? "our"
 				    : $flags & SVpad_STATE
 					? "state"
@@ -1121,8 +1121,8 @@ sub pad_subs {
 	if (defined $name && $name =~ /^&./) {
 	    my $low = $_->COP_SEQ_RANGE_LOW;
 	    my $flags = $_->FLAGS;
-	    my $outer = $flags & PADNAMEt_OUTER;
-	    if ($flags & SVpad_OUR) {
+	    my $outer = $flags & PADNAMEf_OUTER;
+	    if ($flags & PADNAMEf_OUR) {
 		push @todo, [$low, undef, 0, $_]
 		          # [seq, no cv, not format, padname]
 		    unless $outer;
@@ -1135,7 +1135,7 @@ sub pad_subs {
 		my $flags = $flags;
 		my $cv = $cv;
 		my $name = $_;
-		while ($flags & PADNAMEt_OUTER && class ($protocv) ne 'CV')
+		while ($flags & PADNAMEf_OUTER && class ($protocv) ne 'CV')
 		{
 		    $cv = $cv->OUTSIDE;
 		    next PADENTRY if class($cv) eq 'SPECIAL'; # XXX freed?
@@ -1152,7 +1152,7 @@ sub pad_subs {
 		my $other = $protocv->PADLIST;
 		$$other && $other->outid == $padlist->id;
 	    };
-	    if ($flags & PADNAMEt_OUTER) {
+	    if ($flags & PADNAMEf_OUTER) {
 		next unless $defined_in_this_sub;
 		push @todo, [$protocv->OUTSIDE_SEQ, $protocv, 0, $_];
 		next;
@@ -1262,7 +1262,10 @@ sub deparse_argops {
                 return unless $$kid and $kid->name eq 'argdefelem';
                 my $def = $self->deparse($kid->first, 7);
                 $def = "($def)" if $kid->first->flags & OPf_PARENS;
-                $var .= " = $def";
+                my $assign = "=";
+                $assign = "//=" if $kid->private & OPpARG_IF_UNDEF;
+                $assign = "||=" if $kid->private & OPpARG_IF_FALSE;
+                $var .= " $assign $def";
             }
             push @sig, $var;
         }
@@ -1313,7 +1316,7 @@ Carp::confess("NULL in deparse_sub") if !defined($cv) || $cv->isa("B::NULL");
 Carp::confess("SPECIAL in deparse_sub") if $cv->isa("B::SPECIAL");
     local $self->{'curcop'} = $self->{'curcop'};
 
-    my $has_sig = $self->{hinthash}{feature_signatures};
+    my $has_sig = $self->feature_enabled('signatures');
     if ($cv->FLAGS & SVf_POK) {
 	my $myproto = $cv->PV;
 	if ($has_sig) {
@@ -1323,9 +1326,9 @@ Carp::confess("SPECIAL in deparse_sub") if $cv->isa("B::SPECIAL");
             $proto = $myproto;
         }
     }
-    if ($cv->CvFLAGS & (CVf_METHOD|CVf_LOCKED|CVf_LVALUE|CVf_ANONCONST)) {
+    if ($cv->CvFLAGS & (CVf_NOWARN_AMBIGUOUS|CVf_LOCKED|CVf_LVALUE|CVf_ANONCONST)) {
         push @attrs, "lvalue" if $cv->CvFLAGS & CVf_LVALUE;
-        push @attrs, "method" if $cv->CvFLAGS & CVf_METHOD;
+        push @attrs, "method" if $cv->CvFLAGS & CVf_NOWARN_AMBIGUOUS;
         push @attrs, "const"  if $cv->CvFLAGS & CVf_ANONCONST;
     }
 
@@ -1551,7 +1554,7 @@ sub maybe_parens_func {
     if ($prec <= $cx or substr($text, 0, 1) eq "(" or $self->{'parens'}) {
 	return "$func($text)";
     } else {
-	return "$func $text";
+        return $func . (length($text) ? " $text" : "");
     }
 }
 
@@ -1561,7 +1564,7 @@ sub find_our_type {
     my $seq = $self->{'curcop'} ? $self->{'curcop'}->cop_seq : 0;
     for my $a (@{$self->{'curcvlex'}{"o$name"}}) {
 	my ($st, undef, $padname) = @$a;
-	if ($st >= $seq && $padname->FLAGS & SVpad_TYPED) {
+	if ($st >= $seq && $padname->FLAGS & PADNAMEf_TYPED) {
 	    return $padname->SvSTASH->NAME;
 	}
     }
@@ -1647,7 +1650,7 @@ sub maybe_my {
 	# because enteriter ops do not carry the flag.
 	my $my =
 	    $self->keyword($padname->FLAGS & SVpad_STATE ? "state" : "my");
-	if ($padname->FLAGS & SVpad_TYPED) {
+	if ($padname->FLAGS & PADNAMEf_TYPED) {
 	    $my .= ' ' . $padname->SvSTASH->NAME;
 	}
 	if ($need_parens) {
@@ -1987,7 +1990,7 @@ sub populate_curcvlex {
 		    : ($ns[$i]->COP_SEQ_RANGE_LOW, $ns[$i]->COP_SEQ_RANGE_HIGH);
 
 	    push @{$self->{'curcvlex'}{
-			($ns[$i]->FLAGS & SVpad_OUR ? 'o' : 'm') . $name
+			($ns[$i]->FLAGS & PADNAMEf_OUR ? 'o' : 'm') . $name
 		  }}, [$seq_st, $seq_en, $ns[$i]];
 	}
     }
@@ -2331,6 +2334,7 @@ my %feature_keywords = (
    catch    => 'try',
    finally  => 'try',
    defer    => 'defer',
+   signatures => 'signatures',
 );
 
 # keywords that are strong and also have a prototype
@@ -2514,7 +2518,21 @@ sub pp_chomp { maybe_targmy(@_, \&unop, "chomp") }
 sub pp_schop { maybe_targmy(@_, \&unop, "chop") }
 sub pp_schomp { maybe_targmy(@_, \&unop, "chomp") }
 sub pp_defined { unop(@_, "defined") }
-sub pp_undef { unop(@_, "undef") }
+sub pp_undef {
+    if ($_[1]->private & OPpTARGET_MY) {
+        my $targ = $_[1]->targ;
+        my $var = $_[0]->maybe_my($_[1], $_[2], $_[0]->padname($targ),
+            $_[0]->padname_sv($targ),
+            1);
+        my $func = unop(@_, "undef");
+        if ($func =~ /\s/) {
+            return unop(@_, "undef").$var;
+        } else {
+            return "$var = undef";
+        }
+    }
+    unop(@_, "undef") 
+}
 sub pp_study { unop(@_, "study") }
 sub pp_ref { unop(@_, "ref") }
 sub pp_pos { maybe_local(@_, unop(@_, "pos")) }
@@ -2772,19 +2790,40 @@ sub pp_anonlist {
 
 *pp_anonhash = \&pp_anonlist;
 
+sub pp_emptyavhv {
+    my $self = shift;
+    my ($op, $cx, $forbid_parens) = @_;
+    my $val = ($op->private & OPpEMPTYAVHV_IS_HV) ? '{}' : '[]';
+    if ($op->private & OPpTARGET_MY) {
+        my $targ = $op->targ;
+        my $var = $self->maybe_my($op, $cx, $self->padname($targ),
+                           $self->padname_sv($targ),
+                           $forbid_parens);
+        return $self->maybe_parens("$var = $val", $cx, 7);
+    } else {
+        return $val;
+    }
+}
+
 sub pp_refgen {
     my $self = shift;	
     my($op, $cx) = @_;
     my $kid = $op->first;
     if ($kid->name eq "null") {
 	my $anoncode = $kid = $kid->first;
+
+	# Perl no longer generates this, but XS modules might:
 	if ($anoncode->name eq "anonconst") {
 	    $anoncode = $anoncode->first->first->sibling;
 	}
+
+	# Same as with `anonconst`:
 	if ($anoncode->name eq "anoncode"
 	 or !null($anoncode = $kid->sibling) and
 		 $anoncode->name eq "anoncode") {
             return $self->e_anoncode({ code => $self->padval($anoncode->targ) });
+
+	# Perl still generates this:
 	} elsif ($kid->name eq "pushmark") {
             my $sib_name = $kid->sibling->name;
             if ($sib_name eq 'entersub') {
@@ -2804,6 +2843,18 @@ sub e_anoncode {
     my ($self, $info) = @_;
     my $text = $self->deparse_sub($info->{code});
     return $self->keyword("sub") . " $text";
+}
+
+sub pp_anoncode {
+    my ($self, $anoncode) = @_;
+
+    return $self->e_anoncode( { code => $self->padval($anoncode->targ) } );
+}
+
+sub pp_anonconst {
+    my ($self, $anonconst) = @_;
+
+    return $self->pp_anoncode( $anonconst->first->first->sibling );
 }
 
 sub pp_srefgen { pp_refgen(@_) }
@@ -3092,6 +3143,18 @@ sub pp_isa { binop(@_, "isa", 15) }
 
 sub pp_sassign { binop(@_, "=", 7, SWAP_CHILDREN) }
 sub pp_aassign { binop(@_, "=", 7, SWAP_CHILDREN | LIST_CONTEXT) }
+
+sub pp_padsv_store {
+    my $self = shift;
+    my ($op, $cx, $forbid_parens, @args) = @_;
+    my $targ = $op->targ;
+    my $var = $self->maybe_my($op, $cx, $self->padname($targ),
+                           $self->padname_sv($targ),
+                           $forbid_parens);
+
+    my $val = $self->deparse($op->first, 7);
+    return $self->maybe_parens("$var = $val", $cx, 7);
+}
 
 sub pp_smartmatch {
     my ($self, $op, $cx) = @_;
@@ -3694,7 +3757,7 @@ sub maybe_var_attr {
             return unless $loppriv & OPpLVAL_INTRO;
 
             my $padname = $self->padname_sv($lop->targ);
-            my $thisclass = ($padname->FLAGS & SVpad_TYPED)
+            my $thisclass = ($padname->FLAGS & PADNAMEf_TYPED)
                                 ? $padname->SvSTASH->NAME : 'main';
 
             # all pad vars must be in the same class
@@ -3813,9 +3876,12 @@ sub pp_list {
 		$local = "my";
 	    }
 	    my $padname = $self->padname_sv($lop->targ);
-	    if ($padname->FLAGS & SVpad_TYPED) {
+	    if ($padname->FLAGS & PADNAMEf_TYPED) {
 		$newtype = $padname->SvSTASH->NAME;
 	    }
+	} elsif ($lopname eq 'padsv_store') {
+            # don't interpret as my (list) if it has an implicit assign
+            $local = "";
 	} elsif ($lopname =~ /^(?:gv|rv2)([ash])v$/
 			&& $loppriv & OPpOUR_INTRO
 		or $lopname eq "null" && class($lop) eq 'UNOP'
@@ -4278,6 +4344,17 @@ sub pp_gv {
     my($op, $cx) = @_;
     my $gv = $self->gv_or_padgv($op);
     return $self->maybe_qualify("", $self->gv_name($gv));
+}
+
+sub pp_aelemfastlex_store {
+    my $self = shift;
+    my($op, $cx) = @_;
+    my $name = $self->padname($op->targ);
+    $name =~ s/^@/\$/;
+    my $i = $op->private;
+    $i -= 256 if $i > 127;
+    my $val = $self->deparse($op->first, 7);
+    return $self->maybe_parens("${name}[$i] = $val", $cx, 7);
 }
 
 sub pp_aelemfast_lex {
@@ -4977,78 +5054,92 @@ sub e_method {
 sub check_proto {
     my $self = shift;
     return "&" if $self->{'noproto'};
-    my($proto, @args) = @_;
-    my($arg, $real);
+    my ($proto, @args) = @_;
     my $doneok = 0;
     my @reals;
-    # An unbackslashed @ or % gobbles up the rest of the args
-    1 while $proto =~ s/(?<!\\)([@%])[^\]]+$/$1/;
-    $proto =~ s/^\s*//;
-    while ($proto) {
-	$proto =~ s/^(\\?[\$\@&%*_]|\\\[[\$\@&%*]+\]|;|)\s*//;
+    $proto =~ s/^\s+//;
+    while (length $proto) {
+        $proto =~ s/^(\\?[\$\@&%*]|\\\[[\$\@&%*]+\]|[_+;])\s*//
+            or return "&";  # malformed prototype
 	my $chr = $1;
-	if ($chr eq "") {
-	    return "&" if @args;
-	} elsif ($chr eq ";") {
+        if ($chr eq ";") {
 	    $doneok = 1;
-	} elsif ($chr eq "@" or $chr eq "%") {
+        } elsif ($chr eq '@' or $chr eq '%') {
+            # An unbackslashed @ or % gobbles up the rest of the args
 	    push @reals, map($self->deparse($_, 6), @args);
 	    @args = ();
+            $proto = '';
+        } elsif (!@args) {
+            last if $doneok;
+            return "&"; # too few args and no ';'
 	} else {
-	    $arg = shift @args;
-	    last unless $arg;
-	    if ($chr eq "\$" || $chr eq "_") {
+            my $arg = shift @args;
+            if ($chr eq '$' || $chr eq '_') {
 		if (want_scalar $arg) {
 		    push @reals, $self->deparse($arg, 6);
 		} else {
 		    return "&";
 		}
 	    } elsif ($chr eq "&") {
-		if ($arg->name =~ /^(s?refgen|undef)$/) {
+                if ($arg->name =~ /^(?:s?refgen|undef)\z/) {
 		    push @reals, $self->deparse($arg, 6);
 		} else {
 		    return "&";
 		}
 	    } elsif ($chr eq "*") {
-		if ($arg->name =~ /^s?refgen$/
+                if ($arg->name =~ /^s?refgen\z/
 		    and $arg->first->first->name eq "rv2gv")
-		  {
-		      $real = $arg->first->first; # skip refgen, null
-		      if ($real->first->name eq "gv") {
-			  push @reals, $self->deparse($real, 6);
-		      } else {
-			  push @reals, $self->deparse($real->first, 6);
-		      }
-		  } else {
-		      return "&";
-		  }
+                {
+                    my $real = $arg->first->first; # skip refgen, null
+                    if ($real->first->name eq "gv") {
+                        push @reals, $self->deparse($real, 6);
+                    } else {
+                        push @reals, $self->deparse($real->first, 6);
+                    }
+                } else {
+                    return "&";
+                }
+            } elsif ($chr eq "+") {
+                my $real;
+                if ($arg->name =~ /^s?refgen\z/ and
+                    !null($real = $arg->first) and
+                    !null($real->first) and
+                    $real->first->name =~ /^(?:rv2|pad)[ah]v\z/)
+                {
+                    push @reals, $self->deparse($real, 6);
+                } elsif (want_scalar $arg) {
+                    push @reals, $self->deparse($arg, 6);
+                } else {
+                    return "&";
+                }
 	    } elsif (substr($chr, 0, 1) eq "\\") {
 		$chr =~ tr/\\[]//d;
-		if ($arg->name =~ /^s?refgen$/ and
+                my $real;
+                if ($arg->name =~ /^s?refgen\z/ and
 		    !null($real = $arg->first) and
 		    ($chr =~ /\$/ && is_scalar($real->first)
 		     or ($chr =~ /@/
-			 && class($real->first->sibling) ne 'NULL'
-			 && $real->first->sibling->name
-			 =~ /^(rv2|pad)av$/)
+                         && !null($real->first)
+                         && $real->first->name =~ /^(?:rv2|pad)av\z/)
 		     or ($chr =~ /%/
-			 && class($real->first->sibling) ne 'NULL'
-			 && $real->first->sibling->name
-			 =~ /^(rv2|pad)hv$/)
+                         && !null($real->first)
+                         && $real->first->name =~ /^(?:rv2|pad)hv\z/)
 		     #or ($chr =~ /&/ # This doesn't work
 		     #   && $real->first->name eq "rv2cv")
 		     or ($chr =~ /\*/
 			 && $real->first->name eq "rv2gv")))
-		  {
-		      push @reals, $self->deparse($real, 6);
-		  } else {
-		      return "&";
-		  }
-	    }
-       }
+                {
+                    push @reals, $self->deparse($real, 6);
+                } else {
+                    return "&";
+                }
+            } else {
+                # should not happen
+                return "&";
+            }
+        }
     }
-    return "&" if $proto and !$doneok; # too few args and no ';'
-    return "&" if @args;               # too many args
+    return "&" if @args; # too many args
     return ("", join ", ", @reals);
 }
 
@@ -5093,7 +5184,7 @@ sub retscalar {
                  |msgrcv|semop|semget|semctl|hintseval|shostent|snetent
                  |sprotoent|sservent|ehostent|enetent|eprotoent|eservent
                  |spwent|epwent|sgrent|egrent|getlogin|syscall|lock|runcv
-                 |fc)\z/x
+                 |fc|padsv_store)\z/x
 }
 
 sub pp_entersub {
@@ -5104,9 +5195,7 @@ sub pp_entersub {
     my $prefix = "";
     my $amper = "";
     my($kid, @exprs);
-    if ($op->flags & OPf_SPECIAL && !($op->flags & OPf_MOD)) {
-	$prefix = "do ";
-    } elsif ($op->private & OPpENTERSUB_AMPER) {
+    if ($op->private & OPpENTERSUB_AMPER) {
 	$amper = "&";
     }
     $kid = $op->first;
@@ -5230,19 +5319,23 @@ sub pp_entersub {
 	# it back.
 	$kid =~ s/^CORE::GLOBAL:://;
 
-	my $dproto = defined($proto) ? $proto : "undefined";
-	my $scalar_proto = $dproto =~ /^;*(?:[\$*_+]|\\.|\\\[[^]]\])\z/;
         if (!$declared) {
 	    return "$kid(" . $args . ")";
-	} elsif ($dproto =~ /^\s*\z/) {
+        }
+
+        my $dproto = defined($proto) ? $proto : "undefined";
+        if ($dproto =~ /^\s*\z/) {
 	    return $kid;
-	} elsif ($scalar_proto and is_scalar($exprs[0])) {
+        }
+
+        my $scalar_proto = $dproto =~ /^ \s* (?: ;\s* )* (?: [\$*_+] |\\ \s* (?: [\$\@%&*] | \[ [^\]]+ \] ) ) \s* \z/x;
+        if ($scalar_proto and !@exprs || is_scalar($exprs[0])) {
 	    # is_scalar is an excessively conservative test here:
 	    # really, we should be comparing to the precedence of the
 	    # top operator of $exprs[0] (ala unop()), but that would
 	    # take some major code restructuring to do right.
 	    return $self->maybe_parens_func($kid, $args, $cx, 16);
-	} elsif (not $scalar_proto and defined($proto) || $simple) { #'
+        } elsif (not $scalar_proto and defined($proto) || $simple) {
 	    return $self->maybe_parens_func($kid, $args, $cx, 5);
 	} else {
 	    return "$kid(" . $args . ")";
@@ -6317,9 +6410,7 @@ sub matchop {
 					     ->sibling #   entersub
 					     ->first   #     ex-list
 					     ->first   #       pushmark
-					     ->sibling #       srefgen
-					     ->first   #         ex-list
-					     ->first   #           anoncode
+					     ->sibling #       anoncode
 					     ->targ
 				     )
 				   : undef);
@@ -6660,15 +6751,16 @@ sub builtin1 {
     return "builtin::$name($arg)";
 }
 
-sub pp_is_bool  { $_[0]->maybe_targmy(@_[1,2], \&builtin1, "is_bool"); }
-sub pp_is_weak  { $_[0]->maybe_targmy(@_[1,2], \&builtin1, "is_weak"); }
-sub pp_weaken   { builtin1(@_, "weaken"); }
-sub pp_unweaken { builtin1(@_, "unweaken"); }
-sub pp_blessed  { builtin1(@_, "blessed"); }
-sub pp_refaddr  { $_[0]->maybe_targmy(@_[1,2], \&builtin1, "refaddr"); }
-sub pp_reftype  { $_[0]->maybe_targmy(@_[1,2], \&builtin1, "reftype"); }
-sub pp_ceil     { $_[0]->maybe_targmy(@_[1,2], \&builtin1, "ceil"); }
-sub pp_floor    { $_[0]->maybe_targmy(@_[1,2], \&builtin1, "floor"); }
+sub pp_is_bool    { builtin1(@_, "is_bool"); }
+sub pp_is_weak    { builtin1(@_, "is_weak"); }
+sub pp_weaken     { builtin1(@_, "weaken"); }
+sub pp_unweaken   { builtin1(@_, "unweaken"); }
+sub pp_blessed    { builtin1(@_, "blessed"); }
+sub pp_refaddr    { $_[0]->maybe_targmy(@_[1,2], \&builtin1, "refaddr"); }
+sub pp_reftype    { $_[0]->maybe_targmy(@_[1,2], \&builtin1, "reftype"); }
+sub pp_ceil       { $_[0]->maybe_targmy(@_[1,2], \&builtin1, "ceil"); }
+sub pp_floor      { $_[0]->maybe_targmy(@_[1,2], \&builtin1, "floor"); }
+sub pp_is_tainted { builtin1(@_, "is_tainted"); }
 
 1;
 __END__

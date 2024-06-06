@@ -130,6 +130,27 @@ use MIME::Field::ContType;
 
 @ISA = qw(Mail::Header);
 
+# The presence of more than one of the following headers
+# in a given MIME entity could indicate an ambiguous parse
+# and hence a security risk
+
+my $singleton_headers =
+    [
+     'content-type',
+     'content-disposition',
+     'content-transfer-encoding',
+     'content-id',
+    ];
+
+# The presence of a duplicated parameters in one of the following
+# headers in a given MIME entity could indicate an ambiguous parse and
+# hence a security risk
+my $singleton_parameter_headers =
+    [
+     'content-type',
+     'content-disposition',
+    ];
+
 
 #------------------------------
 #
@@ -138,7 +159,7 @@ use MIME::Field::ContType;
 #------------------------------
 
 ### The package version, both in 1.23 style *and* usable by MakeMaker:
-$VERSION = "5.509";
+$VERSION = "5.515";
 
 ### Sanity (we put this test after our own version, for CPAN::):
 use Mail::Header 1.06 ();
@@ -170,6 +191,43 @@ sub new {
     bless Mail::Header->new(@_), $class;
 }
 
+=item ambiguous_content
+
+I<Instance method.>
+
+Returns true if this header has any the following properties:
+
+=over 4
+
+More than one Content-Type, Content-ID, Content-Transfer-Encoding or
+Content-Disposition header.
+
+A Content-Type or Content-Disposition header contains a repeated
+parameter.
+
+=back
+
+Messages with ambiguous content should be treated as a security risk.
+In particular, if MIME-tools is used in an email security tool,
+ambiguous messages should not be delivered to end-users.
+
+=cut
+sub ambiguous_content {
+    my ($self) = @_;
+
+    foreach my $hdr (@$singleton_headers) {
+        if ($self->count($hdr) > 1) {
+            return 1;
+        }
+    }
+
+    foreach my $hdr (@$singleton_parameter_headers) {
+        if ($self->mime_attr($hdr . '.@duplicate_parameters')) {
+            return 1;
+        }
+    }
+    return 0;
+}
 #------------------------------
 
 =item from_file EXPR,OPTIONS
@@ -660,6 +718,25 @@ or undefined if it isn't there:
 
 In all cases, the new/current value is returned.
 
+The special sub-field tag C<@duplicate_parameters> (which can never be
+a real tag) returns an arrayref of tags that were duplicated in the header,
+or C<undef> if no such tags were found.  For example, given the header:
+
+    Content-Type: multipart/mixed; boundary="foo"; boundary="bar"
+
+Then:
+
+    $head->mime_attr('content-type.@duplicate_parameters')
+
+would return:
+
+    [ 'boundary' ]
+
+A duplicate "boundary" tag should be treated as a security risk, as should
+duplicate Content-Type headers in a message.  Since such messages cannot
+be parsed unambiguously, we strongly recommend that they never be
+delivered to end-users.
+
 =cut
 
 sub mime_attr {
@@ -917,7 +994,7 @@ L<Mail::Header>, L<Mail::Field>, L<MIME::Words>, L<MIME::Tools>
 =head1 AUTHOR
 
 Eryq (F<eryq@zeegee.com>), ZeeGee Software Inc (F<http://www.zeegee.com>).
-Dianne Skoll (dfs@roaringpenguin.com) http://www.roaringpenguin.com
+Dianne Skoll (dianne@skoll.ca)
 
 All rights reserved.  This program is free software; you can redistribute
 it and/or modify it under the same terms as Perl itself.

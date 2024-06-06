@@ -3,7 +3,7 @@ use strict;
 use Exporter;
 
 
-our $VERSION = '3.84';
+our $VERSION = '3.89';
 my $xs_version = $VERSION;
 $VERSION =~ tr/_//d;
 
@@ -201,8 +201,14 @@ sub _backtick_pwd {
     # Localize %ENV entries in a way that won't create new hash keys.
     # Under AmigaOS we don't want to localize as it stops perl from
     # finding 'sh' in the PATH.
-    my @localize = grep exists $ENV{$_}, qw(PATH IFS CDPATH ENV BASH_ENV) if $^O ne "amigaos";
+    my @localize = grep exists $ENV{$_}, qw(IFS CDPATH ENV BASH_ENV) if $^O ne "amigaos";
     local @ENV{@localize} if @localize;
+    # empty PATH is the same as "." on *nix, so localize it to /something/
+    # we won't *use* the path as code above turns $pwd_cmd into a specific
+    # executable, but it will blow up anyway under taint. We could set it to
+    # anything absolute. Perhaps "/" would be better.
+    local $ENV{PATH}= "/usr/bin"
+        if $^O ne "amigaos";
     
     my $cwd = `$pwd_cmd`;
     # Belt-and-suspenders in case someone said "undef $/".

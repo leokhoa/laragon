@@ -80,7 +80,7 @@ use MIME::Tools qw(:config :msgs);
 #------------------------------
 
 # The package version, both in 1.23 style *and* usable by MakeMaker:
-$VERSION = "5.509";
+$VERSION = "5.515";
 
 
 #------------------------------
@@ -219,6 +219,7 @@ sub rfc2231percent {
 sub parse_params {
     my ($self, $raw) = @_;
     my %params;
+    my %dup_params;
     my %rfc2231params;
     my %rfc2231encoding_is_used;
     my $param;
@@ -256,8 +257,10 @@ sub parse_params {
 	    # cut it off at the first non-token char.  CPAN RT #105455
 	    $badtoken =~ /^($TOKEN)*/;
 	    $badtoken = $1;
-	    # Cut it off at first whitespace too
-	    $badtoken =~ s/\s.*//;
+	    if (defined($badtoken)) {
+		    # Cut it off at first whitespace too
+		    $badtoken =~ s/\s.*//;
+	    }
 	}
 	$val = defined($qstr) ? $qstr :
 	    (defined($enctoken) ? $enctoken :
@@ -282,8 +285,11 @@ sub parse_params {
 	    # Assign non-rfc2231 value directly.  If we
 	    # did get a mix of rfc2231 and non-rfc2231 values,
             # the non-rfc2231 will be blown away in the
-	    # "extract reconstructed parameters" loop.
-	    $params{$param} = $val;
+            # "extract reconstructed parameters" loop.
+            if (defined($params{$param})) {
+                $dup_params{$param} = 1;
+            }
+            $params{$param} = $val;
 	}
     }
 
@@ -291,6 +297,9 @@ sub parse_params {
     foreach $param (keys %rfc2231params) {
 	# If we got any rfc-2231 parameters, then
         # blow away any potential non-rfc-2231 parameter.
+        if (defined($params{$param})) {
+            $dup_params{$param} = 1;
+        }
 	$params{$param} = '';
 	foreach $part (sort { $a <=> $b } keys %{$rfc2231params{$param}}) {
 	    $params{$param} .= $rfc2231params{$param}{$part};
@@ -310,6 +319,12 @@ sub parse_params {
 	debug "   field param <$param> = <$params{$param}>";
     }
 
+    # If there are any duplicate parameters, store them in the
+    # special key '@duplicate_parameters' which should never be the
+    # name of a real parameter
+    if (%dup_params) {
+        $params{'@duplicate_parameters'} = [ sort(keys(%dup_params)) ];
+    }
     # Done:
     \%params;
 }

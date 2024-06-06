@@ -5,7 +5,7 @@ use 5.008;
 use strict;
 use warnings;
 
-our $VERSION = '2.27';      # remember to update version in POD!
+our $VERSION = '2.36';      # remember to update version in POD!
 my $XS_VERSION = $VERSION;
 $VERSION = eval $VERSION;
 
@@ -134,7 +134,7 @@ threads - Perl interpreter-based threads
 
 =head1 VERSION
 
-This document describes threads version 2.27
+This document describes threads version 2.36
 
 =head1 WARNING
 
@@ -1026,7 +1026,7 @@ signalling behavior is only in effect in the following situations:
 
 =over 4
 
-=item * Perl has been built with C<PERL_OLD_SIGNALS> (see C<perl -V>).
+=item * Perl has been built with C<PERL_OLD_SIGNALS> (see S<C<perl -V>>).
 
 =item * The environment variable C<PERL_SIGNALS> is set to C<unsafe>
 (see L<perlrun/"PERL_SIGNALS">).

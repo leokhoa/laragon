@@ -338,8 +338,8 @@ package require Tk
 	    set i_dy [expr {($dy - $iH)/2}]
 	    set t_dy [expr {($dy - $tH)/2}]
 
-	    $canvas coords $iTag $x                    [expr {$y + $i_dy}]
-	    $canvas coords $tTag [expr {$x + $shift}]  [expr {$y + $t_dy}]
+	    $canvas coords $iTag $x [expr {$y + $i_dy}]
+	    $canvas coords $tTag [expr {$x + $shift}] [expr {$y + $t_dy}]
 	    $canvas coords $rTag $x $y [expr {$x+$dx}] [expr {$y+$dy}]
 
 	    incr y $dy
@@ -433,11 +433,11 @@ package require Tk
 	#
 	bind $canvas <Configure>	[namespace code {my WhenIdle Arrange}]
 
-	bind $canvas <1>		[namespace code {my Btn1 %x %y}]
+	bind $canvas <Button-1>		[namespace code {my Btn1 %x %y}]
 	bind $canvas <B1-Motion>	[namespace code {my Motion1 %x %y}]
 	bind $canvas <B1-Leave>		[namespace code {my Leave1 %x %y}]
-	bind $canvas <Control-1>	[namespace code {my CtrlBtn1 %x %y}]
-	bind $canvas <Shift-1>		[namespace code {my ShiftBtn1 %x %y}]
+	bind $canvas <Control-Button-1>	[namespace code {my CtrlBtn1 %x %y}]
+	bind $canvas <Shift-Button-1>	[namespace code {my ShiftBtn1 %x %y}]
 	bind $canvas <B1-Enter>		[list tk::CancelRepeat]
 	bind $canvas <ButtonRelease-1>	[list tk::CancelRepeat]
 	bind $canvas <Double-ButtonRelease-1> \
@@ -449,12 +449,14 @@ package require Tk
 	if {[tk windowingsystem] eq "aqua"} {
 	    bind $canvas <Shift-MouseWheel>	[namespace code {my MouseWheel [expr {40 * (%D)}]}]
 	    bind $canvas <Option-Shift-MouseWheel>	[namespace code {my MouseWheel [expr {400 * (%D)}]}]
+	    bind $canvas <Command-Key> 	{# nothing}
+	    bind $canvas <Mod4-Key>	{# nothing}
 	} else {
 	    bind $canvas <Shift-MouseWheel>	[namespace code {my MouseWheel %D}]
 	}
 	if {[tk windowingsystem] eq "x11"} {
-	    bind $canvas <Shift-4>	[namespace code {my MouseWheel 120}]
-	    bind $canvas <Shift-5>	[namespace code {my MouseWheel -120}]
+	    bind $canvas <Shift-Button-4>	[namespace code {my MouseWheel 120}]
+	    bind $canvas <Shift-Button-5>	[namespace code {my MouseWheel -120}]
 	}
 
 	bind $canvas <<PrevLine>>	[namespace code {my UpDown -1}]
@@ -462,9 +464,10 @@ package require Tk
 	bind $canvas <<PrevChar>>	[namespace code {my LeftRight -1}]
 	bind $canvas <<NextChar>>	[namespace code {my LeftRight  1}]
 	bind $canvas <Return>		[namespace code {my ReturnKey}]
-	bind $canvas <KeyPress>		[namespace code {my KeyPress %A}]
-	bind $canvas <Control-KeyPress> ";"
-	bind $canvas <Alt-KeyPress>	";"
+	bind $canvas <Key>		[namespace code {my KeyPress %A}]
+	bind $canvas <Alt-Key>		{# nothing}
+	bind $canvas <Meta-Key> 	{# nothing}
+	bind $canvas <Control-Key> 	{# nothing}
 
 	bind $canvas <FocusIn>		[namespace code {my FocusIn}]
 	bind $canvas <FocusOut>		[namespace code {my FocusOut}]

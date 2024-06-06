@@ -3,7 +3,7 @@ package URI::Split;
 use strict;
 use warnings;
 
-our $VERSION = '5.10';
+our $VERSION = '5.21';
 
 use Exporter 5.57 'import';
 our @EXPORT_OK = qw(uri_split uri_join);

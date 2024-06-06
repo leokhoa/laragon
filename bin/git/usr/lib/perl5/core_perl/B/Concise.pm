@@ -14,7 +14,7 @@ use warnings; # uses #3 and #4, since warnings uses Carp
 
 use Exporter 'import'; # use #5
 
-our $VERSION   = "1.006";
+our $VERSION   = "1.007";
 our @EXPORT_OK = qw( set_style set_style_standard add_callback
 		     concise_subref concise_cv concise_main
 		     add_style walk_output compile reset_sequence );
@@ -1488,6 +1488,11 @@ Private flags, if any are set for an opcode, are displayed after a '/'
 They're opcode specific, and occur less often than the public ones, so
 they're represented by short mnemonics instead of single-chars; see
 B::Op_private and F<regen/op_private> for more details.
+
+Note that a number after a '/' often indicates the number of arguments.
+In the I<sassign> example above, the OP takes 2 arguments. These values
+are sometimes used at runtime: in particular, the MAXARG macro makes use
+of them.
 
 =head1 FORMATTING SPECIFICATIONS
 

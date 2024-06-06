@@ -16,7 +16,7 @@ use Test2::API qw/context run_subtest test2_stack/;
 use Test2::Hub::Interceptor();
 use Test2::Hub::Interceptor::Terminator();
 
-our $VERSION = '1.302190';
+our $VERSION = '1.302194';
 
 BEGIN { require Exporter; our @ISA = qw(Exporter) }
 our @EXPORT = qw{

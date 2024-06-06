@@ -439,6 +439,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <body class="article">
 <div id="header">
 <h1>GIT bitmap v1 format</h1>
+<div class="details">
+<span id="revdate">2024-05-22</span>
+</div>
 </div>
 <div id="content">
 <div class="sect1">
@@ -553,6 +556,34 @@ described below.</p>
 </dl>
 </div>
 </li>
+<li>
+<p></p>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">BITMAP_OPT_LOOKUP_TABLE (0x10): </dt>
+<dd>
+<p>If present, the end of the bitmap file contains a table
+containing a list of <code>N</code> &lt;commit_pos, offset, xor_row&gt;
+triplets. The format and meaning of the table is described
+below.</p>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Unlike the xor_offset used to compress an individual bitmap,
+<code>xor_row</code> stores an <strong>absolute</strong> index into the lookup table, not a location
+relative to the current entry.
+</td>
+</tr>
+</table>
+</div>
+</dd>
+</dl>
+</div>
+</li>
 </ul>
 </div>
 </dd>
@@ -608,7 +639,7 @@ result in an empty bitmap (no bits set).</p>
 <li>
 <p>N entries with compressed bitmaps, one for each indexed commit</p>
 <div class="paragraph">
-<p>Where <code>N</code> is the total amount of entries in this bitmap index.
+<p>Where <code>N</code> is the total number of entries in this bitmap index.
 Each entry contains the following:</p>
 </div>
 <div class="ulist">
@@ -633,7 +664,7 @@ found.</p>
 <dt class="hdlist1">1-byte XOR-offset: </dt>
 <dd>
 <p>The xor offset used to compress this bitmap. For an entry
-in position <code>x</code>, a XOR offset of <code>y</code> means that the actual
+in position <code>x</code>, an XOR offset of <code>y</code> means that the actual
 bitmap representing this commit is composed by XORing the
 bitmap for this entry with the bitmap in entry <code>x-y</code> (i.e.
 the bitmap <code>y</code> entries before this one).</p>
@@ -816,10 +847,67 @@ hashes made under two different schemes would be pointless).</p>
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="_commit_lookup_table">Commit lookup table</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>If the BITMAP_OPT_LOOKUP_TABLE flag is set, the last <code>N * (4 + 8 + 4)</code>
+bytes (preceding the name-hash cache and trailing hash) of the <code>.bitmap</code>
+file contains a lookup table specifying the information needed to get
+the desired bitmap from the entries without parsing previous unnecessary
+bitmaps.</p>
+</div>
+<div class="paragraph">
+<p>For a <code>.bitmap</code> containing <code>nr_entries</code> reachability bitmaps, the table
+contains a list of <code>nr_entries</code> &lt;commit_pos, offset, xor_row&gt; triplets
+(sorted in the ascending order of <code>commit_pos</code>). The content of the i&#8217;th
+triplet is -</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p></p>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">commit_pos (4 byte integer, network byte order): </dt>
+<dd>
+<p>It stores the object position of a commit (in the midx or pack
+index).</p>
+</dd>
+</dl>
+</div>
+</li>
+<li>
+<p></p>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">offset (8 byte integer, network byte order): </dt>
+<dd>
+<p>The offset from which that commit&#8217;s bitmap can be read.</p>
+</dd>
+</dl>
+</div>
+</li>
+<li>
+<p></p>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">xor_row (4 byte integer, network byte order): </dt>
+<dd>
+<p>The position of the triplet whose bitmap is used to compress
+this one, or <code>0xffffffff</code> if no such bitmap exists.</p>
+</dd>
+</dl>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-08-30 21:40:02 UTC
+Last updated 2024-06-03 08:04:30 UTC
 </div>
 </div>
 </body>

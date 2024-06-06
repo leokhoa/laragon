@@ -1,31 +1,21 @@
-package Opcode;
-
-use 5.006_001;
+package Opcode 1.64;
 
 use strict;
-
-our($VERSION, @ISA, @EXPORT_OK);
-
-$VERSION = "1.57";
 
 use Carp;
 use Exporter 'import';
 use XSLoader;
 
-BEGIN {
-    @EXPORT_OK = qw(
+sub opset (;@);
+sub opset_to_hex ($);
+sub opdump (;$);
+use subs our @EXPORT_OK = qw(
 	opset ops_to_opset
 	opset_to_ops opset_to_hex invert_opset
 	empty_opset full_opset
 	opdesc opcodes opmask define_optag
 	opmask_add verify_opset opdump
-    );
-}
-
-sub opset (;@);
-sub opset_to_hex ($);
-sub opdump (;$);
-use subs @EXPORT_OK;
+);
 
 XSLoader::load();
 
@@ -312,10 +302,10 @@ invert_opset function.
 
     null stub scalar pushmark wantarray const defined undef
 
-    rv2sv sassign
+    rv2sv sassign padsv_store
 
     rv2av aassign aelem aelemfast aelemfast_lex aslice kvaslice
-    av2arylen
+    av2arylen aelemfastlex_store
 
     rv2hv helem hslice kvhslice each values keys exists delete
     aeach akeys avalues multideref argelem argdefelem argcheck
@@ -342,10 +332,12 @@ invert_opset function.
     list lslice splice push pop shift unshift reverse
 
     cond_expr flip flop andassign orassign dorassign and or dor xor
+    helemexistsor
 
     warn die lineseq nextstate scope enter leave
 
     rv2cv anoncode prototype coreargs avhvswitch anonconst
+    emptyavhv
 
     entersub leavesub leavesublv return method method_named
     method_super method_redir method_redir_super
@@ -358,6 +350,8 @@ invert_opset function.
 
     leaveeval -- needed for Safe to operate, is safe
 		 without entereval
+
+    methstart initfield
 
 =item :base_mem
 
@@ -450,6 +444,8 @@ These are a hotchpotch of opcodes still waiting to be considered
     custom -- where should this go
 
     ceil floor
+
+    is_tainted
 
 =item :base_math
 

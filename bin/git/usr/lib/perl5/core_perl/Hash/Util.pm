@@ -42,7 +42,7 @@ our @EXPORT_OK  = qw(
 BEGIN {
     # make sure all our XS routines are available early so their prototypes
     # are correctly applied in the following code.
-    our $VERSION = '0.28';
+    our $VERSION = '0.30';
     require XSLoader;
     XSLoader::load();
 }
@@ -92,7 +92,7 @@ Hash::Util - A selection of general-utility hash subroutines
                      hash_traversal_mask
                    );
 
-  %hash = (foo => 42, bar => 23);
+  my %hash = (foo => 42, bar => 23);
   # Ways to restrict a hash
   lock_keys(%hash);
   lock_keys(%hash, @keyset);

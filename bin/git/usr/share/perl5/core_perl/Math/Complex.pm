@@ -10,7 +10,7 @@ package Math::Complex;
 { use 5.006; }
 use strict;
 
-our $VERSION = 1.59_02;
+our $VERSION = 1.62;
 
 use Config;
 
@@ -1847,7 +1847,7 @@ number mathematicians call C<j> such that:
 
 is a simple matter of writing:
 
-	$j = ((root(1, 3))[1];
+	$j = (root(1, 3))[1];
 
 The I<k>th root for C<z = [r,t]> is given by:
 

@@ -3,7 +3,12 @@
 -- !!! THIS FILE IS OVERWRITTEN WHEN CMDER IS UPDATED
 -- !!! Use "%CMDER_ROOT%\config\<whatever>.lua" to add your lua startup scripts
 
--- luacheck: globals clink
+-- luacheck: globals CMDER_SESSION
+-- luacheck: globals uah_color cwd_color lamb_color clean_color dirty_color conflict_color unknown_color
+-- luacheck: globals prompt_homeSymbol prompt_lambSymbol prompt_type prompt_useHomeSymbol prompt_useUserAtHost
+-- luacheck: globals prompt_singleLine prompt_includeVersionControl
+-- luacheck: globals prompt_overrideGitStatusOptIn prompt_overrideSvnStatusOptIn
+-- luacheck: globals clink io.popenyield os.isdir settings.get
 
 -- At first, load the original clink.lua file
 -- this is needed as we set the script path to this dir and therefore the original
@@ -15,51 +20,77 @@ dofile(clink_lua_file)
 
 
 local function get_uah_color()
-  return uah_color or "\x1b[1;33;40m" -- Green = uah = [user]@[hostname]
+    return uah_color or "\x1b[1;33;49m" -- Green = uah = [user]@[hostname]
 end
 
 local function get_cwd_color()
-  return cwd_color or "\x1b[1;32;40m" -- Yellow cwd = Current Working Directory
+    return cwd_color or "\x1b[1;32;49m" -- Yellow cwd = Current Working Directory
 end
 
 local function get_lamb_color()
-  return lamb_color or "\x1b[1;30;40m" -- Light Grey = Lambda Color
+    return lamb_color or "\x1b[1;30;49m" -- Light Grey = Lambda Color
 end
 
 
 local function get_clean_color()
-  return clean_color or "\x1b[1;37;40m"
+    return clean_color or "\x1b[37;1m" -- White, Bold
 end
 
 
 local function get_dirty_color()
-  return dirty_color or "\x1b[33;3m"
+    return dirty_color or "\x1b[33;3m" -- Yellow, Italic
 end
 
 
 local function get_conflict_color()
-  return conflict_color or "\x1b[31;1m"
+    return conflict_color or "\x1b[31;1m" -- Red, Bold
 end
 
 local function get_unknown_color()
-  return unknown_color or "\x1b[37;1m"
+    return unknown_color or "\x1b[37;1m" -- White, Bold
 end
 
 ---
--- Makes a string safe to use as the replacement in string.gsub
+-- Escapes special characters in a string.gsub `find` parameter, so that it
+-- can be matched as a literal plain text string, i.e. disable Lua pattern
+-- matching.  See "Patterns" (https://www.lua.org/manual/5.2/manual.html#6.4.1).
+-- @param {string} text Text to escape
+-- @returns {string} Escaped text
 ---
-local function verbatim(s)
-    s = string.gsub(s, "%%", "%%%%")
-    return s
+local function escape_gsub_find_arg(text)
+    return text and text:gsub("([-+*?.%%()%[%]$^])", "%%%1") or ""
+end
+
+---
+-- Escapes special characters in a string.gsub `replace` parameter, so that it
+-- can be replaced as a literal plain text string, i.e. disable Lua pattern
+-- matching.  See "Patterns" (https://www.lua.org/manual/5.2/manual.html#6.4.1).
+-- @param {string} text Text to escape
+-- @returns {string} Escaped text
+---
+local function escape_gsub_replace_arg(text)
+    return text and text:gsub("%%", "%%%%") or ""
+end
+
+---
+-- Perform string.sub, but disable Lua pattern matching and just treat both
+-- the `find` and `replace` parameters as a literal plain text replacement.
+-- @param {string} str Text in which to perform find and replace
+-- @param {string} find Text to find (plain text; not a Lua pattern)
+-- @param {string} replace Replacement text (plain text; not a Lua pattern)
+-- @returns {string} Copy of the input `str` with `find` replaced by `replace`
+---
+local function gsub_plain(str, find, replace)
+    return string.gsub(str, escape_gsub_find_arg(find), escape_gsub_replace_arg(replace))
 end
 
 -- Extracts only the folder name from the input Path
 -- Ex: Input C:\Windows\System32 returns System32
 ---
 local function get_folder_name(path)
-  local reversePath = string.reverse(path)
-  local slashIndex = string.find(reversePath, "\\")
-  return string.sub(path, string.len(path) - slashIndex + 2)
+    local reversePath = string.reverse(path)
+    local slashIndex = string.find(reversePath, "\\")
+    return string.sub(path, string.len(path) - slashIndex + 2)
 end
 
 
@@ -115,32 +146,32 @@ local function set_prompt_filter()
     -- Much of the below was 'borrowed' from https://github.com/AmrEldib/cmder-powerline-prompt
     -- Symbol displayed for the home dir in the prompt.
     if not prompt_homeSymbol then
-      prompt_homeSymbol = "~"
+        prompt_homeSymbol = "~"
     end
 
     -- Symbol displayed in the new line below the prompt.
     if not prompt_lambSymbol then
-      prompt_lambSymbol = "λ"
+        prompt_lambSymbol = "λ"
     end
 
     if not prompt_type then
-      prompt_type = "full"
+        prompt_type = "full"
     end
 
     if prompt_useHomeSymbol == nil then
-      prompt_useHomeSymbol = false
+        prompt_useHomeSymbol = false
     end
 
     if prompt_useUserAtHost == nil then
-      prompt_useUserAtHost = false
+        prompt_useUserAtHost = false
     end
 
     if prompt_singleLine == nil then
-      prompt_singleLine = false
+        prompt_singleLine = false
     end
 
     if prompt_includeVersionControl == nil then
-      prompt_includeVersionControl = true
+        prompt_includeVersionControl = true
     end
 
     if prompt_type == 'folder' then
@@ -148,18 +179,20 @@ local function set_prompt_filter()
     end
 
     if prompt_useHomeSymbol and string.find(cwd, clink.get_env("HOME")) then
-        cwd = string.gsub(cwd, clink.get_env("HOME"), prompt_homeSymbol)
+        cwd = gsub_plain(cwd, clink.get_env("HOME"), prompt_homeSymbol)
     end
 
-    uah = ''
+    local uah = ''
     if prompt_useUserAtHost then
         uah = clink.get_env("USERNAME") .. "@" .. clink.get_env("COMPUTERNAME") .. ' '
     end
 
-    cr = "\n"
+    local cr = "\n"
     if prompt_singleLine then
-      cr = ' '
+        cr = ' '
     end
+
+    cr = "\x1b[0m" .. cr
 
     if env ~= nil then env = "("..env..") " else env = "" end
 
@@ -168,15 +201,15 @@ local function set_prompt_filter()
 
     local version_control = prompt_includeVersionControl and "{git}{hg}{svn}" or ""
 
-    prompt = "{uah}{cwd}" .. version_control .. get_lamb_color() .. cr .. "{env}{lamb} \x1b[0m"
-    prompt = string.gsub(prompt, "{uah}", uah)
-    prompt = string.gsub(prompt, "{cwd}", cwd)
-    prompt = string.gsub(prompt, "{env}", env)
-    clink.prompt.value = string.gsub(prompt, "{lamb}", prompt_lambSymbol)
+    local prompt = "{uah}{cwd}" .. version_control .. cr .. get_lamb_color() .. "{env}{lamb}\x1b[0m "
+    prompt = gsub_plain(prompt, "{uah}", uah)
+    prompt = gsub_plain(prompt, "{cwd}", cwd)
+    prompt = gsub_plain(prompt, "{env}", env)
+    clink.prompt.value = gsub_plain(prompt, "{lamb}", prompt_lambSymbol)
 end
 
 local function percent_prompt_filter()
-    clink.prompt.value = string.gsub(clink.prompt.value, "{percent}", "%%")
+    clink.prompt.value = gsub_plain(clink.prompt.value, "{percent}", "%")
 end
 
 ---
@@ -189,7 +222,7 @@ end
 local function get_dir_contains(path, dirname)
 
     -- return parent path for specified entry (either file or directory)
-    local function pathname(path)
+    local function pathname(path) -- luacheck: ignore 432
         local prefix = ""
         local i = path:find("[\\/:][^\\/:]*$")
         if i then
@@ -199,14 +232,14 @@ local function get_dir_contains(path, dirname)
     end
 
     -- Navigates up one level
-    local function up_one_level(path)
+    local function up_one_level(path) -- luacheck: ignore 432
         if path == nil then path = '.' end
         if path == '.' then path = clink.get_cwd() end
         return pathname(path)
     end
 
     -- Checks if provided directory contains git directory
-    local function has_specified_dir(path, specified_dir)
+    local function has_specified_dir(path, specified_dir) -- luacheck: ignore 432
         if path == nil then path = '.' end
         local found_dirs = clink.find_dirs(path..'/'..specified_dir)
         if #found_dirs > 0 then return true end
@@ -234,7 +267,7 @@ end
 local function get_git_dir(path)
 
     -- return parent path for specified entry (either file or directory)
-    local function pathname(path)
+    local function pathname(path) -- luacheck: ignore 432
         local prefix = ""
         local i = path:find("[\\/:][^\\/:]*$")
         if i then
@@ -253,8 +286,15 @@ local function get_git_dir(path)
         local gitfile = io.open(dir..'/.git')
         if not gitfile then return false end
 
-        local git_dir = gitfile:read():match('gitdir: (.*)')
+        local line = gitfile:read() or ''
+        local git_dir = line:match('gitdir: (.*)')
         gitfile:close()
+
+        if os.isdir then -- only available in Clink v1.0.0 and higher
+            if git_dir and os.isdir(git_dir) then
+                return git_dir
+            end
+        end
 
         return git_dir and dir..'/'..git_dir
     end
@@ -295,6 +335,9 @@ local function get_git_branch(git_dir)
     local HEAD = head_file:read()
     head_file:close()
 
+    -- If HEAD is missing, something is wrong.
+    if not HEAD then return end
+
     -- if HEAD matches branch expression, then we're on named branch
     -- otherwise it is a detached commit
     local branch_name = HEAD:match('ref: refs/heads/(.+)')
@@ -303,11 +346,21 @@ local function get_git_branch(git_dir)
 end
 
 ---
--- Find out current branch
--- @return {false|mercurial branch name}
+-- Find out current branch information
+-- @return {false|mercurial branch information}
 ---
 local function get_hg_branch()
-    local file = io.popen("hg branch 2>nul")
+    -- Return the branch information. The default is to get just the
+    -- branch name, but you could e.g. use the "hg-prompt" extension to
+    -- get more information, such as any applied mq patches. Here's an
+    -- example of that:
+    -- local cmd = "hg prompt \"{branch}{status}{|{patch}}{update}\""
+    local cmd = "hg branch 2>nul"
+    local file = io.popen(cmd)
+    if not file then
+        return false
+    end
+
     for line in file:lines() do
         local m = line:match("(.+)$")
         if m then
@@ -324,8 +377,12 @@ end
 -- Find out current branch
 -- @return {false|svn branch name}
 ---
-local function get_svn_branch(svn_dir)
-    local file = io.popen("svn info 2>nul")
+local function get_svn_branch()
+    local file = io_popenyield("svn info 2>nul")
+    if not file then
+        return false
+    end
+
     for line in file:lines() do
         local m = line:match("^Relative URL:")
         if m then
@@ -344,38 +401,27 @@ end
 ---
 local function get_git_status()
     local file = io_popenyield("git --no-optional-locks status --porcelain 2>nul")
+    if not file then
+        return {}
+    end
+
     local conflict_found = false
     local is_status = true
     for line in file:lines() do
         local code = line:sub(1, 2)
         -- print (string.format("code: %s, line: %s", code, line))
-        if code == "DD" or code == "AU" or code == "UD" or code == "UA" or code == "DU" or code == "AA" or code == "UU" then
-          is_status = false
-          conflict_found = true
-          break
+        if code == "DD" or code == "AU" or code == "UD" or code == "UA" or code == "DU" or code == "AA" or code == "UU" then -- luacheck: no max line length
+            is_status = false
+            conflict_found = true
+            break
         -- unversioned files are ignored, comment out 'code ~= "!!"' to unignore them
         elseif code ~= "!!" and code ~= "??" then
-          is_status = false
+            is_status = false
         end
     end
     file:close()
+
     return { status = is_status, conflict = conflict_found }
-end
-
-
----
--- Get the status of working dir
--- @return {bool}
----
-local function get_hg_status()
-    local file = io.popen("hg status -0")
-    for line in file:lines() do
-        file:close()
-        return false
-    end
-    file:close()
-
-    return true
 end
 
 ---
@@ -383,13 +429,69 @@ end
 -- @return {bool}
 ---
 local function get_svn_status()
-    local file = io.popen("svn status -q")
-    for line in file:lines() do
+    local file = io_popenyield("svn status -q")
+    if not file then
+        return { error = true }
+    end
+
+    for line in file:lines() do -- luacheck: ignore 512, no unused
         file:close()
-        return false
+        return { clean = false }
     end
     file:close()
 
+    return { clean = true }
+end
+
+---
+-- Get the status of working dir
+-- @return {bool}
+---
+local last_git_status_time = nil
+local last_git_status_setting = true
+local function get_git_status_setting()
+    local time = os.clock()
+    local last_time = last_git_status_time
+    last_git_status_time = time
+    if last_time and time >= 0 and time - last_time < 10 then
+        return last_git_status_setting
+    end
+
+    -- When async prompt filtering is available, check the
+    -- prompt_overrideGitStatusOptIn config setting for whether to ignore the
+    -- cmder.status and cmder.cmdstatus git config opt-in settings.
+    if clink.promptcoroutine and io.popenyield and settings.get("prompt.async") then
+        if prompt_overrideGitStatusOptIn then
+            last_git_status_setting = true
+            return true
+        end
+    end
+
+    local gitStatusConfig = io_popenyield("git --no-pager config cmder.status 2>nul")
+    if gitStatusConfig then
+        for line in gitStatusConfig:lines() do
+            if string.match(line, 'false') then
+                gitStatusConfig:close()
+                last_git_status_setting = false
+                return false
+            end
+        end
+        gitStatusConfig:close()
+    end
+
+    local gitCmdStatusConfig = io_popenyield("git --no-pager config cmder.cmdstatus 2>nul")
+    if gitCmdStatusConfig then
+        for line in gitCmdStatusConfig:lines() do
+            if string.match(line, 'false') then
+                gitCmdStatusConfig:close()
+                last_git_status_setting = false
+                return false
+            end
+        end
+        gitCmdStatusConfig:close()
+    end
+
+    last_git_status_setting = true
     return true
 end
 
@@ -399,7 +501,9 @@ end
 ---
 local function get_git_info_table()
     local info = clink_promptcoroutine(function ()
-        return get_git_status()
+        -- Use git status if allowed.
+        local cmderGitStatusOptIn = get_git_status_setting()
+        return cmderGitStatusOptIn and get_git_status() or {}
     end)
     if not info then
         info = cached_info.git_info or {}
@@ -407,42 +511,6 @@ local function get_git_info_table()
         cached_info.git_info = info
     end
     return info
-end
-
----
--- Get the status of working dir
--- @return {bool}
----
-local function get_git_status_setting()
-    -- When async prompt filtering is available, check the
-    -- prompt_overrideGitStatusOptIn config setting for whether to ignore the
-    -- cmder.status and cmder.cmdstatus git config opt-in settings.
-    if clink.promptcoroutine and io.popenyield and settings.get("prompt.async") then
-        if prompt_overrideGitStatusOptIn then
-            return true
-        end
-    end
-
-    local gitStatusConfig = io.popen("git --no-pager config cmder.status 2>nul")
-
-    for line in gitStatusConfig:lines() do
-        if string.match(line, 'false') then
-          gitStatusConfig:close()
-          return false
-        end
-    end
-
-    local gitCmdStatusConfig = io.popen("git --no-pager config cmder.cmdstatus 2>nul")
-    for line in gitCmdStatusConfig:lines() do
-        if string.match(line, 'false') then
-          gitCmdStatusConfig:close()
-          return false
-        end
-    end
-    gitStatusConfig:close()
-    gitCmdStatusConfig:close()
-
-    return true
 end
 
 local function git_prompt_filter()
@@ -462,7 +530,6 @@ local function git_prompt_filter()
 
     local git_dir = get_git_dir()
     local color
-    cmderGitStatusOptIn = get_git_status_setting()
     if git_dir then
         local branch = get_git_branch(git_dir)
         if branch then
@@ -472,35 +539,32 @@ local function git_prompt_filter()
                 cached_info.git_dir = git_dir
                 cached_info.git_branch = branch
             end
-            -- Use git status if allowed.
-            if cmderGitStatusOptIn then
-                -- if we're inside of git repo then try to detect current branch
-                -- Has branch => therefore it is a git folder, now figure out status
-                local gitInfo = get_git_info_table()
-                local gitStatus = gitInfo.status
-                local gitConflict = gitInfo.conflict
 
-                if gitStatus == nil then
-                    color = colors.nostatus
-                elseif gitStatus then
-                    color = colors.clean
-                else
-                    color = colors.dirty
-                end
+            -- If we're inside of git repo then try to detect current branch
+            -- Has branch => therefore it is a git folder, now figure out status
+            local gitInfo = get_git_info_table()
+            local gitStatus = gitInfo.status
+            local gitConflict = gitInfo.conflict
 
-                if gitConflict then
-                    color = colors.conflict
-                end
-            else
+            if gitStatus == nil then
                 color = colors.nostatus
+            elseif gitStatus then
+                color = colors.clean
+            else
+                color = colors.dirty
             end
-            clink.prompt.value = string.gsub(clink.prompt.value, "{git}", color.."("..verbatim(branch)..")")
+
+            if gitConflict then
+                color = colors.conflict
+            end
+
+            clink.prompt.value = gsub_plain(clink.prompt.value, "{git}", " "..color.."("..branch..")")
             return false
         end
     end
 
     -- No git present or not in git file
-    clink.prompt.value = string.gsub(clink.prompt.value, "{git}", "")
+    clink.prompt.value = gsub_plain(clink.prompt.value, "{git}", "")
     return false
 end
 
@@ -511,8 +575,6 @@ local function hg_prompt_filter()
         return false
     end
 
-    local result = ""
-
     local hg_dir = get_hg_dir()
     if hg_dir then
         -- Colors for mercurial status
@@ -521,10 +583,7 @@ local function hg_prompt_filter()
             dirty = get_dirty_color(),
             nostatus = get_unknown_color()
         }
-
-        local pipe = io.popen("hg branch 2>&1")
-        local output = pipe:read('*all')
-        local rc = { pipe:close() }
+        local output = get_hg_branch()
 
         -- strip the trailing newline from the branch name
         local n = #output
@@ -537,16 +596,20 @@ local function hg_prompt_filter()
             local color = colors.clean
 
             local pipe = io.popen("hg status -amrd 2>&1")
-            local output = pipe:read('*all')
-            local rc = { pipe:close() }
+            if pipe then
+                output = pipe:read('*all')
+                pipe:close()
+                if output ~= nil and output ~= "" then color = colors.dirty end
+            end
 
-            if output ~= nil and output ~= "" then color = colors.dirty end
-            result = color .. "(" .. branch .. ")"
+            local result = color .. "(" .. branch .. ")"
+            clink.prompt.value = gsub_plain(clink.prompt.value, "{hg}", " "..result)
+            return false
         end
     end
 
-    clink.prompt.value = string.gsub(clink.prompt.value, "{hg}", verbatim(result))
-    return false
+    -- No hg present or not in hg repo
+    clink.prompt.value = gsub_plain(clink.prompt.value, "{hg}", "")
 end
 
 local function svn_prompt_filter()
@@ -563,24 +626,49 @@ local function svn_prompt_filter()
         nostatus = get_unknown_color()
     }
 
-    if get_svn_dir() then
+    local svn_dir = get_svn_dir()
+    if svn_dir then
         -- if we're inside of svn repo then try to detect current branch
         local branch = get_svn_branch()
-        local color
         if branch then
-            if get_svn_status() then
+            -- If in a different repo or branch than last time, discard cached info
+            if cached_info.svn_dir ~= svn_dir or cached_info.svn_branch ~= branch then
+                cached_info.svn_info = nil
+                cached_info.svn_dir = svn_dir
+                cached_info.svn_branch = branch
+            end
+            -- Get the svn status using coroutine if available and option is enabled. Otherwise use a blocking call
+            local svnStatus
+            if clink.promptcoroutine and io.popenyield and settings.get("prompt.async") and prompt_overrideSvnStatusOptIn then -- luacheck: no max line length
+                svnStatus = clink_promptcoroutine(function ()
+                    return get_svn_status()
+                end)
+                -- If the status result is pending, use the cached version instead, otherwise store it to the cache
+                if svnStatus == nil then
+                    svnStatus = cached_info.svn_info
+                else
+                    cached_info.svn_info = svnStatus
+                end
+            else
+                svnStatus = get_svn_status()
+            end
+
+            local color
+            if not svnStatus or svnStatus.error then
+                color = colors.nostatus
+            elseif svnStatus.clean then
                 color = colors.clean
             else
                 color = colors.dirty
             end
 
-            clink.prompt.value = string.gsub(clink.prompt.value, "{svn}", color.."("..verbatim(branch)..")")
+            clink.prompt.value = gsub_plain(clink.prompt.value, "{svn}", " "..color.."("..branch..")")
             return false
         end
     end
 
-    -- No mercurial present or not in mercurial file
-    clink.prompt.value = string.gsub(clink.prompt.value, "{svn}", "")
+    -- No svn present or not in svn file
+    clink.prompt.value = gsub_plain(clink.prompt.value, "{svn}", "")
     return false
 end
 
@@ -605,11 +693,11 @@ for _,lua_module in ipairs(clink.find_files(completions_dir..'*.lua')) do
 end
 
 if clink.get_env('CMDER_USER_CONFIG') then
-  local cmder_config_dir = clink.get_env('CMDER_ROOT')..'/config/'
-  for _,lua_module in ipairs(clink.find_files(cmder_config_dir..'*.lua')) do
-    local filename = cmder_config_dir..lua_module
-    -- use dofile instead of require because require caches loaded modules
-    -- so config reloading using Alt-Q won't reload updated modules.
-    dofile(filename)
-  end
+    local cmder_config_dir = clink.get_env('CMDER_ROOT')..'/config/'
+    for _,lua_module in ipairs(clink.find_files(cmder_config_dir..'*.lua')) do
+        local filename = cmder_config_dir..lua_module
+        -- use dofile instead of require because require caches loaded modules
+        -- so config reloading using Alt-Q won't reload updated modules.
+        dofile(filename)
+    end
 end
