@@ -11,7 +11,7 @@
 
 * apache ( https://www.apachelounge.com/download/ ) ==> httpd-2.4.59-240605-win64-VS17.zip
 * cmder ( https://github.com/cmderdev/cmder/releases/ ) ==> cmder_mini.zip Version 1.3.25.328
-* composer
+* composer ( https://getcomposer.org/download/ ) ==> command line install
 * cronical
 * git ( https://www.git-scm.com/download/win ) ==> PortableGit-2.45.2-64-bit.7z.exe
 * heidisql ( https://www.heidisql.com/download.php ) ==> HeidiSQL_12.7_64_Portable.zip
