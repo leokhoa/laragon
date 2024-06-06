@@ -17,7 +17,7 @@
 * heidisql ( https://www.heidisql.com/download.php ) ==> HeidiSQL_12.7_64_Portable.zip
 * laragon
 * memcached
-* mysql ( https://dev.mysql.com/downloads/mysql/ ) ==> mysql-8.4.0-winx64.zip no PDB files
+* mysql ( https://dev.mysql.com/downloads/mysql/ ) ==> mysql-8.0.37-winx64.zip no PDB files
 * nginx
 * ngrok
 * nodejs
