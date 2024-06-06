@@ -18,9 +18,9 @@
 * laragon
 * memcached
 * mysql ( https://dev.mysql.com/downloads/mysql/ ) ==> mysql-8.0.37-winx64.zip no PDB files
-* nginx
+* nginx ( https://nginx.org/en/download.html ) ==> nginx-1.27.0.zip
 * ngrok
-* nodejs
+* nodejs ( https://nodejs.org/en/download/prebuilt-binaries ) ==> 
 * notepad++ ( https://notepad-plus-plus.org/downloads/ ) ==> npp.8.6.8.portable.x64.7z
 * php ( https://windows.php.net/download/ ) ==> php-8.3.8-Win32-vs16-x64.zip
 * python
