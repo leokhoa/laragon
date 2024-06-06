@@ -1,6 +1,6 @@
 package LWP::DebugFile;
 
-our $VERSION = '6.72';
+our $VERSION = '6.60';
 
 # legacy stub
 

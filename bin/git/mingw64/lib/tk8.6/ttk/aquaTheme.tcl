@@ -42,9 +42,6 @@ namespace eval ttk::theme::aqua {
 	# so we only need to specify !focus.)
 
 	# Entry
-	ttk::style configure TEntry \
-	    -foreground systemTextColor \
-	    -background systemTextBackgroundColor
 	ttk::style map TEntry \
 	    -foreground {
 		disabled systemDisabledControlTextColor
@@ -63,9 +60,6 @@ namespace eval ttk::theme::aqua {
 	    }
 
 	# Spinbox
-	ttk::style configure TSpinbox \
-	    -foreground systemTextColor \
-	    -background systemTextBackgroundColor
 	ttk::style map TSpinbox \
 	    -foreground {
 		disabled systemDisabledControlTextColor

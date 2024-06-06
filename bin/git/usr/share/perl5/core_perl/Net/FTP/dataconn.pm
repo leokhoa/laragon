@@ -13,7 +13,7 @@ use Carp;
 use Errno;
 use Net::Cmd;
 
-our $VERSION = '3.15';
+our $VERSION = '3.14';
 
 $Net::FTP::IOCLASS or die "please load Net::FTP before Net::FTP::dataconn";
 our @ISA = $Net::FTP::IOCLASS;
@@ -224,11 +224,11 @@ License or the Artistic License, as specified in the F<LICENCE> file.
 
 =head1 VERSION
 
-Version 3.15
+Version 3.14
 
 =head1 DATE
 
-20 March 2023
+23 Dec 2020
 
 =head1 HISTORY
 

@@ -71,13 +71,6 @@ as the reserved characters.  I.e. the default is:
 
     "^A-Za-z0-9\-\._~"
 
-The second argument can also be specified as a regular expression object:
-
-  qr/[^A-Za-z]/
-
-Any strings matched by this regular expression will have all of their
-characters escaped.
-
 =item uri_escape_utf8( $string )
 
 =item uri_escape_utf8( $string, $unsafe )
@@ -148,7 +141,7 @@ use Exporter 5.57 'import';
 our %escapes;
 our @EXPORT = qw(uri_escape uri_unescape uri_escape_utf8);
 our @EXPORT_OK = qw(%escapes);
-our $VERSION = '5.21';
+our $VERSION = '5.10';
 
 use Carp ();
 
@@ -167,37 +160,17 @@ my %Unsafe = (
 sub uri_escape {
     my($text, $patn) = @_;
     return undef unless defined $text;
-    my $re;
     if (defined $patn){
-        if (ref $patn eq 'Regexp') {
-            $text =~ s{($patn)}{
-                join('', map +($escapes{$_} || _fail_hi($_)), split //, "$1")
-            }ge;
-            return $text;
+        unless (exists  $subst{$patn}) {
+            # Because we can't compile the regex we fake it with a cached sub
+            (my $tmp = $patn) =~ s,/,\\/,g;
+            eval "\$subst{\$patn} = sub {\$_[0] =~ s/([$tmp])/\$escapes{\$1} || _fail_hi(\$1)/ge; }";
+            Carp::croak("uri_escape: $@") if $@;
         }
-        $re = $subst{$patn};
-        if (!defined $re) {
-            $re = $patn;
-            # we need to escape the [] characters, except for those used in
-            # posix classes. if they are prefixed by a backslash, allow them
-            # through unmodified.
-            $re =~ s{(\[:\w+:\])|(\\)?([\[\]]|\\\z)}{
-                defined $1 ? $1 : defined $2 ? "$2$3" : "\\$3"
-            }ge;
-            eval {
-                # disable the warnings here, since they will trigger later
-                # when used, and we only want them to appear once per call,
-                # but every time the same pattern is used.
-                no warnings 'regexp';
-                $re = $subst{$patn} = qr{[$re]};
-                1;
-            } or Carp::croak("uri_escape: $@");
-        }
+        &{$subst{$patn}}($text);
+    } else {
+        $text =~ s/($Unsafe{RFC3986})/$escapes{$1} || _fail_hi($1)/ge;
     }
-    else {
-        $re = $Unsafe{RFC3986};
-    }
-    $text =~ s/($re)/$escapes{$1} || _fail_hi($1)/ge;
     $text;
 }
 

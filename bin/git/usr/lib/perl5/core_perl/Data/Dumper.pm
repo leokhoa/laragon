@@ -18,7 +18,6 @@ use 5.008_001;
 require Exporter;
 
 use constant IS_PRE_516_PERL => $] < 5.016;
-use constant SUPPORTS_CORE_BOOLS => defined &builtin::is_bool;
 
 use Carp ();
 
@@ -30,7 +29,7 @@ our ( $Indent, $Trailingcomma, $Purity, $Pad, $Varname, $Useqq, $Terse, $Freezer
 our ( @ISA, @EXPORT, @EXPORT_OK, $VERSION );
 
 BEGIN {
-    $VERSION = '2.188'; # Don't forget to set version and release
+    $VERSION = '2.184'; # Don't forget to set version and release
                         # date in POD below!
 
     @ISA = qw(Exporter);
@@ -552,12 +551,6 @@ sub _dump {
     elsif (!defined($val)) {
       $out .= "undef";
     }
-    elsif (SUPPORTS_CORE_BOOLS && do {
-      BEGIN { SUPPORTS_CORE_BOOLS and warnings->unimport("experimental::builtin") }
-      builtin::is_bool($val)
-    }) {
-      $out .= $val ? '!!1' : '!!0';
-    }
     # This calls the XSUB _vstring (if the XS code is loaded). I'm not *sure* if
     # if belongs in the "Pure Perl" implementation. It sort of depends on what
     # was meant by "Pure Perl", as this subroutine already relies Scalar::Util
@@ -866,7 +859,7 @@ Data::Dumper - stringified perl data structures, suitable for both printing and 
     }
 
     # OO usage
-    my $d = Data::Dumper->new([$foo, $bar], [qw(foo *ary)]);
+    $d = Data::Dumper->new([$foo, $bar], [qw(foo *ary)]);
        ...
     print $d->Dump;
        ...
@@ -891,7 +884,7 @@ to substructures within C<$VAR>I<n> will be appropriately labeled using arrow
 notation.  You can specify names for individual values to be dumped if you
 use the C<Dump()> method, or you can change the default C<$VAR> prefix to
 something else.  See C<$Data::Dumper::Varname> and C<$Data::Dumper::Terse>
-in L</Configuration Variables or Methods> below.
+below.
 
 The default output of self-referential structures can be C<eval>ed, but the
 nested references to C<$VAR>I<n> will be undefined, since a recursive
@@ -1455,7 +1448,7 @@ modify it under the same terms as Perl itself.
 
 =head1 VERSION
 
-Version 2.188
+Version 2.184
 
 =head1 SEE ALSO
 

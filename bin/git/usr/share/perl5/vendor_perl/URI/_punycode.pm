@@ -3,7 +3,7 @@ package URI::_punycode;
 use strict;
 use warnings;
 
-our $VERSION = '5.21';
+our $VERSION = '5.10';
 
 use Exporter 'import';
 our @EXPORT = qw(encode_punycode decode_punycode);
@@ -25,7 +25,7 @@ my $BasicRE   = qr/[\x00-\x7f]/;
 
 sub _croak { require Carp; Carp::croak(@_); }
 
-sub _digit_value {
+sub digit_value {
     my $code = shift;
     return ord($code) - ord("A") if $code =~ /[A-Z]/;
     return ord($code) - ord("a") if $code =~ /[a-z]/;
@@ -33,14 +33,14 @@ sub _digit_value {
     return;
 }
 
-sub _code_point {
+sub code_point {
     my $digit = shift;
     return $digit + ord('a') if 0 <= $digit && $digit <= 25;
     return $digit + ord('0') - 26 if 26 <= $digit && $digit <= 36;
     die 'NOT COME HERE';
 }
 
-sub _adapt {
+sub adapt {
     my($delta, $numpoints, $firsttime) = @_;
     $delta = $firsttime ? $delta / DAMP : $delta / 2;
     $delta += $delta / $numpoints;
@@ -71,7 +71,7 @@ sub decode_punycode {
     LOOP:
 	for (my $k = BASE; 1; $k += BASE) {
 	    my $cp = substr($code, 0, 1, '');
-	    my $digit = _digit_value($cp);
+	    my $digit = digit_value($cp);
 	    defined $digit or return _croak("invalid punycode input");
 	    $i += $digit * $w;
 	    my $t = ($k <= $bias) ? TMIN
@@ -79,7 +79,7 @@ sub decode_punycode {
 	    last LOOP if $digit < $t;
 	    $w *= (BASE - $t);
 	}
-	$bias = _adapt($i - $oldi, @output + 1, $oldi == 0);
+	$bias = adapt($i - $oldi, @output + 1, $oldi == 0);
 	warn "bias becomes $bias" if $DEBUG;
 	$n += $i / (@output + 1);
 	$i = $i % (@output + 1);
@@ -106,7 +106,7 @@ sub encode_punycode {
     warn "basic codepoints: (@output)" if $DEBUG;
 
     while ($h < @input) {
-	my $m = _min(grep { $_ >= $n } map ord, @input);
+	my $m = min(grep { $_ >= $n } map ord, @input);
 	warn sprintf "next code point to insert is %04x", $m if $DEBUG;
 	$delta += ($m - $n) * ($h + 1);
 	$n = $m;
@@ -120,12 +120,12 @@ sub encode_punycode {
 		    my $t = ($k <= $bias) ? TMIN :
 			($k >= $bias + TMAX) ? TMAX : $k - $bias;
 		    last LOOP if $q < $t;
-		    my $cp = _code_point($t + (($q - $t) % (BASE - $t)));
+		    my $cp = code_point($t + (($q - $t) % (BASE - $t)));
 		    push @output, chr($cp);
 		    $q = ($q - $t) / (BASE - $t);
 		}
-		push @output, chr(_code_point($q));
-		$bias = _adapt($delta, $h + 1, $h == $b);
+		push @output, chr(code_point($q));
+		$bias = adapt($delta, $h + 1, $h == $b);
 		warn "bias becomes $bias" if $DEBUG;
 		$delta = 0;
 		$h++;
@@ -137,7 +137,7 @@ sub encode_punycode {
     return join '', @output;
 }
 
-sub _min {
+sub min {
     my $min = shift;
     for (@_) { $min = $_ if $_ <= $min }
     return $min;

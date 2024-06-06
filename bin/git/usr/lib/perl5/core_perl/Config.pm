@@ -10,15 +10,15 @@ use strict;
 use warnings;
 our ( %Config, $VERSION );
 
-$VERSION = "5.038002";
+$VERSION = "5.036000";
 
 # Skip @Config::EXPORT because it only contains %Config, which we special
 # case below as it's not a function. @Config::EXPORT won't change in the
 # lifetime of Perl 5.
 my %Export_Cache = (myconfig => 1, config_sh => 1, config_vars => 1,
-                    config_re => 1, compile_date => 1, local_patches => 1,
-                    bincompat_options => 1, non_bincompat_options => 1,
-                    header_files => 1);
+		    config_re => 1, compile_date => 1, local_patches => 1,
+		    bincompat_options => 1, non_bincompat_options => 1,
+		    header_files => 1);
 
 @Config::EXPORT = qw(%Config);
 @Config::EXPORT_OK = keys %Export_Cache;
@@ -47,20 +47,20 @@ sub import {
     no strict 'refs';
     my $callpkg = caller(0);
     foreach my $func (@funcs) {
-        die qq{"$func" is not exported by the Config module\n}
-            unless $Export_Cache{$func};
-        *{$callpkg.'::'.$func} = \&{$func};
+	die qq{"$func" is not exported by the Config module\n}
+	    unless $Export_Cache{$func};
+	*{$callpkg.'::'.$func} = \&{$func};
     }
 
     *{"$callpkg\::Config"} = \%Config if $export_Config;
     return;
 }
 
-die "$0: Perl lib version (5.38.2) doesn't match executable '$^X' version ($])"
+die "$0: Perl lib version (5.36.0) doesn't match executable '$^X' version ($])"
     unless $^V;
 
-$^V eq 5.38.2
-    or die sprintf "%s: Perl lib version (5.38.2) doesn't match executable '$^X' version (%vd)", $0, $^V;
+$^V eq 5.36.0
+    or die sprintf "%s: Perl lib version (5.36.0) doesn't match executable '$^X' version (%vd)", $0, $^V;
 
 
 sub FETCH {
@@ -98,7 +98,7 @@ tie %Config, 'Config', {
     ldlibpthname => 'PATH',
     libpth => '/usr/lib',
     osname => 'msys',
-    osvers => '3.4.10-b7ef037e.x86_64',
+    osvers => '3.3.5-341.x86_64',
     path_sep => ':',
     privlibexp => '/usr/share/perl5/core_perl',
     scriptdir => '/usr/bin/core_perl',
@@ -107,5 +107,5 @@ tie %Config, 'Config', {
     so => 'dll',
     useithreads => 'define',
     usevendorprefix => 'define',
-    version => '5.38.2',
+    version => '5.36.0',
 };

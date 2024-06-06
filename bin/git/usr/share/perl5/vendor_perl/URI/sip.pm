@@ -14,7 +14,7 @@ use parent qw(URI::_server URI::_userpass);
 
 use URI::Escape ();
 
-our $VERSION = '5.21';
+our $VERSION = '5.10';
 
 sub default_port { 5060 }
 
@@ -22,33 +22,37 @@ sub authority
 {
     my $self = shift;
     $$self =~ m,^($URI::scheme_re:)?([^;?]*)(.*)$,os or die;
-    my $start = $1;
-    my $authoritystr = $2;
-    my $rest = $3;
+    my $old = $2;
 
     if (@_) {
-        $authoritystr = shift;
-        $authoritystr =~ s/([^$URI::uric])/ URI::Escape::escape_char($1)/ego;
-        $$self = $start . $authoritystr . $rest;
+        my $auth = shift;
+        $$self = defined($1) ? $1 : "";
+        my $rest = $3;
+        if (defined $auth) {
+            $auth =~ s/([^$URI::uric])/ URI::Escape::escape_char($1)/ego;
+            $$self .= "$auth";
+        }
+        $$self .= $rest;
     }
-    return $authoritystr;
+    $old;
 }
 
 sub params_form
 {
     my $self = shift;
     $$self =~ m,^((?:$URI::scheme_re:)?)(?:([^;?]*))?(;[^?]*)?(.*)$,os or die;
-    my $start = $1 . $2;
     my $paramstr = $3;
-    my $rest = $4;
 
     if (@_) {
-	my @paramarr;
-	for (my $i = 0; $i < @_; $i += 2) {
-	    push(@paramarr, "$_[$i]=$_[$i+1]");
+    	my @args = @_; 
+        $$self = $1 . $2;
+        my $rest = $4;
+	my @new;
+	for (my $i=0; $i < @args; $i += 2) {
+	    push(@new, "$args[$i]=$args[$i+1]");
 	}
-	$paramstr = join(";", @paramarr);
-	$$self = $start . ";" . $paramstr . $rest;
+	$paramstr = join(";", @new);
+	$$self .= ";" . $paramstr . $rest;
     }
     $paramstr =~ s/^;//o;
     return split(/[;=]/, $paramstr);
@@ -58,13 +62,13 @@ sub params
 {
     my $self = shift;
     $$self =~ m,^((?:$URI::scheme_re:)?)(?:([^;?]*))?(;[^?]*)?(.*)$,os or die;
-    my $start = $1 . $2;
     my $paramstr = $3;
-    my $rest = $4;
 
     if (@_) {
-        $paramstr = shift; 
-        $$self = $start . ";" . $paramstr . $rest;
+    	my $new = shift; 
+        $$self = $1 . $2;
+        my $rest = $4;
+	$$self .= $paramstr . $rest;
     }
     $paramstr =~ s/^;//o;
     return $paramstr;

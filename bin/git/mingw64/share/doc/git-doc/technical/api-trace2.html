@@ -439,9 +439,6 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <body class="article">
 <div id="header">
 <h1>Trace2 API</h1>
-<div class="details">
-<span id="revdate">2018-06-07</span>
-</div>
 </div>
 <div id="content">
 <div id="preamble">
@@ -640,7 +637,7 @@ already exists and is a directory, the traces will be written to files (one
 per process) underneath the given directory.</p>
 </li>
 <li>
-<p><code>af_unix:[&lt;socket-type&gt;:]&lt;absolute-pathname&gt;</code> - Write to a
+<p><code>af_unix:[&lt;socket_type&gt;:]&lt;absolute-pathname&gt;</code> - Write to a
 Unix DomainSocket (on platforms that support them).  Socket
 type can be either <code>stream</code> or <code>dgram</code>; if omitted Git will
 try both.</p>
@@ -661,9 +658,8 @@ filename collisions).</p>
 <h2 id="_trace2_api">Trace2 API</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>The Trace2 public API is defined and documented in <code>trace2.h</code>; refer to it for
-more information.  All public functions and macros are prefixed
-with <code>trace2_</code> and are implemented in <code>trace2.c</code>.</p>
+<p>All public Trace2 functions and macros are defined in <code>trace2.h</code> and
+<code>trace2.c</code>.  All public symbols are prefixed with <code>trace2_</code>.</p>
 </div>
 <div class="paragraph">
 <p>There are no public Trace2 data structures.</p>
@@ -671,11 +667,18 @@ with <code>trace2_</code> and are implemented in <code>trace2.c</code>.</p>
 <div class="paragraph">
 <p>The Trace2 code also defines a set of private functions and data types
 in the <code>trace2/</code> directory.  These symbols are prefixed with <code>tr2_</code>
-and should only be used by functions in <code>trace2.c</code> (or other private
-source files in <code>trace2/</code>).</p>
+and should only be used by functions in <code>trace2.c</code>.</p>
 </div>
-<div class="sect2">
-<h3 id="_conventions_for_public_functions_and_macros">Conventions for Public Functions and Macros</h3>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_conventions_for_public_functions_and_macros">Conventions for Public Functions and Macros</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The functions defined by the Trace2 API are declared and documented
+in <code>trace2.h</code>.  It defines the API functions and wrapper macros for
+Trace2.</p>
+</div>
 <div class="paragraph">
 <p>Some functions have a <code>_fl()</code> suffix to indicate that they take <code>file</code>
 and <code>line-number</code> arguments.</p>
@@ -689,7 +692,69 @@ take a <code>va_list</code> argument.</p>
 take a <code>printf()</code> style format with a variable number of arguments.</p>
 </div>
 <div class="paragraph">
-<p>CPP wrapper macros are defined to hide most of these details.</p>
+<p>There are CPP wrapper macros and <code>#ifdef`s to hide most of these details.
+See `trace2.h</code> for more details.  The following discussion will only
+describe the simplified forms.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_public_api">Public API</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>All Trace2 API functions send a message to all of the active
+Trace2 Targets.  This section describes the set of available
+messages.</p>
+</div>
+<div class="paragraph">
+<p>It helps to divide these functions into groups for discussion
+purposes.</p>
+</div>
+<div class="sect2">
+<h3 id="_basic_command_messages">Basic Command Messages</h3>
+<div class="paragraph">
+<p>These are concerned with the lifetime of the overall git process.
+e.g: <code>void trace2_initialize_clock()</code>, <code>void trace2_initialize()</code>,
+<code>int trace2_is_enabled()</code>, <code>void trace2_cmd_start(int argc, const char **argv)</code>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_command_detail_messages">Command Detail Messages</h3>
+<div class="paragraph">
+<p>These are concerned with describing the specific Git command
+after the command line, config, and environment are inspected.
+e.g: <code>void trace2_cmd_name(const char *name)</code>,
+<code>void trace2_cmd_mode(const char *mode)</code>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_child_process_messages">Child Process Messages</h3>
+<div class="paragraph">
+<p>These are concerned with the various spawned child processes,
+including shell scripts, git commands, editors, pagers, and hooks.</p>
+</div>
+<div class="paragraph">
+<p>e.g: <code>void trace2_child_start(struct child_process *cmd)</code>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_git_thread_messages">Git Thread Messages</h3>
+<div class="paragraph">
+<p>These messages are concerned with Git thread usage.</p>
+</div>
+<div class="paragraph">
+<p>e.g: <code>void trace2_thread_start(const char *thread_name)</code>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_region_and_data_messages">Region and Data Messages</h3>
+<div class="paragraph">
+<p>These are concerned with recording performance data
+over regions or spans of code. e.g:
+<code>void trace2_region_enter(const char *category, const char *label, const struct repository *repo)</code>.</p>
+</div>
+<div class="paragraph">
+<p>Refer to trace2.h for details about all trace2 functions.</p>
 </div>
 </div>
 </div>
@@ -1261,8 +1326,8 @@ returns to the current git command.</p>
 <dt class="hdlist1"><code>"thread_start"</code></dt>
 <dd>
 <p>This event is generated when a thread is started.  It is
-generated from <strong>within</strong> the new thread&#8217;s thread-proc (because
-it needs to access data in the thread&#8217;s thread-local storage).</p>
+generated from <strong>within</strong> the new thread&#8217;s thread-proc (for TLS
+reasons).</p>
 <div class="listingblock">
 <div class="content">
 <pre>{
@@ -1276,7 +1341,7 @@ it needs to access data in the thread&#8217;s thread-local storage).</p>
 <dt class="hdlist1"><code>"thread_exit"</code></dt>
 <dd>
 <p>This event is generated when a thread exits.  It is generated
-from <strong>within</strong> the thread&#8217;s thread-proc.</p>
+from <strong>within</strong> the thread&#8217;s thread-proc (for TLS reasons).</p>
 <div class="listingblock">
 <div class="content">
 <pre>{
@@ -1297,7 +1362,6 @@ setting, command-line flag, or environment variable.</p>
 <pre>{
         "event":"def_param",
         ...
-        "scope":"global",
         "param":"core.abbrev",
         "value":"7"
 }</pre>
@@ -1407,80 +1471,6 @@ containing structured data.</p>
         "category":"process",
         "key":"windows/ancestry",
         "value":["bash.exe","bash.exe"]
-}</pre>
-</div>
-</div>
-</dd>
-<dt class="hdlist1"><code>"th_timer"</code></dt>
-<dd>
-<p>This event logs the amount of time that a stopwatch timer was
-running in the thread.  This event is generated when a thread
-exits for timers that requested per-thread events.</p>
-<div class="listingblock">
-<div class="content">
-<pre>{
-        "event":"th_timer",
-        ...
-        "category":"my_category",
-        "name":"my_timer",
-        "intervals":5,         # number of time it was started/stopped
-        "t_total":0.052741,    # total time in seconds it was running
-        "t_min":0.010061,      # shortest interval
-        "t_max":0.011648       # longest interval
-}</pre>
-</div>
-</div>
-</dd>
-<dt class="hdlist1"><code>"timer"</code></dt>
-<dd>
-<p>This event logs the amount of time that a stopwatch timer was
-running aggregated across all threads.  This event is generated
-when the process exits.</p>
-<div class="listingblock">
-<div class="content">
-<pre>{
-        "event":"timer",
-        ...
-        "category":"my_category",
-        "name":"my_timer",
-        "intervals":5,         # number of time it was started/stopped
-        "t_total":0.052741,    # total time in seconds it was running
-        "t_min":0.010061,      # shortest interval
-        "t_max":0.011648       # longest interval
-}</pre>
-</div>
-</div>
-</dd>
-<dt class="hdlist1"><code>"th_counter"</code></dt>
-<dd>
-<p>This event logs the value of a counter variable in a thread.
-This event is generated when a thread exits for counters that
-requested per-thread events.</p>
-<div class="listingblock">
-<div class="content">
-<pre>{
-        "event":"th_counter",
-        ...
-        "category":"my_category",
-        "name":"my_counter",
-        "count":23
-}</pre>
-</div>
-</div>
-</dd>
-<dt class="hdlist1"><code>"counter"</code></dt>
-<dd>
-<p>This event logs the value of a counter variable across all threads.
-This event is generated when the process exits.  The total value
-reported here is the sum across all threads.</p>
-<div class="listingblock">
-<div class="content">
-<pre>{
-        "event":"counter",
-        ...
-        "category":"my_category",
-        "name":"my_counter",
-        "count":23
 }</pre>
 </div>
 </div>
@@ -1911,106 +1901,7 @@ at offset 508.</p>
 </div>
 <div class="paragraph">
 <p>This example also shows that thread names are assigned in a racy manner
-as each thread starts.</p>
-</div>
-</dd>
-<dt class="hdlist1">Config (def param) Events</dt>
-<dd>
-<p>Dump "interesting" config values to trace2 log.</p>
-<div class="paragraph">
-<p>We can optionally emit configuration events, see
-<code>trace2.configparams</code> in <a href="../git-config.html">git-config(1)</a> for how to enable
-it.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ git config --system color.ui never
-$ git config --global color.ui always
-$ git config --local color.ui auto
-$ git config --list --show-scope | grep 'color.ui'
-system  color.ui=never
-global  color.ui=always
-local   color.ui=auto</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Then, mark the config <code>color.ui</code> as "interesting" config with
-<code>GIT_TRACE2_CONFIG_PARAMS</code>:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ export GIT_TRACE2_PERF_BRIEF=1
-$ export GIT_TRACE2_PERF=~/log.perf
-$ export GIT_TRACE2_CONFIG_PARAMS=color.ui
-$ git version
-...
-$ cat ~/log.perf
-d0 | main                     | version      |     |           |           |              | ...
-d0 | main                     | start        |     |  0.001642 |           |              | /usr/local/bin/git version
-d0 | main                     | cmd_name     |     |           |           |              | version (version)
-d0 | main                     | def_param    |     |           |           | scope:system | color.ui:never
-d0 | main                     | def_param    |     |           |           | scope:global | color.ui:always
-d0 | main                     | def_param    |     |           |           | scope:local  | color.ui:auto
-d0 | main                     | data         | r0  |  0.002100 |  0.002100 | fsync        | fsync/writeout-only:0
-d0 | main                     | data         | r0  |  0.002126 |  0.002126 | fsync        | fsync/hardware-flush:0
-d0 | main                     | exit         |     |  0.000470 |           |              | code:0
-d0 | main                     | atexit       |     |  0.000477 |           |              | code:0</pre>
-</div>
-</div>
-</dd>
-<dt class="hdlist1">Stopwatch Timer Events</dt>
-<dd>
-<p>Measure the time spent in a function call or span of code
-that might be called from many places within the code
-throughout the life of the process.</p>
-<div class="listingblock">
-<div class="content">
-<pre>static void expensive_function(void)
-{
-        trace2_timer_start(TRACE2_TIMER_ID_TEST1);
-        ...
-        sleep_millisec(1000); // Do something expensive
-        ...
-        trace2_timer_stop(TRACE2_TIMER_ID_TEST1);
-}
-
-static int ut_100timer(int argc, const char **argv)
-{
-        ...
-
-        expensive_function();
-
-        // Do something else 1...
-
-        expensive_function();
-
-        // Do something else 2...
-
-        expensive_function();
-
-        return 0;
-}</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>In this example, we measure the total time spent in
-<code>expensive_function()</code> regardless of when it is called
-in the overall flow of the program.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ export GIT_TRACE2_PERF_BRIEF=1
-$ export GIT_TRACE2_PERF=~/log.perf
-$ t/helper/test-tool trace2 100timer 3 1000
-...
-$ cat ~/log.perf
-d0 | main                     | version      |     |           |           |              | ...
-d0 | main                     | start        |     |  0.001453 |           |              | t/helper/test-tool trace2 100timer 3 1000
-d0 | main                     | cmd_name     |     |           |           |              | trace2 (trace2)
-d0 | main                     | exit         |     |  3.003667 |           |              | code:0
-d0 | main                     | timer        |     |           |           | test         | name:test1 intervals:3 total:3.001686 min:1.000254 max:1.000929
-d0 | main                     | atexit       |     |  3.003796 |           |              | code:0</pre>
-</div>
+as each thread starts and allocates TLS storage.</p>
 </div>
 </dd>
 </dl>
@@ -2054,7 +1945,7 @@ Trace2 targets (and convert &lt;key&gt; to a "category").</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-02-23 20:26:53 UTC
+Last updated 2022-08-30 21:40:02 UTC
 </div>
 </div>
 </body>

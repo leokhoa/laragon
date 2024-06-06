@@ -15,13 +15,13 @@ TCL_DLL_FILE="tcl86.dll"
 TCL_VERSION='8.6'
 TCL_MAJOR_VERSION='8'
 TCL_MINOR_VERSION='6'
-TCL_PATCH_LEVEL='.13'
+TCL_PATCH_LEVEL='.11'
 
 # C compiler to use for compilation.
 TCL_CC='gcc'
 
 # -D flags for use with the C compiler.
-TCL_DEFS='-DPACKAGE_NAME=\"tcl\" -DPACKAGE_TARNAME=\"tcl\" -DPACKAGE_VERSION=\"8.6\" -DPACKAGE_STRING=\"tcl\ 8.6\" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE_URL=\"\" -DHAVE_STDIO_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_UNISTD_H=1 -DSTDC_HEADERS=1 -DTCL_THREADS=1 -DUSE_THREAD_ALLOC=1 -DTCL_CFGVAL_ENCODING=\"cp1252\" -DMODULE_SCOPE=extern -DTCL_CFG_DO64BIT=1 -DHAVE_NO_SEH=1 -DHAVE_CAST_TO_UNION=1 -DHAVE_ZLIB=1 -DHAVE_INTPTR_T=1 -DHAVE_UINTPTR_T=1 -DHAVE_INTRIN_H=1 -DHAVE_WSPIAPI_H=1 -DNDEBUG=1 -DTCL_CFG_OPTIMIZED=1'
+TCL_DEFS='-DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE_URL=\"\" -DHAVE_STDIO_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_UNISTD_H=1 -DSTDC_HEADERS=1 -DTCL_THREADS=1 -DUSE_THREAD_ALLOC=1 -DTCL_CFGVAL_ENCODING=\"cp1252\" -DMODULE_SCOPE=extern -DTCL_CFG_DO64BIT=1 -DHAVE_NO_SEH=1 -DHAVE_CAST_TO_UNION=1 -DHAVE_ZLIB=1 -DHAVE_INTPTR_T=1 -DHAVE_UINTPTR_T=1 -DHAVE_INTRIN_H=1 -DHAVE_WSPIAPI_H=1 -DNDEBUG=1 -DTCL_CFG_OPTIMIZED=1'
 
 # If TCL was built with debugging symbols, generated libraries contain
 # this string at the end of the library name (before the extension).
@@ -68,7 +68,7 @@ TCL_SHLIB_CFLAGS=''
 TCL_CFLAGS_WARNING='-Wall -Wpointer-arith -Wdeclaration-after-statement'
 
 # Extra flags to pass to cc:
-TCL_EXTRA_CFLAGS='-pipe -DHAVE_CPUID=1'
+TCL_EXTRA_CFLAGS='-pipe'
 
 # Base command to use for combining object files into a shared library:
 TCL_SHLIB_LD='${CC} -shared'
@@ -90,7 +90,7 @@ TCL_DL_LIBS=''
 
 # Flags to pass to the compiler when linking object files into
 # an executable tclsh or tcltest binary.
-TCL_LD_FLAGS='-pipe'
+TCL_LD_FLAGS='-pipe -Wl,--dynamicbase,--high-entropy-va,--nxcompat,--default-image-base-high'
 
 # Flags to pass to cc/ld, such as "-R /usr/local/tcl/lib", that tell the
 # run-time dynamic linker where to look for shared libraries such as
@@ -107,7 +107,7 @@ TCL_COMPAT_OBJS=''
 TCL_RANLIB='ranlib'
 
 # -l flag to pass to the linker to pick up the Tcl library
-TCL_LIB_FLAG='-ltcl86'
+TCL_LIB_FLAG=''
 
 # String to pass to linker to pick up the Tcl library from its
 # build directory.

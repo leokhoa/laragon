@@ -12,7 +12,7 @@ use 5.008001;
 # be as strict as possible
 use strict;
 
-our $VERSION = '0.10';
+our $VERSION = '0.09';
 
 # modules that we need
 use MIME::QuotedPrint (); # no need to pollute this namespace
@@ -163,11 +163,11 @@ Public License or the Artistic License, as specified in the F<LICENCE> file.
 
 =head1 VERSION
 
-Version 0.10
+Version 0.09
 
 =head1 DATE
 
-22 May 2022
+08 Dec 2020
 
 =head1 HISTORY
 

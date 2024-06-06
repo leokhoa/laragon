@@ -3,9 +3,9 @@ package HTTP::Request;
 use strict;
 use warnings;
 
-our $VERSION = '6.45';
+our $VERSION = '6.36';
 
-use parent 'HTTP::Message';
+use base 'HTTP::Message';
 
 sub new
 {
@@ -155,7 +155,7 @@ HTTP::Request - HTTP style request message
 
 =head1 VERSION
 
-version 6.45
+version 6.36
 
 =head1 SYNOPSIS
 

@@ -1,6 +1,6 @@
 package UNIVERSAL;
 
-our $VERSION = '1.15';
+our $VERSION = '1.14';
 
 # UNIVERSAL should not contain any extra subs/methods beyond those
 # that it exists to define. The existence of import() below is a historical
@@ -24,21 +24,21 @@ UNIVERSAL - base class for ALL classes (blessed references)
 
 =head1 SYNOPSIS
 
-    my $obj_is_io    = $fd->isa("IO::Handle");
-    my $cls_is_io    = Class->isa("IO::Handle");
+    $is_io    = $fd->isa("IO::Handle");
+    $is_io    = Class->isa("IO::Handle");
 
-    my $obj_does_log = $obj->DOES("Logger");
-    my $cls_does_log = Class->DOES("Logger");
+    $does_log = $obj->DOES("Logger");
+    $does_log = Class->DOES("Logger");
 
-    my $obj_sub      = $obj->can("print");
-    my $cls_sub      = Class->can("print");
+    $sub      = $obj->can("print");
+    $sub      = Class->can("print");
 
-    my $eval_sub     = eval { $ref->can("fandango") };
-    my $ver          = $obj->VERSION;
+    $sub      = eval { $ref->can("fandango") };
+    $ver      = $obj->VERSION;
 
     # but never do this!
-    my $is_io        = UNIVERSAL::isa($fd, "IO::Handle");
-    my $sub          = UNIVERSAL::can($obj, "print");
+    $is_io    = UNIVERSAL::isa($fd, "IO::Handle");
+    $sub      = UNIVERSAL::can($obj, "print");
 
 =head1 DESCRIPTION
 

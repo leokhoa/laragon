@@ -1,11 +1,6 @@
 local exports = {}
 
 local w = require('tables').wrap
-local clink_version = require('clink_version')
-
-local function isdir(name)
-    return clink_version.new_api and os.isdir(name) or clink.is_dir(name)
-end
 
 exports.list_files = function (base_path, glob, recursive, reverse_separator)
     local mask = glob or '/*'
@@ -16,7 +11,7 @@ exports.list_files = function (base_path, glob, recursive, reverse_separator)
     end)
 
     local files = entries:filter(function(entry)
-        return not isdir(base_path..'/'..entry)
+        return not clink.is_dir(base_path..'/'..entry)
     end)
 
     -- if 'recursive' flag is not set, we don't need to iterate
@@ -27,7 +22,7 @@ exports.list_files = function (base_path, glob, recursive, reverse_separator)
 
     return entries
     :filter(function(entry)
-        return isdir(base_path..'/'..entry)
+        return clink.is_dir(base_path..'/'..entry)
     end)
     :reduce(files, function(accum, dir)
         -- iterate through directories and call list_files recursively
@@ -39,45 +34,26 @@ exports.list_files = function (base_path, glob, recursive, reverse_separator)
     end)
 end
 
-exports.basename = function (pathname)
-    local prefix = pathname
-    if clink_version.supports_path_toparent then
-        prefix = path.getname(pathname)
-    else
-        local i = pathname:find("[\\/:][^\\/:]*$")
-        if i then
-            prefix = pathname:sub(i + 1)
-        end
+exports.basename = function (path)
+    local prefix = path
+    local i = path:find("[\\/:][^\\/:]*$")
+    if i then
+        prefix = path:sub(i + 1)
     end
     return prefix
 end
 
-exports.pathname = function (pathname)
+exports.pathname = function (path)
     local prefix = ""
-    if clink_version.supports_path_toparent then
-        -- Clink v1.1.20 and higher provide an API to do this right.
-        local child
-        prefix,child = path.toparent(pathname)
-        if child == "" then
-            -- This means it can't go up further.  The old implementation
-            -- returned "" in that case, though no callers stopped when an
-            -- empty path was returned; they only stopped when the
-            -- returned path equaled the input path.
-            prefix = ""
-        end
-    else
-        -- This approach has several bugs. For example, "c:/" yields "c".
-        -- Walking up looking for .git tries "c:/.git" and then "c/.git".
-        local i = pathname:find("[\\/:][^\\/:]*$")
-        if i then
-            prefix = pathname:sub(1, i-1)
-        end
+    local i = path:find("[\\/:][^\\/:]*$")
+    if i then
+        prefix = path:sub(1, i-1)
     end
     return prefix
 end
 
-exports.is_absolute = function (pathname)
-    local drive = pathname:find("^%s?[%l%a]:[\\/]")
+exports.is_absolute = function (path)
+    local drive = path:find("^%s?[%l%a]:[\\/]")
     if drive then return true else return false end
 end
 

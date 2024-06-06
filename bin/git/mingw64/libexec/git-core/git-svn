@@ -44,7 +44,7 @@ BEGIN {
 # END RUNTIME_PREFIX generated code.
 # Copyright (C) 2006, Eric Wong <normalperson@yhbt.net>
 # License: GPL v2 or later
-use 5.008001;
+use 5.008;
 use warnings $ENV{GIT_PERL_FATAL_WARNINGS} ? qw(FATAL all) : ();
 use strict;
 use vars qw/	$AUTHOR $VERSION
@@ -52,7 +52,7 @@ use vars qw/	$AUTHOR $VERSION
 		$_revision $_repository
 		$_q $_authors $_authors_prog %users/;
 $AUTHOR = 'Eric Wong <normalperson@yhbt.net>';
-$VERSION = '2.44.0.windows.1';
+$VERSION = '2.37.3.windows.1';
 
 use Carp qw/croak/;
 use File::Basename qw/dirname basename/;
@@ -340,12 +340,28 @@ my %cmd = (
 		{} ],
 );
 
+package FakeTerm;
+sub new {
+	my ($class, $reason) = @_;
+	return bless \$reason, shift;
+}
+sub readline {
+	my $self = shift;
+	die "Cannot use readline on FakeTerm: $$self";
+}
+package main;
+
 my $term;
 sub term_init {
-	require Term::ReadLine;
-	$term = $ENV{"GIT_SVN_NOTTY"}
+	$term = eval {
+		require Term::ReadLine;
+		$ENV{"GIT_SVN_NOTTY"}
 			? new Term::ReadLine 'git-svn', \*STDIN, \*STDOUT
 			: new Term::ReadLine 'git-svn';
+	};
+	if ($@) {
+		$term = new FakeTerm "$@: going non-interactive";
+	}
 }
 
 my $cmd;

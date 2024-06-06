@@ -11,7 +11,7 @@ require HTTP::Status;
 use Carp;
 use strict;
 
-our $VERSION = '6.72';
+our $VERSION = '6.60';
 
 use parent qw(LWP::Protocol);
 our $SENDMAIL;

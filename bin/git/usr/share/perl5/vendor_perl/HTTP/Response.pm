@@ -3,9 +3,9 @@ package HTTP::Response;
 use strict;
 use warnings;
 
-our $VERSION = '6.45';
+our $VERSION = '6.36';
 
-use parent 'HTTP::Message';
+use base 'HTTP::Message';
 
 use HTTP::Status ();
 
@@ -84,6 +84,7 @@ sub base
     my $self = shift;
     my $base = (
 	$self->header('Content-Base'),        # used to be HTTP/1.1
+	$self->header('Content-Location'),    # HTTP/1.1
 	$self->header('Base'),                # HTTP/1.0
     )[0];
     if ($base && $base =~ /^$URI::scheme_re:/o) {
@@ -350,7 +351,7 @@ HTTP::Response - HTTP style response message
 
 =head1 VERSION
 
-version 6.45
+version 6.36
 
 =head1 SYNOPSIS
 
@@ -481,7 +482,7 @@ in HTML documents.
 
 =item 2.
 
-A "Content-Base:" header in the response.
+A "Content-Base:" or a "Content-Location:" header in the response.
 
 For backwards compatibility with older HTTP implementations we will
 also look for the "Base:" header.
@@ -495,13 +496,6 @@ received some redirect responses first.
 =back
 
 If none of these sources provide an absolute URI, undef is returned.
-
-B<Note>: previous versions of HTTP::Response would also consider
-a "Content-Location:" header,
-as L<RFC 2616|https://www.rfc-editor.org/rfc/rfc2616> said it should be.
-But this was never widely implemented by browsers,
-and now L<RFC 7231|https://www.rfc-editor.org/rfc/rfc7231>
-says it should no longer be considered.
 
 When the LWP protocol modules produce the HTTP::Response object, then any base
 URI embedded in the document (step 1) will already have initialized the

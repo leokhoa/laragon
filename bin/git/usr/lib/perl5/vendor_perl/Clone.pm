@@ -1,19 +1,19 @@
 package Clone;
 
 use strict;
-our $AUTOLOAD;
+use vars qw($VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD);
 
 require Exporter;
+require DynaLoader;
 require AutoLoader;
-use XSLoader ();
 
-our @ISA       = qw(Exporter);
-our @EXPORT;
-our @EXPORT_OK = qw( clone );
+@ISA       = qw(Exporter DynaLoader);
+@EXPORT    = qw();
+@EXPORT_OK = qw( clone );
 
-our $VERSION = '0.46';
+$VERSION = '0.45';
 
-XSLoader::load('Clone', $VERSION);
+bootstrap Clone $VERSION;
 
 1;
 __END__
@@ -81,7 +81,7 @@ with 3 or fewer levels, while C<dclone()> can be faster for structures
 
 =head1 COPYRIGHT
 
-Copyright 2001-2022 Ray Finch. All Rights Reserved.
+Copyright 2001-2019 Ray Finch. All Rights Reserved.
 
 This module is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
@@ -90,9 +90,7 @@ modify it under the same terms as Perl itself.
 
 Ray Finch C<< <rdf@cpan.org> >>
 
-Breno G. de Oliveira C<< <garu@cpan.org> >>,
-Nicolas Rochelemagne C<< <atoomic@cpan.org> >>
-and
+Breno G. de Oliveira C<< <garu@cpan.org> >> and
 Florian Ragwitz C<< <rafl@debian.org> >> perform routine maintenance
 releases since 2012.
 

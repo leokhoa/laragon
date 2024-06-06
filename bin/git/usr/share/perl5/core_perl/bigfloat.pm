@@ -5,7 +5,7 @@ use warnings;
 
 use Carp qw< carp croak >;
 
-our $VERSION = '0.66';
+our $VERSION = '0.65';
 
 use Exporter;
 our @ISA            = qw( Exporter );

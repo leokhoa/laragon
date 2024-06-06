@@ -3,12 +3,12 @@
 # modify it under the same terms as Perl itself.
 
 package Authen::SASL::Perl::CRAM_MD5;
-$Authen::SASL::Perl::CRAM_MD5::VERSION = '2.1700';
+
 use strict;
-use warnings;
-use vars qw(@ISA);
+use vars qw($VERSION @ISA);
 use Digest::HMAC_MD5 qw(hmac_md5_hex);
 
+$VERSION = "2.14";
 @ISA	 = qw(Authen::SASL::Perl);
 
 my %secflags = (
@@ -45,10 +45,6 @@ __END__
 =head1 NAME
 
 Authen::SASL::Perl::CRAM_MD5 - CRAM MD5 Authentication class
-
-=head1 VERSION
-
-version 2.1700
 
 =head1 SYNOPSIS
 

@@ -2,7 +2,7 @@ package Test2::Event::TAP::Version;
 use strict;
 use warnings;
 
-our $VERSION = '1.302194';
+our $VERSION = '1.302190';
 
 use Carp qw/croak/;
 

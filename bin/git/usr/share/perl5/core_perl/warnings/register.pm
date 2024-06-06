@@ -1,5 +1,6 @@
-package warnings::register 1.05;
+package warnings::register;
 
+our $VERSION = '1.04';
 require warnings;
 
 # left here as cruft in case other users were using this undocumented routine
@@ -18,7 +19,7 @@ sub import
     shift;
     my @categories = @_;
 
-    my $package = caller;
+    my $package = (caller(0))[0];
     warnings::register_categories($package);
 
     warnings::register_categories($package . "::$_") for @categories;

@@ -1,4 +1,4 @@
-# -*- mode: Perl; buffer-read-only: t -*-
+# -*- buffer-read-only: t -*-
 #
 #    lib/overload/numbers.pm
 #
@@ -173,4 +173,4 @@ our @enums = qw#
 
 { my $i = 0; our %enums = map { $_ => $i++ } @enums }
 
-# ex: set ro ft=perl:
+# ex: set ro:

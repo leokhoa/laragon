@@ -15,7 +15,7 @@ use warnings ();
 our $host;
 
 BEGIN {
-    $VERSION = '1.25';
+    $VERSION = '1.24';
     {
 	local $SIG{__DIE__};
 	eval {
@@ -131,7 +131,7 @@ Sys::Hostname - Try every conceivable way to get hostname
 =head1 SYNOPSIS
 
     use Sys::Hostname;
-    my $host = hostname;
+    $host = hostname;
 
 =head1 DESCRIPTION
 

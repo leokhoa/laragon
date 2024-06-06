@@ -6,7 +6,7 @@ use warnings;
 use URI ();
 use Scalar::Util qw(blessed);
 
-our $VERSION = '5.21';
+our $VERSION = '5.10';
 
 use overload '""' => "as_string", fallback => 1;
 

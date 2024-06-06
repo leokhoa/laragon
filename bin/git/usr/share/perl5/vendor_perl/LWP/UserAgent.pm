@@ -5,7 +5,6 @@ use strict;
 use parent qw(LWP::MemberMixin);
 
 use Carp ();
-use File::Copy ();
 use HTTP::Request ();
 use HTTP::Response ();
 use HTTP::Date ();
@@ -13,12 +12,11 @@ use HTTP::Date ();
 use LWP ();
 use HTTP::Status ();
 use LWP::Protocol ();
-use Module::Load qw( load );
 
-use Scalar::Util qw(blessed openhandle);
+use Scalar::Util qw(blessed);
 use Try::Tiny qw(try catch);
 
-our $VERSION = '6.72';
+our $VERSION = '6.60';
 
 sub new
 {
@@ -87,10 +85,6 @@ sub new
     $requests_redirectable = ['GET', 'HEAD']
       unless defined $requests_redirectable;
 
-    my $cookie_jar_class = delete $cnf{cookie_jar_class};
-    $cookie_jar_class = 'HTTP::Cookies'
-      unless defined $cookie_jar_class;
-
     # Actually ""s are just as good as 0's, but for concision we'll just say:
     Carp::croak("protocols_allowed has to be an arrayref or 0, not \"$protocols_allowed\"!")
       if $protocols_allowed and ref($protocols_allowed) ne 'ARRAY';
@@ -119,7 +113,6 @@ sub new
         protocols_forbidden   => $protocols_forbidden,
         requests_redirectable => $requests_redirectable,
         send_te               => $send_te,
-        cookie_jar_class      => $cookie_jar_class,
     }, $class;
 
     $self->agent(defined($agent) ? $agent : $class->_agent)
@@ -564,13 +557,11 @@ sub _process_colonic_headers {
 	    # Some sanity-checking...
 	    Carp::croak("A :content_file value can't be undef")
 		unless defined $arg;
+	    Carp::croak("A :content_file value can't be a reference")
+		if ref $arg;
+	    Carp::croak("A :content_file value can't be \"\"")
+		unless length $arg;
 
-	    unless ( defined openhandle($arg) ) {
-		    Carp::croak("A :content_file value can't be a reference")
-			if ref $arg;
-		    Carp::croak("A :content_file value can't be \"\"")
-			unless length $arg;
-	    }
 	}
 	elsif ($args->[$i] eq ':read_size_hint') {
 	    $size = $args->[$i + 1];
@@ -718,21 +709,7 @@ sub get_basic_credentials
 }
 
 
-sub timeout
-{
-    my $self = shift;
-    my $old = $self->{timeout};
-    if (@_) {
-        $self->{timeout} = shift;
-        if (my $conn_cache = $self->conn_cache) {
-            for my $conn ($conn_cache->get_connections) {
-                $conn->timeout($self->{timeout});
-            }
-        }
-    }
-    return $old;
-}
-
+sub timeout      { shift->_elem('timeout',      @_); }
 sub local_address{ shift->_elem('local_address',@_); }
 sub max_size     { shift->_elem('max_size',     @_); }
 sub max_redirect { shift->_elem('max_redirect', @_); }
@@ -804,38 +781,24 @@ sub parse_head {
 sub cookie_jar {
     my $self = shift;
     my $old = $self->{cookie_jar};
-
-    return $old unless @_;
-
-    my $jar = shift;
-    if (ref($jar) eq "HASH") {
-        my $class = $self->{cookie_jar_class};
-        try {
-            load($class);
-            $jar = $class->new(%$jar);
-        }
-        catch {
-            my $error = $_;
-            if ($error =~ /Can't locate/) {
-                die "cookie_jar_class '$class' not found\n";
-            }
-            else {
-                die "$error\n";
-            }
-        };
+    if (@_) {
+	my $jar = shift;
+	if (ref($jar) eq "HASH") {
+	    require HTTP::Cookies;
+	    $jar = HTTP::Cookies->new(%$jar);
+	}
+	$self->{cookie_jar} = $jar;
+        $self->set_my_handler("request_prepare",
+            $jar ? sub {
+                return if $_[0]->header("Cookie");
+                $jar->add_cookie_header($_[0]);
+            } : undef,
+        );
+        $self->set_my_handler("response_done",
+            $jar ? sub { $jar->extract_cookies($_[0]); } : undef,
+        );
     }
-    $self->{cookie_jar} = $jar;
-    $self->set_my_handler("request_prepare",
-        $jar ? sub {
-            return if $_[0]->header("Cookie");
-            $jar->add_cookie_header($_[0]);
-        } : undef,
-    );
-    $self->set_my_handler("response_done",
-        $jar ? sub { $jar->extract_cookies($_[0]); } : undef,
-    );
-
-    return $old;
+    $old;
 }
 
 sub default_headers {
@@ -879,21 +842,16 @@ sub from {  # legacy
 
 sub conn_cache {
     my $self = shift;
-    my $old  = $self->{conn_cache};
+    my $old = $self->{conn_cache};
     if (@_) {
-        my $cache = shift;
-        if ( ref($cache) eq "HASH" ) {
-            require LWP::ConnCache;
-            $cache = LWP::ConnCache->new(%$cache);
-        }
-        elsif ( defined $cache)  {
-            for my $conn ( $cache->get_connections ) {
-                $conn->timeout( $self->timeout );
-            }
-        }
-        $self->{conn_cache} = $cache;
+	my $cache = shift;
+	if (ref($cache) eq "HASH") {
+	    require LWP::ConnCache;
+	    $cache = LWP::ConnCache->new(%$cache);
+	}
+	$self->{conn_cache} = $cache;
     }
-    return $old;
+    $old;
 }
 
 
@@ -1047,14 +1005,10 @@ sub mirror
             $request->header( 'If-Modified-Since' => HTTP::Date::time2str($mtime) );
         }
     }
-
-    require File::Temp;
-    my ($tmpfh, $tmpfile) = File::Temp::tempfile("$file-XXXXXX");
-    close($tmpfh) or die "Could not close tmpfile '$tmpfile': $!";
+    my $tmpfile = "$file-$$";
 
     my $response = $self->request($request, $tmpfile);
     if ( $response->header('X-Died') ) {
-        unlink($tmpfile);
         die $response->header('X-Died');
     }
 
@@ -1077,18 +1031,13 @@ sub mirror
         # The file was the expected length.
         else {
             # Replace the stale file with a fresh copy
-            # File::Copy will attempt to do it atomically,
-            # and fall back to a delete + copy if that fails.
-            File::Copy::move( $tmpfile, $file )
-                or die "Cannot rename '$tmpfile' to '$file': $!\n";
-
-            # Set standard file permissions if umask is supported.
-            # If not, leave what File::Temp created in effect.
-            if ( defined(my $umask = umask()) ) {
-                my $mode = 0666 &~ $umask;
-                chmod $mode, $file
-                    or die sprintf("Cannot chmod %o '%s': %s\n", $mode, $file, $!);
+            if ( -e $file ) {
+                # Some DOSish systems fail to rename if the target exists
+                chmod 0777, $file;
+                unlink $file;
             }
+            rename( $tmpfile, $file )
+                or die "Cannot rename '$tmpfile' to '$file': $!\n";
 
             # make sure the file has the same last modification time
             if ( my $lm = $response->last_modified ) {
@@ -1112,7 +1061,7 @@ sub _need_proxy {
     if ($ua->{no_proxy}) {
         if (my $host = eval { $req->uri->host }) {
             for my $domain (@{$ua->{no_proxy}}) {
-                if ($host =~ /(?:^|\.)\Q$domain\E$/) {
+                if ($host =~ /\Q$domain\E$/) {
                     return;
                 }
             }
@@ -1323,7 +1272,6 @@ The following options correspond to attribute methods described below:
    agent                   "libwww-perl/#.###"
    conn_cache              undef
    cookie_jar              undef
-   cookie_jar_class        HTTP::Cookies
    default_headers         HTTP::Headers->new
    from                    undef
    local_address           undef
@@ -1333,10 +1281,8 @@ The following options correspond to attribute methods described below:
    parse_head              1
    protocols_allowed       undef
    protocols_forbidden     undef
-   proxy                   {}
+   proxy                   undef
    requests_redirectable   ['GET', 'HEAD']
-   send_te                 1
-   show_progress           undef
    ssl_opts                { verify_hostname => 1 }
    timeout                 180
 
@@ -1414,9 +1360,9 @@ instead.  See L</"BEST PRACTICES"> for more information.
 The default is to have no cookie jar, i.e. never automatically add
 C<Cookie> headers to the requests.
 
-If C<$jar> contains an unblessed hash reference, a new cookie jar object is
-created for you automatically. The object is of the class set with the
-C<cookie_jar_class> constructor argument, which defaults to L<HTTP::Cookies>.
+Shortcut: If a reference to a plain hash is passed in, it is replaced with an
+instance of L<HTTP::Cookies> that is initialized based on the hash. This form
+also automatically loads the L<HTTP::Cookies> module.  It means that:
 
   $ua->cookie_jar({ file => "$ENV{HOME}/.cookies.txt" });
 
@@ -1424,20 +1370,6 @@ is really just a shortcut for:
 
   require HTTP::Cookies;
   $ua->cookie_jar(HTTP::Cookies->new(file => "$ENV{HOME}/.cookies.txt"));
-
-As described above and in L</"BEST PRACTICES">, you should set
-C<cookie_jar_class> to C<"HTTP::CookieJar::LWP"> to get a safer cookie jar.
-
-  my $ua = LWP::UserAgent->new( cookie_jar_class => 'HTTP::CookieJar::LWP' );
-  $ua->cookie_jar({}); # HTTP::CookieJar::LWP takes no args
-
-These can also be combined into the constructor, so a jar is created at
-instantiation.
-
-  my $ua = LWP::UserAgent->new(
-    cookie_jar_class => 'HTTP::CookieJar::LWP',
-    cookie_jar       =>  {},
-  );
 
 =head2 credentials
 
@@ -1908,15 +1840,13 @@ Fields names that start with ":" are special.  These will not
 initialize headers of the request but will determine how the response
 content is treated.  The following special field names are recognized:
 
-    ':content_file'   => $filename # or $filehandle
+    ':content_file'   => $filename
     ':content_cb'     => \&callback
     ':read_size_hint' => $bytes
 
-If a C<$filename> or C<$filehandle> is provided with the C<:content_file>
-option, then the response content will be saved here instead of in
-the response object.  The C<$filehandle> may also be an object with
-an open file descriptor, such as a L<File::Temp> object.
-If a callback is provided with the C<:content_cb> option then
+If a C<$filename> is provided with the C<:content_file> option, then the
+response content will be saved here instead of in the response
+object.  If a callback is provided with the C<:content_cb> option then
 this function will be called for each chunk of the response content as
 it is received from the server.  If neither of these options are
 given, then the response content will accumulate in the response
@@ -1983,8 +1913,6 @@ time of the file.  If the document on the server has not changed since
 this time, then nothing happens.  If the document has been updated, it
 will be downloaded again.  The modification time of the file will be
 forced to match that of the server.
-
-Uses L<File::Copy/move> to attempt to atomically replace the C<$filename>.
 
 The return value is an L<HTTP::Response> object.
 

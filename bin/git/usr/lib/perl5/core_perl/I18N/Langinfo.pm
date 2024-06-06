@@ -70,7 +70,7 @@ our @EXPORT_OK = qw(
 	YESSTR
 );
 
-our $VERSION = '0.22';
+our $VERSION = '0.21';
 
 XSLoader::load();
 
@@ -180,11 +180,8 @@ For the eras based on typically some ruler, such as the Japanese Emperor
 
 =head2 For systems without C<nl_langinfo>
 
-This module originally was just a wrapper for the libc C<nl_langinfo>
-function, and did not work on systems lacking it, such as Windows.
-
-Starting in Perl 5.28, this module works on all platforms.  When
-C<nl_langinfo> is not available, it uses various methods to construct
+Starting in Perl 5.28, this module is available even on systems that lack a
+native C<nl_langinfo>.  On such systems, it uses various methods to construct
 what that function, if present, would return.  But there are potential
 glitches.  These are the items that could be different:
 
@@ -196,11 +193,8 @@ Unimplemented, so returns C<"">.
 
 =item C<CODESET>
 
-This should work properly for Windows platforms.  On almost all other modern
-platforms, it will reliably return "UTF-8" if that is the code set.
-Otherwise, it depends on the locale's name.  If that is of the form
-C<foo.bar>, it will assume C<bar> is the code set; and it also knows about the
-two locales "C" and "POSIX".  If none of those apply it returns C<"">.
+Unimplemented, except on Windows, due to the vagaries of vendor locale names,
+returning C<""> on non-Windows.
 
 =item C<YESEXPR>
 
@@ -277,6 +271,8 @@ workaround for this; patches welcome: see L<perlapi/switch_to_global_locale>.
 =head1 SEE ALSO
 
 L<perllocale>, L<POSIX/localeconv>, L<POSIX/setlocale>, L<nl_langinfo(3)>.
+
+The langinfo() function is just a wrapper for the C nl_langinfo() interface.
 
 =head1 AUTHOR
 

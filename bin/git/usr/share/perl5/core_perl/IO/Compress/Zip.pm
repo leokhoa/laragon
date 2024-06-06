@@ -4,41 +4,41 @@ use strict ;
 use warnings;
 use bytes;
 
-use IO::Compress::Base::Common  2.204 qw(:Status );
-use IO::Compress::RawDeflate 2.204 ();
-use IO::Compress::Adapter::Deflate 2.204 ;
-use IO::Compress::Adapter::Identity 2.204 ;
-use IO::Compress::Zlib::Extra 2.204 ;
-use IO::Compress::Zip::Constants 2.204 ;
+use IO::Compress::Base::Common  2.106 qw(:Status );
+use IO::Compress::RawDeflate 2.106 ();
+use IO::Compress::Adapter::Deflate 2.106 ;
+use IO::Compress::Adapter::Identity 2.106 ;
+use IO::Compress::Zlib::Extra 2.106 ;
+use IO::Compress::Zip::Constants 2.106 ;
 
 use File::Spec();
 use Config;
 
-use Compress::Raw::Zlib  2.204 ();
+use Compress::Raw::Zlib  2.103 ();
 
 BEGIN
 {
     eval { require IO::Compress::Adapter::Bzip2 ;
-           IO::Compress::Adapter::Bzip2->import( 2.201 );
+           IO::Compress::Adapter::Bzip2->import( 2.103 );
            require IO::Compress::Bzip2 ;
-           IO::Compress::Bzip2->import( 2.201 );
+           IO::Compress::Bzip2->import( 2.103 );
          } ;
 
     eval { require IO::Compress::Adapter::Lzma ;
-           IO::Compress::Adapter::Lzma->import( 2.201 );
+           IO::Compress::Adapter::Lzma->import( 2.103 );
            require IO::Compress::Lzma ;
-           IO::Compress::Lzma->import( 2.201 );
+           IO::Compress::Lzma->import( 2.103 );
          } ;
 
     eval { require IO::Compress::Adapter::Xz ;
-           IO::Compress::Adapter::Xz->import( 2.201 );
+           IO::Compress::Adapter::Xz->import( 2.103 );
            require IO::Compress::Xz ;
-           IO::Compress::Xz->import( 2.201 );
+           IO::Compress::Xz->import( 2.103 );
          } ;
     eval { require IO::Compress::Adapter::Zstd ;
-           IO::Compress::Adapter::Zstd->import( 2.201 );
+           IO::Compress::Adapter::Zstd->import( 2.103 );
            require IO::Compress::Zstd ;
-           IO::Compress::Zstd->import( 2.201 );
+           IO::Compress::Zstd->import( 2.103 );
          } ;
 }
 
@@ -47,7 +47,7 @@ require Exporter ;
 
 our ($VERSION, @ISA, @EXPORT_OK, %EXPORT_TAGS, %DEFLATE_CONSTANTS, $ZipError);
 
-$VERSION = '2.204';
+$VERSION = '2.106';
 $ZipError = '';
 
 @ISA = qw(IO::Compress::RawDeflate Exporter);
@@ -85,24 +85,20 @@ sub isMethodAvailable
         if $method == ZIP_CM_STORE || $method == ZIP_CM_DEFLATE ;
 
     return 1
-        if $method == ZIP_CM_BZIP2 &&
-           defined $IO::Compress::Adapter::Bzip2::VERSION &&
-           defined &{ "IO::Compress::Adapter::Bzip2::mkRawZipCompObject" };
+        if $method == ZIP_CM_BZIP2 and
+           defined $IO::Compress::Adapter::Bzip2::VERSION;
 
     return 1
-        if $method == ZIP_CM_LZMA &&
-           defined $IO::Compress::Adapter::Lzma::VERSION &&
-           defined &{ "IO::Compress::Adapter::Lzma::mkRawZipCompObject" };
+        if $method == ZIP_CM_LZMA and
+           defined $IO::Compress::Adapter::Lzma::VERSION;
 
     return 1
-        if $method == ZIP_CM_XZ &&
-           defined $IO::Compress::Adapter::Xz::VERSION &&
-           defined &{ "IO::Compress::Adapter::Xz::mkRawZipCompObject" };
+        if $method == ZIP_CM_XZ and
+           defined $IO::Compress::Adapter::Xz::VERSION;
 
     return 1
-        if $method == ZIP_CM_ZSTD &&
-           defined $IO::Compress::Adapter::ZSTD::VERSION &&
-           defined &{ "IO::Compress::Adapter::ZSTD::mkRawZipCompObject" };
+        if $method == ZIP_CM_ZSTD and
+           defined $IO::Compress::Adapter::ZSTD::VERSION;
 
     return 0;
 }
@@ -570,8 +566,6 @@ sub mkFinalTrailer
         $z64e .= U64::pack_V64 $entries   ; # entries in central dir
         $z64e .= U64::pack_V64 $cd_len    ; # size of central dir
         $z64e .= *$self->{ZipData}{Offset}->getPacked_V64() ; # offset to start central dir
-        $z64e .= *$self->{ZipData}{extrafieldzip64}  # otional extra field
-            if defined *$self->{ZipData}{extrafieldzip64} ;
 
         $z64e  = pack("V", ZIP64_END_CENTRAL_REC_HDR_SIG) # signature
               .  U64::pack_V64(length $z64e)
@@ -644,7 +638,7 @@ sub ckParams
     }
 
     *$self->{ZipData}{AnyZip64} = 1
-        if $got->getValue('zip64') || $got->getValue('extrafieldzip64') ;
+        if $got->getValue('zip64');
     *$self->{ZipData}{Zip64} = $got->getValue('zip64');
     *$self->{ZipData}{Stream} = $got->getValue('stream');
 
@@ -664,7 +658,7 @@ sub ckParams
 
     *$self->{ZipData}{ZipComment} = $got->getValue('zipcomment') ;
 
-    for my $name (qw( extrafieldlocal extrafieldcentral extrafieldzip64))
+    for my $name (qw( extrafieldlocal extrafieldcentral ))
     {
         my $data = $got->getValue($name) ;
         if (defined $data) {
@@ -673,7 +667,6 @@ sub ckParams
                 if $bad ;
 
             $got->setValue($name, $data) ;
-            *$self->{ZipData}{$name} = $data;
         }
     }
 
@@ -738,7 +731,6 @@ our %PARAMS = (
             'textflag'  => [IO::Compress::Base::Common::Parse_boolean,   0],
             'extrafieldlocal'  => [IO::Compress::Base::Common::Parse_any,    undef],
             'extrafieldcentral'=> [IO::Compress::Base::Common::Parse_any,    undef],
-            'extrafieldzip64'  => [IO::Compress::Base::Common::Parse_any,    undef],
 
             # Lzma
             'preset'   => [IO::Compress::Base::Common::Parse_unsigned, 6],
@@ -1061,24 +1053,12 @@ See L<File::GlobMapper|File::GlobMapper> for more details.
 If the C<$input_filename_or_reference> parameter is any other type,
 C<undef> will be returned.
 
-In addition, if C<$input_filename_or_reference> corresponds to a filename
-from the filesystem, a number of zip file header fields will be populated by default
-using the following attributes from the input file
-
-=over 5
-
-=item * the full filename contained in C<$input_filename_or_reference>
-
-=item * the file protection attributes
-
-=item * the UID/GID for the file
-
-=item * the file timestamps
-
-=back
+In addition, if C<$input_filename_or_reference> is a simple filename,
+the default values for
+the C<Name>, C<Time>, C<TextFlag>, C<ExtAttr>, C<exUnixN> and C<exTime> options will be sourced from that file.
 
 If you do not want to use these defaults they can be overridden by
-explicitly setting one, or more, of the C<Name>, C<Time>, C<TextFlag>, C<ExtAttr>, C<exUnixN> and C<exTime> options or by setting the
+explicitly setting the C<Name>, C<Time>, C<TextFlag>, C<ExtAttr>, C<exUnixN> and C<exTime> options or by setting the
 C<Minimal> parameter.
 
 =head3 The C<$output_filename_or_reference> parameter
@@ -2151,9 +2131,6 @@ C<gzip@prep.ai.mit.edu> and Mark Adler C<madler@alumni.caltech.edu>.
 The primary site for the I<zlib> compression library is
 L<http://www.zlib.org>.
 
-The primary site for the I<zlib-ng> compression library is
-L<https://github.com/zlib-ng/zlib-ng>.
-
 The primary site for gzip is L<http://www.gzip.org>.
 
 =head1 AUTHOR
@@ -2166,7 +2143,7 @@ See the Changes file.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2005-2023 Paul Marquess. All rights reserved.
+Copyright (c) 2005-2022 Paul Marquess. All rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

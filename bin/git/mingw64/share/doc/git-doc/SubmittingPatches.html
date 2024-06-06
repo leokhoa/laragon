@@ -439,144 +439,61 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <body class="article">
 <div id="header">
 <h1>Submitting Patches</h1>
-<div class="details">
-<span id="revdate">2018-06-07</span>
-</div>
 </div>
 <div id="content">
 <div class="sect1">
 <h2 id="_guidelines">Guidelines</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Here are some guidelines for contributing back to this
-project. There is also a <a href="MyFirstContribution.html">step-by-step tutorial</a>
+<p>Here are some guidelines for people who want to contribute their code to this
+software. There is also a <a href="MyFirstContribution.html">step-by-step tutorial</a>
 available which covers many of these same guidelines.</p>
 </div>
 <div class="sect2">
-<h3 id="choose-starting-point">Choose a starting point.</h3>
+<h3 id="base-branch">Decide what to base your work on.</h3>
 <div class="paragraph">
-<p>As a preliminary step, you must first choose a starting point for your
-work. Typically this means choosing a branch, although technically
-speaking it is actually a particular commit (typically the HEAD, or tip,
-of the branch).</p>
-</div>
-<div class="paragraph">
-<p>There are several important branches to be aware of. Namely, there are
-four integration branches as discussed in <a href="gitworkflows.html">gitworkflows(7)</a>:</p>
+<p>In general, always base your work on the oldest branch that your
+change is relevant to.</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>maint</p>
+<p>A bugfix should be based on <code>maint</code> in general. If the bug is not
+present in <code>maint</code>, base it on <code>master</code>. For a bug that&#8217;s not yet
+in <code>master</code>, find the topic that introduces the regression, and
+base your work on the tip of the topic.</p>
 </li>
 <li>
-<p>master</p>
+<p>A new feature should be based on <code>master</code> in general. If the new
+feature depends on other topics that are in <code>next</code>, but not in
+<code>master</code>, fork a branch from the tip of <code>master</code>, merge these topics
+to the branch, and work on that branch.  You can remind yourself of
+how you prepared the base with <code>git log --first-parent master..</code>.</p>
 </li>
 <li>
-<p>next</p>
+<p>Corrections and enhancements to a topic not yet in <code>master</code> should
+be based on the tip of that topic. If the topic has not been merged
+to <code>next</code>, it&#8217;s alright to add a note to squash minor corrections
+into the series.</p>
 </li>
 <li>
-<p>seen</p>
+<p>In the exceptional case that a new feature depends on several topics
+not in <code>master</code>, start working on <code>next</code> or <code>seen</code> privately and
+send out patches only for discussion. Once your new feature starts
+to stabilize, you would have to rebase it (see the "depends on other
+topics" above).</p>
+</li>
+<li>
+<p>Some parts of the system have dedicated maintainers with their own
+repositories (see the section "Subsystems" below).  Changes to
+these parts should be based on their trees.</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>The branches lower on the list are typically descendants of the ones
-that come before it. For example, <code>maint</code> is an "older" branch than
-<code>master</code> because <code>master</code> usually has patches (commits) on top of
-<code>maint</code>.</p>
-</div>
-<div class="paragraph">
-<p>There are also "topic" branches, which contain work from other
-contributors.  Topic branches are created by the Git maintainer (in
-their fork) to organize the current set of incoming contributions on
-the mailing list, and are itemized in the regular "What&#8217;s cooking in
-git.git" announcements.  To find the tip of a topic branch, run <code>git log
---first-parent master..seen</code> and look for the merge commit. The second
-parent of this commit is the tip of the topic branch.</p>
-</div>
-<div class="paragraph">
-<p>There is one guiding principle for choosing the right starting point: in
-general, always base your work on the oldest integration branch that
-your change is relevant to (see "Merge upwards" in
-<a href="gitworkflows.html">gitworkflows(7)</a>).  What this principle means is that for the
-vast majority of cases, the starting point for new work should be the
-latest HEAD commit of <code>maint</code> or <code>master</code> based on the following cases:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>If you are fixing bugs in the released version, use <code>maint</code> as the
-starting point (which may mean you have to fix things without using
-new API features on the cutting edge that recently appeared in
-<code>master</code> but were not available in the released version).</p>
-</li>
-<li>
-<p>Otherwise (such as if you are adding new features) use <code>master</code>.</p>
-</li>
-</ul>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-In exceptional cases, a bug that was introduced in an old
-version may have to be fixed for users of releases that are much older
-than the recent releases.  <code>git describe --contains X</code> may describe
-<code>X</code> as <code>v2.30.0-rc2-gXXXXXX</code> for the commit <code>X</code> that introduced the
-bug, and the bug may be so high-impact that we may need to issue a new
-maintenance release for Git 2.30.x series, when "Git 2.41.0" is the
-current release.  In such a case, you may want to use the tip of the
-maintenance branch for the 2.30.x series, which may be available in the
-<code>maint-2.30</code> branch in <a href="https://github.com/gitster/git">the maintainer&#8217;s
-"broken out" repo</a>.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>This also means that <code>next</code> or <code>seen</code> are inappropriate starting points
-for your work, if you want your work to have a realistic chance of
-graduating to <code>master</code>.  They are simply not designed to be used as a
-base for new work; they are only there to make sure that topics in
-flight work well together. This is why both <code>next</code> and <code>seen</code> are
-frequently re-integrated with incoming patches on the mailing list and
-force-pushed to replace previous versions of themselves. A topic that is
-literally built on top of <code>next</code> cannot be merged to <code>master</code> without
-dragging in all the other topics in <code>next</code>, some of which may not be
-ready.</p>
-</div>
-<div class="paragraph">
-<p>For example, if you are making tree-wide changes, while somebody else is
-also making their own tree-wide changes, your work may have severe
-overlap with the other person&#8217;s work.  This situation may tempt you to
-use <code>next</code> as your starting point (because it would have the other
-person&#8217;s work included in it), but doing so would mean you&#8217;ll not only
-depend on the other person&#8217;s work, but all the other random things from
-other contributors that are already integrated into <code>next</code>.  And as soon
-as <code>next</code> is updated with a new version, all of your work will need to
-be rebased anyway in order for them to be cleanly applied by the
-maintainer.</p>
-</div>
-<div class="paragraph">
-<p>Under truly exceptional circumstances where you absolutely must depend
-on a select few topic branches that are already in <code>next</code> but not in
-<code>master</code>, you may want to create your own custom base-branch by forking
-<code>master</code> and merging the required topic branches into it. You could then
-work on top of this base-branch.  But keep in mind that this base-branch
-would only be known privately to you.  So when you are ready to send
-your patches to the list, be sure to communicate how you created it in
-your cover letter.  This critical piece of information would allow
-others to recreate your base-branch on their end in order for them to
-try out your work.</p>
-</div>
-<div class="paragraph">
-<p>Finally, note that some parts of the system have dedicated maintainers
-with their own separate source code repositories (see the section
-"Subsystems" below).</p>
+<p>To find the tip of a topic branch, run <code>git log --first-parent
+master..seen</code> and look for the merge commit. The second parent of this
+commit is the tip of the topic branch.</p>
 </div>
 </div>
 <div class="sect2">
@@ -712,9 +629,7 @@ files you are modifying to see the current conventions.</p>
 </div>
 <div id="summary-section" class="paragraph">
 <p>The title sentence after the "area:" prefix omits the full stop at the
-end, and its first word is not capitalized (the omission
-of capitalization applies only to the word after the "area:"
-prefix of the title) unless there is a reason to
+end, and its first word is not capitalized unless there is a reason to
 capitalize it other than because it is the first word in the sentence.
 E.g. "doc: clarify&#8230;&#8203;", not "doc: Clarify&#8230;&#8203;", or "githooks.txt:
 improve&#8230;&#8203;", not "githooks.txt: Improve&#8230;&#8203;".  But "refs: HEAD is also
@@ -785,7 +700,7 @@ date)", like this:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>The "Copy commit reference" command of gitk can be used to obtain this
+<p>The "Copy commit summary" command of gitk can be used to obtain this
 format (with the subject enclosed in a pair of double-quotes), or this
 invocation of <code>git show</code>:</p>
 </div>
@@ -904,32 +819,11 @@ patch after a detailed analysis.</p>
 <p><code>Tested-by:</code> is used to indicate that the person applied the patch
 and found it to have the desired effect.</p>
 </li>
-<li>
-<p><code>Co-authored-by:</code> is used to indicate that people exchanged drafts
-of a patch before submitting it.</p>
-</li>
-<li>
-<p><code>Helped-by:</code> is used to credit someone who suggested ideas for
-changes without providing the precise changes in patch form.</p>
-</li>
-<li>
-<p><code>Mentored-by:</code> is used to credit someone with helping develop a
-patch as part of a mentorship program (e.g., GSoC or Outreachy).</p>
-</li>
-<li>
-<p><code>Suggested-by:</code> is used to credit someone with suggesting the idea
-for a patch.</p>
-</li>
 </ol>
 </div>
 <div class="paragraph">
-<p>While you can also create your own trailer if the situation warrants it, we
-encourage you to instead use one of the common trailers in this project
-highlighted above.</p>
-</div>
-<div class="paragraph">
-<p>Only capitalize the very first letter of tags, i.e. favor
-"Signed-off-by" over "Signed-Off-By" and "Acked-by:" over "Acked-By".</p>
+<p>You can also create your own tag or use one that&#8217;s in common usage
+such as "Thanks-to:", "Based-on-patch-by:", or "Mentored-by:".</p>
 </div>
 </div>
 <div class="sect2">
@@ -947,23 +841,10 @@ receiving end can handle them just fine.</p>
 or include any extra files which do not relate to what your patch
 is trying to achieve. Make sure to review
 your patch after generating it, to ensure accuracy.  Before
-sending out, please make sure it cleanly applies to the starting point you
-have chosen in the "Choose a starting point" section.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-From the perspective of those reviewing your patch, the <code>master</code>
-branch is the default expected starting point.  So if you have chosen a
-different starting point, please communicate this choice in your cover
-letter.
-</td>
-</tr>
-</table>
+sending out, please make sure it cleanly applies to the base you
+have chosen in the "Decide what to base your work on" section,
+and unless it targets the <code>master</code> branch (which is the default),
+mark your patches as such.</p>
 </div>
 </div>
 <div class="sect2">
@@ -976,8 +857,8 @@ mailing list<sup class="footnote" id="_footnote_security-ml">[<a id="_footnotere
 <div class="paragraph">
 <p>Learn to use format-patch and send-email if possible.  These commands
 are optimized for the workflow of sending patches, avoiding many ways
-your existing e-mail client (often optimized for "multipart/*" MIME
-type e-mails) might render your patches unusable.</p>
+your existing e-mail client that is optimized for "multipart/*" mime
+type e-mails to corrupt and render your patches unusable.</p>
 </div>
 <div class="paragraph">
 <p>People on the Git mailing list need to be able to read and
@@ -1131,8 +1012,8 @@ repositories.</p>
 </div>
 <div class="literalblock">
 <div class="content">
-<pre>Those who are interested in improving gitk can volunteer to help Paul
-maintain it, cf. &lt;YntxL/fTplFm8lr6@cleo&gt;.</pre>
+<pre>Those who are interested in improve gitk can volunteer to help Paul
+in maintaining it cf. &lt;YntxL/fTplFm8lr6@cleo&gt;.</pre>
 </div>
 </div>
 </li>
@@ -1196,7 +1077,7 @@ and cooked further and eventually graduates to <code>master</code>.</p>
 <div class="paragraph">
 <p>In any time between the (2)-(3) cycle, the maintainer may pick it up
 from the list and queue it to <code>seen</code>, in order to make it easier for
-people to play with it without having to pick up and apply the patch to
+people play with it without having to pick up and apply the patch to
 their trees themselves.</p>
 </div>
 </div>
@@ -1216,7 +1097,7 @@ master).</p>
 </li>
 <li>
 <p>Read the Git mailing list, the maintainer regularly posts messages
-entitled "What&#8217;s cooking in git.git" giving
+entitled "What&#8217;s cooking in git.git" and "What&#8217;s in git.git" giving
 the status of various proposed changes.</p>
 </li>
 </ul>
@@ -1250,12 +1131,11 @@ to your fork of Git on GitHub.  You can monitor the test state of all your
 branches here: <code>https://github.com/&lt;Your GitHub handle&gt;/git/actions/workflows/main.yml</code></p>
 </div>
 <div class="paragraph">
-<p>If a branch does not pass all test cases then it will be marked with a
-red <code>x</code>, instead of a green check. In that case, you can click on the
-failing job and navigate to "ci/run-build-and-tests.sh" and/or
-"ci/print-test-failures.sh". You can also download "Artifacts" which
-are zip archives containing tarred (or zipped) archives with test data
-relevant for debugging.</p>
+<p>If a branch did not pass all test cases then it is marked with a red
+cross. In that case you can click on the failing job and navigate to
+"ci/run-build-and-tests.sh" and/or "ci/print-test-failures.sh". You
+can also download "Artifacts" which are tarred (or zipped) archives
+with test data relevant for debugging.</p>
 </div>
 <div class="paragraph">
 <p>Then fix the problem and push your fix to your GitHub fork. This will
@@ -1267,7 +1147,7 @@ trigger a new CI build to ensure all tests pass.</p>
 <h2 id="mua">MUA specific hints</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Some of the patches I receive or pick up from the list share common
+<p>Some of patches I receive or pick up from the list share common
 patterns of breakage.  Please make sure your MUA is set up
 properly not to corrupt whitespaces.</p>
 </div>
@@ -1362,7 +1242,7 @@ message to an external program, and this is a handy way to drive
 <code>git am</code>.  However, if the message is MIME encoded, what is
 piped into the program is the representation you see in your
 <code>*Article*</code> buffer after unwrapping MIME.  This is often not what
-you would want for two reasons.  It tends to screw up non-ASCII
+you would want for two reasons.  It tends to screw up non ASCII
 characters (most notably in people&#8217;s names), and also
 whitespaces (fatal in patches).  Running "C-u g" to display the
 message in raw form before using "|" to run the pipe can work
@@ -1386,7 +1266,7 @@ this problem around.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-02-23 20:26:53 UTC
+Last updated 2022-08-30 21:40:02 UTC
 </div>
 </div>
 </body>

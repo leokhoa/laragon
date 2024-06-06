@@ -3,16 +3,17 @@
 # modify it under the same terms as Perl itself.
 
 package Authen::SASL::Perl;
-$Authen::SASL::Perl::VERSION = '2.1700';
+
 use strict;
-use warnings;
+use vars qw($VERSION);
 use Carp;
 
+$VERSION = "2.14";
 
 my %secflags = (
-        noplaintext  => 1,
-        noanonymous  => 1,
-        nodictionary => 1,
+	noplaintext  => 1,
+	noanonymous  => 1,
+	nodictionary => 1,
 );
 my %have;
 
@@ -130,7 +131,7 @@ sub server_step  { undef }
 sub server_start { undef }
 
 # Private methods used by Authen::SASL::Perl that
-# may be overridden in mechanism sub-classes
+# may be overridden in mechanism sub-calsses
 
 sub _init {
   my ($pkg, $href) = @_;
@@ -189,8 +190,7 @@ sub securesocket {
 # Add SASL encoding/decoding to a filehandle
 #
 
-  package # private package; prevent detection by MetaCPAN
-      Authen::SASL::Perl::Layer;
+  package Authen::SASL::Perl::Layer;
 
   use bytes;
 
@@ -318,11 +318,10 @@ sub securesocket {
   # Encrypting a write() to a filehandle is much easier than reading, because
   # all the data to be encrypted is immediately available
   sub WRITE {
-    my ($self, $data, $len, $offset) = @_;
+    my ($self, undef, $len, $offset) = @_;
     my $debug = $self->{conn}->{debug};
 
     my $fh = $self->{fh};
-    $len = length($data) if $len > length($data); # RT 85294
 
     # put on wire in peer-sized chunks
     my $bsz = $self->{sndbufsz};
@@ -331,7 +330,7 @@ sub securesocket {
         if ($debug & 8);
 
       # call mechanism specific encoding routine
-      my $x = $self->{conn}->encode(substr($data, $offset || 0, $bsz));
+      my $x = $self->{conn}->encode(substr($_[1], $offset || 0, $bsz));
       print $fh pack('N', length($x)), $x;
       $len -= $bsz;
       $offset += $bsz;

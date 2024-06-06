@@ -10,7 +10,7 @@ use Math::BigFloat;
 
 our @ISA = qw(Exporter Math::BigFloat);
 
-our $VERSION = '0.66';
+our $VERSION = '0.65';
 
 use overload;                   # inherit overload from Math::BigFloat
 

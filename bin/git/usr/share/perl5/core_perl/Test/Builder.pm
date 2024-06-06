@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = '1.302194';
+our $VERSION = '1.302190';
 
 BEGIN {
     if( $] < 5.008 ) {
@@ -1002,7 +1002,15 @@ END
             $self->_is_diag( $got, $type, $expect );
         }
         elsif( $type =~ /^(ne|!=)$/ ) {
-            if (defined($got) xor defined($expect)) {
+            no warnings;
+            my $eq = ($got eq $expect || $got == $expect)
+                && (
+                    (defined($got) xor defined($expect))
+                 || (length($got)  !=  length($expect))
+                );
+            use warnings;
+
+            if ($eq) {
                 $self->_cmp_diag( $got, $type, $expect );
             }
             else {

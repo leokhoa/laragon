@@ -424,7 +424,7 @@ sub CERT_create {
     for(my $i=0;$i<@ext;$i+=2) {
 	$have_ext{ $ext[$i] }++
     }
-    for my $ext (@{ delete $args{ext} || [] }) {
+    for my $ext (@{ $args{ext} || [] }) {
 	my $nid = $ext->{nid}
 	    || $ext->{sn} && Net::SSLeay::OBJ_sn2nid($ext->{sn})
 	    || croak "cannot determine NID of extension";
@@ -443,9 +443,6 @@ sub CERT_create {
 	    Net::SSLeay::P_X509_add_extensions($cert, $issuer_cert, $nid, $val);
 	}
     }
-
-    die "unknown arguments: ". join(" ", sort keys %args) 
-	if !delete $args{ignore_invalid_args} && %args;
 
     Net::SSLeay::X509_set_issuer_name($cert,
 	Net::SSLeay::X509_get_subject_name($issuer_cert));
@@ -506,7 +503,7 @@ IO::Socket::SSL::Utils -- loading, storing, creating certificates and keys
 
     $cert = PEM_file2cert('cert.pem');     # load certificate from file
     my $hash = CERT_asHash($cert);         # get details from certificate
-    PEM_cert2file($cert,'cert.pem');       # write certificate to file
+    PEM_cert2file('cert.pem',$cert);       # write certificate to file
     CERT_free($cert);                      # free memory within OpenSSL
 
     @certs = PEM_file2certs('chain.pem');  # load multiple certificates from file
@@ -517,7 +514,7 @@ IO::Socket::SSL::Utils -- loading, storing, creating certificates and keys
     $pem = PEM_cert2string($cert);         # convert certificate to PEM string
 
     $key = KEY_create_rsa(2048);           # create new 2048-bit RSA key
-    PEM_key2file($key,"key.pem");          # and write it to file
+    PEM_string2file($key,"key.pem");       # and write it to file
     KEY_free($key);                        # free memory within OpenSSL
 
 
@@ -785,11 +782,6 @@ given both together.
 =item digest algorithm
 
 specify the algorithm used to sign the certificate, default SHA-256.
-
-=item ignore_invalid_args
-
-ignore any unknown arguments which might be in the argument list (which might be
-in the arguments for example as result from CERT_asHash)
 
 =back
 

@@ -14,7 +14,7 @@ require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(struct);
 
-$VERSION = '0.68';
+$VERSION = '0.66';
 
 my $print = 0;
 sub printem {
@@ -84,7 +84,7 @@ sub struct {
     }
     else {
         $base_type = 'ARRAY';
-        $class = caller();
+        $class = (caller())[0];
         @decls = @_;
     }
 
@@ -275,24 +275,24 @@ Class::Struct - declare struct-like datatypes as Perl classes
             # declare struct with four types of elements:
     struct( s => '$', a => '@', h => '%', c => 'My_Other_Class' );
 
-    my $obj = Myobj->new;               # constructor
+    $obj = new Myobj;               # constructor
 
                                     # scalar type accessor:
-    my $element_value = $obj->s;           # element value
+    $element_value = $obj->s;           # element value
     $obj->s('new value');               # assign to element
 
                                     # array type accessor:
-    my $ary_ref = $obj->a;                 # reference to whole array
-    my $ary_element_value = $obj->a(2);    # array element value
+    $ary_ref = $obj->a;                 # reference to whole array
+    $ary_element_value = $obj->a(2);    # array element value
     $obj->a(2, 'new value');            # assign to array element
 
                                     # hash type accessor:
-    my $hash_ref = $obj->h;                # reference to whole hash
-    my $hash_element_value = $obj->h('x'); # hash element value
+    $hash_ref = $obj->h;                # reference to whole hash
+    $hash_element_value = $obj->h('x'); # hash element value
     $obj->h('x', 'new value');          # assign to hash element
 
                                     # class type accessor:
-    my $element_value = $obj->c;           # object reference
+    $element_value = $obj->c;           # object reference
     $obj->c->method(...);               # call method of object
     $obj->c(new My_Other_Class);        # assign a new object
 

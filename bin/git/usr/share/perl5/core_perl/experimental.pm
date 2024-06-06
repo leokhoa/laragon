@@ -1,5 +1,5 @@
 package experimental;
-$experimental::VERSION = '0.031';
+$experimental::VERSION = '0.028';
 use strict;
 use warnings;
 use version ();
@@ -8,7 +8,6 @@ BEGIN { eval { require feature } };
 use Carp qw/croak carp/;
 
 my %warnings = map { $_ => 1 } grep { /^experimental::/ } keys %warnings::Offsets;
-my %removed_warnings = map { $_ => 1 } grep { /^experimental::/ } keys %warnings::NoOp;
 my %features = map { $_ => 1 } $] > 5.015006 ? keys %feature::feature : do {
 	my @features;
 	if ($] >= 5.010) {
@@ -29,7 +28,7 @@ my %min_version = (
 	declared_refs   => '5.26.0',
 	defer           => '5.35.4',
 	evalbytes       => '5.16.0',
-	extra_paired_delimiters => '5.35.9',
+        extra_paired_delims => '5.35.9',
 	fc              => '5.16.0',
 	for_list        => '5.35.5',
 	isa             => '5.31.7',
@@ -72,9 +71,6 @@ sub _enable {
 	}
 	elsif ($features{$pragma}) {
 		feature->import($pragma);
-		_enable(@{ $additional{$pragma} }) if $additional{$pragma};
-	}
-	elsif ($removed_warnings{"experimental::$pragma"}) {
 		_enable(@{ $additional{$pragma} }) if $additional{$pragma};
 	}
 	elsif (not exists $min_version{$pragma}) {
@@ -140,7 +136,7 @@ experimental - Experimental features made easy
 
 =head1 VERSION
 
-version 0.031
+version 0.027
 
 =head1 SYNOPSIS
 
@@ -205,11 +201,6 @@ This was added in perl 5.26.0.
 
 This was added in perl 5.36.0
 
-=item * C<extra_paired_delimiters> - enables the use of more paired string delimiters than the
-traditional four, S<C<< <  > >>>, S<C<( )>>, S<C<{ }>>, and S<C<[ ]>>.
-
-This was added in perl 5.36.
-
 =item * C<for_list> - allows iterating over multiple values at a time with C<for>
 
 This was added in perl 5.36.0
@@ -224,7 +215,7 @@ This was added in perl 5.10.0 and removed in perl 5.24.0.
 
 =item * C<lexical_subs> - allow the use of lexical subroutines.
 
-This was added in 5.18.0, and became non-experimental (and always enabled) in 5.26.0.
+This was added in 5.18.0.
 
 =item * C<postderef> - allow the use of postfix dereferencing expressions
 
@@ -255,13 +246,9 @@ This was added in perl 5.20.0.
 This was added in perl 5.10.0, but it should be noted there are significant
 incompatibilities between 5.10.0 and 5.10.1.
 
-The feature is going to be deprecated in perl 5.38.0, and removed in 5.42.0.
-
 =item * C<switch> - allow the use of C<~~>, given, and when
 
 This was added in perl 5.10.0.
-
-The feature is going to be deprecated in perl 5.38.0, and removed in 5.42.0.
 
 =item * C<try> - allow the use of C<try> and C<catch>
 

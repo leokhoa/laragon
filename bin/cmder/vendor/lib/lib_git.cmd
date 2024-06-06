@@ -101,9 +101,9 @@ exit /b
 
     REM endlocal & set "%~1_MAJOR=!%~1_MAJOR!" & set "%~1_MINOR=!%~1_MINOR!" & set "%~1_PATCH=!%~1_PATCH!" & set "%~1_BUILD=!%~1_BUILD!"
     if "%~1" == "VENDORED" (
-        endlocal & set "%~1_MAJOR=%VENDORED_MAJOR%" & set "%~1_MINOR=%VENDORED_MINOR%" & set "%~1_PATCH=%VENDORED_PATCH%" & set "%~1_BUILD=%VENDORED_BUILD%"
+      endlocal & set "%~1_MAJOR=%VENDORED_MAJOR%" & set "%~1_MINOR=%VENDORED_MINOR%" & set "%~1_PATCH=%VENDORED_PATCH%" & set "%~1_BUILD=%VENDORED_BUILD%"
     ) else (
-        endlocal & set "%~1_MAJOR=%USER_MAJOR%" & set "%~1_MINOR=%USER_MINOR%" & set "%~1_PATCH=%USER_PATCH%" & set "%~1_BUILD=%USER_BUILD%"
+      endlocal & set "%~1_MAJOR=%USER_MAJOR%" & set "%~1_MINOR=%USER_MINOR%" & set "%~1_PATCH=%USER_PATCH%" & set "%~1_BUILD=%USER_BUILD%"
     )
 
     exit /b
@@ -136,9 +136,9 @@ exit /b
     :: ... and maybe display it, for debugging purposes.
     REM %print_debug% :validate_version "Found Git Version for %~1: !%~1_MAJOR!.!%~1_MINOR!.!%~1_PATCH!.!%~1_BUILD!"
     if "%~1" == "VENDORED" (
-        %print_debug% :validate_version "Found Git Version for %~1: %VENDORED_MAJOR%.%VENDORED_MINOR%.%VENDORED_PATCH%.%VENDORED_BUILD%"
+      %print_debug% :validate_version "Found Git Version for %~1: %VENDORED_MAJOR%.%VENDORED_MINOR%.%VENDORED_PATCH%.%VENDORED_BUILD%"
     ) else (
-        %print_debug% :validate_version "Found Git Version for %~1: %USER_MAJOR%.%USER_MINOR%.%USER_PATCH%.%USER_BUILD%"
+      %print_debug% :validate_version "Found Git Version for %~1: %USER_MAJOR%.%USER_MINOR%.%USER_PATCH%.%USER_BUILD%"
     )
     exit /b
 
@@ -163,9 +163,9 @@ exit /b
     :: checks all major, minor, patch and build variables for the given arguments.
     :: whichever binary that has the most recent version will be used based on the return code.
 
-    %print_debug% ":compare_versions" "Comparing:"
-    %print_debug% ":compare_versions" "%~1: %USER_MAJOR%.%USER_MINOR%.%USER_PATCH%.%USER_BUILD%"
-    %print_debug% ":compare_versions" "%~2: %VENDORED_MAJOR%.%VENDORED_MINOR%.%VENDORED_PATCH%.%VENDORED_BUILD%"
+    %print_debug% Comparing:
+    %print_debug% %~1: %USER_MAJOR%.%USER_MINOR%.%USER_PATCH%.%USER_BUILD%
+    %print_debug% %~2: %VENDORED_MAJOR%.%VENDORED_MINOR%.%VENDORED_PATCH%.%VENDORED_BUILD%
 
     setlocal enabledelayedexpansion
     if !%~1_MAJOR! GTR !%~2_MAJOR! (endlocal & exit /b  1)
@@ -233,26 +233,23 @@ exit /b
     setlocal enabledelayedexpansion
     if ERRORLEVEL 0 (
         :: compare the user git version against the vendored version
-        %lib_git% compare_versions USER VENDORED
-        set result=!ERRORLEVEL!
-        %print_debug% ":compare_git_versions" "campare versions_result: !result!"
+        !lib_git! compare_versions USER VENDORED
 
         :: use the user provided git if its version is greater than, or equal to the vendored git
-        if !result! geq 0 (
+        if ERRORLEVEL 0 (
             if exist "!test_dir:~0,-4!\cmd\git.exe" (
                 set "GIT_INSTALL_ROOT=!test_dir:~0,-4!"
             ) else (
                 set "GIT_INSTALL_ROOT=!test_dir!"
             )
         ) else (
-            %print_debug% ":compare_git_versions" "Found old !GIT_VERSION_USER! in !test_dir!, but not using..."
+            %print_verbose% "Found old !GIT_VERSION_USER! in !test_dir!, but not using..."
         )
     ) else (
         :: compare the user git version against the vendored version
         :: if the user provided git executable is not found
         IF ERRORLEVEL -255 IF NOT ERRORLEVEL -254 (
-        :: if not exist "%git_executable%" (
-            %print_debug% ":compare_git_versions" "No git at "%git_executable%" found."
+            %print_verbose% "No git at "!git_executable!" found."
             set test_dir=
         )
     )
@@ -275,7 +272,6 @@ exit /b
 :get_user_git_version
     :: get the version information for the user provided git binary
     %lib_git% read_version USER "%test_dir%" 2>nul
-    %print_debug% ":get_user_git_version" "get_user_git_version GIT_VERSION_USER: %GIT_VERSION_USER%"
     %lib_git% validate_version USER %GIT_VERSION_USER%
     exit  /b
 

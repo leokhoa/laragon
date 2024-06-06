@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use parent 'URI::_generic';
-our $VERSION = '5.21';
+our $VERSION = '5.10';
 
 use URI::Escape qw(uri_unescape);
 
@@ -113,13 +113,13 @@ URI::file - URI that maps to local file names
 =head1 SYNOPSIS
 
  use URI::file;
-
+ 
  $u1 = URI->new("file:/foo/bar");
  $u2 = URI->new("foo/bar", "file");
-
+ 
  $u3 = URI::file->new($path);
  $u4 = URI::file->new("c:\\windows\\", "win32");
-
+ 
  $u1->file;
  $u1->file("mac");
 
@@ -127,8 +127,10 @@ URI::file - URI that maps to local file names
 
 The C<URI::file> class supports C<URI> objects belonging to the I<file>
 URI scheme.  This scheme allows us to map the conventional file names
-found on various computer systems to the URI name space,
-see L<RFC 8089|https://www.rfc-editor.org/rfc/rfc8089.html>.
+found on various computer systems to the URI name space.  An old
+specification of the I<file> URI scheme is found in RFC 1738.  Some
+older background information is also in RFC 1630. There are no newer
+specifications as far as I know.
 
 If you simply want to construct I<file> URI objects from URI strings,
 use the normal C<URI> constructor.  If you want to construct I<file>
@@ -198,9 +200,8 @@ suitable for the local system:
 Most computer systems today have hierarchically organized file systems.
 Mapping the names used in these systems to the generic URI syntax
 allows us to work with relative file URIs that behave as they should
-when resolved using the generic algorithm for URIs (specified in L<RFC
-3986|https://www.rfc-editor.org/rfc/rfc3986.html>).
-Mapping a file name to the generic URI syntax involves mapping
+when resolved using the generic algorithm for URIs (specified in RFC
+2396).  Mapping a file name to the generic URI syntax involves mapping
 the path separator character to "/" and encoding any reserved
 characters that appear in the path segments of the file name.  If
 path segments consisting of the strings "." or ".." have a
@@ -300,11 +301,11 @@ If there is no mapping then the "Unix" implementation is used.
 
 =item $URI::file::DEFAULT_AUTHORITY
 
-This determines what "authority" string to include in absolute file
+This determine what "authority" string to include in absolute file
 URIs.  It defaults to "".  If you prefer verbose URIs you might set it
 to be "localhost".
 
-Setting this value to C<undef> forces behaviour compatible to URI v1.31
+Setting this value to C<undef> force behaviour compatible to URI v1.31
 and earlier.  In this mode host names in UNC paths and drive letters
 are mapped to the authority component on Windows, while we produce
 authority-less URIs on Unix.

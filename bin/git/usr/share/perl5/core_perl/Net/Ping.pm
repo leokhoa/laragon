@@ -22,7 +22,7 @@ use Time::HiRes;
 @ISA = qw(Exporter);
 @EXPORT = qw(pingecho);
 @EXPORT_OK = qw(wakeonlan);
-$VERSION = "2.76";
+$VERSION = "2.74";
 
 # Globals
 
@@ -1081,7 +1081,8 @@ sub tcp_connect
 
 sub DESTROY {
   my $self = shift;
-  if ($self->{'proto'} && ($self->{'proto'} eq 'tcp') && $self->{'tcp_chld'}) {
+  if ($self->{'proto'} eq 'tcp' &&
+      $self->{'tcp_chld'}) {
     # Put that choking client out of its misery
     kill "KILL", $self->{'tcp_chld'};
     # Clean off the zombie
@@ -2003,13 +2004,13 @@ Net::Ping - check a remote host for reachability
 
     use Net::Ping;
 
-    my $p = Net::Ping->new();
+    $p = Net::Ping->new();
     print "$host is alive.\n" if $p->ping($host);
     $p->close();
 
-    my $p = Net::Ping->new("icmp");
+    $p = Net::Ping->new("icmp");
     $p->bind($my_addr); # Specify source interface of pings
-    foreach my $host (@host_array)
+    foreach $host (@host_array)
     {
         print "$host is ";
         print "NOT " unless $p->ping($host, 2);
@@ -2018,11 +2019,11 @@ Net::Ping - check a remote host for reachability
     }
     $p->close();
 
-    my $p = Net::Ping->new("icmpv6");
-    my $ip = "[fd00:dead:beef::4e]";
+    $p = Net::Ping->new("icmpv6");
+    $ip = "[fd00:dead:beef::4e]";
     print "$ip is alive.\n" if $p->ping($ip);
 
-    my $p = Net::Ping->new("tcp", 2);
+    $p = Net::Ping->new("tcp", 2);
     # Try connecting to the www port instead of the echo port
     $p->port_number(scalar(getservbyname("http", "tcp")));
     while ($stop_time > time())
@@ -2034,19 +2035,19 @@ Net::Ping - check a remote host for reachability
     undef($p);
 
     # Like tcp protocol, but with many hosts
-    my $p = Net::Ping->new("syn");
+    $p = Net::Ping->new("syn");
     $p->port_number(getservbyname("http", "tcp"));
-    foreach my $host (@host_array) {
+    foreach $host (@host_array) {
       $p->ping($host);
     }
-    while (my ($host, $rtt, $ip) = $p->ack) {
+    while (($host,$rtt,$ip) = $p->ack) {
       print "HOST: $host [$ip] ACKed in $rtt seconds.\n";
     }
 
     # High precision syntax (requires Time::HiRes)
-    my $p = Net::Ping->new();
+    $p = Net::Ping->new();
     $p->hires();
-    my ($ret, $duration, $ip) = $p->ping($host, 5.5);
+    ($ret, $duration, $ip) = $p->ping($host, 5.5);
     printf("$host [ip: $ip] is alive (packet return time: %.2f ms)\n",
             1000 * $duration)
       if $ret;

@@ -9,16 +9,13 @@ local w = require("tables").wrap
 local concat = require("funclib").concat
 
 local parser = clink.arg.new_parser
-
-local function get_home_dir()
-    return os.getenv("home") or os.getenv("USERPROFILE")
-end
+local profile = os.getenv("home") or os.getenv("USERPROFILE")
 
 local function scoop_folder()
     local folder = os.getenv("SCOOP")
 
     if not folder then
-        folder = get_home_dir() .. "\\scoop"
+        folder = profile .. "\\scoop"
     end
 
     return folder
@@ -35,7 +32,7 @@ local function scoop_global_folder()
 end
 
 local function scoop_load_config() -- luacheck: no unused args
-    local file = io.open(get_home_dir() .. "\\.config\\scoop\\config.json")
+    local file = io.open(profile .. "\\.config\\scoop\\config.json")
     -- If there is no such file, then close handle and return
     if file == nil then
         return w()
@@ -270,18 +267,15 @@ local scoop_help_parser =
         "alias",
         "bucket",
         "cache",
-        "cat",
         "checkup",
         "cleanup",
         "config",
         "create",
         "depends",
-        "download",
         "export",
         "help",
         "home",
         "hold",
-        "import",
         "info",
         "install",
         "list",
@@ -309,7 +303,6 @@ scoop_parser:set_arguments(
         "alias" .. scoop_alias_parser,
         "bucket" .. scoop_bucket_parser,
         "cache" .. scoop_cache_parser,
-        "cat" .. parser({scoop_available_apps_list, scoop_apps_list}),
         "checkup",
         "cleanup" .. scoop_cleanup_parser,
         "config" .. scoop_config_parser,
@@ -320,23 +313,10 @@ scoop_parser:set_arguments(
                 "--arch" .. parser({"32bit", "64bit"}),
                 "-a" .. parser({"32bit", "64bit"})
             ),
-        "download" ..
-            parser(
-                {scoop_available_apps_list},
-                "--arch" .. parser({"32bit", "64bit"}),
-                "-a" .. parser({"32bit", "64bit"}),
-                "--force",
-                "-f",
-                "--no-hash-check",
-                "-h",
-                "--no-update-scoop",
-                "-u"
-            ),
         "export",
         "help" .. scoop_help_parser,
         "hold" .. parser({scoop_apps_list}),
         "home" .. parser({scoop_available_apps_list, scoop_apps_list}),
-        "import",
         "info" .. parser({scoop_available_apps_list, scoop_apps_list}),
         "install" .. scoop_install_parser,
         "list",

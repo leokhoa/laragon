@@ -1,7 +1,6 @@
 # Copyright (C) 1997-2001 Damian Conway.  All rights reserved.
 # Copyright (C) 2009 Adam Kennedy.
-# Copyright (C) 2015, 2022 Steve Hay and other contributors.  All rights
-# reserved.
+# Copyright (C) 2015 Steve Hay.  All rights reserved.
 
 # This module is free software; you can redistribute it and/or modify it under
 # the same terms as Perl itself, i.e. under the terms of either the GNU General
@@ -18,7 +17,7 @@ use Exporter ();
 
 use vars qw { $VERSION @ISA %EXPORT_TAGS };
 BEGIN {
-    $VERSION     = '2.06';
+    $VERSION     = '2.04';
     @ISA         = 'Exporter';
     %EXPORT_TAGS = (
         ALL => [ qw{
@@ -38,22 +37,14 @@ BEGIN {
 
 Exporter::export_ok_tags('ALL');
 
-our $RE_PREREGEX_PAT = qr#(
-    [!=]~
-    | split|grep|map
-    | not|and|or|xor
-)#x;
-our $RE_EXPR_PAT = qr#(
-    (?:\*\*|&&|\|\||<<|>>|//|[-+*x%^&|.])=?
-    | /(?:[^/])
-    | =(?!>)
-    | return
-    | [\(\[]
-)#x;
-our $RE_NUM = qr/\s*[+\-.0-9][+\-.0-9e]*/i; # numerical constant
+## no critic (Subroutines::ProhibitSubroutinePrototypes)
 
-our %ref2slashvalid; # is quotelike /.../ pattern valid here for given textref?
-our %ref2qmarkvalid; # is quotelike ?...? pattern valid here for given textref?
+# PROTOTYPES
+
+sub _match_bracketed($$$$$$);
+sub _match_variable($$);
+sub _match_codeblock($$$$$$$);
+sub _match_quotelike($$$$);
 
 # HANDLE RETURN VALUES IN VARIOUS CONTEXTS
 
@@ -108,7 +99,6 @@ sub _succeed {
 }
 
 # BUILD A PATTERN MATCHING A SIMPLE DELIMITED STRING
-## no critic (Subroutines::ProhibitSubroutinePrototypes)
 
 sub gen_delimited_pat($;$)  # ($delimiters;$escapes)
 {
@@ -142,7 +132,6 @@ sub gen_delimited_pat($;$)  # ($delimiters;$escapes)
 sub extract_delimited (;$$$$)
 {
     my $textref = defined $_[0] ? \$_[0] : \$_;
-    $ref2slashvalid{$textref} = 1, $ref2qmarkvalid{$textref} = 0 if !pos($$textref); # reset
     my $wantarray = wantarray;
     my $del  = defined $_[1] ? $_[1] : qq{\'\"\`};
     my $pre  = defined $_[2] ? $_[2] : '\s*';
@@ -160,45 +149,33 @@ sub extract_delimited (;$$$$)
                     $startpos, $prelen;                         # PREFIX
 }
 
-my %eb_delim_cache;
-sub _eb_delims {
-    my ($ldel_orig) = @_;
-    return @{ $eb_delim_cache{$ldel_orig} } if $eb_delim_cache{$ldel_orig};
+sub extract_bracketed (;$$$)
+{
+    my $textref = defined $_[0] ? \$_[0] : \$_;
+    my $ldel = defined $_[1] ? $_[1] : '{([<';
+    my $pre  = defined $_[2] ? $_[2] : '\s*';
+    my $wantarray = wantarray;
     my $qdel = "";
     my $quotelike;
-    my $ldel = $ldel_orig;
     $ldel =~ s/'//g and $qdel .= q{'};
     $ldel =~ s/"//g and $qdel .= q{"};
     $ldel =~ s/`//g and $qdel .= q{`};
     $ldel =~ s/q//g and $quotelike = 1;
     $ldel =~ tr/[](){}<>\0-\377/[[(({{<</ds;
     my $rdel = $ldel;
-    return @{ $eb_delim_cache{$ldel_orig} = [] } unless $rdel =~ tr/[({</])}>/;
-    my $posbug = pos;
-    $ldel = join('|', map { quotemeta $_ } split('', $ldel));
-    $rdel = join('|', map { quotemeta $_ } split('', $rdel));
-    pos = $posbug;
-    @{ $eb_delim_cache{$ldel_orig} = [
-        qr/\G($ldel)/, $qdel && qr/\G([$qdel])/, $quotelike, qr/\G($rdel)/
-    ] };
-}
-sub extract_bracketed (;$$$)
-{
-    my $textref = defined $_[0] ? \$_[0] : \$_;
-    $ref2slashvalid{$textref} = 1, $ref2qmarkvalid{$textref} = 0 if !pos($$textref); # reset
-    my $ldel = defined $_[1] ? $_[1] : '{([<';
-    my $pre  = defined $_[2] ? qr/\G$_[2]/ : qr/\G\s*/;
-    my $wantarray = wantarray;
-    my @ret = _eb_delims($ldel);
-    unless (@ret)
+    unless ($rdel =~ tr/[({</])}>/)
     {
         return _fail $wantarray, $textref,
                      "Did not find a suitable bracket in delimiter: \"$_[1]\"",
                      0;
     }
+    my $posbug = pos;
+    $ldel = join('|', map { quotemeta $_ } split('', $ldel));
+    $rdel = join('|', map { quotemeta $_ } split('', $rdel));
+    pos = $posbug;
 
     my $startpos = pos $$textref || 0;
-    my @match = _match_bracketed($textref, $pre, @ret);
+    my @match = _match_bracketed($textref,$pre, $ldel, $qdel, $quotelike, $rdel);
 
     return _fail ($wantarray, $textref) unless @match;
 
@@ -209,11 +186,11 @@ sub extract_bracketed (;$$$)
                     );
 }
 
-sub _match_bracketed    # $textref, $pre, $ldel, $qdel, $quotelike, $rdel
+sub _match_bracketed($$$$$$)    # $textref, $pre, $ldel, $qdel, $quotelike, $rdel
 {
     my ($textref, $pre, $ldel, $qdel, $quotelike, $rdel) = @_;
     my ($startpos, $ldelpos, $endpos) = (pos $$textref = pos $$textref||0);
-    unless ($$textref =~ m/$pre/gc)
+    unless ($$textref =~ m/\G$pre/gc)
     {
         _failmsg "Did not find prefix: /$pre/", $startpos;
         return;
@@ -221,7 +198,7 @@ sub _match_bracketed    # $textref, $pre, $ldel, $qdel, $quotelike, $rdel
 
     $ldelpos = pos $$textref;
 
-    unless ($$textref =~ m/$ldel/gc)
+    unless ($$textref =~ m/\G($ldel)/gc)
     {
         _failmsg "Did not find opening bracket after prefix: \"$pre\"",
                  pos $$textref;
@@ -235,11 +212,11 @@ sub _match_bracketed    # $textref, $pre, $ldel, $qdel, $quotelike, $rdel
     {
         next if $$textref =~ m/\G\\./gcs;
 
-        if ($$textref =~ m/$ldel/gc)
+        if ($$textref =~ m/\G($ldel)/gc)
         {
             push @nesting, $1;
         }
-        elsif ($$textref =~ m/$rdel/gc)
+        elsif ($$textref =~ m/\G($rdel)/gc)
         {
             my ($found, $brackettype) = ($1, $1);
             if ($#nesting < 0)
@@ -260,7 +237,7 @@ sub _match_bracketed    # $textref, $pre, $ldel, $qdel, $quotelike, $rdel
             }
             last if $#nesting < 0;
         }
-        elsif ($qdel && $$textref =~ m/$qdel/gc)
+        elsif ($qdel && $$textref =~ m/\G([$qdel])/gc)
         {
             $$textref =~ m/\G[^\\$1]*(?:\\.[^\\$1]*)*(\Q$1\E)/gsc and next;
             _failmsg "Unmatched embedded quote ($1)",
@@ -268,9 +245,8 @@ sub _match_bracketed    # $textref, $pre, $ldel, $qdel, $quotelike, $rdel
             pos $$textref = $startpos;
             return;
         }
-        elsif ($quotelike && _match_quotelike($textref,qr/\G()/,$ref2slashvalid{$textref},$ref2qmarkvalid{$textref}))
+        elsif ($quotelike && _match_quotelike($textref,"",1,0))
         {
-            $ref2slashvalid{$textref} = $ref2qmarkvalid{$textref} = 1; # back-compat
             next;
         }
 
@@ -305,14 +281,12 @@ sub _revbracket($)
 
 my $XMLNAME = q{[a-zA-Z_:][a-zA-Z0-9_:.-]*};
 
-my $et_default_ldel = '<\w+(?:' . gen_delimited_pat(q{'"}) . '|[^>])*>';
 sub extract_tagged (;$$$$$) # ($text, $opentag, $closetag, $pre, \%options)
 {
     my $textref = defined $_[0] ? \$_[0] : \$_;
-    $ref2slashvalid{$textref} = 1, $ref2qmarkvalid{$textref} = 0 if !pos($$textref); # reset
     my $ldel    = $_[1];
     my $rdel    = $_[2];
-    my $pre     = defined $_[3] ? qr/\G$_[3]/ : qr/\G\s*/;
+    my $pre     = defined $_[3] ? $_[3] : '\s*';
     my %options = defined $_[4] ? %{$_[4]} : ();
     my $omode   = defined $options{fail} ? $options{fail} : '';
     my $bad     = ref($options{reject}) eq 'ARRAY' ? join('|', @{$options{reject}})
@@ -324,7 +298,7 @@ sub extract_tagged (;$$$$$) # ($text, $opentag, $closetag, $pre, \%options)
                 :                                    ''
                 ;
 
-    $ldel = $et_default_ldel if !defined $ldel;
+    if (!defined $ldel) { $ldel = '<\w+(?:' . gen_delimited_pat(q{'"}) . '|[^>])*>'; }
     $@ = undef;
 
     my @match = _match_tagged($textref, $pre, $ldel, $rdel, $omode, $bad, $ignore);
@@ -342,7 +316,7 @@ sub _match_tagged       # ($$$$$$$)
 
     my ($startpos, $opentagpos, $textpos, $parapos, $closetagpos, $endpos) = ( pos($$textref) = pos($$textref)||0 );
 
-    unless ($$textref =~ m/$pre/gc)
+    unless ($$textref =~ m/\G($pre)/gc)
     {
         _failmsg "Did not find prefix: /$pre/", pos $$textref;
         goto failed;
@@ -459,8 +433,7 @@ sub extract_variable (;$$)
 {
     my $textref = defined $_[0] ? \$_[0] : \$_;
     return ("","","") unless defined $$textref;
-    $ref2slashvalid{$textref} = 1, $ref2qmarkvalid{$textref} = 0 if !pos($$textref); # reset
-    my $pre  = defined $_[1] ? qr/\G$_[1]/ : qr/\G\s*/;
+    my $pre  = defined $_[1] ? $_[1] : '\s*';
 
     my @match = _match_variable($textref,$pre);
 
@@ -470,14 +443,14 @@ sub extract_variable (;$$)
                     @match[2..3,4..5,0..1];        # MATCH, REMAINDER, PREFIX
 }
 
-sub _match_variable
+sub _match_variable($$)
 {
 #  $#
 #  $^
 #  $$
     my ($textref, $pre) = @_;
     my $startpos = pos($$textref) = pos($$textref)||0;
-    unless ($$textref =~ m/$pre/gc)
+    unless ($$textref =~ m/\G($pre)/gc)
     {
         _failmsg "Did not find prefix: /$pre/", pos $$textref;
         return;
@@ -494,9 +467,8 @@ sub _match_variable
         my $deref = $1;
 
         unless ($$textref =~ m/\G\s*(?:::|')?(?:[_a-z]\w*(?:::|'))*[_a-z]\w*/gci
-            or _match_codeblock($textref, qr/\G()/, '\{', qr/\G\s*(\})/, '\{', '\}', 0, 1)
-            or $deref eq '$#' or $deref eq '$$'
-            or pos($$textref) == length $$textref )
+            or _match_codeblock($textref, "", '\{', '\}', '\{', '\}', 0)
+            or $deref eq '$#' or $deref eq '$$' )
         {
             _failmsg "Bad identifier after dereferencer", pos $$textref;
             pos $$textref = $startpos;
@@ -508,17 +480,16 @@ sub _match_variable
     {
         next if $$textref =~ m/\G\s*(?:->)?\s*[{]\w+[}]/gc;
         next if _match_codeblock($textref,
-                                 qr/\G\s*->\s*(?:[_a-zA-Z]\w+\s*)?/,
-                                 qr/[({[]/, qr/\G\s*([)}\]])/,
-                                 qr/[({[]/, qr/[)}\]]/, 0, 1);
+                                 qr/\s*->\s*(?:[_a-zA-Z]\w+\s*)?/,
+                                 qr/[({[]/, qr/[)}\]]/,
+                                 qr/[({[]/, qr/[)}\]]/, 0);
         next if _match_codeblock($textref,
-                                 qr/\G\s*/, qr/[{[]/, qr/\G\s*([}\]])/,
-                                 qr/[{[]/, qr/[}\]]/, 0, 1);
-        next if _match_variable($textref,qr/\G\s*->\s*/);
+                                 qr/\s*/, qr/[{[]/, qr/[}\]]/,
+                                 qr/[{[]/, qr/[}\]]/, 0);
+        next if _match_variable($textref,'\s*->\s*');
         next if $$textref =~ m/\G\s*->\s*\w+(?![{([])/gc;
         last;
     }
-    $ref2slashvalid{$textref} = $ref2qmarkvalid{$textref} = 0;
 
     my $endpos = pos($$textref);
     return ($startpos, $varpos-$startpos,
@@ -527,11 +498,14 @@ sub _match_variable
     );
 }
 
-my %ec_delim_cache;
-sub _ec_delims {
-    my ($ldel_inner, $ldel_outer) = @_;
-    return @{ $ec_delim_cache{$ldel_outer}{$ldel_inner} }
-        if $ec_delim_cache{$ldel_outer}{$ldel_inner};
+sub extract_codeblock (;$$$$$)
+{
+    my $textref = defined $_[0] ? \$_[0] : \$_;
+    my $wantarray = wantarray;
+    my $ldel_inner = defined $_[1] ? $_[1] : '{';
+    my $pre        = defined $_[2] ? $_[2] : '\s*';
+    my $ldel_outer = defined $_[3] ? $_[3] : $ldel_inner;
+    my $rd         = $_[4];
     my $rdel_inner = $ldel_inner;
     my $rdel_outer = $ldel_outer;
     my $posbug = pos;
@@ -542,34 +516,23 @@ sub _ec_delims {
         $_ = '('.join('|',map { quotemeta $_ } split('',$_)).')'
     }
     pos = $posbug;
-    @{ $ec_delim_cache{$ldel_outer}{$ldel_inner} = [
-        $ldel_outer, qr/\G\s*($rdel_outer)/, $ldel_inner, $rdel_inner
-    ] };
-}
-sub extract_codeblock (;$$$$$)
-{
-    my $textref = defined $_[0] ? \$_[0] : \$_;
-    $ref2slashvalid{$textref} = 1, $ref2qmarkvalid{$textref} = 0 if !pos($$textref); # reset
-    my $wantarray = wantarray;
-    my $ldel_inner = defined $_[1] ? $_[1] : '{';
-    my $pre = !defined $_[2] ? qr/\G\s*/ : qr/\G$_[2]/;
-    my $ldel_outer = defined $_[3] ? $_[3] : $ldel_inner;
-    my $rd         = $_[4];
-    my @delims = _ec_delims($ldel_inner, $ldel_outer);
 
-    my @match = _match_codeblock($textref, $pre, @delims, $rd, 1);
+    my @match = _match_codeblock($textref, $pre,
+                                 $ldel_outer, $rdel_outer,
+                                 $ldel_inner, $rdel_inner,
+                                 $rd);
     return _fail($wantarray, $textref) unless @match;
     return _succeed($wantarray, $textref,
                     @match[2..3,4..5,0..1]    # MATCH, REMAINDER, PREFIX
     );
+
 }
 
-sub _match_codeblock
+sub _match_codeblock($$$$$$$)
 {
-    my ($textref, $pre, $ldel_outer, $rdel_outer, $ldel_inner, $rdel_inner, $rd, $no_backcompat) = @_;
-    $rdel_outer = qr/\G\s*($rdel_outer)/ if !$no_backcompat; # Switch calls this func directly
+    my ($textref, $pre, $ldel_outer, $rdel_outer, $ldel_inner, $rdel_inner, $rd) = @_;
     my $startpos = pos($$textref) = pos($$textref) || 0;
-    unless ($$textref =~ m/$pre/gc)
+    unless ($$textref =~ m/\G($pre)/gc)
     {
         _failmsg qq{Did not match prefix /$pre/ at"} .
                      substr($$textref,pos($$textref),20) .
@@ -590,13 +553,13 @@ sub _match_codeblock
     my $closing = $1;
        $closing =~ tr/([<{/)]>}/;
     my $matched;
-    $ref2slashvalid{$textref} = 1, $ref2qmarkvalid{$textref} = 0
-      if !pos($$textref) or !defined $ref2slashvalid{$textref}; # default, or reset
+    my $patvalid = 1;
     while (pos($$textref) < length($$textref))
     {
+        $matched = '';
         if ($rd && $$textref =~ m#\G(\Q(?)\E|\Q(s?)\E|\Q(s)\E)#gc)
         {
-            $ref2slashvalid{$textref} = $ref2qmarkvalid{$textref} = 0;
+            $patvalid = 0;
             next;
         }
 
@@ -605,7 +568,7 @@ sub _match_codeblock
             next;
         }
 
-        if ($$textref =~ m/$rdel_outer/gc)
+        if ($$textref =~ m/\G\s*($rdel_outer)/gc)
         {
             unless ($matched = ($closing && $1 eq $closing) )
             {
@@ -618,22 +581,31 @@ sub _match_codeblock
             last;
         }
 
-        if (_match_variable($textref,qr/\G\s*/) ||
-            _match_quotelike($textref,qr/\G\s*/,$ref2slashvalid{$textref},$ref2qmarkvalid{$textref}) )
+        if (_match_variable($textref,'\s*') ||
+            _match_quotelike($textref,'\s*',$patvalid,$patvalid) )
         {
-            $ref2slashvalid{$textref} = $ref2qmarkvalid{$textref} = 0;
+            $patvalid = 0;
             next;
         }
 
-        if ($$textref =~ m#\G\s*(?!$ldel_inner)(?:$RE_PREREGEX_PAT|$RE_EXPR_PAT)#gc)
+
+        # NEED TO COVER MANY MORE CASES HERE!!!
+        if ($$textref =~ m#\G\s*(?!$ldel_inner)
+                                ( [-+*x/%^&|.]=?
+                                | [!=]~
+                                | =(?!>)
+                                | (\*\*|&&|\|\||<<|>>)=?
+                                | split|grep|map|return
+                                | [([]
+                                )#gcx)
         {
-            $ref2slashvalid{$textref} = $ref2qmarkvalid{$textref} = 1;
+            $patvalid = 1;
             next;
         }
 
-        if ( _match_codeblock($textref, qr/\G\s*/, $ldel_inner, qr/\G\s*($rdel_inner)/, $ldel_inner, $rdel_inner, $rd, 1) )
+        if ( _match_codeblock($textref, '\s*', $ldel_inner, $rdel_inner, $ldel_inner, $rdel_inner, $rd) )
         {
-            $ref2slashvalid{$textref} = $ref2qmarkvalid{$textref} = 1;
+            $patvalid = 1;
             next;
         }
 
@@ -646,7 +618,7 @@ sub _match_codeblock
             last;
         }
 
-        $ref2slashvalid{$textref} = $ref2qmarkvalid{$textref} = 0;
+        $patvalid = 0;
         $$textref =~ m/\G\s*(\w+|[-=>]>|.|\Z)/gc;
     }
     continue { $@ = undef }
@@ -658,7 +630,6 @@ sub _match_codeblock
         return;
     }
 
-    $ref2slashvalid{$textref} = $ref2qmarkvalid{$textref} = undef;
     my $endpos = pos($$textref);
     return ( $startpos, $codepos-$startpos,
              $codepos, $endpos-$codepos,
@@ -683,11 +654,10 @@ my %mods   = (
 sub extract_quotelike (;$$)
 {
     my $textref = $_[0] ? \$_[0] : \$_;
-    $ref2slashvalid{$textref} = 1, $ref2qmarkvalid{$textref} = 0 if !pos($$textref); # reset
     my $wantarray = wantarray;
-    my $pre  = defined $_[1] ? qr/\G$_[1]/ : qr/\G\s*/;
+    my $pre  = defined $_[1] ? $_[1] : '\s*';
 
-    my @match = _match_quotelike($textref,$pre,$ref2slashvalid{$textref},$ref2qmarkvalid{$textref});
+    my @match = _match_quotelike($textref,$pre,1,0);
     return _fail($wantarray, $textref) unless @match;
     return _succeed($wantarray, $textref,
                     $match[2], $match[18]-$match[2],    # MATCH
@@ -698,19 +668,17 @@ sub extract_quotelike (;$$)
     );
 };
 
-my %maybe_quote = map +($_=>1), qw(" ' `);
-sub _match_quotelike
+sub _match_quotelike($$$$)      # ($textref, $prepat, $allow_raw_match)
 {
-    my ($textref, $pre, $allow_slash_match, $allow_qmark_match) = @_;
-    $ref2slashvalid{$textref} = 1, $ref2qmarkvalid{$textref} = 0
-      if !pos($$textref) or !defined $ref2slashvalid{$textref}; # default, or reset
+    my ($textref, $pre, $rawmatch, $qmark) = @_;
 
     my ($textlen,$startpos,
+        $oppos,
         $preld1pos,$ld1pos,$str1pos,$rd1pos,
         $preld2pos,$ld2pos,$str2pos,$rd2pos,
         $modpos) = ( length($$textref), pos($$textref) = pos($$textref) || 0 );
 
-    unless ($$textref =~ m/$pre/gc)
+    unless ($$textref =~ m/\G($pre)/gc)
     {
         _failmsg qq{Did not find prefix /$pre/ at "} .
                      substr($$textref, pos($$textref), 20) .
@@ -718,13 +686,15 @@ sub _match_quotelike
                  pos $$textref;
         return;
     }
-    my $oppos = pos($$textref);
+    $oppos = pos($$textref);
+
     my $initial = substr($$textref,$oppos,1);
-    if ($initial && $maybe_quote{$initial}
-                 || $allow_slash_match && $initial eq '/'
-                 || $allow_qmark_match && $initial eq '?')
+
+    if ($initial && $initial =~ m|^[\"\'\`]|
+                 || $rawmatch && $initial =~ m|^/|
+                 || $qmark && $initial =~ m|^\?|)
     {
-        unless ($$textref =~ m/\G \Q$initial\E [^\\$initial]* (\\.[^\\$initial]*)* \Q$initial\E /gcsx)
+        unless ($$textref =~ m/ \Q$initial\E [^\\$initial]* (\\.[^\\$initial]*)* \Q$initial\E /gcsx)
         {
             _failmsg qq{Did not find closing delimiter to match '$initial' at "} .
                          substr($$textref, $oppos, 20) .
@@ -742,7 +712,6 @@ sub _match_quotelike
         }
 
         my $endpos = pos($$textref);
-        $ref2qmarkvalid{$textref} = $ref2slashvalid{$textref} = 0;
         return (
             $startpos,  $oppos-$startpos,       # PREFIX
             $oppos,     0,                      # NO OPERATOR
@@ -757,7 +726,7 @@ sub _match_quotelike
         );
     }
 
-    unless ($$textref =~ m{\G(\b(?:m|s|qq|qx|qw|q|qr|tr|y)\b(?=\s*\S)|<<(?=[a-zA-Z]|\s*['"`;,]))}gc)
+    unless ($$textref =~ m{\G(\b(?:m|s|qq|qx|qw|q|qr|tr|y)\b(?=\s*\S)|<<)}gc)
     {
         _failmsg q{No quotelike operator found after prefix at "} .
                      substr($$textref, pos($$textref), 20) .
@@ -798,7 +767,6 @@ sub _match_quotelike
         $rd1pos = pos($$textref);
         $$textref =~ m{\Q$label\E\n}gc;
         $ld2pos = pos($$textref);
-        $ref2qmarkvalid{$textref} = $ref2slashvalid{$textref} = 0;
         return (
             $startpos,  $oppos-$startpos,       # PREFIX
             $oppos,     length($op),            # OPERATOR
@@ -818,16 +786,9 @@ sub _match_quotelike
     $ld1pos = pos($$textref);
     $str1pos = $ld1pos+1;
 
-    if ($$textref !~ m/\G(\S)/gc)   # SHOULD USE LOOKAHEAD
+    unless ($$textref =~ m/\G(\S)/gc)   # SHOULD USE LOOKAHEAD
     {
         _failmsg "No block delimiter found after quotelike $op",
-                 pos $$textref;
-        pos $$textref = $startpos;
-        return;
-    }
-    elsif (substr($$textref, $ld1pos, 2) eq '=>')
-    {
-        _failmsg "quotelike $op was actually quoted by '=>'",
                  pos $$textref;
         pos $$textref = $startpos;
         return;
@@ -837,7 +798,7 @@ sub _match_quotelike
     if ($ldel1 =~ /[[(<{]/)
     {
         $rdel1 =~ tr/[({</])}>/;
-        defined(_match_bracketed($textref,qr/\G/,qr/\G($ldel1)/,"","",qr/\G($rdel1)/))
+        defined(_match_bracketed($textref,"",$ldel1,"","",$rdel1))
             || do { pos $$textref = $startpos; return };
         $ld2pos = pos($$textref);
         $rd1pos = $ld2pos-1;
@@ -874,7 +835,7 @@ sub _match_quotelike
         if ($ldel2 =~ /[[(<{]/)
         {
             pos($$textref)--;   # OVERCOME BROKEN LOOKAHEAD
-            defined(_match_bracketed($textref,qr/\G/,qr/\G($ldel2)/,"","",qr/\G($rdel2)/))
+            defined(_match_bracketed($textref,"",$ldel2,"","",$rdel2))
                 || do { pos $$textref = $startpos; return };
         }
         else
@@ -893,7 +854,6 @@ sub _match_quotelike
 
     $$textref =~ m/\G($mods{$op})/gc;
     my $endpos = pos $$textref;
-    $ref2qmarkvalid{$textref} = $ref2slashvalid{$textref} = undef;
 
     return (
         $startpos,      $oppos-$startpos,       # PREFIX
@@ -914,26 +874,10 @@ my $def_func = [
     sub { extract_quotelike($_[0],'') },
     sub { extract_codeblock($_[0],'{}','') },
 ];
-my %ref_not_regex = map +($_=>1), qw(CODE Text::Balanced::Extractor);
 
-sub _update_patvalid {
-    my ($textref, $text) = @_;
-    if ($ref2slashvalid{$textref} && $text =~ m/(?:$RE_NUM|[\)\]])\s*$/)
-    {
-        $ref2slashvalid{$textref} = $ref2qmarkvalid{$textref} = 0;
-    } elsif (!$ref2slashvalid{$textref} && $text =~ m/$RE_PREREGEX_PAT\s*$/)
-    {
-        $ref2slashvalid{$textref} = $ref2qmarkvalid{$textref} = 1;
-    } elsif (!$ref2slashvalid{$textref} && $text =~ m/$RE_EXPR_PAT\s*$/)
-    {
-        $ref2slashvalid{$textref} = 1;
-        $ref2qmarkvalid{$textref} = 0;
-    }
-}
 sub extract_multiple (;$$$$)    # ($text, $functions_ref, $max_fields, $ignoreunknown)
 {
     my $textref = defined($_[0]) ? \$_[0] : \$_;
-    $ref2slashvalid{$textref} = 1, $ref2qmarkvalid{$textref} = 0 if !pos($$textref); # reset
     my $posbug = pos;
     my ($lastpos, $firstpos);
     my @fields = ();
@@ -954,28 +898,39 @@ sub extract_multiple (;$$$$)    # ($text, $functions_ref, $max_fields, $ignoreun
             $max = 1
         }
 
+        my $unkpos;
+        my $class;
+
         my @class;
         foreach my $func ( @func )
         {
-            push @class, undef;
-            ($class[-1], $func) = %$func if ref($func) eq 'HASH';
-            $func = qr/\G$func/ if !$ref_not_regex{ref $func};
+            if (ref($func) eq 'HASH')
+            {
+                push @class, (keys %$func)[0];
+                $func = (values %$func)[0];
+            }
+            else
+            {
+                push @class, undef;
+            }
         }
 
-        my $unkpos;
         FIELD: while (pos($$textref) < length($$textref))
         {
+            my ($field, $rem);
+            my @bits;
             foreach my $i ( 0..$#func )
             {
-                my ($field, $pref);
-                my ($class, $func) = ($class[$i], $func[$i]);
+                my $pref;
+                my $func = $func[$i];
+                $class = $class[$i];
                 $lastpos = pos $$textref;
                 if (ref($func) eq 'CODE')
-                    { ($field,undef,$pref) = $func->($$textref) }
+                    { ($field,$rem,$pref) = @bits = $func->($$textref) }
                 elsif (ref($func) eq 'Text::Balanced::Extractor')
-                    { $field = $func->extract($$textref) }
-                elsif( $$textref =~ m/$func[$i]/gc )
-                    { $field = defined($1)
+                    { @bits = $field = $func->extract($$textref) }
+                elsif( $$textref =~ m/\G$func/gc )
+                    { @bits = $field = defined($1)
                         ? $1
                         : substr($$textref, $-[0], $+[0] - $-[0])
                     }
@@ -993,8 +948,9 @@ sub extract_multiple (;$$$$)    # ($text, $functions_ref, $max_fields, $ignoreun
                             last FIELD if @fields == $max;
                         }
                     }
-                    push @fields, $class ? bless(\$field, $class) : $field;
-                    _update_patvalid($textref, $fields[-1]);
+                    push @fields, $class
+                            ? bless (\$field, $class)
+                            : $field;
                     $firstpos = $lastpos unless defined $firstpos;
                     $lastpos = pos $$textref;
                     last FIELD if @fields == $max;
@@ -1005,7 +961,6 @@ sub extract_multiple (;$$$$)    # ($text, $functions_ref, $max_fields, $ignoreun
             {
                 $unkpos = pos($$textref)-1
                     unless $igunk || defined $unkpos;
-                _update_patvalid($textref, substr $$textref, $unkpos, pos($$textref)-$unkpos);
             }
         }
 
@@ -1031,7 +986,7 @@ sub gen_extract_tagged # ($opentag, $closetag, $pre, \%options)
 {
     my $ldel    = $_[0];
     my $rdel    = $_[1];
-    my $pre     = defined $_[2] ? qr/\G$_[2]/ : qr/\G\s*/;
+    my $pre     = defined $_[2] ? $_[2] : '\s*';
     my %options = defined $_[3] ? %{$_[3]} : ();
     my $omode   = defined $options{fail} ? $options{fail} : '';
     my $bad     = ref($options{reject}) eq 'ARRAY' ? join('|', @{$options{reject}})
@@ -1043,16 +998,16 @@ sub gen_extract_tagged # ($opentag, $closetag, $pre, \%options)
                 :                                    ''
                 ;
 
-    $ldel = $et_default_ldel if !defined $ldel;
+    if (!defined $ldel) { $ldel = '<\w+(?:' . gen_delimited_pat(q{'"}) . '|[^>])*>'; }
 
     my $posbug = pos;
-    for ($ldel, $bad, $ignore) { $_ = qr/$_/ if $_ }
+    for ($ldel, $pre, $bad, $ignore) { $_ = qr/$_/ if $_ }
     pos = $posbug;
 
     my $closure = sub
     {
         my $textref = defined $_[0] ? \$_[0] : \$_;
-        my @match = _match_tagged($textref, $pre, $ldel, $rdel, $omode, $bad, $ignore);
+        my @match = Text::Balanced::_match_tagged($textref, $pre, $ldel, $rdel, $omode, $bad, $ignore);
 
         return _fail(wantarray, $textref) unless @match;
         return _succeed wantarray, $textref,
@@ -1072,9 +1027,7 @@ sub extract($$) # ($self, $text)
 
 package Text::Balanced::ErrorMsg;
 
-use overload
-    '""' => sub { "$_[0]->{error}, detected at offset $_[0]->{pos}" },
-    fallback => 1;
+use overload '""' => sub { "$_[0]->{error}, detected at offset $_[0]->{pos}" };
 
 1;
 
@@ -1497,7 +1450,7 @@ A string to be processed (C<$_> if the string is omitted or C<undef>)
 
 =item 2.
 
-A string specifying a pattern (i.e. regex) to be matched as the opening tag.
+A string specifying a pattern to be matched as the opening tag.
 If the pattern string is omitted (or C<undef>) then a pattern
 that matches any standard XML tag is used.
 
@@ -1901,8 +1854,7 @@ C<"extract_quotelike">.
 C<extract_codeblock> takes the same initial three parameters as C<extract_bracketed>:
 a text to process, a set of delimiter brackets to look for, and a prefix to
 match first. It also takes an optional fourth parameter, which allows the
-outermost delimiter brackets to be specified separately (see below),
-and a fifth parameter used only by L<Parse::RecDescent>.
+outermost delimiter brackets to be specified separately (see below).
 
 Omitting the first argument (input text) means process C<$_> instead.
 Omitting the second argument (delimiter brackets) indicates that only C<'{'> is to be used.
@@ -2111,14 +2063,12 @@ operator (and removes it from $text):
 
 Finally, here is yet another way to do comma-separated value parsing:
 
-        $csv_text = "a,'x b',c";
         @fields = extract_multiple($csv_text,
                                   [
                                         sub { extract_delimited($_[0],q{'"}) },
-                                        qr/([^,]+)/,
+                                        qr/([^,]+)(.*)/,
                                   ],
                                   undef,1);
-        # @fields is now ('a', "'x b'", 'c')
 
 The list in the second argument means:
 I<"Try and extract a ' or " delimited string, otherwise extract anything up to a comma...">.
@@ -2134,7 +2084,7 @@ just make the last parameter undefined (or remove it).
 =item C<gen_delimited_pat>
 
 The C<gen_delimited_pat> subroutine takes a single (string) argument and
-builds a Friedl-style optimized regex that matches a string delimited
+   > builds a Friedl-style optimized regex that matches a string delimited
 by any one of the characters in the single argument. For example:
 
         gen_delimited_pat(q{'"})
@@ -2410,8 +2360,7 @@ Copyright (C) 1997-2001 Damian Conway.  All rights reserved.
 
 Copyright (C) 2009 Adam Kennedy.
 
-Copyright (C) 2015, 2020, 2022 Steve Hay and other contributors.  All rights
-reserved.
+Copyright (C) 2015, 2020 Steve Hay.  All rights reserved.
 
 =head1 LICENCE
 
@@ -2421,11 +2370,11 @@ License or the Artistic License, as specified in the F<LICENCE> file.
 
 =head1 VERSION
 
-Version 2.06
+Version 2.04
 
 =head1 DATE
 
-05 Jun 2022
+11 Dec 2020
 
 =head1 HISTORY
 

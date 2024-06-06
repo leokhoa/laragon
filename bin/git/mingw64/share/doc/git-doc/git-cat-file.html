@@ -441,7 +441,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <h1>git-cat-file(1) Manual Page</h1>
 <h2 id="_name">NAME</h2>
 <div class="sectionbody">
-<p>git-cat-file - Provide contents or details of repository objects</p>
+<p>git-cat-file - Provide content or type and size information for repository objects</p>
 </div>
 </div>
 <div id="content">
@@ -452,11 +452,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <pre class="content"><em>git cat-file</em> &lt;type&gt; &lt;object&gt;
 <em>git cat-file</em> (-e | -p) &lt;object&gt;
 <em>git cat-file</em> (-t | -s) [--allow-unknown-type] &lt;object&gt;
-<em>git cat-file</em> (--textconv | --filters)
-             [&lt;rev&gt;:&lt;path|tree-ish&gt; | --path=&lt;path|tree-ish&gt; &lt;rev&gt;]
 <em>git cat-file</em> (--batch | --batch-check | --batch-command) [--batch-all-objects]
              [--buffer] [--follow-symlinks] [--unordered]
-             [--textconv | --filters] [-Z]</pre>
+             [--textconv | --filters]
+<em>git cat-file</em> (--textconv | --filters)
+             [&lt;rev&gt;:&lt;path|tree-ish&gt; | --path=&lt;path|tree-ish&gt; &lt;rev&gt;]</pre>
 </div>
 </div>
 </div>
@@ -464,19 +464,18 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <h2 id="_description">DESCRIPTION</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Output the contents or other properties such as size, type or delta
-information of one or more objects.</p>
+<p>In its first form, the command provides the content or the type of an object in
+the repository. The type is required unless <code>-t</code> or <code>-p</code> is used to find the
+object type, or <code>-s</code> is used to find the object size, or <code>--textconv</code> or
+<code>--filters</code> is used (which imply type "blob").</p>
 </div>
 <div class="paragraph">
-<p>This command can operate in two modes, depending on whether an option
-from the <code>--batch</code> family is specified.</p>
-</div>
-<div class="paragraph">
-<p>In non-batch mode, the command provides information on an object
-named on the command line.</p>
-</div>
-<div class="paragraph">
-<p>In batch mode, arguments are read from standard input.</p>
+<p>In the second form, a list of objects (separated by linefeeds) is provided on
+stdin, and the SHA-1, type, and size of each object is printed on stdout. The
+output format can be overridden using the optional <code>&lt;format&gt;</code> argument. If
+either <code>--textconv</code> or <code>--filters</code> was specified, the input is expected to
+list the object names followed by the path name, separated by a single
+whitespace, so that the appropriate drivers can be determined.</p>
 </div>
 </div>
 </div>
@@ -499,15 +498,13 @@ the "SPECIFYING REVISIONS" section in <a href="gitrevisions.html">gitrevisions(7
 <dt class="hdlist1">-s</dt>
 <dd>
 <p>Instead of the content, show the object size identified by
-<code>&lt;object&gt;</code>. If used with <code>--use-mailmap</code> option, will show
-the size of updated object after replacing idents using the
-mailmap mechanism.</p>
+<code>&lt;object&gt;</code>.</p>
 </dd>
 <dt class="hdlist1">-e</dt>
 <dd>
 <p>Exit with zero status if <code>&lt;object&gt;</code> exists and is a valid
-object. If <code>&lt;object&gt;</code> is of an invalid format, exit with non-zero
-status and emit an error on stderr.</p>
+object. If <code>&lt;object&gt;</code> is of an invalid format exit with non-zero and
+emits an error on stderr.</p>
 </dd>
 <dt class="hdlist1">-p</dt>
 <dd>
@@ -521,13 +518,6 @@ for a type that can trivially be dereferenced from the given
 "tree" with <code>&lt;object&gt;</code> being a commit object that contains it,
 or to ask for a "blob" with <code>&lt;object&gt;</code> being a tag object that
 points at it.</p>
-</dd>
-<dt class="hdlist1">--[no-]mailmap</dt>
-<dt class="hdlist1">--[no-]use-mailmap</dt>
-<dd>
-<p>Use mailmap file to map author, committer and tagger names
-and email addresses to canonical real names and email addresses.
-See <a href="git-shortlog.html">git-shortlog(1)</a>.</p>
 </dd>
 <dt class="hdlist1">--textconv</dt>
 <dd>
@@ -553,80 +543,28 @@ the revision from which the blob came.</p>
 <dt class="hdlist1">--batch=&lt;format&gt;</dt>
 <dd>
 <p>Print object information and contents for each object provided
-on stdin. May not be combined with any other options or arguments
-except <code>--textconv</code>, <code>--filters</code>, or <code>--use-mailmap</code>.</p>
-<div class="openblock">
-<div class="content">
-<div class="ulist">
-<ul>
-<li>
-<p>When used with <code>--textconv</code> or <code>--filters</code>, the input lines
-must specify the path, separated by whitespace. See the section
-<code>BATCH OUTPUT</code> below for details.</p>
-</li>
-<li>
-<p>When used with <code>--use-mailmap</code>, for commit and tag objects, the
-contents part of the output shows the identities replaced using the
-mailmap mechanism, while the information part of the output shows
-the size of the object as if it actually recorded the replacement
-identities.</p>
-</li>
-</ul>
-</div>
-</div>
-</div>
+on stdin.  May not be combined with any other options or arguments
+except <code>--textconv</code> or <code>--filters</code>, in which case the input lines
+also need to specify the path, separated by whitespace.  See the
+section <code>BATCH OUTPUT</code> below for details.</p>
 </dd>
 <dt class="hdlist1">--batch-check</dt>
 <dt class="hdlist1">--batch-check=&lt;format&gt;</dt>
 <dd>
-<p>Print object information for each object provided on stdin. May not be
-combined with any other options or arguments except <code>--textconv</code>, <code>--filters</code>
-or <code>--use-mailmap</code>.</p>
-<div class="openblock">
-<div class="content">
-<div class="ulist">
-<ul>
-<li>
-<p>When used with <code>--textconv</code> or <code>--filters</code>, the input lines must
-specify the path, separated by whitespace. See the section
-<code>BATCH OUTPUT</code> below for details.</p>
-</li>
-<li>
-<p>When used with <code>--use-mailmap</code>, for commit and tag objects, the
-printed object information shows the size of the object as if the
-identities recorded in it were replaced by the mailmap mechanism.</p>
-</li>
-</ul>
-</div>
-</div>
-</div>
+<p>Print object information for each object provided on stdin.  May
+not be combined with any other options or arguments except
+<code>--textconv</code> or <code>--filters</code>, in which case the input lines also
+need to specify the path, separated by whitespace.  See the
+section <code>BATCH OUTPUT</code> below for details.</p>
 </dd>
 <dt class="hdlist1">--batch-command</dt>
 <dt class="hdlist1">--batch-command=&lt;format&gt;</dt>
 <dd>
 <p>Enter a command mode that reads commands and arguments from stdin. May
-only be combined with <code>--buffer</code>, <code>--textconv</code>, <code>--use-mailmap</code> or
-<code>--filters</code>.</p>
-<div class="openblock">
-<div class="content">
-<div class="ulist">
-<ul>
-<li>
-<p>When used with <code>--textconv</code> or <code>--filters</code>, the input lines must
-specify the path, separated by whitespace. See the section
-<code>BATCH OUTPUT</code> below for details.</p>
-</li>
-<li>
-<p>When used with <code>--use-mailmap</code>, for commit and tag objects, the
-<code>contents</code> command shows the identities replaced using the
-mailmap mechanism, while the <code>info</code> command shows the size
-of the object as if it actually recorded the replacement
-identities.</p>
-</li>
-</ul>
-</div>
-</div>
-</div>
+only be combined with <code>--buffer</code>, <code>--textconv</code> or <code>--filters</code>. In the
+case of <code>--textconv</code> or <code>--filters</code>, the input lines also need to specify
+the path, separated by whitespace. See the section <code>BATCH OUTPUT</code> below
+for details.</p>
 <div class="paragraph">
 <p><code>--batch-command</code> recognizes the following commands:</p>
 </div>
@@ -774,19 +712,6 @@ respectively print:</p>
 </div>
 </div>
 </div>
-</dd>
-<dt class="hdlist1">-Z</dt>
-<dd>
-<p>Only meaningful with <code>--batch</code>, <code>--batch-check</code>, or
-<code>--batch-command</code>; input and output is NUL-delimited instead of
-newline-delimited.</p>
-</dd>
-<dt class="hdlist1">-z</dt>
-<dd>
-<p>Only meaningful with <code>--batch</code>, <code>--batch-check</code>, or
-<code>--batch-command</code>; input is NUL-delimited instead of
-newline-delimited. This option is deprecated in favor of
-<code>-Z</code> as the output can otherwise be ambiguous.</p>
 </dd>
 </dl>
 </div>
@@ -974,12 +899,6 @@ require more than 40 link resolutions to resolve).</p>
 <p>is printed when, during symlink resolution, a file is used as a
 directory name.</p>
 </div>
-<div class="paragraph">
-<p>Alternatively, when <code>-Z</code> is passed, the line feeds in any of the above examples
-are replaced with NUL terminators. This ensures that output will be parsable if
-the output itself would contain a linefeed and is thus recommended for
-scripting purposes.</p>
-</div>
 </div>
 </div>
 <div class="sect1">
@@ -1011,7 +930,7 @@ will be reported.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-02-23 20:26:53 UTC
+Last updated 2022-08-30 21:40:02 UTC
 </div>
 </div>
 </body>

@@ -654,7 +654,7 @@ L<MIME::Tools>
 =head1 AUTHOR
 
 Eryq (F<eryq@zeegee.com>), ZeeGee Software Inc (F<http://www.zeegee.com>).
-Dianne Skoll (dianne@skoll.ca)
+Dianne Skoll (dfs@roaringpenguin.com) http://www.roaringpenguin.com
 
 =cut
 

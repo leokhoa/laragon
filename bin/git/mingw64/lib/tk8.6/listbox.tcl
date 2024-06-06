@@ -214,7 +214,7 @@ if {[tk windowingsystem] eq "x11"} {
     # Support for mousewheels on Linux/Unix commonly comes through mapping
     # the wheel to the extended buttons.  If you have a mousewheel, find
     # Linux configuration info at:
-    #	https://linuxreviews.org/HOWTO_change_the_mouse_speed_in_X
+    #	http://linuxreviews.org/howtos/xfree/mouse/
     bind Listbox <4> {
 	if {!$tk_strictMotif} {
 	    %W yview scroll -5 units
@@ -296,7 +296,7 @@ proc ::tk::ListboxMotion {w el} {
 	}
 	extended {
 	    set i $Priv(listboxPrev)
-	    if {$i < 0} {
+	    if {$i eq ""} {
 		set i $el
 		$w selection set $el
 	    }

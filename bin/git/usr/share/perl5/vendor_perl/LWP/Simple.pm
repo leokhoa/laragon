@@ -2,7 +2,7 @@ package LWP::Simple;
 
 use strict;
 
-our $VERSION = '6.72';
+our $VERSION = '6.60';
 
 require Exporter;
 
@@ -173,12 +173,9 @@ the HTTP response code.
 =head2 getstore
 
     my $code = getstore($url, $file)
-    my $code = getstore($url, $filehandle)
 
 Gets a document identified by a URL and stores it in the file. The
 return value is the HTTP response code.
-You may also pass a writeable filehandle or similar,
-such as a L<File::Temp> object.
 
 =head2 mirror
 

@@ -3,9 +3,8 @@ package HTTP::Headers;
 use strict;
 use warnings;
 
-our $VERSION = '6.45';
+our $VERSION = '6.36';
 
-use Clone qw(clone);
 use Carp ();
 
 # The $TRANSLATE_UNDERSCORE variable controls whether '_' can be used
@@ -299,6 +298,19 @@ sub _process_newline {
 }
 
 
+
+if (eval { require Clone; 1 }) {
+    *clone = \&Clone::clone;
+} else {
+    *clone = sub {
+	my $self = shift;
+	my $clone = HTTP::Headers->new;
+	$self->scan(sub { $clone->push_header(@_);} );
+	$clone;
+    };
+}
+
+
 sub _date_header
 {
     require HTTP::Date;
@@ -463,7 +475,7 @@ HTTP::Headers - Class encapsulating HTTP Message headers
 
 =head1 VERSION
 
-version 6.45
+version 6.36
 
 =head1 SYNOPSIS
 
