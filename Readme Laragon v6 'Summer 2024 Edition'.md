@@ -17,10 +17,10 @@
 * git ( https://www.git-scm.com/download/win ) ==> PortableGit-2.45.2-64-bit.7z.exe
 * heidisql ( https://www.heidisql.com/download.php ) ==> HeidiSQL_12.7_64_Portable.zip
 * memcached ( https://github.com/jefyt/memcached-windows ) ==> _no update needed/available_
-* mysql ( https://dev.mysql.com/downloads/mysql/ ) ==> mysql-8.0.37-winx64.zip no PDB files
+* mysql ( https://dev.mysql.com/downloads/mysql/ ) ==> mysql-8.0.37-winx64.zip _no PDB files_
 * nginx ( https://nginx.org/en/download.html ) ==> nginx-1.27.0.zip
 * ngrok ( https://ngrok.com/download ) ==> ngrok-v3-stable-windows-amd64.zip
-* nodejs ( https://nodejs.org/en/download/prebuilt-binaries ) ==> node-v20.14.0-win-x64.zip renamed node-v20.14.0
+* nodejs ( https://nodejs.org/en/download/prebuilt-binaries ) ==> node-v20.14.0-win-x64.zip _renamed "node-v20.14.0"_
 * notepad++ ( https://notepad-plus-plus.org/downloads/ ) ==> npp.8.6.8.portable.x64.7z
 * php ( https://windows.php.net/download/ ) ==> php-8.3.8-Win32-vs16-x64.zip
 * python ( https://www.python.org/downloads/windows/ ) ==> python-3.12.3-amd64.exe installed to bin\python\pithon-3.12.3
