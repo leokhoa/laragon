@@ -1,4 +1,4 @@
-# Laragon - The Dev Environment for Web Artisans
+# Laragon - The Dev Environment for Entrepreneurs
 
 ## What is Laragon?
 
@@ -37,7 +37,7 @@ Enjoy!
 ## How fast?
 Laragon starts instantly. You can set Laragon autorun when Windows starts. When running, Laragon uses just a little amount of your RAM.
 Here is the GUI of Laragon:
-![0_1513173700919_01-dashboard.png](https://i.imgur.com/f8rBqSU.png) 
+![0_1513173700919_01-dashboard.png](https://i.imgur.com/0py3k1X.png) 
 
 ## How easy?
 - Laragon is very easy to install & upgrade. Just download the latest version and click `Next, Next, Next...`
