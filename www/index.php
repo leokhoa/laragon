@@ -19,8 +19,8 @@ if (!empty($_GET['q'])) {
   <link rel="shortcut icon" href="https://i.imgur.com/ky9oqct.png" type="image/png">
   <style>
     *,
-    :before *,
-    :after * {
+    * :before ,
+    * :after {
       box-sizing: border-box;
     }
 
