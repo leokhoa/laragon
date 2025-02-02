@@ -2,13 +2,12 @@
 
 ## Supported Versions
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 7.x.x   | :white_check_mark: |
-| < 6.x   | :x:                |
+| Version | Supported          |Reason      |       
+| ------- | ------------------ | ---------- |
+| >=7.0   | :white_check_mark: |            |
+| <=6.0   | :x:                |   EOL      |
 
 ## Reporting a Vulnerability
 
-For the moment, you can reach out @leokhoa via Slack: <https://laragon.slack.com/> - send a direct message.
-
-More options will be evaluated in the near future.
+If you find a security vulnerability in Laragon, please report it via email to Leo Khoa at leo@laragon.org  
+We take security seriously, and all reports will be promptly addressed.
