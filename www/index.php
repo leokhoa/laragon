@@ -1,167 +1,106 @@
 <?php
 if (!empty($_GET['q'])) {
-  switch ($_GET['q']) {
-    case 'info':
-      phpinfo();
-      exit;
-      break;
-  }
+    $query = htmlspecialchars($_GET['q'], ENT_QUOTES, 'UTF-8'); 
+
+    switch ($query) {
+        case 'info':
+            phpinfo();
+            exit;
+        default:
+            header("HTTP/1.0 404 Not Found");
+            echo "Invalid query parameter.";
+            exit;
+    }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Laragon</title>
-  <link href="https://fonts.googleapis.com/css?family=Karla:400" rel="stylesheet" type="text/css">
-  <link rel="shortcut icon" href="https://i.imgur.com/ky9oqct.png" type="image/png">
-  <style>
-    *,
-    :before *,
-    :after * {
-      box-sizing: border-box;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laragon</title>
+    <link href="https://fonts.googleapis.com/css?family=Karla:400" rel="stylesheet" type="text/css">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Karla', sans-serif;
+            font-weight: 100;
+            background-color: #f9f9f9;
+            color: #333;
+        }
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-weight: 100;
-        font-family: 'Karla', sans-serif;
-      font-size: 18px;
-    }
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            text-align: center;
+        }
 
-    header,
-    main,
-    nav,
-    aside {
-      padding: 1rem;
-      margin: auto;
-      max-width: 1200px;
-      text-align: center;
-    }
+        .content {
+            max-width: 800px;
+            padding: 100px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
 
-    header {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: center;
-    }
+        .title {
+            font-size: 60px;
+            margin: 0;
+ 
+        }
 
-    .header__item {
-      margin: 0;
-      padding: 1rem;
-    }
+        .info {
+            margin-top: 20px;
+            font-size: 18px;
+            line-height: 1.6;
+        }
 
-    .header--logo {
-      height: 8rem;
-    }
+        .info a {
+            color: #007bff;
+            text-decoration: none;
+        }
 
-    h1 {
-      font-size: 5rem;
-    }
+        .info a:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
 
-    main {
-      background-color: #f5f5f5;
-    }
+        .opt {
+            margin-top: 30px;
+        }
 
-    nav {
-      width: 100%;
-    }
+        .opt a {
+            font-size: 18px;
+            color: #007bff;
+            text-decoration: none;
+        }
 
-    ul {
-      list-style: none;
-      padding: 0;
-      margin: auto;
-    }
-
-    a {
-      color: #37ADFF;
-      font-weight: 900;
-      text-decoration: none;
-    }
-
-    a:hover {
-      color: red;
-      font-weight: 900;
-      transition: 300ms;
-    }
-
-    main a {
-      color: grey;
-    }
-
-    nav a {
-      display: block;
-      margin: 1rem 0;
-    }
-
-    nav a:after {
-      content: '→';
-      margin-left: 0.5rem;
-    }
-
-    .alert {
-      color: red;
-      font-weight: 900;
-    }
-
-    @media (min-width: 650px) {
-      h1 {
-        font-size: 10rem;
-      }
-    }
-  </style>
+        .opt a:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+    </style>
 </head>
-
 <body>
-  <header>
-    <img class="header__item header--logo" src="https://i.imgur.com/ky9oqct.png" alt="Offline">
-    <h1 class="header__item header--title" title="Laragon">Laragon</h1>
-  </header>
-  <main>
-    <p>
-      <?php print($_SERVER['SERVER_SOFTWARE']); ?>
-    </p>
-    <p>
-      PHP version: <?php print PHP_VERSION; ?> <span><a title="phpinfo()" href="/?q=info">info</a></span>
-    </p>
-    <p>
-      Document Root: <?php print($_SERVER['DOCUMENT_ROOT']); ?>
-    </p>
-    <p>
-      <a title="Getting Started" href="https://laragon.org/docs">Getting Started</a>
-    </p>
-  </main>
-  <?php
-  $dirList = glob('*', GLOB_ONLYDIR);
-  if (!empty($dirList)) :  
-  ?>
-    <nav>
-      <ul>
-        <?php
-        foreach ($dirList as $key => $value) :
-          $link = 'https://' . $value . '.test';
-        ?>
-          <a href="<?php echo $link; ?>" target="_blank"><?php echo $link; ?></a>
-        <?php
-        endforeach;
-        ?>
-      </ul>
-    </nav>
-  <?php
-  else :
-  ?>
-    <aside>
-      <p class="alert">There are no directories, create your first project now</p>
-      <div>
-        <img src="https://i.imgur.com/3Sgu8XI.png" alt="Offline">
-      </div>
-    </aside>
-  <?php
-  endif;
-  ?>
+    <div class="container">
+        <div class="content">
+            <h1 class="title" title="Laragon">Laragon</h1>
+            <div class="info">
+                <p><?php echo htmlspecialchars($_SERVER['SERVER_SOFTWARE'], ENT_QUOTES, 'UTF-8'); ?></p>
+                <p>PHP version: <?php echo htmlspecialchars(phpversion(), ENT_QUOTES, 'UTF-8'); ?>  
+                    <a title="phpinfo()" href="/?q=info">info</a>
+                </p>
+                <p>Document Root: <?php echo htmlspecialchars($_SERVER['DOCUMENT_ROOT'], ENT_QUOTES, 'UTF-8'); ?></p>
+            </div>
+            <div class="opt">
+                <p><a title="Getting Started" href="https://laragon.org/docs">Getting Started</a></p>
+            </div>
+        </div>
+    </div>
 </body>
-
 </html>
