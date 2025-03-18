@@ -12,6 +12,8 @@ Laragon doesn't use Windows services. It has its own `service orchestration` whi
 
 Enjoy!
 
+> Starting with Laragon 7.x, a license is required to use Laragon. For more details, visit <https://laragon.lemonsqueezy.com/>.
+
 ## Features
 
 - **Pretty URLs**
