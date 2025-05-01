@@ -38,14 +38,14 @@ if exist "%USER_DIR%\user.cmd" (
     echo :: call start-ssh-agent.cmd
     echo :: set PATH=%%USER_DIR%%\bin\whatever;%%PATH%%
 	echo.
-	echo :: cmd /c start http://localhost 
+	echo :: cmd /c start http://localhost
     echo.
     ) > "%USER_DIR%\user.cmd"
-    
+
     :: cd /d "%CMDER_ROOT%\..\..\www"
 	rem
 )
 
 :: Laragon End -------------------------------------------------------------------
-    
+
 exit /b 0

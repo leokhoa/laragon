@@ -1,6 +1,6 @@
 <?php
 if (!empty($_GET['q'])) {
-    $query = htmlspecialchars($_GET['q'], ENT_QUOTES, 'UTF-8'); 
+    $query = htmlspecialchars($_GET['q'], ENT_QUOTES, 'UTF-8');
 
     switch ($query) {
         case 'info':
@@ -51,7 +51,6 @@ if (!empty($_GET['q'])) {
         .title {
             font-size: 60px;
             margin: 0;
- 
         }
 
         .info {
@@ -92,7 +91,7 @@ if (!empty($_GET['q'])) {
             <h1 class="title" title="Laragon">Laragon</h1>
             <div class="info">
                 <p><?php echo htmlspecialchars($_SERVER['SERVER_SOFTWARE'], ENT_QUOTES, 'UTF-8'); ?></p>
-                <p>PHP version: <?php echo htmlspecialchars(phpversion(), ENT_QUOTES, 'UTF-8'); ?>  
+                <p>PHP version: <?php echo htmlspecialchars(phpversion(), ENT_QUOTES, 'UTF-8'); ?>
                     <a title="phpinfo()" href="/?q=info">info</a>
                 </p>
                 <p>Document Root: <?php echo htmlspecialchars($_SERVER['DOCUMENT_ROOT'], ENT_QUOTES, 'UTF-8'); ?></p>

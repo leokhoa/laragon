@@ -19,7 +19,7 @@ Enjoy!
 - **Pretty URLs**
   Use `app.test` instead of `localhost/app`.
 - **Portable**
-  You can move Laragon folder around (to another disks, to another laptops, sync to Cloud,...) without any worries. 
+  You can move Laragon folder around (to another disks, to another laptops, sync to Cloud,...) without any worries.
 - **Isolated**
   Laragon has an isolated environment with your OS - it will keep your system clean.
 - **Easy Operation**
@@ -28,7 +28,7 @@ Enjoy!
   Laragon comes with a modern architecture which is suitable to build modern web apps. You can work with both Apache & Nginx as they are fully-managed.
   Also, Laragon makes things a lot easier:
   - Wanna have a Wordpress CMS? Just 1 click.
-  - Wanna show your local project to customers? Just 1 click.  
+  - Wanna show your local project to customers? Just 1 click.
   - Wanna enable/disable a PHP extension? Just 1 click.
 
 
@@ -39,7 +39,7 @@ Enjoy!
 ## How fast?
 Laragon starts instantly. You can set Laragon autorun when Windows starts. When running, Laragon uses just a little amount of your RAM.
 Here is the GUI of Laragon:
-![0_1513173700919_01-dashboard.png](https://i.imgur.com/0py3k1X.png) 
+![0_1513173700919_01-dashboard.png](https://i.imgur.com/0py3k1X.png)
 
 ## How easy?
 - Laragon is very easy to install & upgrade. Just download the latest version and click `Next, Next, Next...`
