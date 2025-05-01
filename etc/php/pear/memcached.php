@@ -173,9 +173,9 @@ class Memcached
     protected $socket = null;
 
     public function getVersion() {
-        return ['localhost:11211' =>  '1.4.5'];                                                          
+        return ['localhost:11211' =>  '1.4.5'];
     }
-	
+
 
     //may check: https://raw.githubusercontent.com/GoogleCloudPlatform/python-compat-runtime/master/appengine-compat/exported_appengine_sdk/php/sdk/google/appengine/runtime/Memcached.php
 	public function setMulti() {
@@ -185,7 +185,7 @@ class Memcached
         //TODO
         die('TODO');
     }
-	
+
     /**
      * Add a serer to the server pool
      *
@@ -444,7 +444,7 @@ class Memcached
 
 
     /**
-     * Store an item. 
+     * Store an item.
      * Fails if $key already exists
      *
      * @param   string  $key
@@ -464,7 +464,7 @@ class Memcached
 
         if ('STORED' == $s) {
             $this->resultCode = Memcached::RES_SUCCESS;
-            $this->resultMessage = '';            
+            $this->resultMessage = '';
             return true;
 
         } else {
