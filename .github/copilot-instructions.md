@@ -39,15 +39,17 @@ While you cannot run Laragon itself, you can:
 ### Core Components
 - **laragon.exe**: Main Windows GUI application (5.3MB PE32+ executable)
 - **bin/**: Bundled software packages
-  - PHP 5.4.9 (Windows VC9 x86)
-  - MySQL 5.1.72 (Windows 32-bit)
-  - Nginx 1.14.0
+  - PHP (current versions with auto-update support)
+  - MySQL (current versions with auto-update support)
+  - Nginx (current versions)
   - Apache (configurable)
   - Composer (PHP dependency manager)
   - HeidiSQL (database management GUI)
   - Cmder (terminal emulator)
   - Notepad++ (text editor)
   - Sendmail (mail handling)
+
+**Note**: This repository contains historical/example versions (PHP 5.4.9, MySQL 5.1.72, Nginx 1.14.0) but actual Laragon releases bundle current software versions with an integrated auto-update system for minor version updates.
 
 ### Configuration Files
 - **usr/laragon.ini**: Main configuration (service versions, preferences)
@@ -72,6 +74,8 @@ laragon/
 ## Key Features
 - **Portable**: Entire environment can be moved between Windows machines
 - **Auto-configuration**: Services are automatically configured when started
+- **Auto-update system**: Integrated minor version updates for bundled software
+- **Current software versions**: Ships with up-to-date PHP, MySQL, Apache, and other tools
 - **Pretty URLs**: Uses `.test` domains instead of localhost
 - **Multi-version support**: Can switch between different PHP/MySQL versions
 - **Project templates**: Built-in templates for WordPress, Laravel, Symfony
@@ -80,12 +84,14 @@ laragon/
 
 ### Examining Service Versions
 ```bash
-# Check configured versions
+# Check configured versions (note: repository contains historical versions)
 grep "Version=" usr/laragon.ini
 
-# List available software in bin directory
+# List available software in bin directory (historical snapshot)
 ls bin/
 ```
+
+**Important**: The versions shown in this repository (PHP 5.4.9, MySQL 5.1.72, etc.) are historical examples. Actual Laragon installations include current software versions with automatic update capabilities.
 
 ### Configuration File Management
 ```bash
