@@ -186,7 +186,7 @@ find . -name "*.md"
 # Main configuration
 usr/laragon.ini
 
-# Project templates  
+# Project templates
 usr/sites.conf
 
 # Default web page
