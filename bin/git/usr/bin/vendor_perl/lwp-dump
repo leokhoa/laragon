@@ -1,0 +1,113 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use LWP::UserAgent ();
+use Getopt::Long qw(GetOptions);
+use Encode;
+use Encode::Locale;
+
+GetOptions(\my %opt, 'parse-head', 'max-length=n', 'keep-client-headers',
+    'method=s', 'agent=s', 'request',)
+    || usage();
+
+my $url = shift || usage();
+@ARGV && usage();
+
+sub usage {
+    (my $progname = $0) =~ s,.*/,,;
+    die <<"EOT";
+Usage: $progname [options] <url>
+
+Recognized options are:
+   --agent <str>
+   --keep-client-headers
+   --max-length <n>
+   --method <str>
+   --parse-head
+   --request
+
+EOT
+}
+
+my $ua = LWP::UserAgent->new(
+    parse_head => $opt{'parse-head'} || 0,
+    keep_alive => 1,
+    env_proxy  => 1,
+    agent      => $opt{agent}        || "lwp-dump/$LWP::UserAgent::VERSION ",
+);
+
+my $req = HTTP::Request->new($opt{method} || 'GET' => decode(locale => $url));
+my $res = $ua->simple_request($req);
+$res->remove_header(grep /^Client-/, $res->header_field_names)
+    unless $opt{'keep-client-headers'}
+    or ($res->header("Client-Warning") || "") eq "Internal response";
+
+if ($opt{request}) {
+    $res->request->dump;
+    print "\n";
+}
+
+$res->dump(maxlength => $opt{'max-length'});
+
+__END__
+
+=head1 NAME
+
+lwp-dump - See what headers and content is returned for a URL
+
+=head1 SYNOPSIS
+
+B<lwp-dump> [ I<options> ] I<URL>
+
+=head1 DESCRIPTION
+
+The B<lwp-dump> program will get the resource identified by the URL and then
+dump the response object to STDOUT.  This will display the headers returned and
+the initial part of the content, escaped so that it's safe to display even
+binary content.  The escapes syntax used is the same as for Perl's double
+quoted strings.  If there is no content the string "(no content)" is shown in
+its place.
+
+The following options are recognized:
+
+=over
+
+=item B<--agent> I<string>
+
+Override the user agent string passed to the server.
+
+=item B<--keep-client-headers>
+
+LWP internally generate various C<Client-*> headers that are stripped by
+B<lwp-dump> in order to show the headers exactly as the server provided them.
+This option will suppress this.
+
+=item B<--max-length> I<n>
+
+How much of the content to show.  The default is 512.  Set this
+to 0 for unlimited.
+
+If the content is longer then the string is chopped at the
+limit and the string "...\n(### more bytes not shown)"
+appended.
+
+=item B<--method> I<string>
+
+Use the given method for the request instead of the default "GET".
+
+=item B<--parse-head>
+
+By default B<lwp-dump> will not try to initialize headers by looking at the
+head section of HTML documents.  This option enables this.  This corresponds to
+L<LWP::UserAgent/"parse_head">.
+
+=item B<--request>
+
+Also dump the request sent.
+
+=back
+
+=head1 SEE ALSO
+
+L<lwp-request>, L<LWP>, L<HTTP::Message/"dump">

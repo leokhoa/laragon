@@ -1,0 +1,122 @@
+#!/bin/sh
+# Add a new .gnupg home directory for a list of users         -*- sh -*-
+#
+# Copyright 2004 Free Software Foundation, Inc.
+#
+# This file is free software; as a special exception the author gives
+# unlimited permission to copy and/or distribute it, with or without
+# modifications, as long as this notice is preserved.
+#
+# This file is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
+# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+PGM=addgnupghome
+any_error=0
+
+
+error () {
+  echo "$PGM: $*" >&2
+  any_error=1
+}
+
+info () {
+  echo "$PGM: $*" >&2
+}
+
+# Do it for one user
+one_user () {
+    user="$1"
+    home=$(${cat_passwd} | awk -F: -v n="$user" '$1 == n {print $6}')
+    if [ -z "$home" ]; then
+        if ${cat_passwd} | awk -F: -v n="$user" '$1 == n {exit 1}'; then
+            error "no such user \`$user'"
+        else
+            error "no home directory for user \`$user'"
+        fi
+        return
+    fi
+    if [ ! -d "$home" ]; then
+        error "home directory \`$home' of user \`$user' does not exist"
+        return
+    fi
+    if [ -d "$home/.gnupg" ]; then
+        info "skipping user \`$user': \`.gnupg' already exists"
+        return
+    fi
+    info "creating home directory \`$home/.gnupg' for \`$user'"
+    if ! mkdir "$home/.gnupg" ; then
+        error "error creating \`$home/.gnupg'"
+        return
+    fi
+
+    if ! chown $user "$home/.gnupg" ; then
+        error "error changing ownership of \`$home/.gnupg'"
+        return
+    fi
+
+    group=$(id -g "$user")
+    [ -z "$group" ] && group="0"
+
+    if [ "$group" -gt 0 ]; then
+        if ! chgrp $group "$home/.gnupg" ; then
+            error "error changing group of \`$home/.gnupg'"
+            return
+        fi
+    fi
+
+    if ! cd "$home/.gnupg" ; then
+        error "error cd-ing to \`$home/.gnupg'"
+        return
+    fi
+    for f in $filelist; do
+        if [ -d /etc/skel/.gnupg/$f ]; then
+            mkdir $f
+        else
+            cp /etc/skel/.gnupg/$f $f
+        fi
+        if ! chown $user $f ; then
+            error "error changing ownership of \`$f'"
+            return
+        fi
+        if [ "$group" -gt 0 ]; then
+            if ! chgrp $group "$f" ; then
+                error "error changing group of \`$f'"
+                return
+            fi
+        fi
+    done
+
+}
+
+if [ -z "$1" ]; then
+    echo "usage: $PGM userids"
+    exit 1
+fi
+
+# Check whether we can use getent
+if getent --help </dev/null >/dev/null 2>&1 ; then
+    cat_passwd='getent passwd'
+else
+    cat_passwd='cat /etc/passwd'
+    info "please note that only users from /etc/passwd are checked"
+fi
+
+if [ ! -d /etc/skel/.gnupg ]; then
+    error "skeleton directory \`/etc/skel/.gnupg' does not exist"
+    exit 1
+fi
+cd "/etc/skel/.gnupg" || (error "error cd-ing to \`/etc/skel/.gnupg'"; exit 1)
+filelist=$(find . \( -type f -o -type d \) '!' -name '*~' '!' -name . -print)
+
+
+if ! umask 0077 ; then
+    error "error setting umask"
+    exit 1
+fi
+
+for name in $*; do
+    one_user $name
+done
+
+exit $any_error

@@ -1,25 +1,16 @@
-MySQL login*: 
+1. MySQL login*: 
 user: root
 password:
 
-*The default username is 'root' and empty password
+*Your MySQL password is empty.  For security reasons, it's recommended to set a password. With Laragon, you can easily do this via: Menu > MySQL > Change root password
 
 
-
-----------------------------------------------------
-Document Root:
+2. Document Root:
 C:\laragon\www
 
 
 
-----------------------------------------------------
-Hotkey to open Terminal globally: 
-CTRL+ALT+T
-
-
-
-
-For more information, please visit: http://laragon.org
+For more information, please visit: https://laragon.org
 
 Thank you for using Laragon.
-leokhoa@gmail.com
+Leo

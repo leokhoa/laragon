@@ -1,0 +1,318 @@
+Net-SSLeay - Perl bindings for OpenSSL and LibreSSL
+
+By popular demand...
+--------------------
+
+   perl -MNet::SSLeay -e '($p)=Net::SSLeay::get_https("www.openssl.org", 443, "/"); print $p'
+
+
+for the released versions:
+   https://metacpan.org/release/Net-SSLeay
+
+for the latest and possibly unstable version from git:
+
+   https://github.com/radiator-software/p5-net-ssleay
+
+
+Prerequisites
+-------------
+
+Perl 5.8.1 or higher.
+
+One of the following libssl implementations:
+
+* Any stable release of OpenSSL (https://www.openssl.org) in the
+  0.9.8 - 3.0 branches, except for OpenSSL 0.9.8 - 0.9.8b.
+* Any stable release of LibreSSL (https://www.libressl.org) in the
+  2.0 - 3.4 series, except for LibreSSL 3.2.2 and 3.2.3.
+
+Net-SSLeay may not compile or pass its tests against releases other
+than the ones listed above due to libssl API incompatibilities, or, in
+the case of LibreSSL, because of deviations from the libssl API.
+
+If you are using a version of OpenSSL or LibreSSL distributed by your
+operating system vendor, you may also need to install a "development"
+package containing the header files that correspond to the OpenSSL or
+LibreSSL library package. Examples include:
+
+* libssl-dev for OpenSSL on Debian and Ubuntu;
+* openssl-devel for OpenSSL on Red Hat Enterprise Linux and Fedora.
+
+On Linux, zlib is also required, even when libssl is built without
+support for TLS compression. zlib is probably also available via your
+Linux distribution's package manager, e.g.:
+
+* zlib1g-dev on Debian and Ubuntu;
+* zlib-devel on Red Hat Enterprise Linux and Fedora.
+
+A future version of Net-SSLeay will remove this requirement when
+building against a libssl without support for TLS compression.
+
+The same C compiler and options should be used to compile all of Perl,
+OpenSSL/LibreSSL, and Net-SSLeay. Mixing compilers and options often
+leads to build errors or run-time malfunctions that are difficult to
+debug.
+
+
+Installing
+----------
+
+Unix:
+	# build or install OpenSSL as per instructions in that package
+
+	gunzip <Net-SSLeay.pm-1.35.tar.gz | tar xvf -
+	cd Net-SSLeay.pm-1.35
+	perl Makefile.PL     # builds and tests it
+	make test            # Run the test suite
+	make install         # You probably have to su to root to do this
+
+	If your OpenSSL is installed in an unusual place, you can tell
+	Net-SSLeay where to find it with the OPENSSL_PREFIX environment
+	variable:
+	OPENSSL_PREFIX=/home/mikem/playpen/openssl-1.0.2c perl Makefile.PL
+	....
+
+HPUX:
+	In principle the Unix build should work (Makefile.PL contains
+	special code to detect aCC), but historically there have been
+	some problems. Marko Asplund (aspa@@kronodoc._fi) reports
+	that he has successfully compiled on HP-UX. He used following
+	incantations
+
+	Configuring OpenSSL:
+
+		./Configure no-asm --prefix=/openssl/path hpux-parisc2-cc
+
+	Configuring Net::SSLeay:
+	
+		OPENSSL_PREFIX=/openssl/path perl Makefile.PL CCFLAGS='-D_HPUX_SOURCE \
+		 -Aa -I/usr/local/include +e'
+
+	The magic bit seemed to be the `+e' flag. Since version 1.14
+	Makefile.PL tries to figure this out.
+
+	He was using: gcc v2.95.2, OpenSSL v0.9.6c, Net::SSLeay-1.13
+
+Windows:
+	Supported on 32 and 64 bit platforms
+	See README.Win32 for details
+
+OS X:
+	See README.OSX
+---------------------------------	
+You should also be able to use CPAN.pm to install this module if you like.
+
+Problems (read this before filing a bug)
+----------------------------------------
+
+Please, do not send bug report before you have
+
+  - compiled your OpenSSL yourself - don't copy binaries, please
+  - compiled your perl yourself and with substantially same CFLAGS
+    and same C compiler (say `which cc' or `which gcc') as your OpenSSL.
+    This is especially applicable to link errors and shared
+    library loading problems. Please do not even dream of
+    copying a perl binary or installing perl binary from a package.
+    Perl's idea of calling conventions has to match OpenSSL's and
+    unfortunately both are quite advanced pieces of code
+    (guru duel: Larry Wall vs. Eric Young :-) with dynamic loading
+    and who knows what
+  - compiled my module from source against correct perl (say `which perl'
+    and check your path). Generally my module's build process will
+    discover correct compiler and flags from `perl -V'
+  - tried gcc, if your vendor cc fails
+
+If you post a question or make a bug report, please remember to mention
+
+  - Your platform and OS version (i386 Linux, Sparc Solaris, etc) (uname -a)
+  - On Linux, please report glibc version as well (ls -l /lib/libc*)
+  - Net::SSLeay version (see tar ball)
+  - OpenSSL version (`/usr/local/ssl/bin/openssl version')
+  - ANSI C compiler brand and version (e.g. gcc -v)
+
+If build fails,
+  - Dop you have OpenSSL headers installed? Perhaps you need the OpenSSL Devel
+    package for your Linux distribution.
+  - three compiler warnings are known to be emitted (due to lack of const
+    in some places), one of them indicates a fatal bug in callback handling,
+    but as I have not yet sorted it out, you'll simply have to ignore it
+  - if you installed OpenSSL from some distribution, try getting a fresh
+    copy from www.openssl.org and recompiling and installing it yourself
+  - if using newer than supported OpenSSL, please downgrade to supported
+    version to see if it makes difference
+  - you must compile the module, perl, and openssl with the same C compiler
+    and the same options. Use perl -V to check what options were used and
+    recompile openssl and Net::SSLeay accordingly
+  - never report bugs related to binary installs. First compile _yourself_
+    perl, openssl and my module, always using the same compiler and
+    compiler flags. Many distros are known to "know better" and thus
+    cause problems for their users. I'm not very sympathetic to having
+    to answer end user questions thus created.
+  - send full output of `make clean; perl Makefile.PL -t'
+
+If make test fails, please
+  - one warning is known to be emitted between tests 4 and 5 (callback)
+  - edit test.pl and set $trace=2
+  - send full output of `make clean; perl Makefile.PL -t'
+  - send contents of sslecho.log
+
+If you have problems with a site, please
+  - what site, what server software (including version and platform)
+  - does it reproduce with s_client, try with something like
+
+   echo 'GET /' | /usr/local/ssl/bin/openssl s_client -connect www.bacus.pt:443
+
+  - does it reproduce with popular web browsers
+  - play with Net::SSLeay::ssl_version (see top of SSLeay.pm)
+  - does the site run exotic configuration, e.g. insisting on specific
+    protocol version, limiting available ciphers, using nonstandard
+    ciphers, weird authentication arrangements, etc.)
+  - contact the owner of the server to see what the problem looks like
+    in his end. He should be able to tell you the exact versions used
+    and the error messages he is seeing in his log
+  - if you ask me to check a site out, you are granting me permission
+    to access that site and will pay all legal expenses to defend me
+    in court as well as any remedies that may be granted to the site
+    in case the site decides to sue me. You warrant that you are
+    authorized to give me permission to access the site.
+  - if you ask me to check a site, please send me a working URL and
+    include any authentication credentials if needed. If your site
+    is so confidential that you can not give me an URL, then do
+    not ask me to debug your problems.
+
+HP-UX is known to give some problems, please mail me or the mailing
+list so we can get these problems straightened. Hint: it has to do
+with dynamic loading. One user reports that adding `-lgcc' to EXTRALIBS
+and LD_LOAD_LIBS in Makefile fixes the problem. I have not received any
+confirmation whether this fix really works, but its worth a try. Another
+bag of problems is people installing against binary distributed
+perl and compiling the package with different cc or different options.
+Genereally this will never work. Please compile _yourself_ your perl,
+openssl, and the module, always with the same compiler and compiler flags.
+
+Solaris 8 does not come standard with /dev/random or /dev/urandom, and the
+'make test' assumes that some source of randomness is available. 'make test'
+will fail on Solaris 8 if /dev/urandom is not available. The error message
+seen with trace enabled will be "SSL_GET_NEW_SESSION:ssl session id callback
+failed". In order to fix this, you must install Sun patch 112438-03 from
+http://sunsolve.sun.com
+
+#: unzip 112438-03.zip
+#: patchadd ./112438-03
+You will probably need to reboot your system:
+#: reboot
+
+I have a report (schinder@@pobox._com) of make test segfaulting on
+Linux-PPC. This still needs to be investigated. No recent information
+has been received.
+
+"Random number generator not seeded!!!" This warning indicates that
+    randomize() was not able to read /dev/random or /dev/urandom, possibly
+    because your system does not have them or they are differently
+    named. You can still use SSL, but the encryption will not be as
+    strong.
+
+Did you read the POD documentation (if you don't know what that
+is, just say `perldoc Net::SSLeay' or `more SSLeay.pm')?
+
+Are you sure you didn't confuse `Net::SSLeay' with `SSLeay' that
+comes with OpenSSL?
+
+Check that perl is finding your OpenSSL.
+
+If `make test' bombs, add following line to the test script that fails:
+
+	$Net::SSLeay::trace = 2;
+
+and see what happens. You may also have to edit test.pl to make sure
+the debugging output gets printed.
+
+If `make test' prints lots of `connect: Connection refused...' errors,
+then sslecho.pl test server has died. It is supposed to be launched in
+the beginning of test.pl, but can fail if, e.g. port 1212 is taken or
+in TIMEWAIT state. Look also in ssleacho.log file for diagnostics.
+
+If you are really low on memory and the 1 MB tests fail, edit value of
+$mb variable in test.pl.
+
+If you get core dump, build your perl for debugging (add -g to
+ccflags, see INSTALL in perl distribution), build your SSLeay for
+debugging as well, add -g flag to Makefile.PL:
+
+	make clean
+	perl Makefile.PL -g
+	make static
+	make test_static
+	gdb perl core       # post mortem
+	  > bt              # show stack trace
+	gdb perl            # run live with debugging
+	  # set break point in SSLeay.xs or in suspect function of OpenSSL
+	  > br XS_Net__SSLeay_connect
+	  > run yourscript.pl arg arg
+
+For gdb'ing make sure gdb finds all the relevant source code. This
+may mean that you must run perl and OpenSSL from the directories where
+the respective makefiles build them.
+
+You can also enable PR and PRN macros in SSLeay.xs and sprinkle
+even some more around the code to figure out what's happening.
+
+Some exotic configurations of perl may cause unstability: make sure
+OpenSSL uses the same malloc as perl. Recompile perl without
+threads. Try not using the PerlIO abstraction.
+
+If you need to tweak build for some platform, please let me know
+so I can fix it. Patches and gdb session dumps are also welcome.
+
+Copyright
+---------
+
+Copyright (c) 1996-2003 Sampo Kellomäki <sampo@iki.fi>
+Copyright (c) 2005-2010 Florian Ragwitz <rafl@debian.org>
+Copyright (c) 2005-2018 Mike McCauley <mikem@airspayce.com>
+Copyright (c) 2018- Chris Novakovic <chris@chrisn.me.uk>
+Copyright (c) 2018- Tuure Vartiainen <vartiait@radiatorsoftware.com>
+Copyright (c) 2018- Heikki Vatiainen <hvn@radiatorsoftware.com>
+
+All rights reserved.
+
+License
+-------
+
+Net-SSLeay is released under the terms of the Artistic License 2.0. For
+details, see the LICENSE file.
+
+Recommended reading
+-------------------
+
+===> HTTP protocol specification. It applies 100% to HTTPS too and doing
+password authentication is explained there. <===
+
+If you are newbie interested in grabbing web pages from https servers,
+please read HTTP documentation from http://www.w3c.org/ before asking trivial
+questions. That document also covers the basic-auth FAQ (URLs like
+http://user:pass@host). Do not ask questions about authentication before
+consulting the HTTP specification. HTTPS is just HTTP in SSL transport.
+
+If you are doing advanced stuff, and don't find documentation you need,
+please try to extrapolate from OpenSSL documentation (which unfortunately
+is quite sparse) and the source code.
+
+If you run into build problems, especially regarding shared libraries,
+check your perl documentation, especially the perlxtut(1) man page,
+which gives excellent tutorial of the build process of XSUBs.
+
+  perlxtut(1)
+  perlxs(1)
+  perlguts(1)
+  perlcall(1)
+
+Say `perldoc Net::SSLeay' _NOW_!
+
+To download OpenSSL, see https://www.openssl.org/
+
+Bug reports, patch submission, feature requests and git access to the
+latest source code etc., can be obtained at
+https://github.com/radiator-software/p5-net-ssleay
+
+

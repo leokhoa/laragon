@@ -1,0 +1,119 @@
+#!/bin/sh
+# This file is included in the GNU tar distribution as an example.  It is
+# not used by default unless the proper line is uncommented in backup-specs.
+# System administrators will probably want to customize this and
+# backup-specs for their site.
+#
+# This script should be run by tar with --info-script (-F) to inform
+# interested parties that a tape for the next volume of the backup needs to
+# be put in the tape drive.
+
+# Copyright 2004-2023 Free Software Foundation, Inc.
+
+# This file is part of GNU tar.
+
+# GNU tar is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+
+# GNU tar is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Include location of 'sendmail' and GNU finger.
+PATH="/usr/lib:/usr/local/gnubin:${PATH}"
+export PATH
+
+# Load library routines
+SYSCONFDIR=${SYSCONFDIR-/usr/etc}
+. ${LIBPATH-/usr/lib/tar}/backup.sh
+
+MT_REWIND
+MT_OFFLINE
+
+# Get a list of people to whom to mail a request for changing the tape.
+# This egregious nightmare parses the output from GNU finger which shows
+# which users are logged into consoles (and thus in the office and capable
+# of changing tapes).
+#
+# Certain users (like 'root') aren't real users, and shouldn't be notified.
+# Neither should 'zippy', 'elvis', etc. (on the GNU machines) since they're
+# just test accounts.
+recipients="`
+    finger .clients 2> /dev/null \
+     | sed -ne '
+          1{
+            /clientstatus: file has not changed in/{
+               n;n;n;n;d
+            }
+            n;n;d
+           }
+          s/^..................................................//
+          $!{/^$/d
+             /^root?*$/d
+             /^zippy$/d
+             /^fnord$/d
+             /^elvis$/d
+             /^snurd$/d
+             H
+            }
+          ${g
+            : 1
+            s/\(\n\)\([A-Za-z0-9_][A-Za-z0-9_]*\)\(\n.*\)\2\(.*\)/\1\2\3\4/g
+            s/\n$//g
+            t 1
+            s/^\n//
+            s/\n$//g
+            s/\n/, /g
+            : 2
+            s/, ,/,/g
+            t 2
+            p
+           }'`"
+
+# Customized behavior for FSF machines, to bring attention to the fact that
+# the tape needs to be changed (who looks at the terminal?)
+sendmail -oi -t << __EOF__
+From: `basename $0` (backup tape-changing reminder)
+To: ${recipients}
+Cc: ${ADMINISTRATOR}
+Subject: Backup needs new tape for volume ${TAR_VOLUME}
+Reply-To: ${ADMINISTRATOR}
+
+This is an automated report from the backup script running on
+`hostname`.
+
+Volume ${TAR_VOLUME} of the backup needs to be put in the tape drive.
+Usually whoever prepared the backup leaves labeled tapes on top of the
+drive itself.  If there aren't any more, information about where to find
+tapes and how to label them are posted on the wall by apple-gunkies
+(unhelpfully obscured by a bookshelf).  An online copy (which is probably
+more up-to-date) can also be found in ~friedman/etc/fsf/backup.how.
+__EOF__
+
+
+echo "Please put volume ${TAR_VOLUME} in tape drive and press RETURN"
+read input
+echo "Writing volume ${TAR_VOLUME}..."
+
+sendmail -oi -t << __EOF__
+From: `basename $0` (backup tape-changing reminder)
+To: ${recipients}
+Cc: ${ADMINISTRATOR}
+Subject: Volume ${TAR_VOLUME} for backup has been added
+Reply-To: ${ADMINISTRATOR}
+
+This is an automated report from the backup script running on
+`hostname`.
+
+The backup has been continued, so for now no further attention is required.
+__EOF__
+
+exit 0
+
+# eof

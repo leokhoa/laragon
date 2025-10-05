@@ -1,0 +1,81 @@
+#!/bin/sh
+# Apply defaults from /etc/gnupg/gpgconf.conf to all users       -*- sh -*-
+#
+# Copyright 2007 Free Software Foundation, Inc.
+#
+# This file is free software; as a special exception the author gives
+# unlimited permission to copy and/or distribute it, with or without
+# modifications, as long as this notice is preserved.
+#
+# This file is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
+# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+PGM=applygnupgdefaults
+errorfile=
+
+error () {
+  echo "$PGM: $*" >&2
+  [ -n "$errorfile" ] && echo "$PGM: $*" >>$errorfile
+}
+
+info () {
+  echo "$PGM: $*" >&2
+}
+
+if [ -n "$1" ]; then
+    echo "usage: $PGM" >&2
+    exit 1
+fi
+
+# Cleanup on exit
+cleanup ()
+{
+    [ -n "$errorfile" -a -f "$errorfile" ] && rm "$errorfile"
+}
+trap cleanup EXIT SIGINT SIGHUP SIGPIPE
+errorfile=$(mktemp "/tmp/$PGM.log.XXXXXX")
+[ -n "$errorfile" -a -f "$errorfile" ] || exit 2
+
+# Check whether we can use getent
+if getent --help </dev/null >/dev/null 2>&1 ; then
+    cat_passwd='getent passwd'
+else
+    cat_passwd='cat /etc/passwd'
+    info "please note that only users from /etc/passwd are processed"
+fi
+
+if [ ! -f /etc/gnupg/gpgconf.conf ]; then
+    error "global configuration file \`/etc/gnupg/gpgconf.conf' does not exist"
+    exit 1
+fi
+if [ ! -f /etc/shells ]; then
+    error "missing file \`/etc/shells'"
+    exit 1
+fi
+
+if [ $(id -u) -ne 0 ]; then
+    error "needs to be run as root"
+    exit 1
+fi
+
+${cat_passwd} \
+  | while IFS=: read -r user dmy_a uid dmy_c dmy_d home shell dmy_rest; do
+    # Process only entries with a valid login shell
+    grep </etc/shells "^$shell" 2>/dev/null >/dev/null || continue
+    # and with an pre-existing gnupg home directory
+    [ -d "$home/.gnupg" ] || continue
+    # but not root
+    [ "${uid:-0}" -eq 0 ] && continue
+    info "running \"gpgconf --apply-defaults\" for $user"
+    if su -l -s /bin/sh \
+       -c 'gpgconf --apply-defaults && echo SUCCESS' $user \
+       | tail -1 | grep ^SUCCESS >/dev/null ; then
+      :
+    else
+      error "failed to update gnupg defaults for $user"
+    fi
+done
+
+[ "$(wc -c <$errorfile)" -gt 0 ] && exit 1
+exit 0

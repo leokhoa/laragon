@@ -1,0 +1,257 @@
+#! /bin/sh
+# Make backups.
+
+# Copyright 2004-2006, 2013, 2019 Free Software Foundation
+
+# This file is part of GNU tar.
+
+# GNU tar is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+
+# GNU tar is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Load library routines
+SYSCONFDIR=${SYSCONFDIR-/usr/etc}
+. ${LIBDIR-/usr/lib/tar}/backup.sh
+
+DUMP_LEVEL=0
+TIME=
+NOW=`now`
+
+usage() {
+    	cat - <<EOF
+usage: $PROGNAME [OPTIONS] [WHEN]
+Options are:
+
+   -l, --level=LEVEL       Do backup level LEVEL (default $DUMP_LEVEL).
+   -f, --force             Force backup even if today's log file already
+                           exists.
+   -v, --verbose[=LEVEL]   Set verbosity level. Default 100.
+   -t, --time=TIME         Wait till TIME, then do backup.
+
+Informational options:
+   -h, --help              Display this help message.
+   -V, --version           Display program version.
+
+   Optional argument WHEN is for backward compatibility only. It has been
+   superseded by --time option.
+   TIME argument can be one of:
+
+	now          --     do backup immediately.
+	HH           --     do backup at HH hours.
+	HH:MM        --     do backup at HH:MM.
+
+Send bug reports to bug-tar@gnu.org.
+EOF
+}
+
+# For compatibility with previous versions, deduce the backup level
+# from the command name
+case "$PROGNAME" in
+level-[0-9]) DUMP_LEVEL=`expr $PROGNAME : 'level-\([0-9][0-9]*\)'`;;
+esac
+
+for opt
+do
+  if [ -z "$prev" ]; then
+      option=$opt
+      optarg=`expr "x$opt" : 'x[^=]*=\(.*\)'`
+  else
+      option="${prev}=$opt"
+      prev=""
+      optarg=$opt
+  fi
+  case $option in
+  --l=*|--le=*|--lev=*|--leve=*|--level=*)
+         DUMP_LEVEL=$optarg
+	 ;;
+  -l?*)  DUMP_LEVEL=`expr $option : '-l\(.*\)'`;;
+  -l|--l|--le|--lev|--leve|--level)
+	 prev=--level
+	 ;;
+  --verb=*|--verbo=*|--verbos=*|--verbose=*)
+         VERBOSE=$optarg
+	 ;;
+  -v|--verb|--verbo|--verbos|--verbose)
+         VERBOSE=100
+	 ;;
+  -v*)   VERBOSE=`expr $option : '-v\(.*\)'`;;
+  --t=*|--ti=*|--tim=*|--time=*)
+         TIME=$optarg
+	 ;;
+  -t?*)  TIME=`expr $option : '-t\(.*\)'`;;
+  -t|--t|--ti|--tim|--time)
+	 prev=--time
+    	 ;;
+  -V|--v|--ve|--ver|--vers|--versi|--versio|--version)
+    	 echo "backup (GNU tar) 1.35"
+	 license
+	 exit;;
+  -h|--h|--he|--hel|--help)
+	 usage
+	 exit;;
+  -f|--f|--fo|--for|--forc|--force)
+      	 FORCE=yes
+	 ;;
+  *)     if [ "x$TIME" != "x" ]; then
+            bailout "Extra argument. Try $PROGNAME --help for more info."
+         else
+            TIME=$option
+         fi;;
+  esac
+done
+
+if [ "x$TIME" = x ]; then
+    bailout "No backup time specified. Try $PROGNAME --help for more info."
+    exit 1
+fi
+
+init_backup
+
+# Maybe sleep until around specified or default hour.
+wait_time $TIME
+
+if [ $DUMP_LEVEL -ne 0 ]; then
+    PREV_LEVEL=`expr $DUMP_LEVEL - 1`
+    PREV_DATE=`ls -t ${LOGPATH}/log-*-level-$PREV_LEVEL|
+                head -n 1|
+		sed "s,${LOGPATH}/log-\(.*\)-level.*,\1,"`
+    if [ "x$PREV_DATE" = x ]; then
+        bailout "Can't determine date of the previous backup"
+    fi
+    message 0 "Backup from $PREV_DATE to $NOW"
+fi
+
+# start doing things
+
+# Make sure the log file did not already exist.  Create it.
+
+if [ "x$FORCE" = "xyes" ]; then
+    rm ${LOGFILE}
+fi
+
+if [ -f "${LOGFILE}" ] ; then
+   bailout "Log file ${LOGFILE} already exists."
+else
+   touch "${LOGFILE}"
+fi
+message 1 "Ready for backup."
+message 10 "TAR invocation: $TAR_PART1"
+message 20 "Variables:"
+message 20 "BACKUP_DIRS=$BACKUP_DIRS"
+message 20 "BACKUP_FILES=$BACKUP_FILES"
+
+# The bunch of commands below is run in a subshell for which all output is
+# piped through 'tee' to the logfile.  Doing this, instead of having
+# multiple pipelines all over the place, is cleaner and allows access to
+# the exit value from various commands more easily.
+(
+ message 1 "preparing tapes"
+ if ! $MT_BEGIN "${TAPE_FILE}"; then
+    echo >&2 "$0: tape initialization failed"
+    exit 1
+ fi 
+ rm -f "${VOLNO_FILE}"
+
+ message 1 "processing backup directories"
+
+ set - ${BACKUP_DIRS}
+ while [ $# -ne 0 ] ; do
+     date="`date`"
+     fs="`echo \"${1}\" | sed -e 's/^.*://'`"
+     fs=`root_fs $fs`
+     fsname="`echo \"${1}\" | sed -e 's/\//:/g'`"
+     remotehost="`expr \"${1}\" : '\([^/][^/]*\):.*'`"
+     if [ -z "$remotehost" ]; then
+	 remotehost=$localhost
+     fi
+
+     echo "Backing up ${1} at ${date}"
+     message 10 "fs=$fs"
+     message 10 "fsname=$fsname"
+     message 10 "remotehost=$remotehost"
+     if [ $DUMP_LEVEL -eq 0 ]; then
+	 make_level_log ${remotehost}
+     else
+	 echo "Last `prev_level` dump on this filesystem was on $PREV_DATE"
+	 remote_run "${remotehost}" cp "`level_log_name ${fsname} $PREV_LEVEL`" "`level_log_name temp`"
+     fi
+
+     ${DUMP_BEGIN-:} $DUMP_LEVEL $remotehost $fs $fsname
+     backup_host ${remotehost} \
+                "--listed=`level_log_name temp`" \
+                "--label='`print_level` backup of ${fs} on ${remotehost} at ${NOW}'" \
+		-C ${fs} .
+
+     # 'rsh' doesn't exit with the exit status of the remote command.  What
+     # stupid lossage.  TODO: think of a reliable workaround.
+     if [ $? -ne 0 ] ; then
+	 echo "$0: backup of ${1} failed." 1>&2
+         # I'm assuming that the tar will have written an empty
+         # file to the tape, otherwise I should do a cat here.
+     else
+         flush_level_log ${remotehost} ${fsname}
+     fi
+     ${MT_STATUS} "$TAPE_FILE"
+     ${DUMP_END-:} $DUMP_LEVEL $remotehost $fs $fsname
+     echo "sleeping ${SLEEP_TIME} seconds"
+     sleep ${SLEEP_TIME}
+     shift
+ done
+
+ # Dump any individual files requested.
+
+ if [ "x${BACKUP_FILES}" != "x" ] ; then
+     message 1 "processing individual files"
+
+     date="`date`"
+
+     if [ $DUMP_LEVEL -eq 0 ]; then
+         make_level_log $localhost
+     else
+	 echo "Last `prev_level` dump on this filesystem was on $PREV_DATE"
+	 remote_run "${localhost}" cp "`level_log_name MISC $PREV_LEVEL`" "`level_log_name temp`"
+     fi
+
+     echo "Backing up miscellaneous files at ${date}"
+
+     ${DUMP_BEGIN-:} $DUMP_LEVEL $localhost MISC MISC
+     backup_host $localhost \
+               "--listed=`level_log_name temp`"\
+               "--label='`print_level` backup of miscellaneous files at ${NOW}'" \
+               ${BACKUP_FILES}
+
+     if [ $? -ne 0 ] ; then
+	 echo "Backup of miscellaneous files failed."
+	 # I'm assuming that the tar will have written an empty
+	 # file to the tape, otherwise I should do a cat here.
+     else
+	 flush_level_log $localhost MISC
+     fi
+     ${MT_STATUS} "$TAPE_FILE"
+     ${DUMP_END-:} $DUMP_LEVEL $localhost MISC MISC
+ else
+     echo "No miscellaneous files specified"
+ fi
+ message 1 "final cleanup"
+
+ $MT_REWIND "${TAPE_FILE}"
+ $MT_OFFLINE "${TAPE_FILE}"
+ echo "."
+) 2>&1 | tee -a "${LOGFILE}"
+RC=$?
+
+if test "${ADMINISTRATOR}" != NONE; then
+     echo "Sending the dump log to ${ADMINISTRATOR}"
+     mail -s "Results of backup started ${startdate}" ${ADMINISTRATOR} < "${LOGFILE}"
+fi
+exit $RC
+# EOF

@@ -1,0 +1,231 @@
+#! /bin/sh
+# Restore backups.
+
+# Copyright 2004-2023 Free Software Foundation, Inc.
+
+# This file is part of GNU tar.
+
+# GNU tar is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+
+# GNU tar is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Load library routines
+SYSCONFDIR=${SYSCONFDIR-/usr/etc}
+. ${LIBDIR-/usr/lib/tar}/backup.sh
+
+usage() {
+    	cat - <<EOF
+usage: $PROGNAME [OPTIONS] [PATTERN [PATTERN...]]
+Options are:
+
+   -a, --all               Restore all filesystems.
+   -l, --level=LEVEL       Start restoring from the given backup LEVEL
+                           (default $DUMP_LEVEL).
+   -v, --verbose[=LEVEL]   Set verbosity level. Default 100.
+
+Informational options:
+   -h, --help              Display this help message.
+   -V, --version           Display program version.
+
+Send bug reports to bug-tar@gnu.org.
+EOF
+}
+
+unset PATTERN
+DUMP_LEVEL=0
+CMDLINE="$0 $@"
+
+for opt
+do
+  if [ -z "$prev" ]; then
+      option=$opt
+      optarg=`expr "x$opt" : 'x[^=]*=\(.*\)'`
+  else
+      option="${prev}=$opt"
+      prev=""
+      optarg=$opt
+  fi
+  case $option in
+  -a|--a|--al|--all)
+	 RESTORE_ALL=1
+	 ;;
+  --l=*|--le=*|--lev=*|--leve=*|--level=*)
+         DUMP_LEVEL=$optarg
+	 ;;
+  -l?*)  DUMP_LEVEL=`expr $option : '-l\(.*\)'`;;
+  -l|--l|--le|--lev|--leve|--level)
+	 prev=--level
+	 ;;
+  --verb=*|--verbo=*|--verbos=*|--verbose=*)
+         VERBOSE=$optarg
+	 ;;
+  -v|--verb|--verbo|--verbos|--verbose)
+         VERBOSE=100
+	 ;;
+  -v*)   VERBOSE=`expr $option : '-v\(.*\)'`;;
+  -V|--v|--ve|--ver|--vers|--versi|--versio|--version)
+    	 echo "restore (GNU tar) 1.35"
+	 license
+	 exit;;
+  -h|--h|--he|--hel|--help)
+	 usage
+	 exit;;
+  -*) bailout "Unknown option $opt. Try $PROGNAME --help for more info.";;
+  *)  if [ -z "$PATTERN" ]; then
+         PATTERN=$opt
+      else
+         PATTERN="$PATTERN|$opt"
+      fi
+      ;;
+  esac
+done
+
+if [ -z "$RESTORE_ALL" ]; then
+	if [ -z "$PATTERN" ]; then
+		usage
+		exit;
+	fi
+fi
+
+init_restore
+cat > $LOGFILE <<EOF
+This file contains any messages produced by $PROGNAME.
+
+It was created by GNU $PROGNAME, from  @PACKAGE@ (1.35).
+Invocation command line was
+
+  \$ $CMDLINE
+
+EOF
+
+restore_fs()
+{
+    fs="`echo \"${1}\" | sed -e 's/^.*://'`"
+    fs=`root_fs $fs`
+    fsname="`echo \"${1}\" | sed -e 's/\//:/g'`"
+    remotehost="`expr \"${1}\" : '\([^/][^/]*\):.*'`"
+    if [ -z "$remotehost" ]; then
+	remotehost=$localhost
+    fi
+    message 10 "fs=$fs"
+    message 10 "fsname=$fsname"
+    message 10 "remotehost=$remotehost"
+
+    LOGPAT="`level_log_name ${fsname} '[0-9]'`"
+    PREFIX="`level_log_name ${fsname} ''`"
+    message 10 LOGPAT=$LOGPAT
+    message 10 PREFIX=$PREFIX
+    LEVELS=`remote_run "${remotehost}" ls $LOGPAT |
+      sed "s,$PREFIX,," | sort -n`
+    message 10 "LEVELS=$LEVELS"
+
+    echo "Starting restore of ${1} at level $DUMP_LEVEL."
+    for level in $LEVELS
+    do
+      if [ $level -lt $DUMP_LEVEL ]; then
+	  message 10 "Skipping level $level"
+	  continue;
+      fi
+      message 10 "Restoring level $level"
+
+      DATE=`get_dump_time $level`
+      FILE="`level_log_name ${fsname} ${level}`"
+      message 10 "FILE=$FILE"
+
+      LABEL="`print_level $level` backup of ${fs} on ${remotehost} at ${DATE}"
+      ${RESTORE_BEGIN-:} $level $remotehost $fs $fsname
+      backup_host ${remotehost} \
+                  "--listed=\"$FILE\"" \
+                  "--label=\"$LABEL\"" \
+		  -C $fs
+      ${RESTORE_END-:} $level $remotehost $fs $fsname
+    done
+}
+
+restore_files()
+{
+    LOGPAT="`level_log_name MISC '[0-9]'`"
+    PREFIX="`level_log_name MISC ''`"
+    message 10 LOGPAT=$LOGPAT
+    message 10 PREFIX=$PREFIX
+    LEVELS=`remote_run "${localhost}" ls $LOGPAT | sed "s,$PREFIX,," | sort -n`
+    message 10 "LEVELS=$LEVELS"
+
+    echo "Starting restore of miscellaneous files at level $DUMP_LEVEL."
+    for level in $LEVELS
+    do
+      if [ $level -lt $DUMP_LEVEL ]; then
+	  message 10 "Skipping level $level"
+	  continue;
+      fi
+      message 10 "Restoring level $level"
+
+      DATE=`get_dump_time $level`
+      FILE="`level_log_name MISC ${level}`"
+      message 10 "FILE=$FILE"
+
+      LABEL="`print_level $level` backup of miscellaneous files at ${DATE}"
+      ${RESTORE_BEGIN-:} $level $localhost MISC MISC
+      backup_host ${localhost} \
+                  "--listed=\"$FILE\"" \
+                  "--label=\"$LABEL\"" \
+		  -C ${ROOT_FS-/} $@
+      ${RESTORE_END-:} $level $localhost MISC MISC
+    done
+}
+
+# Operation Overview:
+#
+# 1. Determine the time of the last backup
+# 2. Create list of incremental listings to process
+# 3. For each filesystem:
+#  3.1. Start at the requested dump level (default 0) and proceed up to
+#       the last available level:
+#   3.1.1 Deduce the volume label
+#   3.1.2. Invoke [rsh] tar --listed=FILE --label=LABEL [opts] -xf $TAPE_FILE
+# 4. End
+
+(message 1 "Preparing for restore"
+
+message 1 "processing backup directories"
+
+for dir in ${BACKUP_DIRS}
+do
+    message 1 "Processing $dir"
+    case $dir in
+	${PATTERN-*}) restore_fs $dir;;
+    esac
+done
+
+if [ "x${BACKUP_FILES}" != "x" ] ; then
+    message 1 "processing miscellaneous files"
+    if [ -z "$PATTERN" ]; then
+	restore_files
+    else
+	RESTORE_FILES=""
+	for file in ${BACKUP_FILES}
+	do
+	  rel_file=`expr $file : '/\(.*\)'`
+	  case $file in
+	      $PATTERN) if [ -z "$RESTORE_FILES" ]; then
+	                   RESTORE_FILES="$rel_file"
+		        else
+		           RESTORE_FILES="$RESTORE_FILES $rel_file"
+		        fi;;
+	  esac
+	done
+	[ -z "$RESTORE_FILES" ] || restore_files $RESTORE_FILES
+    fi
+
+fi) 2>&1 | tee -a "${LOGFILE}"
+
+# EOF

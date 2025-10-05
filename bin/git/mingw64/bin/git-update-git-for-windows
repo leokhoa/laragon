@@ -1,0 +1,360 @@
+#!/bin/sh
+
+# Compares the currently installed Git for Windows against latest available
+# release.  If versions differ, the bit matched installer is downloaded and run
+# when confirmation to do so is given.
+
+
+# Compare version strings
+# Prints -1, 0 or 1 to stdout
+
+version_compare () {
+	a="$1"
+	b="$2"
+
+	while true
+	do
+		test -n "$b" || { echo 1; return; }
+		test -n "$a" || { echo -1; return; }
+
+		# Get the first numbers (if any)
+		a1="$(expr "$a" : '^\([0-9]*\)')"; a="${a#$a1}"
+		b1="$(expr "$b" : '^\([0-9]*\)')"; b="${b#$b1}"
+
+		if test -z "$b1"
+		then
+			test -z "$a1" || { echo 1; return; }
+			a1=0
+			b1=0
+		fi
+		test -n "$a1" || { echo -1; return; }
+		test $a1 -le $b1 || { echo 1; return; }
+		test $b1 -le $a1 || { echo -1; return; }
+
+		# Skip non-numeric prefixes
+		a1="$(expr "$a" : '^\([^0-9]\+\)')"; a="${a#$a1}"
+		b1="$(expr "$b" : '^\([^0-9]\+\)')"; b="${b#$b1}"
+
+		case "$a1,$b1" in
+		[.-]rc,[.-]rc) ;; # both are -rc versions
+		[.-]rc,*) echo -1; return;;
+		*,[.-]rc) echo 1; return;;
+		esac
+	done
+}
+
+test "--test-version-compare" != "$*" || {
+	test_version_compare () {
+		result="$(version_compare "$1" "$2")"
+		test "$3" = "$result" || {
+			echo "version_compare $1 $2 returned $result instead of $3" >&2
+			exit 1
+		}
+
+		result2="$(version_compare "$2" "$1")"
+		test "$result2" = "$((-$3))" || {
+			echo "version_compare $2 $1 returned $result2 instead of $((-$3))" >&2
+			exit 1
+		}
+	}
+
+	test_version_compare 2.32.0.windows.1 2.32.1.windows.1 -1
+	test_version_compare 2.32.1.windows.1 2.32.0.windows.1 1
+	test_version_compare 2.32.1.vfs.0.0 2.32.0.windows.1 1
+	test_version_compare 2.32.1.vfs.0.0 2.32.0.vfs.0.0 1
+	test_version_compare 2.32.0.vfs.0.1 2.32.0.vfs.0.2 -1
+	test_version_compare 2.32.0-rc0.windows.1 2.31.1.windows.1 1
+	test_version_compare 2.32.0-rc2.windows.1 2.32.0.windows.1 -1
+	test_version_compare 2.34.0.rc1.windows.1 2.33.1.windows.1 1
+	test_version_compare 2.34.0.rc2.windows.1 2.34.0.windows.1 -1
+	exit 0
+}
+
+# Counts how many Bash instances are running, apart from the current one (if
+# any: `git update-git-for-windows` might have been called from a CMD window,
+# in which case no Git Bash might be running at all).
+#
+# This is a little tricky, as the /usr/bin/sh process (as which `ps` reports the
+# process running this script) is an MSYS2 one, but the calling `git.exe`
+# process is a pure Win32 one. As a consequence, the former process' PPID will
+# be reported as 1 (!!!) and its PGID will refer to the latter, while the
+# latter's PGID will be identical to its PID and its PPID refers to the calling
+# Bash (or is 1, if `git.exe` was not called by an MSYS2 program).
+#
+# So we have to employ a little sed fu to parse `ps` output of the form:
+#
+#     PID    PPID    PGID     WINPID   TTY         UID    STIME COMMAND
+#   19864   15640   19864      27996  pty0     4853009 15:58:05 /usr/bin/bash
+#   15640       1   15640      15640  ?        4853009 15:58:05 /usr/bin/mintty
+#   28128   13048   21176      28716  pty0     4853009 16:01:08 /usr/bin/ps
+#   13048       1   21176      13048  pty0     4853009 16:01:08 /usr/bin/sh
+#   21176   19864   21176      11996  pty0     4853009 16:01:08 /mingw64/bin/git
+#
+# Essentially, we are looking for the /usr/bin/sh line (in the example, PID
+# 13048), follow its PGID to the /mingw64/bin/git line (in the example, PID
+# 21176), and record the PPID of the latter as the pid of the current Bash, if
+# any. As we do not know in which order the `sh` and the `git` line appear, we
+# have to handle both orders.
+#
+# Then, we filter the `ps` output first by dropping the line with the current
+# Bash, then finally counting the remaining lines referring to a bash process.
+
+count_other_bashes () {
+	mypid=$$ && nl='\n *' && s='  *' && p='[1-9][0-9]*' &&
+	mypid="$(ps | sed -n ":1;N;
+		s/.*$nl$mypid$s$p$s\\($p\\) .*$nl\\1$s\\($p\\) .*/\\2/p;
+		s/.*$nl\\($p\\)$s\\($p\\) .*$nl$mypid$s$p$s\\1 .*/\\2/p;
+		b1")"
+	ps |
+	if test -z "$mypid"; then cat; else grep -v "^ *$mypid "; fi |
+	grep ' /usr/bin/bash$' |
+	wc -l
+}
+
+# Write HTTP GET response to stdout and return error code. This is equivalent
+# to curl --fail, except that we output the response body to stderr in case of
+# an HTTP error status.
+http_get () {
+	url=$1
+	output=$(mktemp -t gfw-httpget-XXXXXXXX.txt)
+	code=$(curl \
+		--silent \
+		--show-error \
+		--output "$output" \
+		--write-out '%{http_code}' \
+		"$url") || return $?
+	fdout=1
+	ret=0
+	if test "$code" -ge 400
+	then
+		fdout=2
+		ret=22
+	fi
+	cat "$output" >&"$fdout"
+	rm -f "$output"
+	return "$ret"
+}
+
+get_recently_seen() {
+    if [ -f "$HOME"/.git-for-windows-updater ]; then
+        git config -f "$HOME"/.git-for-windows-updater winUpdater.recentlySeenVersion
+    else
+        git config --global winUpdater.recentlySeenVersion
+    fi
+}
+
+set_recently_seen() {
+    git config -f "$HOME"/.git-for-windows-updater winUpdater.recentlySeenVersion "$1"
+}
+
+# The main function of this script
+
+update_git_for_windows () {
+	proxy=$(git config --get http.proxy)
+	if test -n "$proxy"
+	then
+		export https_proxy="$proxy"
+		echo "Using proxy server $https_proxy detected from git http.proxy" >&2
+	fi
+
+	yn=
+	use_gui=
+	quiet=
+	testing=
+	while test $# -gt 0
+	do
+		case "$1" in
+		-\?|--?\?|-h|--help) ;;
+		-y|--yes) yn=y; shift; continue;;
+		-g|--gui) use_gui=t; shift; continue;;
+		--quiet) quiet=t; shift; continue;;
+		--testing) testing=t; shift; continue;;
+		*) echo "Unknown option: $1" >&2;;
+		esac
+		printf >&2 '%s\n%s\n\t%s\n\t%s\n' \
+			"Usage: git update-git-for-windows [options]" \
+			"Options:" \
+			"-g, --gui Use GUI instead of terminal to prompt" \
+			"-y, --yes Automatic yes to download and install prompt" \
+			"Return code:" \
+			" 0: no update available" \
+			" 1: update available and user selected not to update" \
+			" 2: update available and it was started"
+		return 1
+	done
+
+	case "$(uname -m)" in
+	x86_64) bit=64;;
+	*) bit=32;;
+	esac
+
+	try_toast=
+	test -z "$use_gui" ||
+	case "$(uname -s)" in
+	*-6.[23]|*-6.[23]-[1-9]*|*-10.0|*-10.0-[1-9]*)
+		# Only try to show a Toast notification on Windows 8 & 10,
+		# and only if we have a working wintoast.exe
+		! type wintoast.exe >/dev/null 2>&1 ||
+		try_toast=t
+		;;
+	esac
+
+	test -f "$0.config" &&
+	fork="$(git config -f "$0.config" update.fromFork)" &&
+	test -n "$fork" ||
+	fork=
+
+	if test -n "$fork"
+	then
+		git_label="$(git config -f "$0.config" update.gitLabel)"
+		test -n "$git_label" || git_label=Git
+
+		releases_url=https://api.github.com/repos/$fork/releases
+		latest_tag_url=$releases_url/latest
+		latest_eval='latest=${latest_tag#*\"tag_name\": \"v}; latest=${latest%%\"*}'
+	else
+		git_label="Git for Windows"
+		releases_url=https://api.github.com/repos/git-for-windows/git/releases
+		latest_tag_url=https://gitforwindows.org/latest-tag.txt
+		latest_eval='latest=${latest_tag#v}'
+	fi
+
+	latest_tag=$(http_get $latest_tag_url) ||
+	case $?,"$proxy" in
+	7,)
+		proxy="$(proxy-lookup.exe https://gitforwindows.org)" &&
+		test -n "$proxy" &&
+		export https_proxy="$proxy" &&
+		echo "Using proxy $https_proxy as per lookup" >&2 &&
+		latest_tag=$(http_get $latest_tag_url) ||
+		return
+		;;
+	*)
+		return
+		;;
+	esac
+
+	eval "$latest_eval"
+	# Be extra careful to remove a leading 'v' from the tag.
+	latest=${latest#v}
+
+	# Did we ask about this version already?
+	if test -z "$use_recently_seen"
+	then
+		recently_seen="$(get_recently_seen)"
+		test -n "$quiet" && test "x$recently_seen" = "x$latest" && return
+	fi
+
+	version=$(git --version | sed "s/git version //")
+	if test -d /clangarm64/bin
+	then
+		arch_bit=arm64
+	else
+		arch_bit=${bit}-bit
+	fi
+
+	echo "$git_label $version ($arch_bit)" >&2
+	if test -z "$testing" && test "$latest" = "$version"
+	then
+		echo "Up to date" >&2
+		set_recently_seen "$latest"
+		return
+	fi
+	if ! test -n "$testing"
+	then
+		# We are not testing and we don't have exact equality,
+		# so do a careful comparison and look to see if the
+		# latest release is strictly newer than ours.
+		if test 0 -lt "$(version_compare "$version" "$latest")"
+		then
+			return
+		fi
+	fi
+
+	echo "Update $latest is available" >&2
+	releases=$(http_get $releases_url/latest) || return
+	download=$(echo "$releases" |
+		grep '"browser_download_url": "' |
+		grep "$arch_bit\.exe" |
+		sed -E 's/.*": "([^"]*).*/\1/')
+	filename=$(echo "$download" | sed -E 's/.*\/([^\/]*)$/\1/')
+	name="$(echo "$releases" | sed -n 's/^  "name": "\(.*\)",$/\1/p')"
+	installer=$(mktemp -t gfw-install-XXXXXXXX.exe)
+	if test -z "$yn"
+	then
+		other_bashes=$(count_other_bashes)
+		if test $other_bashes -le 0
+		then
+			warn=
+		elif test $other_bashes -eq 1
+		then
+			warn=" (killing one Git Bash)"
+		else
+			warn=" (killing $other_bashes Git Bash instances)"
+		fi
+		if test -n "$try_toast"
+		then
+			wintoast.exe --appname "$git_label" \
+				--appid GitForWindows.Updater \
+				--image /mingw$bit/share/git/git-for-windows.ico \
+				--text "Download and install $name$warn?" \
+				--action Yes --action No --expirems 15000
+			case $? in
+			0|16)
+				# clicked toast, or clicked Yes: download
+				;;
+			1|17)
+				# dismiseed, or clicked No: ignore this release
+				set_recently_seen "$latest"
+				return 1
+				;;
+			4|5|6|9|10)
+				# toast not activated, failed, toasts
+				# unsupported, WinToast init failed or toast
+				# not launched: fall back to using GUI
+				git askyesno \
+					--title "Git Update Available" \
+					"Download and install $name$warn?" || {
+				    set_recently_seen "$latest"
+				    return 1
+				}
+				;;
+			*)
+				# toast timed out, or hidden, or unknown
+				# failure: ignore
+				return 1
+				;;
+			esac
+		elif test -n "$use_gui"
+		then
+			git askyesno --title "Git Update Available" \
+				"Download and install $name$warn?" || {
+				set_recently_seen "$latest"
+				return 1
+			}
+		else
+			read -p "Download and install $name$warn [N/y]? " \
+				yn >&2
+			case "$yn" in
+			[Yy]*) ;;
+			*)
+				set_recently_seen "$latest"
+				return 1;;
+			esac
+		fi
+	else
+		echo "Downloading $filename" >&2
+	fi
+	curl -# -L -o $installer $download || return
+	start "" "$installer" //SILENT //NORESTART
+
+	# Kill all Bash processes (which will let MinTTY quit, too)"
+	#
+	# `ps` without `-W` will automatically only catch MSYS2 processes
+	# that link to *this* MSYS2 runtime, i.e. no processes from other Git
+	# installations (e.g. Git for Windows' SDK) will be killed.
+	ps | grep ' /usr/bin/bash$' | awk '{print "kill -9 " $1 ";" }' | sh
+	return 2
+}
+
+update_git_for_windows "$@"
