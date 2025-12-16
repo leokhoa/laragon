@@ -1,16 +1,31 @@
 <?php
-if (!empty($_GET['q'])) {
-    $query = htmlspecialchars($_GET['q'], ENT_QUOTES, 'UTF-8');
+// ==========================
+// BASIC ENV DETECTION
+// ==========================
+$isLocal = in_array($_SERVER['REMOTE_ADDR'], ['127.0.0.1', '::1'], true);
 
-    switch ($query) {
-        case 'info':
+// ==========================
+// QUERY HANDLING (SAFE)
+// ==========================
+if (isset($_GET['q'])) {
+    $query = $_GET['q'];
+
+    // Allow-list approach
+    if ($query === 'info') {
+
+        // phpinfo allowed ONLY on localhost
+        if ($isLocal) {
             phpinfo();
             exit;
-        default:
-            header("HTTP/1.0 404 Not Found");
-            echo "Invalid query parameter.";
-            exit;
+        }
+
+        http_response_code(403);
+        exit('Forbidden');
     }
+
+    // Unknown query
+    http_response_code(404);
+    exit('Invalid query parameter.');
 }
 ?>
 
@@ -20,14 +35,15 @@ if (!empty($_GET['q'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Laragon</title>
-    <link href="https://fonts.googleapis.com/css?family=Karla:400" rel="stylesheet" type="text/css">
+
+    <link href="https://fonts.googleapis.com/css?family=Karla:400" rel="stylesheet">
+
     <style>
         html, body {
             height: 100%;
             margin: 0;
             padding: 0;
             font-family: 'Karla', sans-serif;
-            font-weight: 100;
             background-color: #f9f9f9;
             color: #333;
         }
@@ -86,20 +102,37 @@ if (!empty($_GET['q'])) {
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="content">
-            <h1 class="title" title="Laragon">Laragon</h1>
-            <div class="info">
-                <p><?php echo htmlspecialchars($_SERVER['SERVER_SOFTWARE'], ENT_QUOTES, 'UTF-8'); ?></p>
-                <p>PHP version: <?php echo htmlspecialchars(phpversion(), ENT_QUOTES, 'UTF-8'); ?>
+
+<div class="container">
+    <div class="content">
+        <h1 class="title">Laragon</h1>
+
+        <div class="info">
+            <?php if ($isLocal): ?>
+                <p><?= htmlspecialchars($_SERVER['SERVER_SOFTWARE'], ENT_QUOTES, 'UTF-8'); ?></p>
+                <p>
+                    PHP version: <?= htmlspecialchars(PHP_VERSION, ENT_QUOTES, 'UTF-8'); ?>
                     <a title="phpinfo()" href="/?q=info">info</a>
                 </p>
-                <p>Document Root: <?php echo htmlspecialchars($_SERVER['DOCUMENT_ROOT'], ENT_QUOTES, 'UTF-8'); ?></p>
-            </div>
-            <div class="opt">
-                <p><a title="Getting Started" href="https://laragon.org/docs">Getting Started</a></p>
-            </div>
+                <p>
+                    Document Root:
+                    <?= htmlspecialchars($_SERVER['DOCUMENT_ROOT'], ENT_QUOTES, 'UTF-8'); ?>
+                </p>
+            <?php else: ?>
+                <p>Server is running</p>
+                <p>PHP is enabled</p>
+            <?php endif; ?>
+        </div>
+
+        <div class="opt">
+            <p>
+                <a href="https://laragon.org/docs" target="_blank" rel="noopener">
+                    Getting Started
+                </a>
+            </p>
         </div>
     </div>
+</div>
+
 </body>
 </html>
