@@ -1,9 +1,11 @@
 @echo off
 rem -- Copyright (c) 2012 Martin Ridgers
-rem -- Portions Copyright (c) 2020-2024 Christopher Antos
+rem -- Portions Copyright (c) 2020-2025 Christopher Antos
 rem -- License: http://opensource.org/licenses/MIT
 
 setlocal enableextensions
+set dp_zero="%~dp0"
+set dpnx_zero="%~dpnx0"
 set clink_profile_arg=
 set clink_quiet_arg=
 
@@ -27,7 +29,7 @@ if /i "%~1"=="--quiet" (
 )
 
 rem -- If the .bat is run without any arguments, then start a cmd.exe instance.
-if _%1==_ (
+if "_%~1"=="_" (
     call :launch
     goto :end
 )
@@ -37,18 +39,14 @@ if defined CLINK_NOAUTORUN if /i "%~1"=="inject" if /i "%~2"=="--autorun" goto :
 
 rem -- Forward to appropriate loader, and endlocal before inject tags the prompt.
 if /i "%processor_architecture%"=="x86" (
-        endlocal
-        "%~dp0\clink_x86.exe" %*
+        endlocal & "%dp_zero:~1,-1%clink_x86.exe" %*
 ) else if /i "%processor_architecture%"=="arm64" (
-        endlocal
-        "%~dp0\clink_arm64.exe" %*
+        endlocal & "%dp_zero:~1,-1%clink_arm64.exe" %*
 ) else if /i "%processor_architecture%"=="amd64" (
     if defined processor_architew6432 (
-        endlocal
-        "%~dp0\clink_x86.exe" %*
+        endlocal & "%dp_zero:~1.-1%clink_x86.exe" %*
     ) else (
-        endlocal
-        "%~dp0\clink_x64.exe" %*
+        endlocal & "%dp_zero:~1,-1%clink_x64.exe" %*
     )
 )
 
@@ -58,7 +56,6 @@ goto :end
 setlocal enableextensions
 set WT_PROFILE_ID=
 set WT_SESSION=
-start "Clink" cmd.exe /s /k ""%~dpnx0" inject %clink_profile_arg%%clink_quiet_arg%"
-endlocal
+endlocal & start "Clink" cmd.exe /s /k "%dpnx_zero% inject %clink_profile_arg%%clink_quiet_arg%"
 
 :end
