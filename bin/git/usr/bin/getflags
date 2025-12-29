@@ -1,0 +1,164 @@
+#! /bin/dash
+
+# this script is 20% faster with dash than with bash
+
+#############################################################################
+# download function
+
+download_noto () {
+
+# download noto third-party region flags
+if [ -d noto-emoji-flags ]
+then	if [ -d noto-emoji-flags/.git ]
+	then	(cd noto-emoji-flags; git pull)
+	else	echo WARNING: directory noto-emoji-flags already exists but no git config - Exit
+		exit 9
+	fi
+else
+	notogit=https://github.com/googlefonts/noto-emoji
+	git clone --depth 1 -n --filter=blob:none $notogit noto-emoji-flags
+	(cd noto-emoji-flags
+	 git sparse-checkout set --no-cone third_party/region-flags/png
+	 git checkout
+	)
+fi
+(cd noto-emoji-flags; rm -f *.png; ln third_party/region-flags/png/*.png ./)
+
+}
+
+download_other () {
+
+# download Puellanivis’ flag emojis
+if [ -d puellanivis-flags ]
+then	if [ -d puellanivis-flags/.git ]
+	then	(cd puellanivis-flags; git pull)
+	else	echo WARNING: directory puellanivis-flags already exists but no git config - Exit
+		exit 9
+	fi
+else
+	puelgit=https://github.com/puellanivis/emoji.git
+	git clone --depth 1 $puelgit puellanivis-flags
+fi
+(cd puellanivis-flags; rm -f *.png; ln flags/*.png flags/*/*.png ./)
+
+}
+
+download () {
+	download_noto
+
+	# drop download of old Google region flags
+	#git clone --depth 1 https://github.com/google/region-flags.git google-region-flags &&
+	#ln google-region-flags/png/*.png google-region-flags/
+
+	download_other
+}
+
+#############################################################################
+# extract emoji files:
+# pre-deploy them with proper filename, according to codepoint pattern
+
+extract () {
+	mkdir -p common
+
+	for f in `ls *-flags/*.png`
+	do	e=${f##*/}
+		e=${e%.png}
+		if [ -n "$BASH_VERSION" ]
+		then
+			e=${e//-}
+			e=${e//\'}
+		#else filter them out by missing case below
+		fi
+		case $e in
+		??)	# 1F1E6 1F1E8 ; RGI_Emoji_Flag_Sequence
+			tagseq=false;;
+		*)	# 1F3F4 E0067 E0062 E0065 E006E E0067 E007F; RGI_Emoji_Tag_Sequence; flag: England
+			tagseq=true;;
+		esac
+		if $tagseq
+		then	n=1f3f4
+		else	n=
+		fi
+		# speed-up possible by using a common sed script...
+		for l in $( echo "$e" | tr 'A-Z' 'a-z' | sed -e 's,.,& ,g' )
+		do	d=$( printf %d "'$l'" )
+			if $tagseq
+			then	case "$l" in
+				[a-z]|[0-9])
+					d=$(( $d + 917504 ))
+					n=$n-$( printf %x $d )
+					;;
+				#[a-z])	d=$(( $d - 97 + 917601 ))	# 'a' -> U+E0061 ...
+				#	n=$n-$( printf %x $d )
+				#	;;
+				#[0-9])	d=$(( $d - 48 + 917552 ))	# '0' -> U+E0030 ...
+				#	n=$n-$( printf %x $d )
+				#	;;
+				esac
+			else	d=$(( $d - 97 + 127462 ))	# U+1F1E6
+				n=$n-$( printf %x $d )
+			fi
+		done
+		if $tagseq
+		then	n=$n-e007f.png
+		else	n=${n#-}.png
+		fi
+
+		echo "$f -> common/$n"
+		if [ -L "$f" ]
+		then	# linking a symbolic link while renaming the target 
+			# would yield a dangling link, so copy it
+			cp "$f" "common/$n"
+		else	ln "$f" "common/$n"
+		fi
+	done
+}
+
+#############################################################################
+# perform download and extraction/deployment
+
+case "$1" in
+""|-h|--help)
+	echo "Usage: `basename $0` [-d | -e | -de]" >&2
+	echo >&2
+	echo "This script retrieves flag emojis from various sources." >&2
+	echo >&2
+	echo "Options:" >&2
+	echo "	-d	Download flags emojis repositories" >&2
+	echo "	-n	Download only Noto flags" >&2
+	echo "	-e	Extract emoji files with proper filenames into common/" >&2
+	echo "	-de	-d and -e" >&2
+	echo "	-ne	-n and -e" >&2
+	echo >&2
+	if [ `uname` = "Linux" ] && type wslpath 2> /dev/null 1>&2
+	then	echo "Note: for direct deployment from WSL, first go into the common config directory:" >&2
+		echo '  cd `wslpath "$APPDATA/mintty/emojis"` || cd `wslpath "$APPDATA/wsltty/emojis"`' >&2
+	else	echo "Note: for direct deployment, first go into subdirectory 'emojis' of one of the" >&2
+		echo "mintty config directories:" >&2
+		echo '  ~/.mintty' >&2
+		echo '  ~/.config/mintty' >&2
+		echo '  $APPDATA/mintty' >&2
+		echo '  /usr/share/mintty' >&2
+	fi
+	exit;;
+-n|--download-noto)
+	download_noto
+	;;
+-ne|--noto)
+	download_noto
+	extract
+	;;
+-d|--download)
+	download
+	;;
+-e|--extract)
+	extract
+	;;
+-de|--all)
+	download
+	extract
+	;;
+esac
+
+#############################################################################
+# end

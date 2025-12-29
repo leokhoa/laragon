@@ -1,0 +1,284 @@
+#!/bin/sh
+
+# zgrep -- a wrapper around a grep program that decompresses files as needed
+# Adapted from a version sent by Charles Levert <charles@comm.polymtl.ca>
+
+# Copyright (C) 1998, 2001-2002, 2006-2007, 2009-2025 Free Software Foundation,
+# Inc.
+
+# Copyright (C) 1993 Jean-loup Gailly
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+grep='${GREP-'\''/usr/bin/grep'\''}'
+args=
+
+version='zgrep (gzip) 1.14
+Copyright (C) 2025 Free Software Foundation, Inc.
+This is free software.  You may redistribute copies of it under the terms of
+the GNU General Public License <https://www.gnu.org/licenses/gpl.html>.
+There is NO WARRANTY, to the extent permitted by law.
+
+Written by Jean-loup Gailly.'
+
+usage="Usage: $0 [OPTION]... [-e] PATTERN [FILE]...
+Look for instances of PATTERN in the input FILEs, using their
+uncompressed contents if they are compressed.
+
+OPTIONs are the same as for 'grep', except that the following 'grep'
+options are not supported: --dereference-recursive (-R), --directories (-d),
+--exclude, --exclude-from, --exclude-dir, --include, --null (-Z),
+--null-data (-z), and --recursive (-r).
+
+Report bugs to <bug-gzip@gnu.org>."
+
+# sed script to escape all ' for the shell, and then (to handle trailing
+# newlines correctly) append ' to the last line.
+escape='
+  s/'\''/'\''\\'\'''\''/g
+  $s/$/'\''/
+'
+operands=
+have_pat=0
+files_with_matches=0
+files_without_matches=0
+no_filename=0
+with_filename=0
+pattmp=
+
+while test $# -ne 0; do
+  option=$1
+  shift
+  optarg=
+
+  case $option in
+  (-[0123456789EFGHIKLPRTUVZabchilnoqrsuvwxyz]*[!0123456789]*)
+    arg2=-\'$(LC_ALL=C expr "X$option" : 'X-.[0-9]*\(.*\)' |
+                LC_ALL=C sed "$escape")
+    eval "set -- $arg2 "'${1+"$@"}'
+    option=$(LC_ALL=C expr "X$option" : 'X\(-.[0-9]*\)');;
+  (--binary-*=* | --[lm]a*=* | --reg*=*)
+    ;;
+  (-[ABCDXdefm] | --binary-* | --file | --[lm]a* | --reg*)
+    case ${1?"$option option requires an argument"} in
+    (*\'*)
+      optarg=" '"$(printf '%s\n' "$1" | LC_ALL=C sed "$escape");;
+    (*)
+      optarg=" '$1'";;
+    esac
+    shift;;
+  (-f?*\'*)
+    optarg=" '"$(LC_ALL=C expr "X$option" : 'X-f\(.*\)' |
+                   LC_ALL=C sed "$escape")
+    option=-f;;
+  (-f?*)
+    optarg=" '"$(LC_ALL=C expr "X$option" : 'X-f\(.*\)')\'
+    option=-f;;
+  (--file=*\'*)
+    optarg=" '"$(LC_ALL=C expr "X$option" : 'X--file=\(.*\)' |
+                   LC_ALL=C sed "$escape")
+    option=--file;;
+  (--file=*)
+    optarg=" '"$(LC_ALL=C expr "X$option" : 'X--file=\(.*\)')\'
+    option=--file;;
+  (--)
+    break;;
+  (-?*)
+    ;;
+  (*)
+    case $option in
+    (*\'*)
+      operands="$operands '"$(printf '%s\n' "$option" | LC_ALL=C sed "$escape")
+      ;;
+    (*)
+      operands="$operands '$option'";;
+    esac
+    ${POSIXLY_CORRECT+break}
+    continue;;
+  esac
+
+  case $option in
+  (-[drRzZ] | --di* | --exc* | --inc* | --rec* | --nu*)
+    printf >&2 '%s: %s: option not supported\n' "$0" "$option"
+    exit 2;;
+  (-e* | --reg*)
+    have_pat=1;;
+  (-f | --file)
+    # The pattern is coming from a file rather than the command-line.
+    # If the file is actually stdin then we need to do a little
+    # magic, since we use stdin to pass the gzip output to grep.
+    # Similarly if it is not a regular file, since it might be read repeatedly.
+    # In either of these two cases, copy the pattern into a temporary file,
+    # and use that file instead.  The pattern might contain null bytes,
+    # so we cannot simply switch to -e here.
+    if case $optarg in
+       (" '-'" | " '/dev/stdin'" | " '/dev/fd/0'")
+         :;;
+       (*)
+         eval "test ! -f$optarg";;
+       esac
+    then
+      if test -n "$pattmp"; then
+        eval "cat --$optarg" >>"$pattmp" || exit 2
+        continue
+      fi
+      trap '
+        test -n "$pattmp" && rm -f "$pattmp"
+        (exit 2); exit 2
+      ' HUP INT PIPE TERM 0
+      case $TMPDIR in
+        / | /*/) ;;
+        /*) TMPDIR=$TMPDIR/;;
+        *) TMPDIR=/tmp/;;
+      esac
+      if command -v mktemp >/dev/null 2>&1; then
+        pattmp=$(mktemp "${TMPDIR}zgrepXXXXXXXXX") || exit 2
+      else
+        set -C
+        pattmp=${TMPDIR}zgrep$$
+      fi
+      eval "cat --$optarg" >"$pattmp" || exit 2
+      optarg=' "$pattmp"'
+    fi
+    have_pat=1;;
+  (--h | --he | --hel | --help)
+    printf '%s\n' "$usage" || exit 2
+    exit;;
+  (-H | --wi | --wit | --with | --with- | --with-f | --with-fi \
+  | --with-fil | --with-file | --with-filen | --with-filena | --with-filenam \
+  | --with-filename)
+    with_filename=1
+    continue;;
+  (-l | --files-with-*)
+    files_with_matches=1;;
+  (-L | --files-witho*)
+    files_without_matches=1;;
+  (-h | --no-f*)
+    no_filename=1;;
+  (-V | --v | --ve | --ver | --vers | --versi | --versio | --version)
+    printf '%s\n' "$version" || exit 2
+    exit;;
+  esac
+
+  case $option in
+  (*\'?*)
+    option=\'$(printf '%s\n' "$option" | LC_ALL=C sed "$escape");;
+  (*)
+    option="'$option'";;
+  esac
+
+  args="$args $option$optarg"
+done
+
+eval "set -- $operands "'${1+"$@"}'
+
+if test $have_pat -eq 0; then
+  case ${1?"missing pattern; try \`$0 --help' for help"} in
+  (*\'*)
+    args="$args -- '"$(printf '%s\n' "$1" | LC_ALL=C sed "$escape");;
+  (*)
+    args="$args -- '$1'";;
+  esac
+  shift
+fi
+
+if test $# -eq 0; then
+  set -- -
+elif test 1 -lt $# && test $no_filename -eq 0; then
+  with_filename=1
+fi
+
+l_e=$(eval "(echo e | $grep -H --label=l e) 2>/dev/null") && test "$l_e" = l:e
+gnuish_grep="test $? -eq 0"
+if $gnuish_grep && test $with_filename -eq 1; then
+  grep="$grep -H"
+fi
+
+exec 3>&1
+res=1
+
+for i
+do
+  # Fail if gzip or grep (or sed) fails.
+  gzip_status=$(
+    exec 5>&1
+    (gzip -cdfq -- "$i" 5>&-; echo $? >&5) 3>&- |
+    if test $files_with_matches -eq 1; then
+      eval "$grep$args" >/dev/null && { printf '%s\n' "$i" || exit 2; }
+    elif test $files_without_matches -eq 1; then
+      eval "$grep$args" >/dev/null || {
+        r=$?
+        if test $r -eq 1; then
+          printf '%s\n' "$i" || r=2
+        fi
+        test 256 -le $r && r=$(expr 128 + $r % 128)
+        exit $r
+      }
+    elif $gnuish_grep && test "$i" != -; then
+      eval "$grep --label \"\$i\"$args"
+    elif $gnuish_grep || test $with_filename -eq 0; then
+      eval "$grep$args"
+    else
+      case $i in
+      (*'
+'* | *'&'* | *'\'* | *'|'*)
+          icolon=$(printf '%s\n' "$i:" |
+                     LC_ALL=C sed -e 's/[&\|]/\\&/g' -e '$!s/$/\\/') ||
+             icolon='(unknown filename):';;
+      (*) icolon="$i:";;
+      esac
+      sed_script="s|^|$icolon|"
+
+      # Fail if grep or sed fails.
+      r=$(
+        exec 4>&1
+        (eval "$grep$args" 4>&-; echo $? >&4) 3>&- |
+           LC_ALL=C sed "$sed_script" >&3 4>&-
+      ) || { r=$?; test $r -lt 2 && r=2; }
+      test 256 -le $r && r=$(expr 128 + $r % 128)
+      exit $r
+    fi >&3 5>&-
+  )
+  r=$?
+
+  # Ignore gzip status 2 or 141, as it is just a warning or broken pipe.
+  # gzip status 1 is an error, like grep status 2.
+  { test $gzip_status -eq 2 || test $gzip_status -eq 141; } && gzip_status=0
+  test $gzip_status -eq 1 && gzip_status=2
+
+  # Use the more serious of the grep and gzip statuses.
+  test $r -lt $gzip_status && r=$gzip_status
+
+  # Accumulate the greatest status, except consider 0 to be greater than 1.
+  if test $r -le 1 && test $res -le 1; then
+     test $r -lt $res
+  else
+     test $res -lt $r
+  fi && res=$r
+
+  # Exit immediately on a serious error.
+  test 126 -le $res && break
+done
+
+if test -n "$pattmp"; then
+  rm -f "$pattmp" || {
+    r=$?
+    test $r -lt 2 && r=2
+    test $res -lt $r && res=$r
+  }
+  trap - HUP INT PIPE TERM 0
+fi
+
+test 128 -le $res && kill -$(expr $res % 128) $$
+exit $res

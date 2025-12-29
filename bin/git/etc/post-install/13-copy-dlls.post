@@ -1,0 +1,24 @@
+hardlink_all_dlls () {
+	exec_path="$(git --exec-path)" ||
+	return
+
+	test ! -e "$exec_path/dlls-copied" ||
+	return
+
+	prefix_path="${exec_path%libexec/git-core}"
+	ln "$prefix_path/bin/git.exe" "$exec_path/dlls-copied" || {
+		touch "$exec_path/dlls-copied"
+		return
+	}
+
+	if test "a$prefix_path" != "a$exec_path"
+	then
+		for dll in "$prefix_path"bin/*.dll
+		do
+			ln -f "$dll" "$exec_path" ||
+			echo "ERROR: could not link $dll $exec_path" >&2
+		done
+	fi
+}
+
+hardlink_all_dlls

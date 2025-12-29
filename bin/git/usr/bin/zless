@@ -1,0 +1,79 @@
+#!/bin/sh
+
+# Copyright (C) 1998, 2002, 2006-2007, 2010-2025 Free Software Foundation, Inc.
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+version="zless (gzip) 1.14
+Copyright (C) 2025 Free Software Foundation, Inc.
+This is free software.  You may redistribute copies of it under the terms of
+the GNU General Public License <https://www.gnu.org/licenses/gpl.html>.
+There is NO WARRANTY, to the extent permitted by law.
+
+Written by Paul Eggert."
+
+usage="Usage: $0 [OPTION]... [FILE]...
+Like 'less', but operate on the uncompressed contents of any compressed FILEs.
+
+Options are the same as for 'less'.
+
+Report bugs to <bug-gzip@gnu.org>."
+
+case $1 in
+--help)      printf '%s\n' "$usage"   || exit 1; exit;;
+--version)   printf '%s\n' "$version" || exit 1; exit;;
+esac
+
+if test "${LESSMETACHARS+set}" != set; then
+  # Work around a bug in less 394 and earlier;
+  # it mishandles the metacharacters '$%=~'.
+  space=' '
+  tab='	'
+  newline='
+'
+  LESSMETACHARS="$space$tab$newline'"';*?"()<>[|&^`#\$%=~'
+  export LESSMETACHARS
+fi
+
+less_version=`less -V 2>/dev/null`
+case $less_version in
+less' '45[1-9]* | \
+less' '4[6-9][0-9]* | \
+less' '[5-9][0-9][0-9]* | \
+less' '[1-9][0-9][0-9][0-9]*)
+   check_exit_status='|';;
+*) check_exit_status='';;
+esac
+case $less_version in
+less' '429* | \
+less' '4[3-9][0-9]* | \
+less' '[5-9][0-9][0-9]* | \
+less' '[1-9][0-9][0-9][0-9]*)
+   use_input_pipe_on_stdin='-';;
+*) use_input_pipe_on_stdin='';;
+esac
+case $less_version in
+less' '623* | \
+less' '62[4-9]* | \
+less' '6[3-9][0-9]* | \
+less' '[7-9][0-9][0-9]* | \
+less' '[1-9][0-9][0-9][0-9]*)
+   show_preproc_error='--show-preproc-error';;
+*) show_preproc_error='';;
+esac
+
+LESSOPEN="|$check_exit_status${use_input_pipe_on_stdin}gzip -cdfq -- %s"
+export LESSOPEN
+
+exec less $show_preproc_error "$@"

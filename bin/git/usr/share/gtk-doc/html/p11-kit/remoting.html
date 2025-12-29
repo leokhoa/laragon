@@ -1,0 +1,230 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Remoting / Forwarding: p11-kit</title>
+<meta name="generator" content="DocBook XSL Stylesheets Vsnapshot">
+<link rel="home" href="index.html" title="p11-kit">
+<link rel="up" href="index.html" title="p11-kit">
+<link rel="prev" href="proxy.html" title="Proxy Module">
+<link rel="next" href="trust-module.html" title="Trust Policy Module">
+<meta name="generator" content="GTK-Doc V1.34.0 (XML mode)">
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table class="navigation" id="top" width="100%" summary="Navigation header" cellpadding="2" cellspacing="5"><tr valign="middle">
+<td width="100%" align="left" class="shortcuts"></td>
+<td><a accesskey="h" href="index.html"><img src="home.png" width="16" height="16" border="0" alt="Home"></a></td>
+<td><img src="up-insensitive.png" width="16" height="16" border="0"></td>
+<td><a accesskey="p" href="proxy.html"><img src="left.png" width="16" height="16" border="0" alt="Prev"></a></td>
+<td><a accesskey="n" href="trust-module.html"><img src="right.png" width="16" height="16" border="0" alt="Next"></a></td>
+</tr></table>
+<div class="chapter">
+<div class="titlepage"><div><div><h1 class="title">
+<a name="remoting"></a>Remoting / Forwarding</h1></div></div></div>
+<p>Smartcards or hardware security modules (HSM) are technologies to
+	keep private keys on devices physically isolated to a device only available
+	to the user. That way only the intended user can use that device to authenticate,
+	authorize or perform other functions that involve the private keys. These come
+	usually in the form of a USB device or token which is plugged into the local computer.
+	</p>
+<p>In modern "cloud" computing, it is often desirable to virtually transfer such
+	a device on remote servers. For example, one can sign software or documents on a remote
+	server, use the local smart card to authorize itself to Kerberos, or any other
+	possible use. There are various approaches to tackle that problem, and on different
+	levels of the smart card application stack. It is possible to forward the USB
+	device holding the smart card, or forward the lower-level PC/SC protocol which
+	some smart cards talk, or forward the high-level interface used to communicate
+	with smart cards, the PKCS#11 interface.</p>
+<p>To address that problem, in p11-kit, we allow the forwarding of
+	the higher level smart card interface, PKCS#11. In the following paragraphs
+	we describe the approach and tools needed to perform that forwarding over SSH
+	secure communication channels.</p>
+<div class="refsect1">
+<a name="remoting-scenario"></a><h2>Scenario</h2>
+<p>We assume having a local workstation, and a remote server. On the local
+	computer we have inserted a smart card, in our examples we use a Nitrokey
+	card with the OpenSC drivers. We will forward the card
+	from the workstation to the remote server.</p>
+</div>
+<div class="refsect1">
+<a name="remoting-setup"></a><h2>Setting up the PKCS#11 forwarding server on a local client</h2>
+<p>To forward a smartcard to a remote server, we first need to identify which
+	smartcards are available. To list the smartcards currently attached to the local
+	computer, use the p11tool command from the gnutls package. For example:
+	</p>
+<pre class="programlisting">
+$ p11tool --list-tokens
+...
+Token 6:
+        URL: pkcs11:model=PKCS%2315%20emulated;manufacturer=www.CardContact.de;serial=DENK0000000;token=UserPIN%20%28Daiki%27s%20token%29
+        Label: UserPIN (Daiki's token)
+        Type: Hardware token
+        Manufacturer: www.CardContact.de
+        Model: PKCS#15 emulated
+        Serial: DENK0000000
+        Module: opensc-pkcs11.so
+...
+</pre>
+<p>This is the entry for the card we'd like to forward to remote system. The important
+	pieces are the 'pkcs11:' URL listed above, and the module name. Once we determine which
+	smartcard to forward, we expose it to a local Unix domain socket, with the following
+	p11-kit server command.
+	</p>
+<pre class="programlisting">
+$ p11-kit server --provider /usr/lib64/pkcs11/opensc-pkcs11.so "pkcs11:model=PKCS%2315%20emulated;manufacturer=www.CardContact.de;serial=DENK0000000;token=UserPIN%20%28Daiki%27s%20token%29"
+</pre>
+<p>Here we provide to the server the module location (optional) with the --provider
+	option, as well as the URL of the card. We copied the values from the Module and URL
+	lines of the p11tool output above. When the p11-kit server command starts, it will
+	print the address of the PKCS#11 unix domain socket and the process ID of the server.
+	</p>
+<pre class="programlisting">
+P11_KIT_SERVER_ADDRESS=unix:path=/run/user/12345/p11-kit/pkcs11-12345
+P11_KIT_SERVER_PID=12345
+</pre>
+<p>For later use, set the variables output by the tool on your shell prompt
+	(e.g., copy and paste them or call the above p11-kit server command line with
+	<code class="literal">eval $(p11-kit server ...)</code>).
+	</p>
+</div>
+<div class="refsect1">
+<a name="remoting-forwarding-socket"></a><h2>Forwarding and using the PKCS#11 Unix socket on the remote server</h2>
+<p>On the remote server, we will initially forward the previously generated PKCS#11
+	unix socket, and then access the smart card through it. To access the forwarded socket
+	as if it were a smart card, a dedicated PKCS#11 module p11-kit-client.so is provided as
+	part of the p11-kit-server package.
+	</p>
+</div>
+<div class="refsect1">
+<a name="remoting-forwarding-socket-prep"></a><h2>Preparing the remote system for PKCS#11 socket forwarding</h2>
+<p>One important detail you should be aware of, is the file system location of the
+	forwarded socket. By convention, the p11-kit-client.so module utilizes the "user runtime
+	directory", managed by systemd; the directory is created when a user logs in, and removed
+	upon logout, so that the user doesn't need to manually clean up the socket file.
+	</p>
+<p>To locate your user runtime directory, do:
+	</p>
+<pre class="programlisting">
+$ systemd-path user-runtime
+/run/user/1000
+</pre>
+<p>The <code class="literal">p11-kit-client.so</code> module looks for the socket file under a
+	subdirectory (<code class="literal">/run/user/1000/p11-kit</code> in this example). To enable
+	auto-creation of the directory, do the following.
+	</p>
+<pre class="programlisting">
+$ systemctl --user enable p11-kit-client.service
+</pre>
+</div>
+<div class="refsect1">
+<a name="remoting-finally-forwarding"></a><h2>Forwarding the PKCS#11 socket</h2>
+<p>We will use ssh to forward the local PKCS#11 unix socket to the remote server.
+	Following the p11-kit-client convention, we will forward the socket to the remote user
+	run-time path so that cleaning up on disconnect is not required. The remote location
+	of the run-time path can be obtained as follows.
+	</p>
+<pre class="programlisting">
+$ ssh [user]@[remotehost] systemd-path user-runtime
+/run/user/1000
+</pre>
+<p>The number at the end of the path above is your user ID in that system
+	(and thus will vary from user to user). You can now forward the Unix domain socket
+	with the -R option of the ssh command, after replacing the example path with the
+	actual run-time path.
+	</p>
+<pre class="programlisting">
+$ ssh -R /run/user/[userID]/p11-kit/pkcs11:${P11_KIT_SERVER_ADDRESS#*=} [user]@[remotehost]
+</pre>
+<p>After successfully logging in to the remote host, you can use the forwarded
+	smartcard as if it were directly connected to the server using the
+	<code class="literal">p11-kit-client.so</code>. Note that if any error occurs during the forwarding
+	setup, you will see something like this on your terminal:
+	</p>
+<pre class="programlisting">
+Warning: remote port forwarding failed for listen path /run/user/...
+</pre>
+</div>
+<div class="refsect1">
+<a name="remoting-using"></a><h2>Using the forwarded PKCS#11 socket</h2>
+<p>Let's first make sure the smart card works on the remote system, by listing it:
+	</p>
+<pre class="programlisting">
+$ ls -l /run/user/1000/p11-kit/pkcs11
+
+$ p11tool --provider /usr/lib64/pkcs11/p11-kit-client.so --list-tokens
+...
+Token 0:
+        URL: pkcs11:model=PKCS%2315%20emulated;manufacturer=www.CardContact.de;serial=DENK0000000;token=UserPIN%20%28Daiki%27s%20token%29
+        Label: UserPIN (Daiki's token)
+        Type: Hardware token
+        Manufacturer: www.CardContact.de
+        Model: PKCS#15 emulated
+        Serial: DENK0000000
+        Module: (null)
+...
+</pre>
+<p>We can similarly generate, copy objects or test certificates to the card using
+	the same command. Any applications which support PKCS#11 can perform cryptographic
+	operations through the client module.
+	</p>
+</div>
+<div class="refsect1">
+<a name="remoting-registering"></a><h2>Registering the client module for use with OpenSSL and GnuTLS apps</h2>
+<p>To utilize the p11-kit-client module with OpenSSL (via engine_pkcs11 provided
+	by the libp11 package) and GnuTLS applications, you have to register it in
+	p11-kit. To do it for the current user, use the following commands:
+	</p>
+<pre class="programlisting">
+$ mkdir .config/pkcs11/modules/
+$ echo "module: /usr/lib64/pkcs11/p11-kit-client.so" &gt;.config/pkcs11/modules/p11-kit-client.module
+</pre>
+<p>Once this is done both OpenSSL and GnuTLS applications should work, for example:
+	</p>
+<pre class="programlisting">
+$ URL="pkcs11:model=PKCS%2315%20emulated;manufacturer=www.CardContact.de;serial=DENK0000000;token=UserPIN%20%28Daiki%27s%20token%29"
+
+# Generate a key using gnutls’ p11tool
+$ p11tool --generate-ecc --login --label test-key "$URL"
+
+# generate a certificate request with the previous key using openssl
+$ openssl req -engine pkcs11 -new -key "$URL;;object=test-key;type=private;pin-value=XXXX" \
+         -keyform engine -out req.pem -text -subj "/CN=Test user"
+</pre>
+<p>Note that the token URL remains the same in the forwarded system as in the original one.
+	</p>
+</div>
+<div class="refsect1">
+<a name="remoting-ssh"></a><h2>Using the client module with OpenSSH</h2>
+<p>To re-use the already forwarded smartcard for authentication with another remote host, you can run ssh and provide the -I option with p11-kit-client.so. For example:
+	</p>
+<pre class="programlisting">
+$ ssh -I /usr/lib64/pkcs11/p11-kit-client.so [user]@[anotherhost]
+</pre>
+</div>
+<div class="refsect1">
+<a name="remoting-nss"></a><h2>Using the client module with NSS applications</h2>
+<p>To register the forwarded smartcard in NSS applications, you can set it up with
+	the modutil command, as follows.
+	</p>
+<pre class="programlisting">
+$ sudo modutil -dbdir /etc/pki/nssdb -add p11-kit-client -libfile /usr/lib64/pkcs11/p11-kit-client.so
+
+$ modutil -dbdir /etc/pki/nssdb -list
+...
+  3. p11-kit-client
+    library name: /usr/lib64/pkcs11/p11-kit-client.so
+       uri: pkcs11:library-manufacturer=OpenSC%20Project;library-description=OpenSC%20smartcard%20framework;library-version=0.17
+     slots: 1 slot attached
+    status: loaded
+
+     slot: Nitrokey Nitrokey HSM (010000000000000000000000) 00 00
+    token: UserPIN (Daiki's token)
+      uri: pkcs11:token=UserPIN%20(Daiki's%20token);manufacturer=www.CardContact.de;serial=DENK0000000;model=PKCS%2315%20emulated
+</pre>
+</div>
+</div>
+<div class="footer">
+<hr>Generated by GTK-Doc V1.34.0</div>
+</body>
+</html>

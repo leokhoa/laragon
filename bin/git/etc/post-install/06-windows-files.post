@@ -1,0 +1,26 @@
+maybe_create_winetc ()
+{
+  local FILES="hosts protocols services networks"
+
+  local mketc=
+  for mketc in ${FILES}
+  do
+    if [ ! -e "/etc/${mketc}" -a ! -L "/etc/${mketc}" ]
+    then
+      local WINSYS32HOME="$(exec /usr/bin/cygpath -S -w)"
+      local WINETC="${WINSYS32HOME}\\drivers\\etc"
+
+      if [ ! -d "${WINETC}" ]; then
+        echo "Directory ${WINETC} does not exist; exiting" >&2
+        echo "If directory name is garbage you need to update your msys package" >&2
+        exit 1
+      fi
+
+      # Windows only uses the first 8 characters
+      local WFILE="${WINETC}\\$(exec expr substr "${mketc}" 1 8)"
+      /usr/bin/cp -p -v "${WFILE}" "/etc/${mketc}"
+    fi
+  done
+}
+
+maybe_create_winetc
