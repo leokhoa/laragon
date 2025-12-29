@@ -13,6 +13,7 @@ OU = IT
 CN = laragon
 
 [v3_req]
+keyUsage = keyEncipherment, dataEncipherment
 extendedKeyUsage = serverAuth
 subjectAltName = @alt_names
 
