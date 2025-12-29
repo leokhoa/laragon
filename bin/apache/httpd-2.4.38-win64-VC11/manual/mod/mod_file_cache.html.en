@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_file_cache - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Modules</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache Module mod_file_cache</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_file_cache.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_file_cache.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ko/mod/mod_file_cache.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">Description:</a></th><td>Caches a static list of files in memory</td></tr>
+<tr><th><a href="module-dict.html#Status">Status:</a></th><td>Experimental</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">Module Identifier:</a></th><td>file_cache_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">Source File:</a></th><td>mod_file_cache.c</td></tr></table>
+<h3>Summary</h3>
+
+
+    <div class="warning">
+      This module should be used with care. You can easily create a broken
+      site using <code class="module"><a href="../mod/mod_file_cache.html">mod_file_cache</a></code>, so read this document
+      carefully.
+    </div>
+
+    <p><em>Caching</em> frequently requested files that change very
+    infrequently is a technique for reducing server load.
+    <code class="module"><a href="../mod/mod_file_cache.html">mod_file_cache</a></code> provides two techniques for caching
+    frequently requested <em>static</em> files. Through configuration
+    directives, you can direct <code class="module"><a href="../mod/mod_file_cache.html">mod_file_cache</a></code> to either
+    open then <code>mmap()</code> a file, or to pre-open a file and save
+    the file's open <em>file handle</em>. Both techniques reduce server
+    load when processing requests for these files by doing part of the work
+    (specifically, the file I/O) for serving the file when the
+    server is started rather than during each request.</p>
+
+    <p>Notice: You cannot use this for speeding up CGI programs or
+    other files which are served by special content handlers. It
+    can only be used for regular files which are usually served by
+    the Apache core content handler.</p>
+
+    <p>This module is an extension of and borrows heavily from the
+    <code>mod_mmap_static</code> module in Apache 1.3.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>Topics</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#using">Using mod_file_cache</a></li>
+</ul><h3 class="directives">Directives</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#cachefile">CacheFile</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mmapfile">MMapFile</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_file_cache">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_file_cache">Report a bug</a></li></ul><h3>See also</h3>
+<ul class="seealso">
+<li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="using" id="using">Using mod_file_cache</a></h2>
+
+    <p><code class="module"><a href="../mod/mod_file_cache.html">mod_file_cache</a></code> caches a list of statically
+    configured files via <code class="directive"><a href="#mmapfile">MMapFile</a></code> or <code class="directive"><a href="#cachefile">CacheFile</a></code> directives in the main server configuration.</p>
+
+    <p>Not all platforms support both directives. You will receive an error
+    message in the server error log if you attempt to use an
+    unsupported directive. If given an unsupported directive, the
+    server will start but the file will not be cached. On platforms
+    that support both directives, you should experiment with both to
+    see which works best for you.</p>
+
+    <h3>MMapFile Directive</h3>
+
+      <p>The <code class="directive"><a href="#mmapfile">MMapFile</a></code>
+      directive of <code class="module"><a href="../mod/mod_file_cache.html">mod_file_cache</a></code> maps a list of
+      statically configured files into memory through the system call
+      <code>mmap()</code>. This system call is available on most modern
+      Unix derivatives, but not on all. There are sometimes system-specific
+      limits on the size and number of files that can be
+      <code>mmap()</code>ed, experimentation is probably the easiest way
+      to find out.</p>
+
+      <p>This <code>mmap()</code>ing is done once at server start or
+      restart, only. So whenever one of the mapped files changes on the
+      filesystem you <em>have</em> to restart the server (see the <a href="../stopping.html">Stopping and Restarting</a> documentation).
+      To reiterate that point: if the files are modified <em>in place</em>
+      without restarting the server you may end up serving requests that
+      are completely bogus. You should update files by unlinking the old
+      copy and putting a new copy in place. Most tools such as
+      <code>rdist</code> and <code>mv</code> do this. The reason why this
+      modules doesn't take care of changes to the files is that this check
+      would need an extra <code>stat()</code> every time which is a waste
+      and against the intent of I/O reduction.</p>
+    
+
+    <h3>CacheFile Directive</h3>
+
+      <p>The <code class="directive"><a href="#cachefile">CacheFile</a></code>
+      directive of <code class="module"><a href="../mod/mod_file_cache.html">mod_file_cache</a></code> opens an active
+      <em>handle</em> or <em>file descriptor</em> to the file (or files)
+      listed in the configuration directive and places these open file
+      handles in the cache. When the file is requested, the server
+      retrieves the handle from the cache and passes it to the
+      <code>sendfile()</code> (or <code>TransmitFile()</code> on Windows),
+      socket API.</p>
+
+      
+
+      <p>This file handle caching is done once at server start or
+      restart, only. So whenever one of the cached files changes on
+      the filesystem you <em>have</em> to restart the server (see the
+      <a href="../stopping.html">Stopping and Restarting</a>
+      documentation). To reiterate that point: if the files are
+      modified <em>in place</em> without restarting the server you
+      may end up serving requests that are completely bogus. You
+      should update files by unlinking the old copy and putting a new
+      copy in place. Most tools such as <code>rdist</code> and
+      <code>mv</code> do this.</p>
+    
+
+    <div class="note"><h3>Note</h3>
+      <p>Don't bother asking for a directive which recursively
+      caches all the files in a directory. Try this instead... See the
+      <code class="directive"><a href="../mod/core.html#include">Include</a></code> directive, and consider
+      this command:</p>
+
+      <div class="example"><p><code>
+        find /www/htdocs -type f -print \<br />
+        | sed -e 's/.*/mmapfile &amp;/' &gt; /www/conf/mmap.conf
+      </code></p></div>
+    </div>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheFile" id="CacheFile">CacheFile</a> <a name="cachefile" id="cachefile">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Cache a list of file handles at startup time</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheFile <var>file-path</var> [<var>file-path</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_file_cache</td></tr>
+</table>
+    <p>The <code class="directive">CacheFile</code> directive opens handles to
+    one or more files (given as whitespace separated arguments) and
+    places these handles into the cache at server startup
+    time. Handles to cached files are automatically closed on a server
+    shutdown.  When the files have changed on the filesystem, the
+    server should be restarted to re-cache them.</p>
+
+    <p>Be careful with the <var>file-path</var> arguments: They have
+    to literally match the filesystem path Apache's URL-to-filename
+    translation handlers create. We cannot compare inodes or other
+    stuff to match paths through symbolic links <em>etc.</em>
+    because that again would cost extra <code>stat()</code> system
+    calls which is not acceptable. This module may or may not work
+    with filenames rewritten by <code class="module"><a href="../mod/mod_alias.html">mod_alias</a></code> or
+    <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>.</p>
+
+    <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">CacheFile /usr/local/apache/htdocs/index.html</pre>
+</div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MMapFile" id="MMapFile">MMapFile</a> <a name="mmapfile" id="mmapfile">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Map a list of files into memory at startup time</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MMapFile <var>file-path</var> [<var>file-path</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_file_cache</td></tr>
+</table>
+    <p>The <code class="directive">MMapFile</code> directive maps one or more files
+    (given as whitespace separated arguments) into memory at server
+    startup time. They are automatically unmapped on a server
+    shutdown. When the files have changed on the filesystem at
+    least a <code>HUP</code> or <code>USR1</code> signal should be send to
+    the server to re-<code>mmap()</code> them.</p>
+
+    <p>Be careful with the <var>file-path</var> arguments: They have
+    to literally match the filesystem path Apache's URL-to-filename
+    translation handlers create. We cannot compare inodes or other
+    stuff to match paths through symbolic links <em>etc.</em>
+    because that again would cost extra <code>stat()</code> system
+    calls which is not acceptable. This module may or may not work
+    with filenames rewritten by <code class="module"><a href="../mod/mod_alias.html">mod_alias</a></code> or
+    <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>.</p>
+
+    <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">MMapFile /usr/local/apache/htdocs/index.html</pre>
+</div>
+
+</div>
+</div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_file_cache.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_file_cache.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ko/mod/mod_file_cache.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_file_cache.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+<meta content="text/html; charset=EUC-KR" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>대량의 가상호스트를 동적으로 설정하기 - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">가상호스트</a></div><div id="page-content"><div id="preamble"><h1>대량의 가상호스트를 동적으로 설정하기</h1>
+<div class="toplang">
+<p><span>가능한 언어: </span><a href="../en/vhosts/mass.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/mass.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ko/vhosts/mass.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/mass.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">이 문서는 최신판 번역이 아닙니다.
+            최근에 변경된 내용은 영어 문서를 참고하세요.</div>
+
+
+    <p>이 문서는 아파치 1.3에서 대량의 가상호스트를 효율적으로
+    서비스하는 방법을 설명한다. 
+    </p>
+
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#motivation">동기</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#overview">개요</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#simple">간단한 동적 가상호스트</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#homepages">가상으로 호스트하는 홈페이지 시스템</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#combinations">한 서버에 여러 가상호스트
+    시스템 사용하기</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ipbased">더 효율적인 IP기반 가상호스트</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#oldversion">아파치 이전 버전 사용하기</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#simple.rewrite"><code>mod_rewrite</code>를
+    사용한 간단한 동적 가상호스트</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#homepages.rewrite"><code>mod_rewrite</code>를
+    사용한 홈페이지 시스템</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#xtra-conf">별도의 가상호스트 설정파일
+    사용하기</a></li>
+</ul><h3>참고</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="motivation" id="motivation">동기</a></h2>
+
+    <p>당신의 <code>httpd.conf</code>에 다음과 같이 서로 비슷한
+    <code>&lt;VirtualHost&gt;</code> 섹션들을 많이 있다면 여기서
+    설명하는 방법이 도움이 될 것이다:</p>
+
+<div class="example"><p><code>
+NameVirtualHost 111.22.33.44<br />
+&lt;VirtualHost 111.22.33.44&gt;<br />
+<span class="indent">
+    ServerName                 www.customer-1.com<br />
+    DocumentRoot        /www/hosts/www.customer-1.com/docs<br />
+    ScriptAlias  /cgi-bin/  /www/hosts/www.customer-1.com/cgi-bin<br />
+</span>
+&lt;/VirtualHost&gt;<br />
+&lt;VirtualHost 111.22.33.44&gt;<br />
+<span class="indent">
+    ServerName                 www.customer-2.com<br />
+    DocumentRoot        /www/hosts/www.customer-2.com/docs<br />
+    ScriptAlias  /cgi-bin/  /www/hosts/www.customer-2.com/cgi-bin<br />
+</span>
+&lt;/VirtualHost&gt;<br />
+# 바보 바보 바보<br />
+&lt;VirtualHost 111.22.33.44&gt;<br />
+<span class="indent">
+    ServerName                 www.customer-N.com<br />
+    DocumentRoot        /www/hosts/www.customer-N.com/docs<br />
+    ScriptAlias  /cgi-bin/  /www/hosts/www.customer-N.com/cgi-bin<br />
+</span>
+&lt;/VirtualHost&gt;
+</code></p></div>
+
+    <p>기본 개념은 정적인 <code>&lt;VirtualHost&gt;</code>
+    설정 모두를 동적으로 처리하도록 대체하는 것이다.
+    그러면 많은 장점이 있다:</p>
+
+    <ol>
+      <li>설정파일이 작아져서 아파치가 빨리 시작하고 메모리를
+      적게 사용한다.</li>
+
+      <li>가상호스트를 추가하기위해 파일시스템에 적당한
+      디렉토리를 만들고 DNS에 항목을 추가하기만 하면된다. 즉,
+      아파치를 재설정하고 재시작할 필요가 없다.</li>
+    </ol>
+
+    <p>단점은 각 가상호스트별로 다른 로그파일을 사용할 수 없다는
+    점이다. 그러나 매우 많은 가상호스트를 사용한다면 파일기술자를
+    다 써버리기때문에 서로 다른 로그파일을 사용할 수 없다. 파이프나
+    fifo로 로그를 보내고, 받는 편에서 로그를 처리하여 나누는
+    방법이 (통계 등을 모을 수도 있다) 더 낫다.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="overview" id="overview">개요</a></h2>
+
+    <p>가상호스트는 IP 주소와 HTTP 요청의 <code>Host:</code>
+    헤더 정보로 정의한다. 기본적으로 대량의
+    동적 가상호스트 기술은 자동으로 가상호스트 정보를 요청의
+    파일경로에 포함한다. 이는 대부분 <code class="module"><a href="../mod/mod_vhost_alias.html">mod_vhost_alias</a></code>를
+    사용하여 쉽게 해결할 수 있지만, 아파치 1.3.6 이하를 사용한다면
+    <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>를 사용해야 한다. 이 두 모듈
+    모두 기본적으로 서버에 포함되지 않는다. 이 방법을 사용하려면
+    아파치를 구성하고 컴파일할때 포함해야 한다.</p>
+
+    <p>동적 가상호스트를 일반적인 가상호스트처럼 보이게하려면
+    여러가지를 `속여야' 한다. 가장 중요한 것은 아파치가 자기참조
+    URL 등을 만들때 사용할 서버명이다. 서버명은
+    <code>ServerName</code> 지시어로 설정하며, CGI에는
+    <code>SERVER_NAME</code> 환경변수로 주어진다.  실행중 실제
+    서버명은 <code class="directive"><a href="../mod/core.html#usecanonicalname">UseCanonicalName</a></code> 설정에 달렸다.
+    <code>UseCanonicalName Off</code>이면 요청의 <code>Host:</code>
+    헤더 내용이 서버명이 된다. <code>UseCanonicalName DNS</code>이면
+    가상호스트의 IP 주소를 역DNS 검색하여 서버명을 알아낸다.
+    전자는 이름기반 동적 가상호스트에서 사용하고, 후자는 IP기반
+    가상호스트에서 사용한다. <code>Host:</code> 헤더가 없거나
+    DNS 검색이 실패하여 아파치가 서버명을 알아내지 못하면
+    <code>ServerName</code>으로 설정한 값을 대신 사용한다.</p>
+
+    <p>다른 `속일' 것은 (<code>DocumentRoot</code>로 설정하며,
+    CGI에는 <code>DOCUMENT_ROOT</code> 환경변수로 주어지는)
+    문서루트이다. 일반적인 경우 core 모듈이 이 설정을 사용하여
+    URI에 해당하는 파일명을 찾지만, 서버를 동적 가상호스팅을 할때는 다른
+    모듈이 (<code>mod_vhost_alias</code>나 <code>mod_rewrite</code>)
+    다른 방법으로 이런 작업을 한다. 두 모듈 모두
+    <code>DOCUMENT_ROOT</code> 환경변수를 사용하지 않으므로
+    CGI나 SSI 문서가 이 값을 사용한다면 잘못된 결과를 얻을 수
+    있다.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="simple" id="simple">간단한 동적 가상호스트</a></h2>
+
+    <p>위 <a href="#motivation">동기</a> 절의 가상호스트
+    설정을 <code>mod_vhost_alias</code>를 사용하여 더 일반적으로
+    구현했다.</p>
+
+<div class="example"><p><code>
+# Host: 헤더에서 서버명을 알아낸다<br />
+UseCanonicalName Off<br />
+<br />
+# 첫번째 필드를 사용하여 이 로그를 가상호스트별로 나눌 수 있다<br />
+LogFormat "%V %h %l %u %t \"%r\" %s %b" vcommon<br />
+CustomLog logs/access_log vcommon<br />
+<br />
+# 요청을 처리하기위해 파일명에 서버명을 포함한다<br />
+VirtualDocumentRoot /www/hosts/%0/docs<br />
+VirtualScriptAlias  /www/hosts/%0/cgi-bin
+</code></p></div>
+
+    <p>이 설정에서 <code>UseCanonicalName Off</code>를
+    <code>UseCanonicalName DNS</code>로 변경하기만 하면 IP기반
+    가상호스트가 된다. 가상호스트의 IP 주소를 가지고
+    파일명에 추가할 서버명을 알 수 있다.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="homepages" id="homepages">가상으로 호스트하는 홈페이지 시스템</a></h2>
+
+    <p>ISP 홈페이지 서버를 위해 위의 설정을 수정했다. 조금 더
+    복잡한 설정을 사용하면 <code>www.user.isp.com</code>의 문서를
+    <code>/home/user/</code>에 두는 식으로 서버명의 일부를 가지고
+    파일명을 만들 수 있다. 이 설정은
+    <code>cgi-bin</code>을 각 가상호스트가 따로 가지지않고
+    모든 가상호스트가 같이 사용한다.</p>
+
+<div class="example"><p><code>
+# 기본적인 내용은 위와 같다. 그리고<br />
+<br />
+# 파일명에 서버명의 일부를 포함한다<br />
+VirtualDocumentRoot /www/hosts/%2/docs<br />
+<br />
+# 하나의 cgi-bin 디렉토리<br />
+ScriptAlias  /cgi-bin/  /www/std-cgi/<br />
+</code></p></div>
+
+    <p><code class="module"><a href="../mod/mod_vhost_alias.html">mod_vhost_alias</a></code> 문서에는 더 복잡한
+    <code>VirtualDocumentRoot</code> 설정의 예가 있다.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="combinations" id="combinations">한 서버에 여러 가상호스트
+    시스템 사용하기</a></h2>
+
+    <p>더 복잡한 설정의 예로 아파치의 일반적인
+    <code>&lt;VirtualHost&gt;</code> 지시어를 사용하여 여러
+    가상호스트 설정의 범위를 조절할 수 있다. 예를 들어, 다음과
+    같은 설정은 홈페이지 고객에 IP 주소 한개, 상업적인
+    고객에게 다른 IP 주소 한개를 부여한다. 물론 이전처럼
+    <code>&lt;VirtualHost&gt;</code> 설정 섹션에 모두 묶을 수도
+    있다.</p>
+
+<div class="example"><p><code>
+UseCanonicalName Off<br />
+<br />
+LogFormat "%V %h %l %u %t \"%r\" %s %b" vcommon<br />
+<br />
+&lt;Directory /www/commercial&gt;<br />
+<span class="indent">
+    Options FollowSymLinks<br />
+    AllowOverride All<br />
+</span>
+&lt;/Directory&gt;<br />
+<br />
+&lt;Directory /www/homepages&gt;<br />
+<span class="indent">
+    Options FollowSymLinks<br />
+    AllowOverride None<br />
+</span>
+&lt;/Directory&gt;<br />
+<br />
+&lt;VirtualHost 111.22.33.44&gt;<br />
+<span class="indent">
+    ServerName www.commercial.isp.com<br />
+    <br />
+    CustomLog logs/access_log.commercial vcommon<br />
+    <br />
+    VirtualDocumentRoot /www/commercial/%0/docs<br />
+    VirtualScriptAlias  /www/commercial/%0/cgi-bin<br />
+</span>
+&lt;/VirtualHost&gt;<br />
+<br />
+&lt;VirtualHost 111.22.33.45&gt;<br />
+<span class="indent">
+    ServerName www.homepages.isp.com<br />
+    <br />
+    CustomLog logs/access_log.homepages vcommon<br />
+    <br />
+    VirtualDocumentRoot /www/homepages/%0/docs<br />
+    ScriptAlias         /cgi-bin/ /www/std-cgi/<br />
+</span>
+&lt;/VirtualHost&gt;
+</code></p></div>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="ipbased" id="ipbased">더 효율적인 IP기반 가상호스트</a></h2>
+
+    <p><a href="#simple">첫번째 예</a>에서 나는 설정을 간단히
+    IP기반 가상호스트로 바꿀 수 있다고 말했다. 불행히도
+    그런 설정은 매 요청마다 DNS를 찾아야하므로 매우 비효율적이다.
+    이름대신 IP 주소로 파일시스템을 구성하고 같은 방식으로
+    로그를 수정하면 문제를 해결할 수 있다. 아파치는 서버명을
+    다룰 필요가 없어지고, DNS 검색도 하지 않게 된다.</p>
+
+<div class="example"><p><code>
+# IP 주소를 역DNS 검색하여 서버명을 알아낸다<br />
+UseCanonicalName DNS<br />
+<br />
+# 로그를 나눌 수 있도록 IP 주소를 포함한다<br />
+LogFormat "%A %h %l %u %t \"%r\" %s %b" vcommon<br />
+CustomLog logs/access_log vcommon<br />
+<br />
+# 파일명에 IP 주소를 포함한다<br />
+VirtualDocumentRootIP /www/hosts/%0/docs<br />
+VirtualScriptAliasIP  /www/hosts/%0/cgi-bin<br />
+</code></p></div>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="oldversion" id="oldversion">아파치 이전 버전 사용하기</a></h2>
+
+    <p>위 예들은 아파치 버전 1.3.6 이후에 포함된
+    <code>mod_vhost_alias</code>을 사용한다.
+    <code>mod_vhost_alias</code>가 없는 아파치 버전을 사용한다면
+    이미 말했듯이 <code>mod_rewrite</code>를 사용하여, 단
+    Host:-헤더기반 가상호스트만을, 구현할 수 있다.</p>
+
+    <p>또 로그에 관하여 주의할 점이 있다. 아파치 1.3.6에서
+    로그형식 지시어 <code>%V</code>가 포함되었고, 버전 1.3.0
+    - 1.3.3에서 이 기능을 <code>%v</code> 옵션이 대신 했다. 그러나
+    버전 1.3.4에는 이런 기능이 없다. 어떤 아파치 버전에서도
+    <code>.htaccess</code> 파일에서 <code>UseCanonicalName</code>
+    지시어를 사용할 수 있으므로 로그에 이상한 내용이 기록될 수 있다.
+    그러므로 가장 좋은 방법은 <code>%{Host}i</code> 지시어를
+    사용하여 <code>Host:</code> 헤더를 직접 로그에 남기는 것이다.
+    또, 이 방법은 <code>%V</code>는 포함하지않는 <code>:port</code>를
+    뒤에 추가할 수 있다.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="simple.rewrite" id="simple.rewrite"><code>mod_rewrite</code>를
+    사용한 간단한 동적 가상호스트</a></h2>
+
+    <p>다음은 <a href="#simple">첫번째 예</a>와 같은 일을 하는
+    <code>httpd.conf</code> 예이다. 처음 절반은 첫번째 예와
+    거의 비슷하지만, 이전 버전과의 호환성과 <code>mod_rewrite</code>의
+    적절한 동작을 위해 수정되었다. 나머지 절반은 실제 작업을
+    하는 <code>mod_rewrite</code>를 설정한다.</p>
+
+    <p>특별히 주의해야 할 사항이 있다. 기본적으로
+    <code>mod_rewrite</code>는 (<code>mod_alias</code> 등) 다른
+    URI 번역 모듈 이전에 실행된다. 그래서 다른 URI 번역 모듈들과
+    같이 동작할 것을 고려하여 <code>mod_rewrite</code>를 설정해야 한다.
+    또, 동적 가상호스트에서 <code>ScriptAlias</code>과 같은
+    기능을 위해서는 특별한 작업이 필요하다.</p>
+
+<div class="example"><p><code>
+# Host: 헤더에서 서버명을 얻는다<br />
+UseCanonicalName Off<br />
+<br />
+# splittable logs<br />
+LogFormat "%{Host}i %h %l %u %t \"%r\" %s %b" vcommon<br />
+CustomLog logs/access_log vcommon<br />
+<br />
+&lt;Directory /www/hosts&gt;<br />
+<span class="indent">
+    # ScriptAlias 식으로 CGI 실행을 강제할 수 없기때문에<br />
+    # 여기에 ExecCGI를 사용한다<br />
+    Options FollowSymLinks ExecCGI<br />
+</span>
+&lt;/Directory&gt;<br />
+<br />
+# 이제 어려운 부분이다<br />
+<br />
+RewriteEngine On<br />
+<br />
+# Host: 헤더에서 가져온 서버명에는 대소문자가 뒤섞여있을 수 있다<br />
+RewriteMap  lowercase  int:tolower<br />
+<br />
+## 일반 문서를 먼저 처리한다:<br />
+# Alias /icons/ 가 동작하도록 - 다른 alias에 대해서도 반복<br />
+RewriteCond  %{REQUEST_URI}  !^/icons/<br />
+# CGI가 동작하도록<br />
+RewriteCond  %{REQUEST_URI}  !^/cgi-bin/<br />
+# 특별한 작업<br />
+RewriteRule  ^/(.*)$  /www/hosts/${lowercase:%{SERVER_NAME}}/docs/$1<br />
+<br />
+## 이제 CGI를 처리한다 - MIME type을 강제해야 한다<br />
+RewriteCond  %{REQUEST_URI}  ^/cgi-bin/<br />
+RewriteRule  ^/(.*)$  /www/hosts/${lowercase:%{SERVER_NAME}}/cgi-bin/$1  [T=application/x-httpd-cgi]<br />
+<br />
+# 끝!
+</code></p></div>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="homepages.rewrite" id="homepages.rewrite"><code>mod_rewrite</code>를
+    사용한 홈페이지 시스템</a></h2>
+
+    <p>다음은 <a href="#homepages">두번째 예</a>와 같은 일을
+    한다.</p>
+
+<div class="example"><p><code>
+RewriteEngine on<br />
+<br />
+RewriteMap   lowercase  int:tolower<br />
+<br />
+# CGI가 동작하도록<br />
+RewriteCond  %{REQUEST_URI}  !^/cgi-bin/<br />
+<br />
+# RewriteRule이 동작하도록 호스트명이 올바른지 검사한다<br />
+RewriteCond  ${lowercase:%{SERVER_NAME}}  ^www\.[a-z-]+\.isp\.com$<br />
+<br />
+# 가상호스트명을 URI 앞에 붙인다<br />
+# [C]는 이 결과를 가지고 다음 재작성을 수행함을 뜻한다<br />
+RewriteRule  ^(.+)  ${lowercase:%{SERVER_NAME}}$1  [C]<br />
+<br />
+# 이제 실제 파일명을 만든다<br />
+RewriteRule  ^www\.([a-z-]+)\.isp\.com/(.*) /home/$1/$2<br />
+<br />
+# 전체 CGI 디렉토리를 정의한다<br />
+ScriptAlias  /cgi-bin/  /www/std-cgi/
+</code></p></div>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="xtra-conf" id="xtra-conf">별도의 가상호스트 설정파일
+    사용하기</a></h2>
+
+    <p>다음은 <code>mod_rewrite</code>의 고급 기능을 사용하여
+    별도의 설정파일을 가지고 가상호스트의 문서루트를 알아낸다.
+    더 유연하지만 더 복잡한 설정이 필요하다.</p>
+
+    <p><code>vhost.map</code> 파일은 다음과 같다:</p>
+
+<div class="example"><p><code>
+www.customer-1.com  /www/customers/1<br />
+www.customer-2.com  /www/customers/2<br />
+# ...<br />
+www.customer-N.com  /www/customers/N<br />
+</code></p></div>
+
+    <p><code>http.conf</code>는 다음과 같다:</p>
+
+<div class="example"><p><code>
+RewriteEngine on<br />
+<br />
+RewriteMap   lowercase  int:tolower<br />
+<br />
+# 대응파일을 정의한다<br />
+RewriteMap   vhost      txt:/www/conf/vhost.map<br />
+<br />
+# 위와 같이 alias들을 처리한다<br />
+RewriteCond  %{REQUEST_URI}               !^/icons/<br />
+RewriteCond  %{REQUEST_URI}               !^/cgi-bin/<br />
+RewriteCond  ${lowercase:%{SERVER_NAME}}  ^(.+)$<br />
+# 파일 내용을 가지고 찾는다<br />
+RewriteCond  ${vhost:%1}                  ^(/.*)$<br />
+RewriteRule  ^/(.*)$                      %1/docs/$1<br />
+<br />
+RewriteCond  %{REQUEST_URI}               ^/cgi-bin/<br />
+RewriteCond  ${lowercase:%{SERVER_NAME}}  ^(.+)$<br />
+RewriteCond  ${vhost:%1}                  ^(/.*)$<br />
+RewriteRule  ^/(.*)$                      %1/cgi-bin/$1
+</code></p></div>
+
+</div></div>
+<div class="bottomlang">
+<p><span>가능한 언어: </span><a href="../en/vhosts/mass.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/mass.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ko/vhosts/mass.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/mass.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/vhosts/mass.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

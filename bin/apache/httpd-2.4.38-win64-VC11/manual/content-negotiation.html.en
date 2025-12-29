@@ -1,0 +1,711 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Content Negotiation - Apache HTTP Server Version 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">Modules</a> | <a href="./mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">Glossary</a> | <a href="./sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="./">Version 2.4</a></div><div id="page-content"><div id="preamble"><h1>Content Negotiation</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="./en/content-negotiation.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/content-negotiation.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/content-negotiation.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/content-negotiation.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/content-negotiation.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+
+    <p>Apache HTTPD supports content negotiation as described in
+    the HTTP/1.1 specification. It can choose the best
+    representation of a resource based on the browser-supplied
+    preferences for media type, languages, character set and
+    encoding. It also implements a couple of features to give
+    more intelligent handling of requests from browsers that send
+    incomplete negotiation information.</p>
+
+    <p>Content negotiation is provided by the
+    <code class="module"><a href="./mod/mod_negotiation.html">mod_negotiation</a></code> module, which is compiled in
+    by default.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#about">About Content Negotiation</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#negotiation">Negotiation in httpd</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#methods">The Negotiation Methods</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#better">Fiddling with Quality
+    Values</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#extensions">Extensions to Transparent Content
+Negotiation</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#naming">Note on hyperlinks and naming conventions</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#caching">Note on Caching</a></li>
+</ul><h3>See also</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="about" id="about">About Content Negotiation</a></h2>
+
+    <p>A resource may be available in several different
+    representations. For example, it might be available in
+    different languages or different media types, or a combination.
+    One way of selecting the most appropriate choice is to give the
+    user an index page, and let them select. However it is often
+    possible for the server to choose automatically. This works
+    because browsers can send, as part of each request, information
+    about what representations they prefer. For example, a browser
+    could indicate that it would like to see information in French,
+    if possible, else English will do. Browsers indicate their
+    preferences by headers in the request. To request only French
+    representations, the browser would send</p>
+
+<div class="example"><p><code>Accept-Language: fr</code></p></div>
+
+    <p>Note that this preference will only be applied when there is
+    a choice of representations and they vary by language.</p>
+
+    <p>As an example of a more complex request, this browser has
+    been configured to accept French and English, but prefer
+    French, and to accept various media types, preferring HTML over
+    plain text or other text types, and preferring GIF or JPEG over
+    other media types, but also allowing any other media type as a
+    last resort:</p>
+
+<div class="example"><p><code>
+  Accept-Language: fr; q=1.0, en; q=0.5<br />
+  Accept: text/html; q=1.0, text/*; q=0.8, image/gif; q=0.6, image/jpeg; q=0.6, image/*; q=0.5, */*; q=0.1
+</code></p></div>
+
+    <p>httpd supports 'server driven' content negotiation, as
+    defined in the HTTP/1.1 specification. It fully supports the
+    <code>Accept</code>, <code>Accept-Language</code>,
+    <code>Accept-Charset</code> and <code>Accept-Encoding</code>
+    request headers. httpd also supports 'transparent'
+    content negotiation, which is an experimental negotiation
+    protocol defined in RFC 2295 and RFC 2296. It does not offer
+    support for 'feature negotiation' as defined in these RFCs.</p>
+
+    <p>A <strong>resource</strong> is a conceptual entity
+    identified by a URI (RFC 2396). An HTTP server like Apache HTTP Server
+    provides access to <strong>representations</strong> of the
+    resource(s) within its namespace, with each representation in
+    the form of a sequence of bytes with a defined media type,
+    character set, encoding, etc. Each resource may be associated
+    with zero, one, or more than one representation at any given
+    time. If multiple representations are available, the resource
+    is referred to as <strong>negotiable</strong> and each of its
+    representations is termed a <strong>variant</strong>. The ways
+    in which the variants for a negotiable resource vary are called
+    the <strong>dimensions</strong> of negotiation.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="negotiation" id="negotiation">Negotiation in httpd</a></h2>
+
+    <p>In order to negotiate a resource, the server needs to be
+    given information about each of the variants. This is done in
+    one of two ways:</p>
+
+    <ul>
+      <li>Using a type map (<em>i.e.</em>, a <code>*.var</code>
+      file) which names the files containing the variants
+      explicitly, or</li>
+
+      <li>Using a 'MultiViews' search, where the server does an
+      implicit filename pattern match and chooses from among the
+      results.</li>
+    </ul>
+
+   <h3><a name="type-map" id="type-map">Using a type-map file</a></h3>
+
+    <p>A type map is a document which is associated with the handler
+    named <code>type-map</code> (or, for backwards-compatibility with
+    older httpd configurations, the <a class="glossarylink" href="./glossary.html#mime-type" title="see glossary">MIME-type</a>
+    <code>application/x-type-map</code>). Note that to use this
+    feature, you must have a handler set in the configuration that
+    defines a file suffix as <code>type-map</code>; this is best done
+    with</p>
+
+<pre class="prettyprint lang-config">AddHandler type-map .var</pre>
+
+
+    <p>in the server configuration file.</p>
+
+    <p>Type map files should have the same name as the resource
+    which they are describing, followed by the extension
+    <code>.var</code>. In the examples shown below, the resource is
+    named <code>foo</code>, so the type map file is named
+    <code>foo.var</code>.</p>
+
+    <p>This file should have an entry for each available
+    variant; these entries consist of contiguous HTTP-format header
+    lines. Entries for different variants are separated by blank
+    lines. Blank lines are illegal within an entry. It is
+    conventional to begin a map file with an entry for the combined
+    entity as a whole (although this is not required, and if
+    present will be ignored). An example map file is shown below.</p>
+
+    <p>URIs in this file are relative to the location of the type map
+    file. Usually, these files will be located in the same directory as
+    the type map file, but this is not required. You may provide
+    absolute or relative URIs for any file located on the same server as
+    the map file.</p>
+
+<div class="example"><p><code>
+  URI: foo<br />
+<br />
+  URI: foo.en.html<br />
+  Content-type: text/html<br />
+  Content-language: en<br />
+<br />
+  URI: foo.fr.de.html<br />
+  Content-type: text/html;charset=iso-8859-2<br />
+  Content-language: fr, de<br />
+</code></p></div>
+
+    <p>Note also that a typemap file will take precedence over the
+    filename's extension, even when Multiviews is on. If the
+    variants have different source qualities, that may be indicated
+    by the "qs" parameter to the media type, as in this picture
+    (available as JPEG, GIF, or ASCII-art): </p>
+
+<div class="example"><p><code>
+  URI: foo<br />
+<br />
+  URI: foo.jpeg<br />
+  Content-type: image/jpeg; qs=0.8<br />
+<br />
+  URI: foo.gif<br />
+  Content-type: image/gif; qs=0.5<br />
+<br />
+  URI: foo.txt<br />
+  Content-type: text/plain; qs=0.01<br />
+</code></p></div>
+
+    <p>qs values can vary in the range 0.000 to 1.000. Note that
+    any variant with a qs value of 0.000 will never be chosen.
+    Variants with no 'qs' parameter value are given a qs factor of
+    1.0. The qs parameter indicates the relative 'quality' of this
+    variant compared to the other available variants, independent
+    of the client's capabilities. For example, a JPEG file is
+    usually of higher source quality than an ASCII file if it is
+    attempting to represent a photograph. However, if the resource
+    being represented is an original ASCII art, then an ASCII
+    representation would have a higher source quality than a JPEG
+    representation. A qs value is therefore specific to a given
+    variant depending on the nature of the resource it
+    represents.</p>
+
+    <p>The full list of headers recognized is available in the <a href="mod/mod_negotiation.html#typemaps">mod_negotiation
+    typemap</a> documentation.</p>
+
+
+<h3><a name="multiviews" id="multiviews">Multiviews</a></h3>
+
+    <p><code>MultiViews</code> is a per-directory option, meaning it
+    can be set with an <code class="directive"><a href="./mod/core.html#options">Options</a></code>
+    directive within a <code class="directive"><a href="./mod/core.html#directory">&lt;Directory&gt;</a></code>, <code class="directive"><a href="./mod/core.html#location">&lt;Location&gt;</a></code> or <code class="directive"><a href="./mod/core.html#files">&lt;Files&gt;</a></code> section in
+    <code>httpd.conf</code>, or (if <code class="directive"><a href="./mod/core.html#allowoverride">AllowOverride</a></code> is properly set) in
+    <code>.htaccess</code> files. Note that <code>Options All</code>
+    does not set <code>MultiViews</code>; you have to ask for it by
+    name.</p>
+
+    <p>The effect of <code>MultiViews</code> is as follows: if the
+    server receives a request for <code>/some/dir/foo</code>, if
+    <code>/some/dir</code> has <code>MultiViews</code> enabled, and
+    <code>/some/dir/foo</code> does <em>not</em> exist, then the
+    server reads the directory looking for files named foo.*, and
+    effectively fakes up a type map which names all those files,
+    assigning them the same media types and content-encodings it
+    would have if the client had asked for one of them by name. It
+    then chooses the best match to the client's requirements.</p>
+
+    <p><code>MultiViews</code> may also apply to searches for the file
+    named by the <code class="directive"><a href="./mod/mod_dir.html#directoryindex">DirectoryIndex</a></code> directive, if the
+    server is trying to index a directory. If the configuration files
+    specify</p>
+<pre class="prettyprint lang-config">DirectoryIndex index</pre>
+
+    <p>then the server will arbitrate between <code>index.html</code>
+    and <code>index.html3</code> if both are present. If neither
+    are present, and <code>index.cgi</code> is there, the server
+    will run it.</p>
+
+    <p>If one of the files found when reading the directory does not
+    have an extension recognized by <code>mod_mime</code> to designate
+    its Charset, Content-Type, Language, or Encoding, then the result
+    depends on the setting of the <code class="directive"><a href="./mod/mod_mime.html#multiviewsmatch">MultiViewsMatch</a></code> directive.  This
+    directive determines whether handlers, filters, and other
+    extension types can participate in MultiViews negotiation.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="methods" id="methods">The Negotiation Methods</a></h2>
+
+    <p>After httpd has obtained a list of the variants for a given
+    resource, either from a type-map file or from the filenames in
+    the directory, it invokes one of two methods to decide on the
+    'best' variant to return, if any. It is not necessary to know
+    any of the details of how negotiation actually takes place in
+    order to use httpd's content negotiation features. However the
+    rest of this document explains the methods used for those
+    interested. </p>
+
+    <p>There are two negotiation methods:</p>
+
+    <ol>
+      <li><strong>Server driven negotiation with the httpd
+      algorithm</strong> is used in the normal case. The httpd
+      algorithm is explained in more detail below. When this
+      algorithm is used, httpd can sometimes 'fiddle' the quality
+      factor of a particular dimension to achieve a better result.
+      The ways httpd can fiddle quality factors is explained in
+      more detail below.</li>
+
+      <li><strong>Transparent content negotiation</strong> is used
+      when the browser specifically requests this through the
+      mechanism defined in RFC 2295. This negotiation method gives
+      the browser full control over deciding on the 'best' variant,
+      the result is therefore dependent on the specific algorithms
+      used by the browser. As part of the transparent negotiation
+      process, the browser can ask httpd to run the 'remote
+      variant selection algorithm' defined in RFC 2296.</li>
+    </ol>
+
+<h3><a name="dimensions" id="dimensions">Dimensions of Negotiation</a></h3>
+
+    <table>
+      
+      <tr valign="top">
+        <th>Dimension</th>
+
+        <th>Notes</th>
+      </tr>
+
+      <tr valign="top">
+        <td>Media Type</td>
+
+        <td>Browser indicates preferences with the <code>Accept</code>
+        header field. Each item can have an associated quality factor.
+        Variant description can also have a quality factor (the "qs"
+        parameter).</td>
+      </tr>
+
+      <tr valign="top">
+        <td>Language</td>
+
+        <td>Browser indicates preferences with the
+        <code>Accept-Language</code> header field. Each item can have
+        a quality factor. Variants can be associated with none, one or
+        more than one language.</td>
+      </tr>
+
+      <tr valign="top">
+        <td>Encoding</td>
+
+        <td>Browser indicates preference with the
+        <code>Accept-Encoding</code> header field. Each item can have
+        a quality factor.</td>
+      </tr>
+
+      <tr valign="top">
+        <td>Charset</td>
+
+        <td>Browser indicates preference with the
+        <code>Accept-Charset</code> header field. Each item can have a
+        quality factor. Variants can indicate a charset as a parameter
+        of the media type.</td>
+      </tr>
+    </table>
+
+
+<h3><a name="algorithm" id="algorithm">httpd Negotiation Algorithm</a></h3>
+
+    <p>httpd can use the following algorithm to select the 'best'
+    variant (if any) to return to the browser. This algorithm is
+    not further configurable. It operates as follows:</p>
+
+    <ol>
+      <li>First, for each dimension of the negotiation, check the
+      appropriate <em>Accept*</em> header field and assign a
+      quality to each variant. If the <em>Accept*</em> header for
+      any dimension implies that this variant is not acceptable,
+      eliminate it. If no variants remain, go to step 4.</li>
+
+      <li>
+        Select the 'best' variant by a process of elimination. Each
+        of the following tests is applied in order. Any variants
+        not selected at each test are eliminated. After each test,
+        if only one variant remains, select it as the best match
+        and proceed to step 3. If more than one variant remains,
+        move on to the next test.
+
+        <ol>
+          <li>Multiply the quality factor from the <code>Accept</code>
+          header with the quality-of-source factor for this variants
+          media type, and select the variants with the highest
+          value.</li>
+
+          <li>Select the variants with the highest language quality
+          factor.</li>
+
+          <li>Select the variants with the best language match,
+          using either the order of languages in the
+          <code>Accept-Language</code> header (if present), or else
+          the order of languages in the <code>LanguagePriority</code>
+          directive (if present).</li>
+
+          <li>Select the variants with the highest 'level' media
+          parameter (used to give the version of text/html media
+          types).</li>
+
+          <li>Select variants with the best charset media
+          parameters, as given on the <code>Accept-Charset</code>
+          header line.  Charset ISO-8859-1 is acceptable unless
+          explicitly excluded. Variants with a <code>text/*</code>
+          media type but not explicitly associated with a particular
+          charset are assumed to be in ISO-8859-1.</li>
+
+          <li>Select those variants which have associated charset
+          media parameters that are <em>not</em> ISO-8859-1. If
+          there are no such variants, select all variants
+          instead.</li>
+
+          <li>Select the variants with the best encoding. If there
+          are variants with an encoding that is acceptable to the
+          user-agent, select only these variants. Otherwise if
+          there is a mix of encoded and non-encoded variants,
+          select only the unencoded variants. If either all
+          variants are encoded or all variants are not encoded,
+          select all variants.</li>
+
+          <li>Select the variants with the smallest content
+          length.</li>
+
+          <li>Select the first variant of those remaining. This
+          will be either the first listed in the type-map file, or
+          when variants are read from the directory, the one whose
+          file name comes first when sorted using ASCII code
+          order.</li>
+        </ol>
+      </li>
+
+      <li>The algorithm has now selected one 'best' variant, so
+      return it as the response. The HTTP response header
+      <code>Vary</code> is set to indicate the dimensions of
+      negotiation (browsers and caches can use this information when
+      caching the resource).  End.</li>
+
+      <li>To get here means no variant was selected (because none
+      are acceptable to the browser). Return a 406 status (meaning
+      "No acceptable representation") with a response body
+      consisting of an HTML document listing the available
+      variants. Also set the HTTP <code>Vary</code> header to
+      indicate the dimensions of variance.</li>
+    </ol>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="better" id="better">Fiddling with Quality
+    Values</a></h2>
+
+    <p>httpd sometimes changes the quality values from what would
+    be expected by a strict interpretation of the httpd
+    negotiation algorithm above. This is to get a better result
+    from the algorithm for browsers which do not send full or
+    accurate information. Some of the most popular browsers send
+    <code>Accept</code> header information which would otherwise
+    result in the selection of the wrong variant in many cases. If a
+    browser sends full and correct information these fiddles will not
+    be applied.</p>
+
+<h3><a name="wildcards" id="wildcards">Media Types and Wildcards</a></h3>
+
+    <p>The <code>Accept:</code> request header indicates preferences
+    for media types. It can also include 'wildcard' media types, such
+    as "image/*" or "*/*" where the * matches any string. So a request
+    including:</p>
+
+<div class="example"><p><code>Accept: image/*, */*</code></p></div>
+
+    <p>would indicate that any type starting "image/" is acceptable,
+    as is any other type.
+    Some browsers routinely send wildcards in addition to explicit
+    types they can handle. For example:</p>
+
+<div class="example"><p><code>
+  Accept: text/html, text/plain, image/gif, image/jpeg, */*
+</code></p></div>
+    <p>The intention of this is to indicate that the explicitly listed
+    types are preferred, but if a different representation is
+    available, that is ok too.  Using explicit quality values,
+    what the browser really wants is something like:</p>
+<div class="example"><p><code>
+  Accept: text/html, text/plain, image/gif, image/jpeg, */*; q=0.01
+</code></p></div>
+    <p>The explicit types have no quality factor, so they default to a
+    preference of 1.0 (the highest). The wildcard */* is given a
+    low preference of 0.01, so other types will only be returned if
+    no variant matches an explicitly listed type.</p>
+
+    <p>If the <code>Accept:</code> header contains <em>no</em> q
+    factors at all, httpd sets the q value of "*/*", if present, to
+    0.01 to emulate the desired behavior. It also sets the q value of
+    wildcards of the format "type/*" to 0.02 (so these are preferred
+    over matches against "*/*". If any media type on the
+    <code>Accept:</code> header contains a q factor, these special
+    values are <em>not</em> applied, so requests from browsers which
+    send the explicit information to start with work as expected.</p>
+
+
+<h3><a name="exceptions" id="exceptions">Language Negotiation Exceptions</a></h3>
+
+    <p>New in httpd 2.0, some exceptions have been added to the
+    negotiation algorithm to allow graceful fallback when language
+    negotiation fails to find a match.</p>
+
+    <p>When a client requests a page on your server, but the server
+    cannot find a single page that matches the
+    <code>Accept-language</code> sent by
+    the browser, the server will return either a "No Acceptable
+    Variant" or "Multiple Choices" response to the client.  To avoid
+    these error messages, it is possible to configure httpd to ignore
+    the <code>Accept-language</code> in these cases and provide a
+    document that does not explicitly match the client's request.  The
+    <code class="directive"><a href="./mod/mod_negotiation.html#forcelanguagepriority">ForceLanguagePriority</a></code>
+    directive can be used to override one or both of these error
+    messages and substitute the servers judgement in the form of the
+    <code class="directive"><a href="./mod/mod_negotiation.html#languagepriority">LanguagePriority</a></code>
+    directive.</p>
+
+    <p>The server will also attempt to match language-subsets when no
+    other match can be found.  For example, if a client requests
+    documents with the language <code>en-GB</code> for British
+    English, the server is not normally allowed by the HTTP/1.1
+    standard to match that against a document that is marked as simply
+    <code>en</code>.  (Note that it is almost surely a configuration
+    error to include <code>en-GB</code> and not <code>en</code> in the
+    <code>Accept-Language</code> header, since it is very unlikely
+    that a reader understands British English, but doesn't understand
+    English in general.  Unfortunately, many current clients have
+    default configurations that resemble this.)  However, if no other
+    language match is possible and the server is about to return a "No
+    Acceptable Variants" error or fallback to the <code class="directive"><a href="./mod/mod_negotiation.html#languagepriority">LanguagePriority</a></code>, the server
+    will ignore the subset specification and match <code>en-GB</code>
+    against <code>en</code> documents.  Implicitly, httpd will add
+    the parent language to the client's acceptable language list with
+    a very low quality value.  But note that if the client requests
+    "en-GB; q=0.9, fr; q=0.8", and the server has documents
+    designated "en" and "fr", then the "fr" document will be returned.
+    This is necessary to maintain compliance with the HTTP/1.1
+    specification and to work effectively with properly configured
+    clients.</p>
+
+    <p>In order to support advanced techniques (such as cookies or
+    special URL-paths) to determine the user's preferred language,
+    since httpd 2.0.47 <code class="module"><a href="./mod/mod_negotiation.html">mod_negotiation</a></code> recognizes
+    the <a href="env.html">environment variable</a>
+    <code>prefer-language</code>. If it exists and contains an
+    appropriate language tag, <code class="module"><a href="./mod/mod_negotiation.html">mod_negotiation</a></code> will
+    try to select a matching variant. If there's no such variant,
+    the normal negotiation process applies.</p>
+
+    <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">SetEnvIf Cookie "language=(.+)" prefer-language=$1
+Header append Vary cookie</pre>
+</div>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="extensions" id="extensions">Extensions to Transparent Content
+Negotiation</a></h2>
+
+<p>httpd extends the transparent content negotiation protocol (RFC
+2295) as follows. A new <code>{encoding ..}</code> element is used in
+variant lists to label variants which are available with a specific
+content-encoding only. The implementation of the RVSA/1.0 algorithm
+(RFC 2296) is extended to recognize encoded variants in the list, and
+to use them as candidate variants whenever their encodings are
+acceptable according to the <code>Accept-Encoding</code> request
+header. The RVSA/1.0 implementation does not round computed quality
+factors to 5 decimal places before choosing the best variant.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="naming" id="naming">Note on hyperlinks and naming conventions</a></h2>
+
+    <p>If you are using language negotiation you can choose between
+    different naming conventions, because files can have more than
+    one extension, and the order of the extensions is normally
+    irrelevant (see the <a href="mod/mod_mime.html#multipleext">mod_mime</a> documentation
+    for details).</p>
+
+    <p>A typical file has a MIME-type extension (<em>e.g.</em>,
+    <code>html</code>), maybe an encoding extension (<em>e.g.</em>,
+    <code>gz</code>), and of course a language extension
+    (<em>e.g.</em>, <code>en</code>) when we have different
+    language variants of this file.</p>
+
+    <p>Examples:</p>
+
+    <ul>
+      <li>foo.en.html</li>
+
+      <li>foo.html.en</li>
+
+      <li>foo.en.html.gz</li>
+    </ul>
+
+    <p>Here some more examples of filenames together with valid and
+    invalid hyperlinks:</p>
+
+    <table class="bordered">
+      
+      <tr>
+        <th>Filename</th>
+
+        <th>Valid hyperlink</th>
+
+        <th>Invalid hyperlink</th>
+      </tr>
+
+      <tr>
+        <td><em>foo.html.en</em></td>
+
+        <td>foo<br />
+         foo.html</td>
+
+        <td>-</td>
+      </tr>
+
+      <tr>
+        <td><em>foo.en.html</em></td>
+
+        <td>foo</td>
+
+        <td>foo.html</td>
+      </tr>
+
+      <tr>
+        <td><em>foo.html.en.gz</em></td>
+
+        <td>foo<br />
+         foo.html</td>
+
+        <td>foo.gz<br />
+         foo.html.gz</td>
+      </tr>
+
+      <tr>
+        <td><em>foo.en.html.gz</em></td>
+
+        <td>foo</td>
+
+        <td>foo.html<br />
+         foo.html.gz<br />
+         foo.gz</td>
+      </tr>
+
+      <tr>
+        <td><em>foo.gz.html.en</em></td>
+
+        <td>foo<br />
+         foo.gz<br />
+         foo.gz.html</td>
+
+        <td>foo.html</td>
+      </tr>
+
+      <tr>
+        <td><em>foo.html.gz.en</em></td>
+
+        <td>foo<br />
+         foo.html<br />
+         foo.html.gz</td>
+
+        <td>foo.gz</td>
+      </tr>
+    </table>
+
+    <p>Looking at the table above, you will notice that it is always
+    possible to use the name without any extensions in a hyperlink
+    (<em>e.g.</em>, <code>foo</code>). The advantage is that you
+    can hide the actual type of a document rsp. file and can change
+    it later, <em>e.g.</em>, from <code>html</code> to
+    <code>shtml</code> or <code>cgi</code> without changing any
+    hyperlink references.</p>
+
+    <p>If you want to continue to use a MIME-type in your
+    hyperlinks (<em>e.g.</em> <code>foo.html</code>) the language
+    extension (including an encoding extension if there is one)
+    must be on the right hand side of the MIME-type extension
+    (<em>e.g.</em>, <code>foo.html.en</code>).</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="caching" id="caching">Note on Caching</a></h2>
+
+    <p>When a cache stores a representation, it associates it with
+    the request URL. The next time that URL is requested, the cache
+    can use the stored representation. But, if the resource is
+    negotiable at the server, this might result in only the first
+    requested variant being cached and subsequent cache hits might
+    return the wrong response. To prevent this, httpd normally
+    marks all responses that are returned after content negotiation
+    as non-cacheable by HTTP/1.0 clients. httpd also supports the
+    HTTP/1.1 protocol features to allow caching of negotiated
+    responses.</p>
+
+    <p>For requests which come from a HTTP/1.0 compliant client
+    (either a browser or a cache), the directive <code class="directive"><a href="./mod/mod_negotiation.html#cachenegotiateddocs">CacheNegotiatedDocs</a></code> can be
+    used to allow caching of responses which were subject to
+    negotiation. This directive can be given in the server config or
+    virtual host, and takes no arguments. It has no effect on requests
+    from HTTP/1.1 clients.</p>
+
+    <p>For HTTP/1.1 clients, httpd sends a <code>Vary</code> HTTP
+    response header to indicate the negotiation dimensions for the
+    response.  Caches can use this information to determine whether a
+    subsequent request can be served from the local copy.  To
+    encourage a cache to use the local copy regardless of the
+    negotiation dimensions, set the <code>force-no-vary</code> <a href="env.html#special">environment variable</a>.</p>
+
+</div></div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="./en/content-negotiation.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/content-negotiation.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/content-negotiation.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/content-negotiation.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/content-negotiation.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/content-negotiation.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="./mod/">Modules</a> | <a href="./mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">Glossary</a> | <a href="./sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

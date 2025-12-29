@@ -1,0 +1,1006 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+<meta content="text/html; charset=EUC-KR" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>아파치 성능향상 - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Miscellaneous Documentation</a></div><div id="page-content"><div id="preamble"><h1>아파치 성능향상</h1>
+<div class="toplang">
+<p><span>가능한 언어: </span><a href="../en/misc/perf-tuning.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/misc/perf-tuning.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ko/misc/perf-tuning.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/misc/perf-tuning.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">이 문서는 최신판 번역이 아닙니다.
+            최근에 변경된 내용은 영어 문서를 참고하세요.</div>
+
+
+    <p>아파치 2.0은 기능과 포팅가능성과 성능의 균형이 맞도록
+    설계한 범용 웹서버이다. 벤치마크 기록을 세우기위해 설계하지
+    않았지만 아파치 2.0은 실제 많은 경우 높은 성능을 낸다.</p>
+
+    <p>아파치 1.3과 비교해서 2.0 버전은 처리량과 확장성(scalability)을
+    높이기위해 많은 최적화를 했다. 기본값으로 대부분 최적화한
+    값을 사용한다. 그러나 컴파일시 혹은 실행시 설정이 성능에
+    큰 영향을 줄 수 있다. 이 문서는 아파치 2.0의 성능을 향상하기위해
+    서버 관리자가 설정할 수 있는 옵션을 설명한다. 어떤 설정
+    옵션은 웹서버가 하드웨어와 운영체제의 기능을 더 잘 활용하도록
+    하는 반면, 어떤 옵션은 속도를 위해 기능을 희생한다.</p>
+
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#hardware">하드웨어와 운영체제에 대해서</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#runtime">실행시 설정에 대해서</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#compiletime">컴파일시 설정에 대해서</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#trace">부록: 시스템호출 기록을 자세히 분석하기</a></li>
+</ul><h3>참고</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="hardware" id="hardware">하드웨어와 운영체제에 대해서</a></h2>
+
+    
+
+    <p>웹서버 성능에 가장 큰 영향을 주는 것은 메모리다. 스왑은
+    요청당 지연시간을 사용자가 "충분히 빠르다고" 생각하지 못하게
+    늘리기때문에 웹서버는 스왑을 하면 안된다. 느려지면 사용자는
+    정지하고 다시 접속하여 부하가 계속 증가한다. <code class="directive"><a href="../mod/mpm_common.html#maxclients">MaxClients</a></code> 지시어를 조절하여
+    웹서버가 스왑을 할 정도로 많은 자식을 만들지않도록 해야
+    한다. 방법은 간단하다: <code>top</code>과 같은 도구에서
+    프로세스 목록을 보고 아파치 프로세스의 평균 메모리 사용량을
+    알아낸후, 전체 사용가능한 메모리에서 다른 프로세스들이 사용할
+    공간을 뺀 값에서 나눈다.</p>
+
+    <p>나머지는 평범하다: 충분히 빠른 CPU, 충분히 빠른 네트웍카드,
+    충분히 빠른 디스크, 여기서 "충분히 빠른"은 실험을 해서 결정해야
+    한다.</p>
+
+    <p>운영체제는 보통 각자 알아서 선택할 일이다. 그러나 일반적으로
+    유용하다고 판명된 몇가지 지침이 있다:</p>
+
+    <ul>
+      <li>
+        <p>선택한 운영체제의 최신 안정 버전과 패치를 실행한다.
+        많은 운영체제 제작사는 최근 TCP 스택과 쓰레드 라이브러리에
+        많은 속도향상을 했다.</p>
+      </li>
+
+      <li>
+        <p>운영체제가 <code>sendfile(2)</code> 시스템호출을
+        지원한다면, 이를 사용하기위한 버전이나 패치를 설치하였는지
+        확인한다. (예를 들어, 리눅스라면 2.4 이상 버전을 뜻한다.
+        Solaris 8 초기 버전은 패치가 필요하다.) 지원하는 시스템이라면
+        아파치 2는 <code>sendfile</code>을 사용하여 CPU를 덜
+        사용하며 정적 파일을 더 빨리 전송할 수 잇다.</p>
+      </li>
+    </ul>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="runtime" id="runtime">실행시 설정에 대해서</a></h2>
+
+    
+
+    <table class="related"><tr><th>관련된 모듈</th><th>관련된 지시어</th></tr><tr><td><ul><li><code class="module"><a href="../mod/mod_dir.html">mod_dir</a></code></li><li><code class="module"><a href="../mod/mpm_common.html">mpm_common</a></code></li><li><code class="module"><a href="../mod/mod_status.html">mod_status</a></code></li></ul></td><td><ul><li><code class="directive"><a href="../mod/core.html#allowoverride">AllowOverride</a></code></li><li><code class="directive"><a href="../mod/mod_dir.html#directoryindex">DirectoryIndex</a></code></li><li><code class="directive"><a href="../mod/core.html#hostnamelookups">HostnameLookups</a></code></li><li><code class="directive"><a href="../mod/core.html#enablemmap">EnableMMAP</a></code></li><li><code class="directive"><a href="../mod/core.html#enablesendfile">EnableSendfile</a></code></li><li><code class="directive"><a href="../mod/core.html#keepalivetimeout">KeepAliveTimeout</a></code></li><li><code class="directive"><a href="../mod/prefork.html#maxspareservers">MaxSpareServers</a></code></li><li><code class="directive"><a href="../mod/prefork.html#minspareservers">MinSpareServers</a></code></li><li><code class="directive"><a href="../mod/core.html#options">Options</a></code></li><li><code class="directive"><a href="../mod/mpm_common.html#startservers">StartServers</a></code></li></ul></td></tr></table>
+
+    <h3><a name="dns" id="dns">HostnameLookups와 DNS에 대해 고려할 점들</a></h3>
+
+      
+
+      <p>아파치 1.3 이전에 <code class="directive"><a href="../mod/core.html#hostnamelookups">HostnameLookups</a></code>의 기본값은
+      <code>On</code>이였다. 요청을 마치기전에 DNS 검색이 끝나야
+      하므로 요청마다 지연이 생겼다. 아파치 1.3에서 이 설정의
+      기본값이 <code>Off</code>로 변경되었다. 로그파일의 주소를
+      호스트명으로 변환하려면 여러 로그처리 프로그램중 하나인,
+      아파치에 포함된 <a href="../programs/logresolve.html"><code>logresolve</code></a>
+      프로그램을 사용하라.</p>
+
+      <p>로그처리 작업이 서버 성능에 악영향을 미치므로 실제
+      사용하는 웹서버가 아닌 다른 컴퓨터에서 로그파일을 후처리하길
+      바란다.</p>
+
+      <p><code><code class="directive"><a href="../mod/mod_access.html#allow">Allow</a></code>
+      from domain</code>이나 <code><code class="directive"><a href="../mod/mod_access.html#deny">Deny</a></code> from domain</code>
+      지시어를 사용한다면 (즉, IP 주소가 아닌 호스트명이나 도메인명을
+      사용한다면) 부득이 중복-역 DNS 검색을 (역검색을 한후 악의로
+      변경되었는지 확인하기위해 다시 검색) 해야 한다. 그러므로
+      성능을 높이기위해 이런 지시어에는 가능하면 이름대신 IP
+      주소를 사용한다.</p>
+
+      <p><code>&lt;Location /server-status&gt;</code> 섹션 등으로
+      지시어의 적용범위를 제한할 수 있음을 기억하라. 이 경우
+      조건에 맞는 요청에만 DNS 조회를 한다. 다음은
+      <code>.html</code>과 <code>.cgi</code> 파일만 DNS 검색을
+      하는 예제다:</p>
+
+      <div class="example"><p><code>
+        HostnameLookups off<br />
+        &lt;Files ~ "\.(html|cgi)$"&gt;<br />
+        <span class="indent">
+          HostnameLookups on<br />
+        </span>
+        &lt;/Files&gt;
+      </code></p></div>
+
+      <p>그러나 CGI에서 DNS명이 필요할 뿐이라면, 필요한 특정
+      CGI에서만 <code>gethostbyname</code> 호출을 하도록 고려해볼
+      수 있다.</p>
+
+    
+
+    <h3><a name="symlinks" id="symlinks">FollowSymLinks와 SymLinksIfOwnerMatch</a></h3>
+
+      
+
+      <p>URL 공간에서 <code>Options FollowSymLinks</code>를
+      사용하지않고 <code>Options SymLinksIfOwnerMatch</code>를
+      사용하면 아파치는 심볼링크를 검사하기위해 시스템호출을
+      한번 더 해야 한다. 파일명의 각 부분마다 한번씩 더 호출을
+      한다. 예를 들어, 설정이 다음과 같고:</p>
+
+      <div class="example"><p><code>
+        DocumentRoot /www/htdocs<br />
+        &lt;Directory /&gt;<br />
+        <span class="indent">
+          Options SymLinksIfOwnerMatch<br />
+        </span>
+        &lt;/Directory&gt;
+      </code></p></div>
+
+      <p><code>/index.html</code> URI에 대한 요청이 있다고 가정하자.
+      그러면 아파치는 <code>/www</code>, <code>/www/htdocs</code>,
+      <code>/www/htdocs/index.html</code> 각각에 대해
+      <code>lstat(2)</code>를 호출한다. <code>lstats</code>
+      결과를 캐싱하지 않기때문에 요청이 들어올 때마다 매번 같은
+      작업을 한다. 진짜 심볼링크 보안 검사를 원한다면 다음과
+      같이 할 수 있다:</p>
+
+      <div class="example"><p><code>
+        DocumentRoot /www/htdocs<br />
+        &lt;Directory /&gt;<br />
+        <span class="indent">
+          Options FollowSymLinks<br />
+        </span>
+        &lt;/Directory&gt;<br />
+        <br />
+        &lt;Directory /www/htdocs&gt;<br />
+        <span class="indent">
+          Options -FollowSymLinks +SymLinksIfOwnerMatch<br />
+        </span>
+        &lt;/Directory&gt;
+      </code></p></div>
+
+      <p>이 경우 최소한 <code class="directive"><a href="../mod/core.html#documentroot">DocumentRoot</a></code> 경로는 검사하지
+      않는다. DocumentRoot 밖에 있는 경로로 <code class="directive"><a href="../mod/mod_alias.html#alias">Alias</a></code>나 <code class="directive"><a href="../mod/mod_rewrite.html#rewriterule">RewriteRule</a></code>을 사용한
+      경우에도 위와 비슷한 섹션이 필요하다. 심볼링크 보안을
+      고려하지 않고 최고의 성능을 얻으려면,
+      <code>FollowSymLinks</code>를 설정하고,
+      <code>SymLinksIfOwnerMatch</code>는 절대로 안된다.</p>
+
+    
+
+    <h3><a name="htaccess" id="htaccess">AllowOverride</a></h3>
+
+      
+
+      <p>URL 공간에서 overrides를 허용한다면 (보통
+      <code>.htaccess</code> 파일) 아파치는 파일명의 각 부분마다
+      <code>.htaccess</code>를 열길 시도한다. 예를 들어,</p>
+
+      <div class="example"><p><code>
+        DocumentRoot /www/htdocs<br />
+        &lt;Directory /&gt;<br />
+        <span class="indent">
+          AllowOverride all<br />
+        </span>
+        &lt;/Directory&gt;
+      </code></p></div>
+
+      <p><code>/index.html</code> URI에 대한 요청이 있다고 가정하자.
+      아파치는 <code>/.htaccess</code>, <code>/www/.htaccess</code>,
+      <code>/www/htdocs/.htaccess</code>를 열려고 시도한다.
+      해결책은 앞의 <code>Options FollowSymLinks</code> 경우와
+      비슷하다. 최고의 성능을 얻으려면 파일시스템에 대해서 항상
+      <code>AllowOverride None</code>을 사용한다.</p>
+
+    
+
+    <h3><a name="negotiation" id="negotiation">내용협상</a></h3>
+
+      
+
+      <p>가능하고 진짜 조금의 성능향상에도 관심이 있다면 내용협상을
+      막는다. 실제로 협상의 이득은 성능저하보다 작다. 서버를
+      빠르게 할 수 있다. 다음과 같이 와일드카드를 사용하는 대신:</p>
+
+      <div class="example"><p><code>
+        DirectoryIndex index
+      </code></p></div>
+
+      <p>완전한 목록을 사용한다:</p>
+
+      <div class="example"><p><code>
+        DirectoryIndex index.cgi index.pl index.shtml index.html
+      </code></p></div>
+
+      <p>가장 흔한 것을 앞에 둔다.</p>
+
+      <p>또, 디렉토리에서 파일들을 찾는 <code>MultiViews</code>
+      보다는, 한 파일만 읽으면 필요한 정보를 얻을 수 있는
+      <code>type-map</code> 파일을 직접 만드는 것이 더 빠름을
+      명심하라.</p>
+
+    <p>사이트에 내용협상이 필요하다면 협상을 위해 <code>Options
+    MultiViews</code> 지시어를 사용하기보다 <code>type-map</code>
+    파일을 고려하라. 협상방법에 대한 자세한 설명과
+    <code>type-map</code> 파일을 만드는 방법은 <a href="../content-negotiation.html">내용협상</a> 문서를 참고하라.</p>
+
+    
+
+    <h3>메모리대응 (memory-mapping)</h3>
+
+      
+
+      <p>예를 들어, server-side-include를 처리하는 등 아파치
+      2.0이 전송할 파일을 읽을때 운영체제가 <code>mmap(2)</code>
+      등을 지원한다면 파일을 메모리대응한다.</p>
+
+      <p>여러 플래폼에서 메모리대응을 성능을 향상한다. 그러나
+      메모리대응이 서버의 성능을 떨어트리고 심지어 안정성을
+      해치는 경우가 있다:</p>
+
+      <ul>
+        <li>
+          <p>어떤 운영체제에서 <code>mmap</code>은 CPU 개수가
+          많아질때 <code>read(2)</code> 만큼 확장성이 좋지 않다.
+          예를 들어, 다중프로세서 Solaris 서버에서 아파치 2.0은
+          종종 <code>mmap</code>을 사용하지 않을때 서버가 처리한
+          파일을 더 빨리 전송한다.</p>
+        </li>
+
+        <li>
+          <p>NFS 마운트한 파일시스템에 있는 파일을 메모리대응하는
+          도중에 다른 NFS 클라이언트에 있는 프로세스가 파일을
+          지우거나 파일크기를 줄이면, 웹서버 프로세스가 다음
+          번에 메모리대응한 파일내용을 읽을때 bus error가 발생할
+          수 있다.</p>
+        </li>
+      </ul>
+
+      <p>위의 조건에 해당하면 전송하는 파일을 메모리대응하지
+      않도록 <code>EnableMMAP off</code>를 사용해야 한다. (주의:
+      이 지시어는 디렉토리별로 변경할 수 있다.)</p>
+
+    
+
+    <h3>Sendfile</h3>
+
+      
+
+      <p>아파치는 운영체제가 <code>sendfile(2)</code>을 지원하면
+      커널 sendfile을 사용하여 -- 예를 들어, 정적 파일을 서비스할때
+      -- 전송할 파일을 직접 읽지않을 수 있다.</p>
+
+      <p>여러 플래폼에서 sendfile을 사용하면 read와 send를 따로
+      할 필요가 없어서 빨라진다. 그러나 sendfile을 사용하면
+      웹서버의 안정성을 해치게되는 경우가 있다:</p>
+
+      <ul>
+        <li>
+          <p>sendfile 지원이 잘못되었고 컴파일 시스템이 이점을
+          발견하지 못하는 플래폼이 있다. 특히 다른 컴퓨터에서
+          실행파일을 컴파일하여 sendfile 지원이 잘못된 컴퓨터로
+          가져온 경우에 가능하다.</p>
+        </li>
+        <li>
+          <p>커널은 자신의 캐쉬를 사용하여 NFS로 마운트한 파일을
+          안정적으로 서비스할 수 없는 경우가 있다.</p>
+        </li>
+      </ul>
+
+      <p>위의 조건에 해당하면 파일을 sendfile 전송하지 않도록
+      <code>EnableSendfile off</code>를 사용해야 한다. (주의:
+      이 지시어는 디렉토리별로 변경할 수 있다.)</p>
+
+    
+
+    <h3><a name="process" id="process">프로세스 생성</a></h3>
+
+      
+
+      <p>아파치 1.3 이전에는 <code class="directive"><a href="../mod/prefork.html#minspareservers">MinSpareServers</a></code>, <code class="directive"><a href="../mod/prefork.html#maxspareservers">MaxSpareServers</a></code>, <code class="directive"><a href="../mod/mpm_common.html#startservers">StartServers</a></code> 설정이 모두
+      벤치마크 결과에 큰 영향을 미쳤다. 특히 아파치는 작업을
+      서비스하기위해 충분한 자식수에 다다를 때까지 "도달" 기간이
+      필요했다. 처음 <code class="directive"><a href="../mod/mpm_common.html#startservers">StartServers</a></code>개 자식을
+      만든후, <code class="directive"><a href="../mod/prefork.html#minspareservers">MinSpareServers</a></code>
+      설정값까지 초당 자식을 하나씩 만들었다. 그래서 <code class="directive"><a href="../mod/mpm_common.html#startservers">StartServers</a></code> 기본값이
+      <code>5</code>인 서버에 클라이언트 100개가 동시에 접속하면
+      부하를 처리하기에 충분한 자식을 만들기까지 95초가 걸렸다.
+      자주 재시작하지 않는 실제 서버에서는 잘 동작하지만, 10분간만
+      실행하는 벤치마크 결과는 매우 나쁘게 나온다.</p>
+
+      <p>초당 한개 규칙은 자식을 새로 시작하면서 서버에 무리를
+      주지 않으려고 정했다. 컴퓨터가 자식을 시작하느라 바쁘면
+      요청을 서비스할 수 없다. 그러나 이 규칙이 아파치의 체감
+      성능에 악영향을 주어 변경하였다. 아파치 1.3에서 초당 한개
+      규칙은 완화되었다. 코드는 자식 한개를 만들고, 1초 쉬고,
+      두개를 만들고, 1초 쉬고, 네개를 만들고, 이런 식으로 초당
+      자식을 32개 만들때까지 지수로 증가한다. 자식수가 <code class="directive"><a href="../mod/prefork.html#minspareservers">MinSpareServers</a></code> 설정에 다다르면
+      증가를 중단한다.</p>
+
+      <p>이 경우 반응속도가 빨라져서 <code class="directive"><a href="../mod/prefork.html#minspareservers">MinSpareServers</a></code>, <code class="directive"><a href="../mod/prefork.html#maxspareservers">MaxSpareServers</a></code>, <code class="directive"><a href="../mod/mpm_common.html#startservers">StartServers</a></code>를 거의 설정할 필요가 없다. 일초에
+      자식을 4개 이상 생성하면 <code class="directive"><a href="../mod/core.html#errorlog">ErrorLog</a></code>에 기록한다. 이런 오류문이
+      많이 보이면 이 설정들을 조절하길 바란다.
+      <code class="module"><a href="../mod/mod_status.html">mod_status</a></code> 결과가 도움이 될 것이다.</p>
+
+    <p>프로세스 생성과 관련하여 <code class="directive"><a href="../mod/mpm_common.html#maxrequestsperchild">MaxRequestsPerChild</a></code> 설정은
+    프로세스를 종료한다. 기본값은 자식당 처리할 요청수에 제한이
+    없다는 <code>0</code>이다. 현재 설정이 <code>30</code>과
+    같이 매우 작은 값으로 설정되있다면, 값을 상당히 높힐 필요가
+    있다. SunOS나 오래된 Solaris 버전을 사용한다면, 메모리유출때문에
+    이 값을 <code>10000</code> 정도로 설정하라.</p>
+
+    <p>연결유지(keep-alive)를 사용한다면 자식들은 이미 열린
+    연결에서 추가 요청을 기다리며 아무것도 하지않기때문에 계속
+    바쁘다. <code class="directive"><a href="../mod/core.html#keepalivetimeout">KeepAliveTimeout</a></code>의
+    기본값 <code>15</code> 초는 이런 현상을 최소화한다. 네트웍
+    대역폭과 서버 자원 간의 균형이 맞게 설정한다. <a href="http://www.research.digital.com/wrl/techreports/abstracts/95.4.html">
+    연결유지의 대부분의 이점이 사라지기때문에</a> 어떤 경우에도
+    이 값을 <code>60</code> 초 이상으로 올리지 마라.</p>
+
+    
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="compiletime" id="compiletime">컴파일시 설정에 대해서</a></h2>
+
+    
+
+    <h3>MPM 선택</h3>
+
+      
+
+      <p>아파치 2.x는 <a href="../mpm.html">다중처리모듈</a>
+      (MPMs)이라는 교체할 수 있는 동기화 모델을 지원한다. 아파치를
+      컴파일할때 MPM을 선택해야 한다. <code class="module"><a href="../mod/beos.html">beos</a></code>,
+      <code class="module"><a href="../mod/mpm_netware.html">mpm_netware</a></code>, <code class="module"><a href="../mod/mpmt_os2.html">mpmt_os2</a></code>,
+      <code class="module"><a href="../mod/mpm_winnt.html">mpm_winnt</a></code>와 같이 특정 플래폼에서만 사용할
+      수 있는 MPM도 있다. 일반적인 유닉스류 시스템은 여러 MPM
+      중에 하나를 선택할 수 있다. 웹서버의 속도와
+      확장성(scalability)은 어떤 MPM을 선택했냐에 달렸다:</p>
+
+      <ul>
+
+        <li><code class="module"><a href="../mod/worker.html">worker</a></code> MPM은 여러 자식 프로세스가
+        각각 여러 쓰레드를 사용한다. 각 쓰레드는 한번에 한 연결을
+        담당한다. 일반적으로 worker는 prefork MPM 보다 적은
+        메모리를 사용하므로 통신량이 많은 서버에 적절하다.</li>
+
+        <li><code class="module"><a href="../mod/prefork.html">prefork</a></code> MPM은 쓰레드가 한개인 자식
+        프로세스를 여러개 사용한다. 각 프로세스는 한번에 한
+        연결을 담당한다. 여러 시스템에서 prefork의 속도는 worker와
+        비슷하지만, 더 많은 메모리를 사용한다. 다음과 같은 상황에서
+        쓰레드를 사용하지 않는 prefork 방식이 worker에 비해
+        이점을 가진다: 쓰레드에 안전하지 (thread-safe) 않은
+        제삼자가 만든 모듈을 사용할 수 있고, 쓰레드 디버깅 지원이
+        빈약한 플래폼에서 쉽게 디버깅할 수 있다.</li>
+
+      </ul>
+
+      <p>이 MPM들과 다른 MPM에 대해 더 자세한 정보는 MPM <a href="../mpm.html">문서</a>를 참고하길 바란다.</p>
+
+    
+
+    <h3><a name="modules" id="modules">모듈</a></h3>
+
+        
+
+        <p>메모리 사용량이 성능에서 가장 중요한 요인이기때문에
+        실제로 사용하지 않는 모듈을 제거해보자. 모듈을 <a href="../dso.html">DSO</a>로 컴파일했다면 간단히 그
+        모듈에 대한 <code class="directive"><a href="../mod/mod_so.html#loadmodule">LoadModule</a></code> 지시어를 주석처리하면
+        된다. 그래서 모듈을 제거하고 실행하여 사이트가 모듈없이도
+        정상적으로 동작하는지 살펴볼 수 있다.</p>
+
+        <p>반대로 모듈이 아파치 실행파일에 정적으로 링크되있다면
+        원하지 않는 모듈을 제거하기위해 아파치를 재컴파일해야
+        한다.</p>
+
+        <p>여기서 당연히 어떤 모듈을 사용하고 사용하지 말지
+        의문이 생긴다. 정답은 웹사이트마다 다르다. 그러나 아마도
+        <em>최소한</em> <code class="module"><a href="../mod/mod_mime.html">mod_mime</a></code>,
+        <code class="module"><a href="../mod/mod_dir.html">mod_dir</a></code>, <code class="module"><a href="../mod/mod_log_config.html">mod_log_config</a></code>
+        모듈은 사용할 것이다. 물론 웹사이트에 로그파일이 필요없다면
+        <code>mod_log_config</code>는 없어도 된다. 그러나 추천하지
+        않는다.</p>
+
+    
+
+    <h3>Atomic 명령</h3>
+
+      
+
+      <p><code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> 같은 모듈과 최근 개발중인
+      worker MPM은 APR의 atomic API를 사용한다. 이 API는 경량급
+      쓰레드 동기화를 위할 atomic 명령을 제공한다.</p>
+
+      <p>기본적으로 APR은 각 운영체제/CPU 플래폼에서 가장 효율적인
+      방법을 사용하여 이 명령을 구현한다. 예를 들어, 여러 최신
+      CPU에는 하드웨어로 atomic compare-and-swap (CAS) 연산을
+      하는 명령어가 있다. 그러나 어떤 플래폼에서 APR은 이런
+      명령어가 없는 오래된 CPU와 호환성을 위해 더 느린 mutex기반
+      구현을 기본적으로 사용한다. 이런 플래폼에서 아파치를
+      컴파일할때 아파치를 최신 CPU에서만 실행할 계획이라면,
+      아파치를 구성할때 <code>--enable-nonportable-atomics</code>
+      옵션을 사용하여 더 빠른 atomic 구현을 선택할 수 있다:</p>
+
+      <div class="example"><p><code>
+        ./buildconf<br />
+        ./configure --with-mpm=worker --enable-nonportable-atomics=yes
+      </code></p></div>
+
+      <p><code>--enable-nonportable-atomics</code> 옵션은 다음과
+      같은 플래폼에 영향이 있다:</p>
+
+      <ul>
+
+        <li>SPARC에서 Solaris<br />
+            기본적으로 APR은 Solaris/SPARC에서 mutex기반 atomic을
+            사용한다. 그러나 구성할때
+            <code>--enable-nonportable-atomics</code>를 사용하면
+            APR은 빠른 하드웨어 compare-and-swap을 위한 SPARC
+            v8plus 명령어를 사용한다. 이 옵션을 사용하면 atomic
+            명령이 더 효율적이지만 (CPU를 덜 사용하고 더 높은
+            동기화가 가능하다), 컴파일한 실행파일은 UltraSPARC
+            칩에서만 실행할 수 있다.
+        </li>
+
+        <li>Linux on x86<br />
+            기본적으로 APR은 리눅스에서 mutex기반 atomic을
+            사용한다. 그러나 구성할때
+            <code>--enable-nonportable-atomics</code>를 사용하면
+            APR은 빠른 하드웨어 compare-and-swap을 위한 486
+            명령어를 사용한다. 더 효율적인 atomic 명령이 가능하지만,
+            컴파일한 실행파일은 486 이상 칩에서만 (386은 안된다)
+            실행할 수 있다.
+        </li>
+
+      </ul>
+
+    
+
+    <h3>mod_status와 ExtendedStatus On</h3>
+
+      
+
+      <p>아파치를 컴파일할때 <code class="module"><a href="../mod/mod_status.html">mod_status</a></code>를 포함하고
+      실행할때 <code>ExtendedStatus On</code>을 설정하면 아파치는
+      요청을 받을때마다 <code>gettimeofday(2)</code>(혹은 운영체제에
+      따라 <code>times(2)</code>)를 두번 호출하고 (1.3 이전에는)
+      <code>time(2)</code>도 추가로 여러번 호출한다. 상태 보고서에
+      동작시간이 필요하기 때문이다. 최상의 성능을 얻으려면
+      (기본값인) <code>ExtendedStatus off</code>를 설정한다.</p>
+
+    
+
+    <h3>accept 직렬화 - 여러 소켓</h3>
+
+      
+
+    <div class="warning"><h3>주의:</h3>
+      <p> 아래 문서는 아파치 웹서버 2.0 버전에서 변경된 내용을
+      담고 있지 않다. 아직도 유효한 정보가 있지만, 주의해서
+      사용하길 바란다.</p>
+    </div>
+
+      <p>유닉스 소켓 API의 단점을 설명한다. 웹서버가 여러 포트
+      혹은 여러 주소를 기다리기위해 여러 <code class="directive"><a href="../mod/mpm_common.html#listen">Listen</a></code>을 사용한다고 가정하자.
+      연결이 가능한지 각 소켓을 검사하기위해 아파치는
+      <code>select(2)</code>를 사용한다. <code>select(2)</code>는
+      소켓에 기다리고 있는 연결이 <em>없는지</em> 혹은 <em>최소한
+      한개</em> 있는지 알려준다. 아파치에는 여러 자식이 있고,
+      쉬고 있는 모든 자식은 동시에 새로운 연결을 검사한다. 원래
+      구현은 다음과 비슷하다 (이 예는 코드에서 가져오지 않았다.
+      단지 설명하기위한 용도로 만들었다.):</p>
+
+      <div class="example"><p><code>
+        for (;;) {<br />
+        <span class="indent">
+          for (;;) {<br />
+          <span class="indent">
+            fd_set accept_fds;<br />
+            <br />
+            FD_ZERO (&amp;accept_fds);<br />
+            for (i = first_socket; i &lt;= last_socket; ++i) {<br />
+            <span class="indent">
+              FD_SET (i, &amp;accept_fds);<br />
+            </span>
+            }<br />
+            rc = select (last_socket+1, &amp;accept_fds, NULL, NULL, NULL);<br />
+            if (rc &lt; 1) continue;<br />
+            new_connection = -1;<br />
+            for (i = first_socket; i &lt;= last_socket; ++i) {<br />
+            <span class="indent">
+              if (FD_ISSET (i, &amp;accept_fds)) {<br />
+              <span class="indent">
+                new_connection = accept (i, NULL, NULL);<br />
+                if (new_connection != -1) break;<br />
+              </span>
+              }<br />
+            </span>
+            }<br />
+            if (new_connection != -1) break;<br />
+          </span>
+          }<br />
+          process the new_connection;<br />
+        </span>
+        }
+      </code></p></div>
+
+      <p>그러나 위의 단순한 구현에는 심각한 고갈(starvation)
+      문제가 있다. 여러 자식이 동시에 이 반복문을 실행하면,
+      요청을 기다리며 모두 <code>select</code>에서 멈춘다. 이때
+      어떤 소켓에 요청이 하나라도 들어오면 모든 자식이 깨어난다
+      (깨어나는 자식의 개수는 운영체제와 타이밍에 따라 다르다).
+      이들은 모두 연결을 <code>accept</code>하길 시도한다. 그러나
+      (아직도 한 연결만 대기중이라면) 한 자식만 성공하고, 나머지는
+      <code>accept</code>에서 <em>멈춘다.</em> 그러면 이 자식들은
+      한 소켓의 요청만을 서비스하도록 묶여서, 그 소켓으로 새로운
+      요청이 충분히 들어와서 모든 자식을 깨울때까지 정지해있다.
+      이런 고갈 문제는 <a href="http://bugs.apache.org/index/full/467">PR#467</a>에
+      처음 보고되었다. 최소한 두가지 해결책이 있다.</p>
+
+      <p>한가지는 소켓을 대기하지 않도록 (non-blocking) 만드는
+      방법이다. 이 경우 자식이 <code>accept</code>를 해도 멈추지
+      않고, 즉시 진행할 수 있다. 그러나 CPU 시간을 낭비한다.
+      <code>select</code>에서 쉬는 자식이 10개 있고, 새로 연결이
+      한개 들어왔다고 가정하자. 그러면 이 자식중 9개는 깨어나서
+      연결을 <code>accept</code>하길 시도하고 실패하면 아무
+      일도 하지 않고 다시 <code>select</code>를 반복한다. 다시
+      <code>select</code>로 돌아올 때까지 어떤 자식도 다른 소켓에
+      들어온 요청을 서비스하지 않는다. (다중프로세서 컴퓨터에서)
+      쉬는 자식 개수만큼 CPU 개수가 있는 드문 경우가 아니라면
+      이 해결책은 별로 좋아보이지 않는다.</p>
+
+      <p>다른 방법은 아파치가 사용하는 방법으로 내부 반복문에
+      한 자식만을 들여보낸다. 반복문은 다음과 같다 (차이를
+      강조했음):</p>
+
+      <div class="example"><p><code>
+        for (;;) {<br />
+        <span class="indent">
+          <strong>accept_mutex_on ();</strong><br />
+          for (;;) {<br />
+          <span class="indent">
+            fd_set accept_fds;<br />
+            <br />
+            FD_ZERO (&amp;accept_fds);<br />
+            for (i = first_socket; i &lt;= last_socket; ++i) {<br />
+            <span class="indent">
+              FD_SET (i, &amp;accept_fds);<br />
+            </span>
+            }<br />
+            rc = select (last_socket+1, &amp;accept_fds, NULL, NULL, NULL);<br />
+            if (rc &lt; 1) continue;<br />
+            new_connection = -1;<br />
+            for (i = first_socket; i &lt;= last_socket; ++i) {<br />
+            <span class="indent">
+              if (FD_ISSET (i, &amp;accept_fds)) {<br />
+              <span class="indent">
+                new_connection = accept (i, NULL, NULL);<br />
+                if (new_connection != -1) break;<br />
+              </span>
+              }<br />
+            </span>
+            }<br />
+            if (new_connection != -1) break;<br />
+          </span>
+          }<br />
+          <strong>accept_mutex_off ();</strong><br />
+          process the new_connection;<br />
+        </span>
+        }
+      </code></p></div>
+
+      <p><code>accept_mutex_on</code>과 <code>accept_mutex_off</code>
+      <a id="serialize" name="serialize">함수</a>는 mutex 세마포어를
+      구현한다. 한번에 오직 한 자식만이 mutex를 가질 수 있다.
+      mutex를 구현하는 방법은 여러가지이다. 구현 방법은 (1.3
+      이전) <code>src/conf.h</code>나 (1.3과 그 이후)
+      <code>src/include/ap_config.h</code>에 정의되있다. 어떤
+      아키텍쳐는 잠금(locking) 방법을 선택하지 않기때문에, 이런
+      아키텍쳐에서 여러 <code class="directive"><a href="../mod/mpm_common.html#listen">Listen</a></code> 지시어를 사용하면
+      위험하다.</p>
+
+      <p>실행시 <code class="directive"><a href="../mod/mpm_common.html#acceptmutex">AcceptMutex</a></code> 지시어를 사용하여
+      mutex 구현을 변경할 수 있다.</p>
+
+      <dl>
+        <dt><code>AcceptMutex flock</code></dt>
+
+        <dd>
+          <p>이 방법은 잠금파일을 잠그기위해 <code>flock(2)</code>
+          시스템호출을 사용한다 (잠금파일 위치는 <code class="directive"><a href="../mod/mpm_common.html#lockfile">LockFile</a></code> 지시어로 지정).</p>
+        </dd>
+
+        <dt><code>AcceptMutex fcntl</code></dt>
+
+        <dd>
+          <p>이 방법은 잠금파일을 잠그기위해 <code>fcntl(2)</code>
+          시스템호출을 사용한다 (잠금파일 위치는 <code class="directive"><a href="../mod/mpm_common.html#lockfile">LockFile</a></code> 지시어로 지정).</p>
+        </dd>
+
+        <dt><code>AcceptMutex sysvsem</code></dt>
+
+        <dd>
+          <p>(1.3과 그 이후) 이 방법을 SysV식 세마포어를 사용하여
+          mutex를 구현한다. 불행히도 SysV식 세마포어는 나쁜
+          부작용이 있다. 하나는 아파치가 세마포어를 정리하지
+          않고 죽을 수 있는 점이다 (<code>ipcs(8)</code> manpage
+          참고). 다른 하나는 웹서버와 동일한 uid로 실행하는
+          CGI가 (<em>즉,</em> <code>suexec</code>나
+          <code>cgiwrapper</code>를 사용하지않는 한 모든 CGI)
+          세마포어 API를 사용하여 서비스거부공격을 할 수 있는
+          점이다. 이런 이유때문에 IRIX를 제외한 아키텍쳐에서
+          이 방법을 사용하지 않는다 (대부분의 IRIX 컴퓨터에서
+          앞의 두 방법은 지나치게 버겁다).</p>
+        </dd>
+
+        <dt><code>AcceptMutex pthread</code></dt>
+
+        <dd>
+          <p>(1.3과 그 이후) 이 방법은 POSIX mutex를 사용하기때문에
+          POSIX 쓰레드 규약을 완전히 구현한 아키텍쳐라면 모두
+          사용가능하지만, (2.5 이후) Solaris에서만 그것도 특정
+          구성에서만 동작하는 듯하다. 이 방법을 시도해본다면
+          서버가 멈춰서 응답을 안하는지 살펴봐야 한다. 정적
+          내용만 서비스하는 서버는 잘 동작하는 것 같다.</p>
+        </dd>
+
+        <dt><code>AcceptMutex posixsem</code></dt>
+
+        <dd>
+          <p>(2.0과 그 이후) 이 방법은 POSIX 세마포어를 사용한다.
+          mutex를 가진 프로세스의 쓰레드가 죽는다면(segfault)
+          세마포어 소유권이 회복되지 않아서 웹서버가 멈춘다.</p>
+        </dd>
+
+      </dl>
+
+      <p>시스템에 위 목록에 없는 직렬화(serialization) 방법이
+      있다면 그 방법을 사용하는 코드를 APR에 추가할 가치가 있다.</p>
+
+      <p>고려는 해봤지만 구현하지않은 다른 방법은 부분적으로
+      반복문을 직렬화하는 방법이다. 즉, 프로세서를 몇개만 들여보내는
+      것이다. 이 방법은 여러 자식을 동시에 실행할 수 있어서
+      직렬화때문에 전체 대역폭을 활용하지 못하는 다중프로세서
+      컴퓨터에서만 관심을 가져볼 수 있다. 앞으로 살펴볼 부분이지만,
+      매우 병렬화된 웹서버가 흔하지 않아서 우선순위가 낮다.</p>
+
+      <p>최상의 성능을 얻기위해서는 여러 <code class="directive"><a href="../mod/mpm_common.html#listen">Listen</a></code> 문을 사용하지 않는
+      것이 이상적이다. 그러나 계속 설명한다.</p>
+
+    
+
+    <h3>accept 직렬화 - 소켓 한개</h3>
+
+      
+
+      <p>앞의 설명은 다중소켓 서버에는 좋지만, 소켓이 한개인
+      서버는 어떤가? 연결이 도착할때까지 모든 자식이
+      <code>accept(2)</code>에서 멈춰있기때문에 이론상 같은
+      문제가 발생하지 않고, 고갈 문제도 없다. 그러나 실제로는
+      앞에서 말한 대기하지 않는 (non-blocking) 방법에서 발생하는
+      "공회전(spinning)" 현상을 감추고 있다. 대부분의 TCP 스택은
+      연결이 도착하면 커널이 <code>accept</code>에서 멈춰있는
+      모든 자식을 깨우도록 구현되있다. 프로세스중 한개가 연결을
+      얻고 사용자영역으로 돌아가고, 나머지는 커널에서 공회전하여
+      연결이 없음을 발견하면 다시 잠을 잔다. 사용자영역 코드에서는
+      이런 공회전을 알 수 없지만, 분명히 존재한다. 그래서 다중소켓의
+      대기하지 않는 방법과 동일하게 부하를 높이는 불필요한 행동이
+      일어난다.</p>
+
+      <p>그래서 우리는 여러 아키텍쳐에서 소켓이 한개인 경우에도
+      직렬화하면 더 "잘" 동작함을 발견했다. 그래서 거의 대부분의
+      경우 기본적으로 직렬화를 사용한다. 리눅스에서 (커널 2.0.30,
+      128Mb 메모리에 듀얼 Pentium pro) 실험한 결과 소켓 한개를
+      직렬화하면 하지 않은 경우에 비해 초당 요청이 3% 미만
+      줄어들었다. 그러나 직렬화를 하지 않은 경우 요청당 100ms
+      지연이 발생했다. 이 지연은 아마도 LAN에서 발생하는 긴
+      연결선때문일 것이다. 소켓이 한개인 경우 직렬화를 사용하지
+      않으려면 <code>SINGLE_LISTEN_UNSERIALIZED_ACCEPT</code>를
+      정의한다.</p>
+
+    
+
+    <h3>Close 지연(lingering)</h3>
+
+      
+
+      <p><a href="http://www.ics.uci.edu/pub/ietf/http/draft-ietf-http-connection-00.txt">
+      draft-ietf-http-connection-00.txt</a> 8절에서 설명하듯이
+      <strong>안정적인</strong> 웹서버가 되려면, 통신의 양 방향을
+      독립적으로 닫을 수 있어야 한다 (TCP 연결은 쌍방향이고,
+      방향은 서로 독립적이다). 이점을 다른 서버에서는 자주
+      간과하지만, 아파치는 1.2부터 정확히 구현해왔다.</p>
+
+      <p>이 기능을 부주의하게 아파치에 추가했을때 여러 유닉스
+      버전에서 많은 문제가 발생했다. TCP 규약은
+      <code>FIN_WAIT_2</code>에 타임아웃이 있다고 정하지 않았지만,
+      금지하지도 않았다. 타임아웃이 없는 시스템에서 아파치 1.2는
+      많은 소켓을 영원히 <code>FIN_WAIT_2</code> 상태로 만들었다.
+      많은 경우 이 문제는 제작사가 제공하는 최신 TCP/IP 패치를
+      적용하여 해결할 수 있다. 그러나 제작사가 패치를 발표하지
+      않는 경우가 (<em>즉,</em> SunOS4 -- 소스 라이선스가 있는
+      사람은 직접 패치할 수 있지만) 있기때문에 이 기능을 사용하지
+      않기로 결정했다.</p>
+
+      <p>방법은 두가지다. 하나는 소켓 옵션 <code>SO_LINGER</code>를
+      사용하는 방법이다. 그러나 불행히도 대부분의 TCP/IP 스택은
+      이 옵션을 올바로 구현하지 않았다. 올바로 구현한 스택에서
+      조차도 (<em>즉,</em> 리눅스 2.0.31) 이 방법은 다음 방법보다
+      더 cpu를 잡아먹는다.</p>
+
+      <p>아파치는 보통 (<code>http_main.c</code>에 있는)
+      <code>lingering_close</code>라는 함수를 사용한다. 이 함수는
+      대충 다음과 같다:</p>
+
+      <div class="example"><p><code>
+        void lingering_close (int s)<br />
+        {<br />
+        <span class="indent">
+          char junk_buffer[2048];<br />
+          <br />
+          /* shutdown the sending side */<br />
+          shutdown (s, 1);<br />
+          <br />
+          signal (SIGALRM, lingering_death);<br />
+          alarm (30);<br />
+          <br />
+          for (;;) {<br />
+          <span class="indent">
+            select (s for reading, 2 second timeout);<br />
+            if (error) break;<br />
+            if (s is ready for reading) {<br />
+            <span class="indent">
+              if (read (s, junk_buffer, sizeof (junk_buffer)) &lt;= 0) {<br />
+              <span class="indent">
+                break;<br />
+              </span>
+              }<br />
+              /* just toss away whatever is here */<br />
+            </span>
+            }<br />
+          </span>
+          }<br />
+          <br />
+          close (s);<br />
+        </span>
+        }
+      </code></p></div>
+
+      <p>이 코드는 연결을 닫을때 더 CPU를 사용하지만, 안정적인
+      구현을 위해 필요하다. HTTP/1.1이 더 널리 퍼지고 모든 연결을
+      유지한다면(persistent), 연결을 받는 비용은 여러 요청을
+      처리하면서 상쇄될 것이다. 위험하게도
+      <code>NO_LINGCLOSE</code>를 정의하여 이 기능을 사용하지
+      않을 수 있지만, 절대로 권하지 않는다. 특히 HTTP/1.1
+      파이프라인 <span class="transnote">(<em>역주;</em> 연결유지 상태에서 응답을 기다리지
+      않고 여러 요청을 보내는 기술)</span> 연결유지에는
+      <code>lingering_close</code>가 필수적이다 (그리고 <a href="http://www.w3.org/Protocols/HTTP/Performance/Pipeline.html">
+      파이프라인 연결이 더 빠르기때문에</a> 사용하길 바랄 것이다).</p>
+
+    
+
+    <h3>Scoreboard 파일</h3>
+
+      
+
+      <p>아파치의 부모와 자식은 scoreboard라는 것을 통해 서로
+      통신한다. 이상적으로는 scoreboard를 공유메모리로 구현해야
+      한다. 우리 개발자가 해당 운영체제에 접근할 수 있거나 상세한
+      포팅 결과를 받은 경우 보통 공유메모리를 사용하여 구현한다.
+      나머지는 디스크에 있는 파일을 사용하여 구현한다. 디스크에
+      있는 파일은 느리고 신뢰도가 떨어진다 (기능도 더 적다).
+      <code>src/main/conf.h</code> 파일에서 사용하는 아키텍쳐를
+      찾아서 <code>USE_MMAP_SCOREBOARD</code> 혹은
+      <code>USE_SHMGET_SCOREBOARD</code>인지 확인한다. 둘중
+      하나를 (각각 함께 사용할 <code>HAVE_MMAP</code>이나
+      <code>HAVE_SHMGET</code>도 같이) 정의하면 공유메모리 코드를
+      사용한다. 시스템이 다른 종류의 공유메모리를 사용한다면
+      <code>src/main/http_main.c</code> 파일을 수정하여 아파치에서
+      공유메모리를 사용할 수 있도록 훅(hook)을 추가하라. (또한
+      패치를 우리에게 보내주길 바란다.)</p>
+
+      <div class="note">역사적 설명: 아파치의 리눅스 버전은 아파치 1.2 버전부터
+      공유메모리를 사용하기 시작했다. 리눅스에서 초기 아파치
+      버전이 느리고 신뢰도가 떨어졌기 때문이다.</div>
+
+    
+
+    <h3>DYNAMIC_MODULE_LIMIT</h3>
+
+      
+
+      <p>모듈을 동적으로 읽어들이지 않는다면 (가능한 조금이라도
+      성능을 높이기위해 이 글을 읽는다면 아마도 모듈을 동적으로
+      읽어들이지 않을 것이다), 서버를 컴파일할때
+      <code>-DDYNAMIC_MODULE_LIMIT=0</code>을 추가한다. 그러면
+      모듈을 동적으로 읽어들이기위해 할당하는 메모리를 절약한다.</p>
+
+    
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="trace" id="trace">부록: 시스템호출 기록을 자세히 분석하기</a></h2>
+
+    
+
+    <p>다음은 Solaris 8에서 worker MPM을 사용한 아파치 2.0.38의
+    시스템호출 기록(trace)이다. 아래 명령어를 사용하여 기록을
+    얻었다:</p>
+
+    <div class="example"><p><code>
+      truss -l -p <var>httpd_child_pid</var>.
+    </code></p></div>
+
+    <p><code>-l</code> 옵션을 사용하면 truss는 시스템호출을
+    하는 LWP (lightweight process, 경량급 프로세스--Solaris의
+    커널수준 쓰레드) ID를 같이 기록한다.</p>
+
+    <p>다른 시스템에는 <code>strace</code>, <code>ktrace</code>,
+    <code>par</code> 같은 시스템호출 추적 도구가 있다. 결과는
+    비슷하다.</p>
+
+    <p>클라이언트는 웹서버에게 크기가 10KB인 정적 파일을 요청한다.
+    정적인 파일을 요청하지 않거나 내용협상하는 요청을 한 경우
+    기록이 매우 다르다 (때로는 매우 알아보기 힘들다).</p>
+
+    <div class="example"><pre>/67:    accept(3, 0x00200BEC, 0x00200C0C, 1) (sleeping...)
+/67:    accept(3, 0x00200BEC, 0x00200C0C, 1)            = 9</pre></div>
+
+    <p>위에서 연결대기(listener) 쓰레드가 LWP #67에서 실행됨을
+    알 수 있다.</p>
+
+    <div class="note"><code>accept(2)</code> 직렬화를 사용하지 않음을 주목하라.
+    여러 포트를 기다리지않는 경우 이 플래폼의 worker MPM은
+    기본적으로 직렬화하지 않은 accept를 사용한다.</div>
+
+    <div class="example"><pre>/65:    lwp_park(0x00000000, 0)                         = 0
+/67:    lwp_unpark(65, 1)                               = 0</pre></div>
+
+    <p>연결은 받아들이고(accept) 연결대기 쓰레드는
+    worker 쓰레드를 깨워서 요청을 처리하게 한다. 아래 기록에서
+    요청을 처리하는 worker 쓰레드가 LWP #65임을 알 수 있다.</p>
+
+    <div class="example"><pre>/65:    getsockname(9, 0x00200BA4, 0x00200BC4, 1)       = 0</pre></div>
+
+    <p>가상호스트를 구현하기위해 아파치는 연결을 받아들인
+    지역(local) 소켓 주소를 알아야 한다. (가상호스트를 사용하지
+    않거나 <code class="directive"><a href="../mod/mpm_common.html#listen">Listen</a></code>
+    지시어에 와일드카드 주소를 사용하지 않은 경우 등) 많은 경우
+    이 호출을 없앨 수 있다. 그러나 아직 이런 최적화 작업이
+    안되있다. </p>
+
+    <div class="example"><pre>/65:    brk(0x002170E8)                                 = 0
+/65:    brk(0x002190E8)                                 = 0</pre></div>
+
+    <p><code>brk(2)</code> 호출은 힙(heap)에서 메모리를 할당한다.
+    웹서버는 대부분의 요청 처리시 자체 메모리
+    할당자(<code>apr_pool</code>과 <code>apr_bucket_alloc</code>)를
+    사용하기때문에 시스템호출 기록에서 이 시스템호출을 보기가
+    드물다. 이 기록에서 웹서버는 시작하자마자 자체 메모리 할당자가
+    사용할 메모리블록을 얻기위해 <code>malloc(3)</code>을 호출한다.</p>
+
+    <div class="example"><pre>/65:    fcntl(9, F_GETFL, 0x00000000)                   = 2
+/65:    fstat64(9, 0xFAF7B818)                          = 0
+/65:    getsockopt(9, 65535, 8192, 0xFAF7B918, 0xFAF7B910, 2190656) = 0
+/65:    fstat64(9, 0xFAF7B818)                          = 0
+/65:    getsockopt(9, 65535, 8192, 0xFAF7B918, 0xFAF7B914, 2190656) = 0
+/65:    setsockopt(9, 65535, 8192, 0xFAF7B918, 4, 2190656) = 0
+/65:    fcntl(9, F_SETFL, 0x00000082)                   = 0</pre></div>
+
+    <p>다음 worker 쓰레드는 클라이언트의 연결(파일기술자 9)을
+    대기안함(non-blocking) 상태로 바꾼다. <code>setsockopt(2)</code>와
+    <code>getsockopt(2)</code> 호출은 Solaris의 libc가 소켓에
+    대한 <code>fcntl(2)</code>을 어떻게 처리하는지 보여준다.</p>
+
+    <div class="example"><pre>/65:    read(9, " G E T   / 1 0 k . h t m".., 8000)     = 97</pre></div>
+
+    <p>worker 쓰레드는 클라이언트로 부터 요청을 읽는다.</p>
+
+    <div class="example"><pre>/65:    stat("/var/httpd/apache/httpd-8999/htdocs/10k.html", 0xFAF7B978) = 0
+/65:    open("/var/httpd/apache/httpd-8999/htdocs/10k.html", O_RDONLY) = 10</pre></div>
+
+    <p>웹서버 설정은 <code>Options FollowSymLinks</code>와
+    <code>AllowOverride None</code>이다. 그래서 요청한 파일경로의
+    각 디렉토리에 대해 <code>lstat(2)</code>하거나
+    <code>.htaccess</code> 파일을 검사할 필요가 없다. 파일을
+    검사하기위해, 1) 파일이 있는지, 2) 디렉토리가 아닌 일반파일인지,
+    <code>stat(2)</code> 호출만 하면 된다.</p>
+
+    <div class="example"><pre>/65:    sendfilev(0, 9, 0x00200F90, 2, 0xFAF7B53C)      = 10269</pre></div>
+
+    <p>이 경우 웹서버는 한번의 <code>sendfilev(2)</code> 시스템호출로
+    HTTP 응답헤더와 요청한 파일을 전송할 수 있다. Sendfile 지원여부는
+    운영체제마다 다르다. 다른 시스템이라면 <code>sendfile(2)</code>을
+    호출하기 전에 헤더를 보내기위해 <code>write(2)</code>나
+    <code>writev(2)</code> 호출을 한다.</p>
+
+    <div class="example"><pre>/65:    write(4, " 1 2 7 . 0 . 0 . 1   -  ".., 78)      = 78</pre></div>
+
+    <p><code>write(2)</code> 호출은 접근로그(access log)에 요청을
+    기록한다. 이 기록에 <code>time(2)</code> 호출이 없음을 주목하라.
+    아파치 1.3과 달리 아파치 2.0은 시간을 알기위해
+    <code>gettimeofday(3)</code>를 사용한다.
+    <code>gettimeofday</code>를 최적화한 리눅스와 Solaris 같은
+    몇몇 운영체제에서는 일반적인 시스템호출 부담이 없다.</p>
+
+    <div class="example"><pre>/65:    shutdown(9, 1, 1)                               = 0
+/65:    poll(0xFAF7B980, 1, 2000)                       = 1
+/65:    read(9, 0xFAF7BC20, 512)                        = 0
+/65:    close(9)                                        = 0</pre></div>
+
+    <p>worker 쓰레드는 연결을 지연닫기(lingering close)한다.</p>
+
+    <div class="example"><pre>/65:    close(10)                                       = 0
+/65:    lwp_park(0x00000000, 0)         (sleeping...)</pre></div>
+
+    <p>마지막으로 worker 쓰레드는 방금 전송한 파일을 닫고,
+    연결대기(listener) 쓰레드가 다른 연결을 할당할 때까지
+    정지한다.</p>
+
+    <div class="example"><pre>/67:    accept(3, 0x001FEB74, 0x001FEB94, 1) (sleeping...)</pre></div>
+
+    <p>그동안 연결대기 쓰레드는 연결을 (모든 worker가 작업중이면
+    연결대기 쓰레드를 멈추는 worker MPM의 흐름제어 기능에 따라)
+    worker 쓰레드에 할당하자마자 다른 연결을 받아들일 수 있다.
+    이 기록에는 나오지 않지만, worker 쓰레드가 방금 받은 연결을
+    처리하는 동안 다음 <code>accept(2)</code>가 (요청이 매우
+    많은 경우 항상) 일어날 수 있다.</p>
+
+  </div></div>
+<div class="bottomlang">
+<p><span>가능한 언어: </span><a href="../en/misc/perf-tuning.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/misc/perf-tuning.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ko/misc/perf-tuning.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/misc/perf-tuning.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/misc/perf-tuning.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

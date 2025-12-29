@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Custom Error Responses - Apache HTTP Server Version 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">Modules</a> | <a href="./mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">Glossary</a> | <a href="./sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="./">Version 2.4</a></div><div id="page-content"><div id="preamble"><h1>Custom Error Responses</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="./en/custom-error.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="./es/custom-error.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="./fr/custom-error.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/custom-error.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/custom-error.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/custom-error.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+
+    <p>Although the Apache HTTP Server provides generic error responses
+    in the event of 4xx or 5xx HTTP status codes, these responses are
+    rather stark, uninformative, and can be intimidating to site users.
+    You may wish to provide custom error responses which are either
+    friendlier, or in some language other than English, or perhaps which
+    are styled more in line with your site layout.</p>
+
+    <p>Customized error responses can be defined for any HTTP status
+    code designated as an error condition - that is, any 4xx or 5xx
+    status.</p>
+
+    <p>Additionally, a set of values are provided, so
+    that the error document can be customized further based on the
+    values of these variables, using <a href="howto/ssi.html">Server
+    Side Includes</a>. Or, you can have error conditions handled by a
+    cgi program, or other dynamic handler (PHP, mod_perl, etc) which
+    makes use of these variables.</p>
+
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#configuration">Configuration</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#variables">Available Variables</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#custom">Customizing Error Responses</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#multi-lang">Multi Language Custom Error Documents</a></li>
+</ul><h3>See also</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="configuration" id="configuration">Configuration</a></h2>
+
+    <p>Custom error documents are configured using the <code class="directive"><a href="./mod/core.html#errordocument">ErrorDocument</a></code> directive,
+    which may be used in global,
+    virtualhost, or directory context. It may be used in .htaccess files
+    if <code class="directive"><a href="./mod/core.html#allowoverride">AllowOverride</a></code> is set to
+    FileInfo.</p>
+
+    <pre class="prettyprint lang-config">ErrorDocument 500 "Sorry, our script crashed. Oh dear"
+ErrorDocument 500 /cgi-bin/crash-recover
+ErrorDocument 500 http://error.example.com/server_error.html
+ErrorDocument 404 /errors/not_found.html
+ErrorDocument 401 /subscription/how_to_subscribe.html</pre>
+
+
+    <p>The syntax of the <code>ErrorDocument</code> directive is:</p>
+
+    <pre class="prettyprint lang-config">ErrorDocument &lt;3-digit-code&gt; &lt;action&gt;</pre>
+
+
+    <p>where the action will be treated as:</p>
+
+    <ol>
+      <li>A local URL to redirect to (if the action begins with a "/").</li>
+      <li>An external URL to redirect to (if the action is a valid URL).</li>
+      <li>Text to be displayed (if none of the above). The text must be
+          wrapped in quotes (") if it consists of more than one word.</li>
+    </ol>
+
+    <p>When redirecting to a local URL, additional environment variables
+    are set so that the response can be further customized. They are not sent to
+    external URLs.</p>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="variables" id="variables">Available Variables</a></h2>
+
+      <p>Redirecting to another URL can be useful, but only if some
+      information can be passed which can then be used to explain or log
+      the error condition more clearly.</p>
+
+      <p>To achieve this, when the error redirect is sent, additional
+      environment variables will be set, which will be generated from
+      the headers provided to the original request by prepending
+      'REDIRECT_' onto the original header name. This provides the error
+      document the context of the original request.</p>
+
+      <p>For example, you might receive, in addition to more usual
+      environment variables, the following.</p>
+
+      <div class="example"><p><code>
+        REDIRECT_HTTP_ACCEPT=*/*, image/gif, image/jpeg, image/png<br />
+        REDIRECT_HTTP_USER_AGENT=Mozilla/5.0 Fedora/3.5.8-1.fc12 Firefox/3.5.8<br />
+        REDIRECT_PATH=.:/bin:/usr/local/bin:/sbin<br />
+        REDIRECT_QUERY_STRING=<br />
+        REDIRECT_REMOTE_ADDR=121.345.78.123<br />
+        REDIRECT_REMOTE_HOST=client.example.com<br />
+        REDIRECT_SERVER_NAME=www.example.edu<br />
+        REDIRECT_SERVER_PORT=80<br />
+        REDIRECT_SERVER_SOFTWARE=Apache/2.2.15<br />
+        REDIRECT_URL=/cgi-bin/buggy.pl
+      </code></p></div>
+
+      <p><code>REDIRECT_</code> environment variables are created from
+      the environment variables which existed prior to the
+      redirect. They are renamed with a <code>REDIRECT_</code>
+      prefix, <em>i.e.</em>, <code>HTTP_USER_AGENT</code> becomes
+      <code>REDIRECT_HTTP_USER_AGENT</code>.</p>
+
+      <p><code>REDIRECT_URL</code>, <code>REDIRECT_STATUS</code>, and
+      <code>REDIRECT_QUERY_STRING</code> are guaranteed to be set, and
+      the other headers will be set only if they existed prior to the
+      error condition.</p>
+
+      <p><strong>None</strong> of these will be
+      set if the <code class="directive"><a href="./mod/core.html#errordocument">ErrorDocument</a></code> target is an
+      <em>external</em> redirect (anything starting with a
+      scheme name like <code>http:</code>, even if it refers to the same host
+      as the server).</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="custom" id="custom">Customizing Error Responses</a></h2>
+
+      <p>If you point your <code>ErrorDocument</code> to some variety of
+      dynamic handler such as a server-side include document, CGI
+      script, or some variety of other handler, you may wish to use the
+      available custom environment variables to customize this
+      response.</p>
+
+      <p>If the ErrorDocument specifies a local redirect to a CGI
+      script, the script should include a "<code>Status:</code>"
+      header field in its output in order to ensure the propagation
+      all the way back to the client of the error condition that
+      caused it to be invoked. For instance, a Perl ErrorDocument
+      script might include the following:</p>
+
+       <pre class="prettyprint lang-perl">...
+print  "Content-type: text/html\n";
+printf "Status: %s Condition Intercepted\n", $ENV{"REDIRECT_STATUS"};
+...</pre>
+
+
+      <p>If the script is dedicated to handling a particular error
+      condition, such as <code>404&nbsp;Not&nbsp;Found</code>, it can
+      use the specific code and error text instead.</p>
+
+      <p>Note that if the response contains <code>Location:</code>
+      header (in order to issue a client-side redirect), the script
+      <em>must</em> emit an appropriate <code>Status:</code> header
+      (such as <code>302&nbsp;Found</code>). Otherwise the
+      <code>Location:</code> header may have no effect.</p>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="multi-lang" id="multi-lang">Multi Language Custom Error Documents</a></h2>
+
+    <p>Provided with your installation of the Apache HTTP Server is a
+    directory of custom error documents translated into 16 different
+    languages. There's also a configuration file in the
+    <code>conf/extra</code> configuration directory that can be included
+    to enable this feature.</p>
+
+    <p>In your server configuration file, you'll see a line such as:</p>
+
+    <pre class="prettyprint lang-config"># Multi-language error messages
+#Include conf/extra/httpd-multilang-errordoc.conf</pre>
+
+
+    <p>Uncommenting this <code>Include</code> line will enable this
+    feature, and provide language-negotiated error messages, based on
+    the language preference set in the client browser.</p>
+
+    <p>Additionally, these documents contain various of the
+    <code>REDIRECT_</code> variables, so that additional information can
+    be provided to the end-user about what happened, and what they can
+    do now.</p>
+
+    <p>These documents can be customized to whatever degree you wish to
+    provide more useful information to users about your site, and what
+    they can expect to find there.</p>
+
+    <p><code class="module"><a href="./mod/mod_include.html">mod_include</a></code> and <code class="module"><a href="./mod/mod_negotiation.html">mod_negotiation</a></code>
+    must be enabled to use this feature.</p>
+
+ </div></div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="./en/custom-error.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="./es/custom-error.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="./fr/custom-error.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/custom-error.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/custom-error.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/custom-error.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/custom-error.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="./mod/">Modules</a> | <a href="./mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">Glossary</a> | <a href="./sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

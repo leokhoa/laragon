@@ -1,0 +1,458 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+<meta content="text/html; charset=EUC-KR" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>아파치 투토리얼: Server Side Includes 소개 - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">How-To / Tutorials</a></div><div id="page-content"><div id="preamble"><h1>아파치 투토리얼: Server Side Includes 소개</h1>
+<div class="toplang">
+<p><span>가능한 언어: </span><a href="../en/howto/ssi.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../es/howto/ssi.html" hreflang="es" rel="alternate" title="Espa&#241;ol">&nbsp;es&nbsp;</a> |
+<a href="../fr/howto/ssi.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ja/howto/ssi.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/howto/ssi.html" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div>
+<div class="outofdate">이 문서는 최신판 번역이 아닙니다.
+            최근에 변경된 내용은 영어 문서를 참고하세요.</div>
+
+<p>Server-side includes를 사용하여 HTML 문서에 동적인 내용을
+추가할 수 있다.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#related">소개</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#what">SSI가 무엇인가?</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#configuring">SSI가 가능하도록 서버 설정하기</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#basic">기본 SSI 지시어</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#additionalexamples">추가 예제</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#config">이외에 설정할 수 있는 것은?</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#exec">명령어 실행하기</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#advanced">고급 SSI 기법</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#conclusion">결론</a></li>
+</ul><h3>참고</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="related" id="related">소개</a></h2>
+ <table class="related"><tr><th>관련된 모듈</th><th>관련된 지시어</th></tr><tr><td><ul><li><code class="module"><a href="../mod/mod_include.html">mod_include</a></code></li><li><code class="module"><a href="../mod/mod_cgi.html">mod_cgi</a></code></li><li><code class="module"><a href="../mod/mod_expires.html">mod_expires</a></code></li></ul></td><td><ul><li><code class="directive"><a href="../mod/core.html#options">Options</a></code></li><li><code class="directive"><a href="../mod/mod_include.html#xbithack">XBitHack</a></code></li><li><code class="directive"><a href="../mod/mod_mime.html#addtype">AddType</a></code></li><li><code class="directive"><a href="../mod/core.html#setoutputfilter">SetOutputFilter</a></code></li><li><code class="directive"><a href="../mod/mod_setenvif.html#browsermatchnocase">BrowserMatchNoCase</a></code></li></ul></td></tr></table>
+
+    <p>이 글은 보통 SSI라고 부르는 Server Side Includes를 설명한다.
+    SSI가 가능하도록 서버를 설정하는 방법과 HTML 페이지에 동적인
+    내용을 추가하는 기본적인 SSI 사용법을 소개한다.</p>
+
+    <p>이 글의 뒷부분은 SSI 지시어 조건문과 같은 고급기법을
+    설명한다.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="what" id="what">SSI가 무엇인가?</a></h2>
+
+    <p>SSI (Server Side Includes)는 HTML 페이지에 사용하는 지시어로,
+    페이지를 서비스할때 서버가 처리한다. SSI를 사용하면 CGI
+    프로그램이나 다른 동적인 기술로 페이지 전체를 만들어서
+    서비스하지 않고도 HTML 페이지에 동적으로 생성한 내용을 추가할
+    수 있다.</p>
+
+    <p>SSI를 사용할지 아니면 프로그램으로 페이지 전체를 생성할지
+    결정은 페이지에서 정적인 부분이 많은지와 페이지를 서비스할
+    때마다 어느정도를 다시 계산해야할지에 달렸다. SSI는 현재
+    시간과 같이 적은 정보를 추가하는데 좋다. 그러나 페이지를
+    서비스할때 페이지의 대부분을 생성해야 한다면 다른 방법을
+    찾아봐야 한다.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="configuring" id="configuring">SSI가 가능하도록 서버 설정하기</a></h2>
+
+
+    <p>서버가 SSI를 처리하려면 <code>httpd.conf</code> 파일이나
+    <code>.htaccess</code> 파일에서 다음 지시어를 사용해야 한다.</p>
+<div class="example"><p><code>
+        Options +Includes
+</code></p></div>
+
+    <p>그러면 아파치는 파일에서 SSI 지시어를 처리한다. 설정에는
+    보통 여러 <code class="directive"><a href="../mod/core.html#options">Options</a></code> 지시어가
+    있고, 이 지시어들은 서로 덮어써서 무효로 만들다. 그래서
+    지시어를 맨마지막에 처리하기위해 보통 SSI를 원하는 특정
+    디렉토리에서 <code>Options</code>를 사용한다.</p>
+
+    <p>모든 파일에서 SSI 지시어를 처리하는 것은 아니다. 아파치에게
+    어떤 파일을 처리할지 알려줘야 한다. 두가지 방법이 있다.
+    하나는 다음과 같은 지시어로 <code>.shtml</code>과 같은 특정
+    파일 확장자를 가진 파일을 처리하는 방법이다.</p>
+<div class="example"><p><code>
+        AddType text/html .shtml<br />
+        AddOutputFilter INCLUDES .shtml
+</code></p></div>
+
+    <p>이 방법의 단점은 이미 있는 페이지에 SSI 지시어를 추가하는
+    경우 SSI 지시어를 처리하기위해 <code>.shtml</code> 확장자를
+    부여하기때문에 파일명과 이 페이지의 모든 링크를 변경해야
+    하는 점이다.</p>
+
+    <p>다른 방법은 <code class="directive"><a href="../mod/mod_include.html#xbithack">XBitHack</a></code>
+    지시어를 사용하는 방법이다.</p>
+<div class="example"><p><code>
+        XBitHack on
+</code></p></div>
+
+    <p><code class="directive"><a href="../mod/mod_include.html#xbithack">XBitHack</a></code>는
+    실행권한이 있는 파일에서 SSI 지시어를 처리한다. 그래서 이미
+    있는 페이지에 SSI 지시어를 추가한다면 파일명을 변경하지
+    않고 <code>chmod</code>로 파일에 실행권한을 주면 된다.</p>
+<div class="example"><p><code>
+        chmod +x pagename.html
+</code></p></div>
+
+    <p>하지 말아야 할 것 하나. 가끔 <code>.shtml</code> 파일명에
+    골치를 앓지말고 모든 <code>.html</code> 파일을 SSI 처리하라고
+    충고하는 사람이 있다. 이 사람들은 아마도 <code class="directive"><a href="../mod/mod_include.html#xbithack">XBitHack</a></code>에 대해 모르는
+    것 같다. 명심할 점은 이렇게 하면 아파치는 파일에 SSI 지시어가
+    없더라도 클라이언트로 보내는 모든 파일을 살펴봐야 한다는
+    것이다. 성능이 매우 느려질 수 있으며, 좋은 생각이 아니다.</p>
+
+    <p>물론 윈도우즈에서는 실행권한이란 것이 없기때문에 후자를
+    사용할 수 없다.</p>
+
+    <p>내용이 동적이여서 계산하기 어렵기때문에 아파치 기본 설정은
+    SSI 페이지의 최근수정일과 content length HTTP 헤더를 보내지
+    않는다. 그래서 문서를 캐쉬하지 못하고 클라이언트가 느끼는
+    성능이 떨어진다. 두가지 해결방법이 있다.</p>
+
+    <ol>
+      <li><code>XBitHack Full</code> 설정은 사용한다. 그러면
+      아파치는 포함하는(include) 파일들의 수정일은 무시한체
+      원래 요청한 파일의 날짜만 보고 최근수정일을 알아낸다.</li>
+
+      <li><code class="module"><a href="../mod/mod_expires.html">mod_expires</a></code>에 있는 지시어를 사용하여
+      파일에 직접 만기일을 설정하면 브라우저와 프록시가 문서를
+      캐쉬할 수 있다.</li>
+    </ol>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="basic" id="basic">기본 SSI 지시어</a></h2>
+
+    <p>SSI 지시어의 사용법은 다음과 같다.</p>
+<div class="example"><p><code>
+        &lt;!--#element attribute=value attribute=value ... --&gt;
+</code></p></div>
+
+    <p>HTML 주석같이 생겼기때문에 SSI 기능을 가동하지 않아도
+    HTML 소스에는 나오지만 브라우저는 무시한다. SSI를 올바로
+    설정하면 지시어를 결과값으로 바꾼다.</p>
+
+    <p>element는 다음중 하나다. 다음 회에 더 자세히 설명할 것이다.
+    지금은 SSI로 할 수 있는 몇가지 예를 보인다</p>
+
+<h3><a name="todaysdate" id="todaysdate">오늘 날짜</a></h3>
+
+<div class="example"><p><code>
+        &lt;!--#echo var="DATE_LOCAL" --&gt;
+</code></p></div>
+
+    <p><code>echo</code> element는 변수값을 그대로 출력한다.
+    CGI 프로그램에 제공하는 환경변수들 외에도 여러 표준 변수가
+    있다. 또, <code>set</code> element를 사용하여 직접 변수를
+    정의할 수도 있다.</p>
+
+    <p>날짜 출력 형식이 마음에 들지 않는다면, 다음과 같이
+    <code>config</code> element의 <code>timefmt</code> attribute를
+    사용한다.</p>
+
+<div class="example"><p><code>
+        &lt;!--#config timefmt="%A %B %d, %Y" --&gt;<br />
+        Today is &lt;!--#echo var="DATE_LOCAL" --&gt;
+</code></p></div>
+
+
+<h3><a name="lastmodified" id="lastmodified">파일의 수정일</a></h3>
+
+<div class="example"><p><code>
+        이 문서는 &lt;!--#flastmod file="index.html" --&gt;에 마지막으로 수정되었다
+</code></p></div>
+
+    <p>이 element도 <code>timefmt</code> 형식 설정에 달렸다.</p>
+
+
+<h3><a name="cgi" id="cgi">CGI 프로그램 결과를 포함하기</a></h3>
+
+    <p>일반적인 SSI 사용법중 하나로, 많이들 애용하는 ``방문수
+    카운터'' 같은 CGI 프로그램 결과를 출력한다.</p>
+
+<div class="example"><p><code>
+        &lt;!--#include virtual="/cgi-bin/counter.pl" --&gt;
+</code></p></div>
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="additionalexamples" id="additionalexamples">추가 예제</a></h2>
+
+
+    <p>다음은 HTML 문서에 사용할 수 있는 몇가지 SSI 예제다.</p>
+
+<h3><a name="docmodified" id="docmodified">이 문서가 언제 마지막으로
+수정되었나?</a></h3>
+
+    <p>앞에서 SSI를 사용하여 사용자에게 문서의 최근수정일을
+    알릴 수 있다고 말했다. 그러나 실제 방법은 알려주지 않았다.
+    다음 코드를 HTML 문서에 사용하면 페이지에 시간 기록을 남긴다.
+    물론 위에서 설명한대로 SSI가 올바로 작동해야 한다.</p>
+<div class="example"><p><code>
+        &lt;!--#config timefmt="%A %B %d, %Y" --&gt;<br />
+        이 문서는 &lt;!--#flastmod file="ssi.shtml" --&gt;에 마지막으로 수정되었다;
+</code></p></div>
+
+    <p>물론 <code>ssi.shtml</code>대신 원하는 실제 파일명을
+    사용한다. 아무 페이지에라도 붙여넣을 수 있는 범용코드를
+    원한다면, 파일명 대신 <code>LAST_MODIFIED</code> 변수를
+    사용한다.</p>
+<div class="example"><p><code>
+        &lt;!--#config timefmt="%D" --&gt;<br />
+        This file last modified &lt;!--#echo var="LAST_MODIFIED" --&gt;
+</code></p></div>
+
+    <p><code>timefmt</code> 형식에 대한 자세한 정보는 검색엔진에서
+    <code>strftime</code>을 찾아봐라. 문법은 같다.</p>
+
+
+<h3><a name="standard-footer" id="standard-footer">표준 페이지 하단을 포함하기</a></h3>
+
+
+    <p>여러 페이지가 있는 사이트를 관리한다면 페이지 전체를
+    수정하는 것은, 특히 페이지들이 표준 외관을 가지도록 수정하는
+    것은 정말로 괴롭다.</p>
+
+    <p>페이지 상단(header)과 하단(footer)을 파일로 포함하여
+    이런 수정의 부담을 덜 수 있다. 모든 페이지에서
+    <code>include</code> SSI 명령어를 사용하여 페이지 하단 파일
+    하나를 포함하면 된다. <code>include</code> element의
+    <code>file</code> attribute나 <code>virtual</code> attribute로
+    포함할 파일을 지정한다. <code>file</code> attribute는 <em>현재
+    디렉토리에 상대적인</em> 파일경로다. 즉, (/로 시작하는)
+    절대파일경로나 경로 안에 ../를 사용할 수 없다. 아마도 서비스하는
+    문서의 상대 URL을 지정할 수 있는 <code>virtual</code> attribute가
+    더 유용할 것이다. 경로를 /로 시작할 수 있지만, 포함하려는
+    파일이 서비스하는 파일과 같은 서버에 있어야 한다.</p>
+<div class="example"><p><code>
+        &lt;!--#include virtual="/footer.html" --&gt;
+</code></p></div>
+
+    <p>나는 보통 이 두가지를 합쳐서 포함할 페이지 하단 파일에
+    <code>LAST_MODIFIED</code> 지시어를 넣는다. 포함하려는 파일에도
+    SSI 지시어가 나올 수 있으며, 이렇게 포함한 파일이 다른 파일을
+    포함하는 식으로 여러번 계속 포함할 수도 있다.</p>
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="config" id="config">이외에 설정할 수 있는 것은?</a></h2>
+
+
+    <p>시간 형식 <code>config</code>(설정) 외에 두가지를 더
+    <code>config</code>(설정)할 수 있다.</p>
+
+    <p>보통 SSI 지시어가 잘못되면 다음과 같은 문구가 나온다</p>
+<div class="example"><p><code>
+        [an error occurred while processing this directive]
+</code></p></div>
+
+    <p>이 문구를 변경하고 싶다면 <code>config</code> element의
+    <code>errmsg</code> attribute를 사용하여 변경한다.</p>
+<div class="example"><p><code>
+        &lt;!--#config errmsg="[It appears that you don't know how to use SSI]" --&gt;
+</code></p></div>
+
+    <p>사이트를 서비스하기 전에 모든 SSI 지시어 문제를 해결하여
+    사용자가 이런 문구를 보지 않길 바란다. (그렇지?)</p>
+
+    <p>그리고 <code>sizefmt</code> attribute가 반환하는 파일크기
+    형식을 <code>config</code>(설정)할 수 있다. 바이트로 크기를
+    보여주려면 <code>bytes</code>, 적절히 Kb나 Mb로 크기를
+    보여주려면 <code>abbrev</code>를 사용한다.</p>
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="exec" id="exec">명령어 실행하기</a></h2>
+    
+
+    <p>나는 다음 달에 작은 CGI 프로그램과 SSI를 같이 사용하는
+    글을 쓸 예정이다. 지금은 <code>exec</code> element로 할
+    수 있는 다른 것들을 설명할 것이다. SSI는 실제 쉘을 (정확히는
+    <code>/bin/sh</code>나 Win32를 사용한다면 DOS 쉘) 사용하여
+    명령어를 실행한다. 예를 들어, 다음은 디렉토리 목록을 보여준다.</p>
+<div class="example"><p><code>
+        &lt;pre&gt;<br />
+        &lt;!--#exec cmd="ls" --&gt;<br />
+        &lt;/pre&gt;
+</code></p></div>
+
+    <p>or, on Windows</p>
+<div class="example"><p><code>
+        &lt;pre&gt;<br />
+        &lt;!--#exec cmd="dir" --&gt;<br />
+        &lt;/pre&gt;
+</code></p></div>
+
+    <p><code>dir</code> 출력에 브라우저가 혼동할
+    ``&lt;<code>dir</code>&gt;'' 문자열이 포함되있기때문에,
+    윈도우즈에서 이 지시어를 사용하면 결과가 조금 이상할 것이다.</p>
+
+    <p>이 기능은 <code>exec</code> 태그에 사용한 어떤 명령어라도
+    실행할 수 있기때문에 매우 위험하다. ``방명록''과 같이 사용자가
+    웹페이지 내용을 수정할 수 있는 환경이라면, 이 기능을 절대로
+    사용해선 안된다. <code>Options</code> 지시어에
+    <code>IncludesNOEXEC</code> 아규먼트를 사용하여 SSI를 허용하지만
+    <code>exec</code> 기능을 막을 수 있다.</p> 
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="advanced" id="advanced">고급 SSI 기법</a></h2>
+
+
+    <p>내용을 출력하는 기능 외에 아파치 SSI는 변수 설정이 가능하고,
+    비교문과 조건문에 이 변수를 사용할 수 있다.</p>
+
+<h3><a name="caveat" id="caveat">경고</a></h3>
+
+    <p>이 글에서 설명하는 대부분의 기능은 아파치 1.2 이후부터
+    사용할 수 있다. 물론, 아파치 1.2 이상을 사용하지 않는다면
+    아마도 빨리 업그레이드해야 한다. 해라. 지금 해라. 기다릴
+    것이다.</p>
+
+
+<h3><a name="variables" id="variables">변수 설정</a></h3>
+
+    <p><code>set</code> 지시어를 사용하여 나중에 사용할 변수를
+    설정할 수 있다. 앞으로 변수가 필요하기때문에 먼저 설명한다.
+    문법은 다음과 같다.</p>
+<div class="example"><p><code>
+        &lt;!--#set var="name" value="Rich" --&gt;
+</code></p></div>
+
+    <p>다음과 같이 값을 문자그대로 설정하지 않고 <a href="../env.html">환경변수</a>나 위에서 설명한 변수(예를
+    들어, <code>LAST_MODIFIED</code>)와 같이 다른 변수를 사용하여
+    변수값을 설정할 수도 있다. 이때 변수명 앞에 달러 표시($)를
+    붙여서 문자열이 아닌 변수임을 표시한다.</p>
+
+    <div class="example"><p><code> &lt;!--#set var="modified" value="$LAST_MODIFIED" --&gt;
+    </code></p></div>
+
+    <p>변수값에 달러 문자를 그대로 입력하려면 달러 표시 앞에
+    백슬래쉬를 사용한다.</p>
+<div class="example"><p><code>
+        &lt;!--#set var="cost" value="\$100" --&gt;
+</code></p></div>
+
+    <p>마지막으로 긴 문자열 중간에 변수를 사용하는데 뒤에 있는
+    문자도 변수명으로 오인하여 혼동되는 경우, 변수명을 대괄호로
+    묶어서 확실히 한다. (좋은 예를 찾기 힘들지만, 무슨 말인지
+    이해하길 바란다.)</p>
+<div class="example"><p><code>
+        &lt;!--#set var="date" value="${DATE_LOCAL}_${DATE_GMT}" --&gt;
+</code></p></div>
+
+
+<h3><a name="conditional" id="conditional">조건 표현식</a></h3>
+
+
+    <p>변수를 설정하고 비교할 수 있으니 조건문이 가능하다. 이제
+    SSI가 일종의 간단한 프로그래밍언어가 된다.
+    <code class="module"><a href="../mod/mod_include.html">mod_include</a></code>는 조건문을 만드는 <code>if</code>,
+    <code>elif</code>, <code>else</code>, <code>endif</code>
+    구조를 제공한다. 실제 한 페이지로 여러 논리적인 페이지를
+    만들 수 있다.</p>
+
+    <p>조건문 구조는 다음과 같다.</p>
+<div class="example"><p><code>
+    &lt;!--#if expr="test_condition" --&gt;<br />
+    &lt;!--#elif expr="test_condition" --&gt;<br />
+    &lt;!--#else --&gt;<br />
+    &lt;!--#endif --&gt;
+</code></p></div>
+
+    <p><em>test_condition</em>에는 어떤 논리비교라도 사용할
+    수 있다. 값을 다른 값과 비교하거나, 특정 값이 ``참''인지
+    검사한다. (문자열이 비어있지 않으면 참이다.) 사용가능한
+    비교 연산자를 모두 보려면, <code class="module"><a href="../mod/mod_include.html">mod_include</a></code>
+    문서를 참고하라. 다음은 조건문을 사용한 몇가지 예제다.</p>
+
+    <p>설정파일에 다음 줄을 추가한다.</p>
+<div class="example"><p><code>
+        BrowserMatchNoCase macintosh Mac<br />
+        BrowserMatchNoCase MSIE InternetExplorer
+</code></p></div>
+
+    <p>클라이언트가 맥킨토시에서 실행하는 Internet Explorer라면
+    환경변수 ``Mac''과 ``InternetExplorer'' 모두 참으로 설정한다.</p>
+
+    <p>그리고 SSI 문서에 다음과 같이 적는다.</p>
+<div class="example"><p><code>
+        &lt;!--#if expr="${Mac} &amp;&amp; ${InternetExplorer}" --&gt;<br />
+        여기에 사과문가 나온다<br />
+        &lt;!--#else --&gt;<br />
+        여기에 멋진 JavaScript 코드가 나온다<br />
+        &lt;!--#endif --&gt;
+</code></p></div>
+
+    <p>내가 매킨토시 IE에 반감이 있는 것은 아니다. 나는 단지
+    저번주에 다른 곳에서는 문제가 없는 JavaScript 코드가 매킨토시
+    IE에서는 동작하지 않아서 몇시간을 고생했다. 위는 임시
+    해결책이다.</p>
+
+    <p>(직접 정의하였건 일반 환경변수이건) 어떤 변수라도 조건문에
+    사용할 수 있다. 아라치는 <code>SetEnvIf</code>나 다른 관련
+    지시어로 환경변수를 설정할 수 있기때문에 CGI 없이도 멋지게
+    동적인 내용을 만들 수 있다.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="conclusion" id="conclusion">결론</a></h2>
+
+    <p>SSI는 확실히 CGI나 동적인 웹페이지를 생성하는 다른 기술을
+    대체할 수 없다. 그러나 많은 추가 작업없이 페이지에 동적인
+    내용을 조금 추가하기에는 훌륭한 방법이다.</p>
+</div></div>
+<div class="bottomlang">
+<p><span>가능한 언어: </span><a href="../en/howto/ssi.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../es/howto/ssi.html" hreflang="es" rel="alternate" title="Espa&#241;ol">&nbsp;es&nbsp;</a> |
+<a href="../fr/howto/ssi.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ja/howto/ssi.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/howto/ssi.html" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/howto/ssi.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

@@ -1,0 +1,680 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_cache - Apache HTTP サーバ バージョン 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="../">バージョン 2.4</a> &gt; <a href="./">モジュール</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache モジュール mod_cache</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="../en/mod/mod_cache.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_cache.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_cache.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_cache.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+<table class="module"><tr><th><a href="module-dict.html#Description">説明:</a></th><td>URI をキーにしたコンテンツのキャッシュ</td></tr>
+<tr><th><a href="module-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">モジュール識別子:</a></th><td>cache_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">ソースファイル:</a></th><td>mod_cache.c</td></tr></table>
+<h3>概要</h3>
+
+    <div class="warning">このモジュールは <code class="directive"><a href="../mod/mod_authz_host.html#allow">Allow</a></code> や <code class="directive"><a href="../mod/mod_authz_host.html#deny">Deny</a></code> ディレクティブを無視しますので、
+    注意して使って下さい。クライアントのホスト名、アドレスや環境変数を使って
+    アクセスを制限したいコンテンツに対してはキャッシュ機能を有効にするべきではありません。
+    </div>
+
+    <p><code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> はローカルのコンテンツやプロキシされた
+    コンテンツをキャッシュするために使われる <a href="http://www.ietf.org/rfc/rfc2616.txt">RFC 2616</a> 準拠の
+    HTTP コンテンツキャッシュを実装しています。<code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code>
+    の動作にはストレージを管理するモジュールが必要です。標準
+    Apache 配布には二つストレージ管理モジュールが含まれています:</p>
+    
+    <dl>
+    <dt><code class="module"><a href="../mod/mod_cache_disk.html">mod_cache_disk</a></code></dt>
+    <dd>ディスクを使用したストレージ管理機構を実装しています。</dd>
+
+    <dt><code class="module"><a href="../mod/mod_mem_cache.html">mod_mem_cache</a></code></dt>
+    <dd>メモリを使用したストレージ管理機構を実装しています。
+    <code class="module"><a href="../mod/mod_mem_cache.html">mod_mem_cache</a></code> は次の二つのモードのどちらかで動作する
+    ように設定できます: オープンされているファイル記述子をキャッシュするモードか、
+    ヒープ上でのオブジェクトの自体をキャッシュをするモードです。
+    <code class="module"><a href="../mod/mod_mem_cache.html">mod_mem_cache</a></code> はローカルで生成されるコンテンツや、
+    <code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code> が
+    <code class="directive"><a href="../mod/mod_proxy.html#proxypass">ProxyPass</a></code> を使って設定されている
+    ときの (つまり<dfn>リバースプロキシ</dfn> での) バックエンドサーバの
+    コンテンツをキャッシュするのに使えます。</dd>
+    </dl>
+
+    <p>コンテンツのキャッシュへの保存と取得は URI に基づいたキーが使われます。
+    アクセス保護のかけられているコンテンツはキャッシュされません。</p>
+    <p>より詳細な解説や例については<a href="../caching.html">キャッシュ機能</a>
+    を参照してください。</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>トピック</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#related">関連モジュールとディレクティブ</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#sampleconf">サンプル設定</a></li>
+</ul><h3 class="directives">ディレクティブ</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#cachedefaultexpire">CacheDefaultExpire</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachedetailheader">CacheDetailHeader</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachedisable">CacheDisable</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheenable">CacheEnable</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheheader">CacheHeader</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheignorecachecontrol">CacheIgnoreCacheControl</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheignoreheaders">CacheIgnoreHeaders</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheignorenolastmod">CacheIgnoreNoLastMod</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheignorequerystring">CacheIgnoreQueryString</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheignoreurlsessionidentifiers">CacheIgnoreURLSessionIdentifiers</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachekeybaseurl">CacheKeyBaseURL</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachelastmodifiedfactor">CacheLastModifiedFactor</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachelock">CacheLock</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachelockmaxage">CacheLockMaxAge</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachelockpath">CacheLockPath</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachemaxexpire">CacheMaxExpire</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheminexpire">CacheMinExpire</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachequickhandler">CacheQuickHandler</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachestaleonerror">CacheStaleOnError</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachestoreexpired">CacheStoreExpired</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachestorenostore">CacheStoreNoStore</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachestoreprivate">CacheStorePrivate</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_cache">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_cache">Report a bug</a></li></ul><h3>参照</h3>
+<ul class="seealso">
+<li><a href="../caching.html">キャッシュ機能</a></li>
+<li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="related" id="related">関連モジュールとディレクティブ</a></h2>
+    <table class="related"><tr><th>関連モジュール</th><th>関連ディレクティブ</th></tr><tr><td><ul><li><code class="module"><a href="../mod/mod_cache_disk.html">mod_cache_disk</a></code></li><li><code class="module"><a href="../mod/mod_mem_cache.html">mod_mem_cache</a></code></li></ul></td><td><ul><li><code class="directive"><a href="../mod/mod_cache_disk.html#cacheroot">CacheRoot</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cachedirlevels">CacheDirLevels</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cachedirlength">CacheDirLength</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cacheminfilesize">CacheMinFileSize</a></code></li><li><code class="directive"><a href="../mod/mod_cache_dist.html#cachemaxfilesize">CacheMaxFileSize</a></code></li><li><code class="directive"><a href="../mod/mod_mem_cache.html#mcachesize">MCacheSize</a></code></li><li><code class="directive"><a href="../mod/mod_mem_cache.html#mcachemaxobjectcount">MCacheMaxObjectCount</a></code></li><li><code class="directive"><a href="../mod/mod_mem_cache.html#mcacheminobjectsize">MCacheMinObjectSize</a></code></li><li><code class="directive"><a href="../mod/mod_mem_cache.html#mcachemaxobjectsize">MCacheMaxObjectSize</a></code></li><li><code class="directive"><a href="../mod/mod_mem_cache.html#mcacheremovalalgorithm">MCacheRemovalAlgorithm</a></code></li><li><code class="directive"><a href="../mod/mod_mem_cache.html#mcachemaxstreamingbuffer">MCacheMaxStreamingBuffer</a></code></li></ul></td></tr></table>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="sampleconf" id="sampleconf">サンプル設定</a></h2>
+    <div class="example"><h3>Sample httpd.conf</h3><p><code>
+      #<br />
+      # Sample Cache Configuration<br />
+      #<br />
+      LoadModule cache_module modules/mod_cache.so<br />
+      <br />
+      &lt;IfModule mod_cache.c&gt;<br />
+      <span class="indent">
+        #LoadModule cache_disk_module modules/mod_cache_disk.so<br />
+        # If you want to use mod_cache_disk instead of mod_mem_cache,<br />
+        # uncomment the line above and comment out the LoadModule line below.<br />
+        &lt;IfModule mod_cache_disk.c&gt;<br />
+        <span class="indent">
+          CacheRoot c:/cacheroot<br />
+          CacheEnable disk  /<br />
+          CacheDirLevels 5<br />
+          CacheDirLength 3<br />
+        </span>
+        &lt;/IfModule&gt; <br />
+        <br />
+        LoadModule mem_cache_module modules/mod_mem_cache.so<br />
+        &lt;IfModule mod_mem_cache.c&gt;<br />
+        <span class="indent">
+          CacheEnable mem  /<br />
+          MCacheSize 4096<br />
+          MCacheMaxObjectCount 100<br />
+          MCacheMinObjectSize 1<br />
+          MCacheMaxObjectSize 2048<br />
+        </span>
+        &lt;/IfModule&gt;<br />
+        <br />
+        # When acting as a proxy, don't cache the list of security updates<br />
+        CacheDisable http://security.update.server/update-list/<br />
+      </span>
+      &lt;/IfModule&gt;
+    </code></p></div>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheDefaultExpire" id="CacheDefaultExpire">CacheDefaultExpire</a> <a name="cachedefaultexpire" id="cachedefaultexpire">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>期日が指定されていないときにドキュメントをキャッシュするデフォルトの期間</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheDefaultExpire <var>seconds</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheDefaultExpire 3600 (1時間)</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+</table>
+    <p><code class="directive">CacheDefaultExpire</code> ディレクティブは、ドキュメントに
+    有効期限 (expiry) や最終修正時刻 (last-modified) が指定されていない場合の
+    デフォルトの時間を指定します。<code class="directive">CacheMaxExpire</code> 
+    ディレクティブで指定された値はこの設定を上書き<em>しません</em>。</p>
+
+    <div class="example"><p><code>
+      CacheDefaultExpire 86400
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheDetailHeader" id="CacheDetailHeader">CacheDetailHeader</a> <a name="cachedetailheader" id="cachedetailheader">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>Add an X-Cache-Detail header to the response.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheDetailHeader <var>on|off</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheDetailHeader off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">互換性:</a></th><td>Available in Apache 2.3.9 and later</td></tr>
+</table><p>このディレクティブの解説文書は
+            まだ翻訳されていません。英語版をご覧ください。
+            </p></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheDisable" id="CacheDisable">CacheDisable</a> <a name="cachedisable" id="cachedisable">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>特定の URL をキャッシュしない</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheDisable <var> url-string</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+</table>
+    <p><code class="directive">CacheDisable</code> ディレクティブで
+    <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> モジュールが <var>url-string</var> 以下の
+    URL をキャッシュ<em>しない</em>ようにします。</p>
+
+    <div class="example"><h3>例</h3><p><code>
+      CacheDisable /local_files
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheEnable" id="CacheEnable">CacheEnable</a> <a name="cacheenable" id="cacheenable">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>指定したストレージ管理方式を使ってのキャッシュを有効にする</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheEnable <var>cache_type</var> <var>url-string</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+</table>
+    <p><code class="directive">CacheEnable</code> ディレクティブで <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> 
+    モジュールが <var>url-string</var> 以下の URL をキャッシュするようにします。
+    キャッシュストレージ管理方式は <var>cache_type</var> 引数で指定します。
+    <var>cache_type</var> <code> mem</code> で、
+    <code class="module"><a href="../mod/mod_mem_cache.html">mod_mem_cache</a></code> で実装されているメモリを使ったストレージ
+    管理方式を使うように <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> に指示します。
+    <var>cache_type</var> <code>disk</code> で、
+    <code class="module"><a href="../mod/mod_cache_disk.html">mod_cache_disk</a></code> で実装されているディスクを使ったストレージ
+    管理を使うように <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> に指示します。
+    <var>cache_type</var> <code>fd</code> は <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> に
+    <code class="module"><a href="../mod/mod_mem_cache.html">mod_mem_cache</a></code> により実装されているファイル記述子の
+    キャッシュを使うように指示します。</p>
+
+    <p>(下の例のように) <code class="directive">CacheEnable</code> ディレクティブの
+    URL 空間が重複しているときは、該当するストレージ方式を順に試して、
+    実際にリクエストの処理ができると、その方式で処理します。
+    ストレージ管理方式が実行される順番は設定ファイル中の
+    <code class="directive">CacheEnable</code> の順番により決定されます。</p>
+
+    <div class="example"><p><code>
+      CacheEnable  mem   /manual<br />
+      CacheEnable  fd    /images<br />
+      CacheEnable  disk  /<br />
+    </code></p></div>
+
+    <p>フォワードプロクシサーバとして動作する場合、
+    <var>url-string</var> を使って、キャッシュを有効にするリモートサイトや
+    プロクシプロトコルを指定することもできます。</p>
+
+    <div class="example"><p><code>
+      # Cache proxied url's<br />
+      CacheEnable  disk  /<br /><br />
+      # Cache FTP-proxied url's<br />
+      CacheEnable  disk  ftp://<br /><br />
+      # Cache content from www.apache.org<br />
+      CacheEnable  disk  http://www.apache.org/<br />
+    </code></p></div>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheHeader" id="CacheHeader">CacheHeader</a> <a name="cacheheader" id="cacheheader">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>Add an X-Cache header to the response.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheHeader <var>on|off</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheHeader off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">互換性:</a></th><td>Available in Apache 2.3.9 and later</td></tr>
+</table><p>このディレクティブの解説文書は
+            まだ翻訳されていません。英語版をご覧ください。
+            </p></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheIgnoreCacheControl" id="CacheIgnoreCacheControl">CacheIgnoreCacheControl</a> <a name="cacheignorecachecontrol" id="cacheignorecachecontrol">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>キャッシュされているコンテンツを返さないようにクライアントから
+リクエストされても無視する</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheIgnoreCacheControl On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheIgnoreCacheControl Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>Cache-Control: no-cache ヘッダや Pragma: no-store ヘッダのあるリクエストに
+    対しては、通常キャッシュを使いません。<code class="directive">CacheIgnoreCacheControl</code> 
+    ディレクティブを使うと、この動作を上書きできます。
+    <code class="directive">CacheIgnoreCacheControl</code> On とすると、
+    リクエストに no-cache という値があっても、キャッシュを使ってドキュメントを
+    返すようになります。認証を必要とするドキュメントは<em>決して</em>
+    キャッシュされません。</p>
+
+    <div class="example"><p><code>
+      CacheIgnoreCacheControl On
+    </code></p></div>
+
+    <div class="warning"><h3>警告</h3>
+       このディレクティブを使うと、ドキュメント取得時にキャッシュを使わないように
+       クライアントがリクエストしているにもかかわらず、キャッシュを
+       使うようになります。その結果、
+       古いコンテンツが送られ続けることになってしまうかもしれません。
+    </div>
+
+<h3>参照</h3>
+<ul>
+<li><code class="directive"><a href="#cachestoreprivate">CacheStorePrivate</a></code></li>
+<li><code class="directive"><a href="#cachestorenostore">CacheStoreNoStore</a></code></li>
+</ul>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheIgnoreHeaders" id="CacheIgnoreHeaders">CacheIgnoreHeaders</a> <a name="cacheignoreheaders" id="cacheignoreheaders">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>指定された HTTP ヘッダをキャッシュに保存しない。
+</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheIgnoreHeaders <var>header-string</var> [<var>header-string</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheIgnoreHeaders None</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>RFC 2616 によると、hop-by-hop HTTP ヘッダはキャッシュには保管されません。
+    以下のヘッダは hop-by-hop ヘッダに該当しますので、
+    <code class="directive">CacheIgnoreHeaders</code>
+    の設定に<em>関係なく</em>キャッシュには保管されません:</p>
+    <ul>
+      <li><code>Connection</code></li>
+      <li><code>Keep-Alive</code></li>
+      <li><code>Proxy-Authenticate</code></li>
+      <li><code>Proxy-Authorization</code></li>
+      <li><code>TE</code></li>
+      <li><code>Trailers</code></li>
+      <li><code>Transfer-Encoding</code></li>
+      <li><code>Upgrade</code></li>
+    </ul>
+
+    <p><code class="directive">CacheIgnoreHeaders</code> で
+    キャッシュに保管しない追加の HTTP ヘッダを指定します。
+    例えば、クッキーをキャッシュに保管しないようにした方がよい場合も
+    あるでしょう。</p>
+
+    <p><code class="directive">CacheIgnoreHeaders</code> の引数は、
+    キャッシュに保管しない HTTP ヘッダを空白区切りにしたリスト形式です。
+    キャッシュに保管しないヘッダが hop-by-hop ヘッダだけの場合
+    (RFC 2616 準拠の動作のとき) は、
+    <code class="directive">CacheIgnoreHeaders</code> を <code>None</code>
+    に設定できます。</p>
+
+    <div class="example"><h3>例 1</h3><p><code>
+      CacheIgnoreHeaders Set-Cookie
+    </code></p></div>
+
+    <div class="example"><h3>例 2</h3><p><code>
+      CacheIgnoreHeaders None
+    </code></p></div>
+
+    <div class="warning"><h3>警告:</h3>
+      <code>Expires</code> のような適切のキャッシュ管理のために必要な
+      ヘッダが <code class="directive">CacheIgnoreHeaders</code> の設定により
+      保管されていないときは、mod_cache の動作は定義されていません。
+    </div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheIgnoreNoLastMod" id="CacheIgnoreNoLastMod">CacheIgnoreNoLastMod</a> <a name="cacheignorenolastmod" id="cacheignorenolastmod">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>応答に Last Modified が無くても気にしないようにする</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheIgnoreNoLastMod On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheIgnoreNoLastMod Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>通常、Last-Modified による最終修正時刻の無いドキュメントはキャッシュ
+    されません。(例えば <code class="module"><a href="../mod/mod_include.html">mod_include</a></code> による処理のときなどに)
+    Last-Modified 時刻が消去されたり、そもそも最初から提供されていない
+    状況があります。<code class="directive">CacheIgnoreNoLastMod</code> 
+    ディレクティブを使うと、Last-Modified 日時が指定されていない
+    ドキュメントでもキャッシュするように指定できます。ドキュメントに
+    最終修正時刻 (Last-Modified) 有効期限 (expiry) がない場合は、有効期限の
+    生成に <code class="directive">CacheDefaultExpire</code> が使われます。</p>
+
+    <div class="example"><p><code>
+      CacheIgnoreNoLastMod On
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheIgnoreQueryString" id="CacheIgnoreQueryString">CacheIgnoreQueryString</a> <a name="cacheignorequerystring" id="cacheignorequerystring">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>キャッシュ時にクエリーストリングを無視する</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheIgnoreQueryString On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheIgnoreQueryString Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>クエリーストリング付のリクエストについては通常、クエリーストリングごとに
+    個別にキャッシュされます。
+    キャッシュされるのは有効期限が指定されている場合のみで、これは
+    RFC 2616/13.9 に従ったものです。
+    <code class="directive">CacheIgnoreQueryString</code> ディレクティブを使うと
+    有効期限が指定されていなくてもキャッシュしますし、
+    クエリーストリングが異なっていてもキャッシュを返します。
+    このディレクティブが有効になっている場合、キャッシュ機能の側面からみると、
+    あたかもリクエストにクエリーストリングがついていなかったかのように扱います。</p>
+
+    <div class="example"><p><code>
+      CacheIgnoreQueryString On
+    </code></p></div>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheIgnoreURLSessionIdentifiers" id="CacheIgnoreURLSessionIdentifiers">CacheIgnoreURLSessionIdentifiers</a> <a name="cacheignoreurlsessionidentifiers" id="cacheignoreurlsessionidentifiers">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>Ignore defined session identifiers encoded in the URL when caching
+</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheIgnoreURLSessionIdentifiers <var>identifier</var> [<var>identifier</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheIgnoreURLSessionIdentifiers None</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+</table><p>このディレクティブの解説文書は
+            まだ翻訳されていません。英語版をご覧ください。
+            </p></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheKeyBaseURL" id="CacheKeyBaseURL">CacheKeyBaseURL</a> <a name="cachekeybaseurl" id="cachekeybaseurl">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>Override the base URL of reverse proxied cache keys.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheKeyBaseURL <var>URL</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">互換性:</a></th><td>Available in Apache 2.3.9 and later</td></tr>
+</table><p>このディレクティブの解説文書は
+            まだ翻訳されていません。英語版をご覧ください。
+            </p></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheLastModifiedFactor" id="CacheLastModifiedFactor">CacheLastModifiedFactor</a> <a name="cachelastmodifiedfactor" id="cachelastmodifiedfactor">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>LastModified の日付に基づいて有効期限 (expiry) 
+を計算するための重みを指定する
+</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheLastModifiedFactor <var>float</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheLastModifiedFactor 0.1</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>ドキュメントに Last-Modified の日付が無いけれども有効期限 (expiry) 
+    の日付があるというときに、有効期限を最終修正時刻からの経過時間として
+    計算するようにできます。有効期限を次の計算式に従って生成するのですが、
+    そのときに使われる <var>factor</var> を
+    <code class="directive">CacheLastModifiedFactor</code> ディレクティブで指定します。
+    </p>
+
+    <p><code>expiry-period = time-since-last-modified-date * <var>factor</var>
+    expiry-date = current-date + expiry-period</code></p>
+
+    <p>例えば、ドキュメントが 10 時間前に最後に修正されていて、
+    <var>factor</var> が 0.1 であれば、期日は 10*0.1 = 1 時間に
+    設定されます。現在時刻が 3:00pm であれば、計算された期日は
+    3:00pm + 1hour = 4:00pm になります。</p>
+
+    <p>期日が <code class="directive">CacheMaxExpire</code> で設定されている値
+    より大きくなってしまっている場合は、<code class="directive">CacheMaxExpire</code>
+    の設定値が優先されます。</p>
+
+    <div class="example"><p><code>
+      CacheLastModifiedFactor 0.5
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheLock" id="CacheLock">CacheLock</a> <a name="cachelock" id="cachelock">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>Enable the thundering herd lock.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheLock <var>on|off</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheLock off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">互換性:</a></th><td>Available in Apache 2.2.15 and later</td></tr>
+</table><p>このディレクティブの解説文書は
+            まだ翻訳されていません。英語版をご覧ください。
+            </p></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheLockMaxAge" id="CacheLockMaxAge">CacheLockMaxAge</a> <a name="cachelockmaxage" id="cachelockmaxage">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>Set the maximum possible age of a cache lock.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheLockMaxAge <var>integer</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheLockMaxAge 5</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+</table><p>このディレクティブの解説文書は
+            まだ翻訳されていません。英語版をご覧ください。
+            </p></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheLockPath" id="CacheLockPath">CacheLockPath</a> <a name="cachelockpath" id="cachelockpath">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>Set the lock path directory.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheLockPath <var>directory</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheLockPath /tmp/mod_cache-lock</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+</table><p>このディレクティブの解説文書は
+            まだ翻訳されていません。英語版をご覧ください。
+            </p></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheMaxExpire" id="CacheMaxExpire">CacheMaxExpire</a> <a name="cachemaxexpire" id="cachemaxexpire">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>ドキュメントをキャッシュする最大時間を秒数で表したもの</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheMaxExpire <var>seconds</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheMaxExpire 86400 (一日)</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+</table>
+    <p><code class="directive">CacheMaxExpire</code> ディレクティブは、
+    キャッシュする HTTP ドキュメントを、元のサーバに問い合わせないまま最大何秒
+    保持してもよいかを指定します。つまり、ドキュメントは最大でこの秒数間ぶん古く
+    なることになります。この最大値は、<span class="transnote">(<em>訳注:</em> レスポンス中で)</span>ドキュメントと共に
+    ドキュメントの期日が提供されている場合でも適用されます。</p>
+
+    <div class="example"><p><code>
+      CacheMaxExpire 604800
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheMinExpire" id="CacheMinExpire">CacheMinExpire</a> <a name="cacheminexpire" id="cacheminexpire">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>ドキュメントをキャッシュする最小秒数</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheMinExpire <var>seconds</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheMinExpire 0</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>キャッシュ可能な HTTP ドキュメントがあったときに、オリジンサーバに問い合わせることなく
+    保持する秒数の最小値は <code class="directive">CacheMinExpire</code> ディレクティブを使って設定します。
+    この値は、ドキュメントに妥当な有効期限が指定されていなかった場合にのみ使われます。</p>
+
+
+    <div class="example"><p><code>
+      CacheMinExpire 3600
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheQuickHandler" id="CacheQuickHandler">CacheQuickHandler</a> <a name="cachequickhandler" id="cachequickhandler">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>Run the cache from the quick handler.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheQuickHandler <var>on|off</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheQuickHandler on</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">互換性:</a></th><td>Apache HTTP Server 2.3.3 and later</td></tr>
+</table><p>このディレクティブの解説文書は
+            まだ翻訳されていません。英語版をご覧ください。
+            </p></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheStaleOnError" id="CacheStaleOnError">CacheStaleOnError</a> <a name="cachestaleonerror" id="cachestaleonerror">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>Serve stale content in place of 5xx responses.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheStaleOnError <var>on|off</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheStaleOnError on</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">互換性:</a></th><td>Available in Apache 2.3.9 and later</td></tr>
+</table><p>このディレクティブの解説文書は
+            まだ翻訳されていません。英語版をご覧ください。
+            </p></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheStoreExpired" id="CacheStoreExpired">CacheStoreExpired</a> <a name="cachestoreexpired" id="cachestoreexpired">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>Attempt to cache responses that the server reports as expired</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheStoreExpired On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheStoreExpired Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+</table><p>このディレクティブの解説文書は
+            まだ翻訳されていません。英語版をご覧ください。
+            </p></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheStoreNoStore" id="CacheStoreNoStore">CacheStoreNoStore</a> <a name="cachestorenostore" id="cachestorenostore">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>no-store と指定されているレスポンスのキャッシュを試みる。</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheStoreNoStore On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheStoreNoStore Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>通常 Cache-Control: no-store ヘッダのついているレスポンスは
+       キャッシュされません。<code class="directive">CacheStoreNoCache</code> 
+       ディレクティブでこの挙動を上書きできます。
+       <code class="directive">CacheStoreNoCache</code> On で no-store ヘッダのついている
+       リソースに対してもキャッシュを試みるようになります。
+       ただし認証の求められるリソースは <em>決して</em> キャッシュされません。</p>
+
+    <div class="example"><p><code>
+      CacheStoreNoStore On
+    </code></p></div>
+
+    <div class="warning"><h3>警告:</h3>
+       RFC 2616 に記載されているように no-store ディレクティブは、
+       "不注意による機密情報の漏洩や残留 (バックアップテープ等) を防ぐ"
+       目的で使われますが、このオプションを有効にすると、
+       機密情報を保持することになってしまいます。
+       ですので、ここで警告しておきます。
+    </div>
+
+<h3>参照</h3>
+<ul>
+<li><code class="directive"><a href="#cacheignorecachecontrol">CacheIgnoreCacheControl</a></code></li>
+<li><code class="directive"><a href="#cachestoreprivate">CacheStorePrivate</a></code></li>
+</ul>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheStorePrivate" id="CacheStorePrivate">CacheStorePrivate</a> <a name="cachestoreprivate" id="cachestoreprivate">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>private と指定されているレスポンスのキャッシュを試みる。</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>CacheStorePrivate On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>CacheStorePrivate Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>通常 Cache-Control: private ヘッダのついているレスポンスは
+       キャッシュされません。<code class="directive">CacheStorePrivate</code> 
+       ディレクティブでこの挙動を上書きできます。
+       <code class="directive">CacheStorePrivate</code> On で private ヘッダのついている
+       リソースに対してもキャッシュを試みるようになります。
+       ただし認証の求められるリソースは <em>決して</em> キャッシュされません。</p>
+
+    <div class="example"><p><code>
+      CacheStorePrivate On
+    </code></p></div>
+
+    <div class="warning"><h3>警告:</h3>
+       上流サーバがキャッシュしないように指定してきても、
+       それを無視してキャッシュするようになります。
+       望ましい挙動になるのは、本当に 'private' なキャッシュについてのみでしょう。
+    </div>
+
+<h3>参照</h3>
+<ul>
+<li><code class="directive"><a href="#cacheignorecachecontrol">CacheIgnoreCacheControl</a></code></li>
+<li><code class="directive"><a href="#cachestorenostore">CacheStoreNoStore</a></code></li>
+</ul>
+</div>
+</div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="../en/mod/mod_cache.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_cache.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_cache.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_cache.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_cache.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

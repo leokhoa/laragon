@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="tr" xml:lang="tr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Apache HTTP Sunucusunun Durdurulması ve Yeniden Başlatılması - Apache HTTP Sunucusu Sürüm 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">Modüller</a> | <a href="./mod/directives.html">Yönergeler</a> | <a href="http://wiki.apache.org/httpd/FAQ">SSS</a> | <a href="./glossary.html">Terimler</a> | <a href="./sitemap.html">Site Haritası</a></p>
+<p class="apache">Apache HTTP Sunucusu Sürüm 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Sunucusu</a> &gt; <a href="http://httpd.apache.org/docs/">Belgeleme</a> &gt; <a href="./">Sürüm 2.4</a></div><div id="page-content"><div id="preamble"><h1>Apache HTTP Sunucusunun Durdurulması ve Yeniden Başlatılması</h1>
+<div class="toplang">
+<p><span>Mevcut Diller: </span><a href="./de/stopping.html" hreflang="de" rel="alternate" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="./en/stopping.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./es/stopping.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="./fr/stopping.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/stopping.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/stopping.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/stopping.html" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+    <p>Bu belge Apache HTTP Sunucusunun Unix benzeri sistemlerde durdurulması
+      ve yeniden başlatılması konularını kapsar. Windows NT, 2000 ve XP
+      kullanıcıları Apache HTTPd’yi bu platformlarda nasıl denetimlerine
+      alacaklarını öğrenmek için <a href="platform/windows.html#winsvc">httpd’nin Bir Hizmet Olarak Çalıştırılması</a> sayfasına, Windows 9x ve
+      ME kullanıcıları ise <a href="platform/windows.html#wincons">httpd’nin
+      Bir Konsol Uygulaması Olarak Çalıştırılması</a> sayfasına
+      bakabilirler.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#introduction">Giriş</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#term">Hemen Durdur</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#graceful">Nazikçe Yeniden Başlat</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#hup">Hemen Yeniden Başlat</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#gracefulstop">Nazikçe Durdur</a></li>
+</ul><h3>Ayrıca bakınız:</h3><ul class="seealso"><li><code class="program"><a href="./programs/httpd.html">httpd</a></code></li><li><code class="program"><a href="./programs/apachectl.html">apachectl</a></code></li><li><a href="invoking.html">Başlatma</a></li><li><a href="#comments_section">Yorum</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="introduction" id="introduction">Giriş</a></h2>
+
+    <p>Apache HTTP Sunucusunu durdurmak ve yeniden başlatmak için çalışan
+      <code class="program"><a href="./programs/httpd.html">httpd</a></code> süreçlerine bir sinyal göndermeniz gerekir.
+      Sinyal göndermek için iki yol vardır. İlki, süreçlere doğrudan sinyal
+      göndermek için unix <code>kill</code> komutunun kullanımıdır. Bu
+      suretle, sisteminizde çalışmakta olan bir çok <code class="program"><a href="./programs/httpd.html">httpd</a></code>
+      sürecini uyarabilirsiniz ama süreç kimliği <code class="directive"><a href="./mod/mpm_common.html#pidfile">PidFile</a></code> yönergesi ile belirtilen dosyada
+      tutulan ana süreç dışında hiçbirine sinyal göndermemelisiniz. Başka
+      bir deyişle, ana süreç haricinde hiçbir sürece sinyal göndermeye normal
+      olarak ihtiyacınız olmaması gerekir. Ana sürece gönderebileceğiniz
+      dört çeşit sinyal vardır:
+      <code><a href="#term">TERM</a></code>,
+      <code><a href="#graceful">USR1</a></code>,
+      <code><a href="#hup">HUP</a></code> ve
+      <code><a href="#gracefulstop">WINCH</a></code>. Bunlar yeri geldikçe
+      açıklanacaktır.</p>
+
+    <p>Ana sürece <code>kill</code> ile sinyal göndermek için şöyle bir
+      komut verebilirsiniz:</p>
+
+    <div class="example"><p><code>kill -TERM `cat /usr/local/apache2/logs/httpd.pid`</code></p></div>
+
+    <p><code class="program"><a href="./programs/httpd.html">httpd</a></code> süreçlerine sinyal göndermenin ikinci yolu
+      <code>-k</code> komut satırı seçeneğini şu değerlerden biri ile
+      kullanmaktır: <code>stop</code>, <code>restart</code>,
+      <code>graceful</code> ve <code>graceful-stop</code>. Bunlar aşağıda
+      açıklanacaktır. <code>-k</code> komut satırı seçeneği
+      <code class="program"><a href="./programs/httpd.html">httpd</a></code>’ye ait olsa da ana sürece bu sinyalleri
+      göndermek için <code class="program"><a href="./programs/apachectl.html">apachectl</a></code> betiğini kullanmanızı
+      öneririz. <code class="program"><a href="./programs/apachectl.html">apachectl</a></code>, komut satırı seçeneklerini
+      <code class="program"><a href="./programs/httpd.html">httpd</a></code>’ye aktaracaktır.</p>
+
+    <p><code class="program"><a href="./programs/httpd.html">httpd</a></code>’ye sinyal gönderdikten sonra olup biteni şu
+      komutla izleyebilirsiniz:</p>
+
+    <div class="example"><p><code>tail -f /usr/local/apache2/logs/error_log</code></p></div>
+
+    <p>Bu örnekleri, kendi <code class="directive"><a href="./mod/core.html#serverroot">ServerRoot</a></code> ve
+      <code class="directive"><a href="./mod/mpm_common.html#pidfile">PidFile</a></code> yönergelerinizdeki
+      ayarlara uygun olarak değiştirdikten sonra kullanınız.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="term" id="term">Hemen Durdur</a></h2>
+
+  <dl><dt>Sinyal: TERM</dt>
+    <dd><code>apachectl -k stop</code></dd>
+  </dl>
+
+    <p>Ana sürece <code>TERM</code> veya <code>stop</code> sinyali
+      göndererek tüm çocukların bir an önce öldürülmeye çalışılmasını sağlamış
+      olursunuz. Tüm çocukların öldürülmesi bir kaç saniye sürebilir. Son
+      olarak ana süreç çıkacaktır. Yanıtlanmakta olan istekler hemen
+      sonlandırılacak ve artık isteklere yanıt verilmeyecektir.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="graceful" id="graceful">Nazikçe Yeniden Başlat</a></h2>
+
+  <dl><dt>Sinyal: USR1</dt>
+    <dd><code>apachectl -k graceful</code></dd>
+  </dl>
+
+    <p>Ana sürece <code>USR1</code> veya <code>graceful</code> sinyalinin
+      gönderilmesi, çocuklara ellerindeki mevcut işleri bitirdikten sonra
+      (veya sundukları bir şey yoksa hemen) çıkmalarının <em>önerilmesi</em>
+      demektir. Ana süreç kendi yapılandırma dosyalarını yeniden okur ve
+      kendi günlük dosyalarını yeniden açar. Ana sürecin öldürdüğü her sürecin
+      yerine yeni yapılandırma <em>kuşağından</em> bir süreç başlatır ve hemen
+      yeni isteklere hizmet sunulmaya başlanır.</p>
+
+    <p>Bu kod MPM’lerin süreçleri denetleyen yönergelerine daima uyacak
+      şekilde tasarlanmıştır. Bu suretle, istemcilere hizmet sunacak çocuk
+      süreçler ve evreler, yeniden başlatma işleminde de uygun sayıda
+      sağlanmış olur. Bununla birlikte, <code class="directive"><a href="./mod/mpm_common.html#startservers">StartServers</a></code> yönergesinde şöyle
+      davranılır: İlk saniye içinde en azından <code class="directive"><a href="./mod/mpm_common.html#startservers">StartServers</a></code> sayıda yeni çocuk
+      oluşturulmamışsa iş olmayan bir devreyi geçiştirecek kadarı oluşturulur.
+      Ardından sunucunun mevcut yükünü karşılamak için gereken sayıda çocuk
+      süreç oluşturulur. Bu suretle, kod her ikisi için de gereğini yerine
+      getirmeye çalışmış olur.</p>
+
+    <p><code class="module"><a href="./mod/mod_status.html">mod_status</a></code> kullanıcıları <code>USR1</code>
+      gönderildiği zaman sunucu istatistiklerinin sıfırlanmadığı konusunda
+      uyarılacaktır. Kod, sunucunun yeni isteklere yanıt veremediği zamanı en
+      aza indirmenin yanısıra ayar parametrelerinize de uymak üzere
+      tasarlanmıştır (yeni istekler işletim sistemi tarafından kuyruğa
+      alınacağından bir istek kaybı olayı yaşanmaz). Bunu sağlamak için, her
+      iki kuşağın çocuklarının izini sürecek bir <em>çetele</em> tutulur.</p>
+
+    <p><code class="module"><a href="./mod/mod_status.html">mod_status</a></code> modülü, nazikçe yeniden başlat komutunun
+      verilmesinden önce başlamış ve sunulmaya devam eden isteklere bakan
+      çocukları imlemek için ayrıca bir <code>G</code> (Graceful’un baş harfi)
+      kullanır.</p>
+
+    <p>Günlük dosyası döndürme betiğine, yeniden başlatma öncesi günlüğe yazan
+      tüm çocukların işini bitirdiğini <code>USR1</code> kullanarak
+      bildirmenin bir yolu yoktur.  Önerimiz, eski günlük kaydı üzerinde bir
+      işlem yapmaya başlamadan önce <code>USR1</code> sinyali gönderilmesinin
+      ardından belli bir süre beklenilmesi olacaktır. Örneğin, düşük band
+      genişliğine sahip istemcilere hizmet sunan çoğu sürecin işinin 10
+      dakikadan önce bitmeyeceğini gözönüne alarak eski günlük üzerinde işlem
+      yapmaya başlamak için 15 dakika beklenebilir.</p>
+
+    <div class="note">
+    <p>Bir yeniden başlatma isteğinde, yapılandırma dosyalarında bir hata
+      olmadığından emin olmak için önce bir sözdizimi denetimi yapılır. Eğer
+      yapılandırma dosyalarınızda bir hata varsa bu sözdizimi hatasıyla ilgili
+      bir hata iletisi alırsınız ve sunucu yeniden başlamayı reddeder. Bu
+      yolla, bir hata sonucu sunucunun çökerek yeniden başlamaması nedeniyle
+      işlevsiz bir sunucuyla başbaşa kalmanız önlenmiştir.</p>
+
+    <p>Ancak, bu hala sunucunuzun düzgünce yeniden başlatılmasını garanti
+      etmeyecektir. Yapılandırma dosyalarınızı sözdizimi denetiminin yanında
+      anlamlandırılması bakımından da sınamak için
+      <code class="program"><a href="./programs/httpd.html">httpd</a></code>’nin root olmayan bir kullanıcı tarafından
+      çalıştırılmasını deneyebilirsiniz. Eğer yapılandırma dosyalarında bir
+      hata yoksa soketleri ve günlük dosyalarını açmaya çalışırken root
+      aidiyetinde çalışmadığından veya çalışmakta olan asıl sunucu bu portları
+      zaten dinlediğinden başarısız olacaktır. Eğer başka bir sebeple
+      başarısız olursa olası sebep bir yapılandırma dosyası hatasıdır ve asıl
+      sunucuya ‘nazikçe yeniden başla’ komutunu vermeden önce bu hatayı
+      düzeltmeniz gerekir.</p></div>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="hup" id="hup">Hemen Yeniden Başlat</a></h2>
+
+  <dl><dt>Sinyal: HUP</dt>
+    <dd><code>apachectl -k restart</code></dd>
+  </dl>
+
+    <p>Ana sürece <code>HUP</code> veya <code>restart</code> sinyalinin
+      gönderilmesi tüm çocukların <code>TERM</code> sinyali gönderilmiş gibi
+      öldürülmesine sebep olur fakat ana sürecin çıkmasını sağlamaz.
+      Ana süreç yapılandırma dosyalarını yeniden okur ve günlük kayıt
+      dosyalarını yeniden açar. Bunların ardından isteklere yanıt verecek yeni
+      kuşak çocukları oluşturmaya başlar.</p>
+
+    <p><code class="module"><a href="./mod/mod_status.html">mod_status</a></code> kullanıcıları bir <code>HUP</code> sinyalı
+      gönderildiğinde sunucu istatistiklerinin sıfırlandığı konusunda
+      uyarılırlar.</p>
+
+    <div class="note">‘Nazikçe yeniden başlat’ komutundaki gibi yeniden başlatma öncesi
+      bir sözdizimi denetimi yapılır. Eğer yapılandırma dosyalarınızda
+      sözdizimi hatası varsa yeniden başlatma işlemi gerçekleşmez ve sözdizimi
+      hatalarıyla ilgili bildirim alırsınız.</div>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="gracefulstop" id="gracefulstop">Nazikçe Durdur</a></h2>
+
+  <dl><dt>Sinyal: WINCH</dt>
+    <dd><code>apachectl -k graceful-stop</code></dd>
+  </dl>
+
+    <p>Ana sürecin <code>WINCH</code> veya <code>graceful-stop</code>
+      sinyalini alması, çocuklara ellerindeki mevcut işleri bitirdikten sonra
+      (veya sundukları bir şey yoksa hemen) çıkmalarının <em>önerilmesine</em>
+      sebep olur. Ana süreç bunun hemen ardından <code class="directive"><a href="./mod/mpm_common.html#pidfile">PidFile</a></code> dosyasını siler ve port
+      dinlemeyi keser. Ana süreç  çalışmaya ve isteklere yanıt vermekte olan
+      çocuk süreçleri izlemeye devam eder. Tüm çocuklar işlerini bitirip
+      çıktığında veya <code class="directive"><a href="./mod/mpm_common.html#gracefulshutdowntimeout">GracefulShutdownTimeout</a></code> ile belirtilen
+      zaman aşımı dolduğunda ana süreç de kendini sonlandırır. Eğer zaman aşımı
+      devreye girmişse o an çalışmakta olan çocuk süreçlere <code>TERM</code>
+      sinyali gönderilerek hemen çıkmaları sağlanır.</p>
+
+    <p>Bir <code>TERM</code> sinyali ile "graceful" durumundaki tüm çocuklar
+      ve ana süreç hemen sonlandırılacaktır. Bununla birlikte, <code class="directive"><a href="./mod/mpm_common.html#pidfile">PidFile</a></code> dosyası da silineceğinden, artık
+      <code>apachectl</code> veya <code>httpd</code>’yi bu sinyali göndermek
+      için kullanamayacaksınız.</p>
+
+    <div class="note"><p><code>graceful-stop</code> sinyali, aynı anda, aynı yapılandırma
+      ile çok sayıda <code class="program"><a href="./programs/httpd.html">httpd</a></code> kopyasının çalıştırılabilmesine
+      imkan verir.  Bu, Apache nazikçe yükseltileceği zaman güçlü bir özellik
+      haline gelmekteyse de, bazı yapılandırmalarda yarış koşullarının
+      oluşmasına ve kısır çekişmelere (deadlock) sebep olabilir.</p>
+
+    <p>Sunucunun süreç kimliğini içeren kilit dosyaları (<code class="directive"><a href="./mod/core.html#mutex">Mutex</a></code>) ve Unix soket dosyaları
+      (<code class="directive"><a href="./mod/mod_cgid.html#scriptsock">ScriptSock</a></code>) gibi dosyaların
+      disk üzerindeki mevcudiyetlerinin sorunsuz olarak devam ettiğinden emin
+      olunmaya çalışılmalıdır.  Ayrıca, bir yapılandırma yönergesi, üçüncü
+      parti bir modül veya kalıcı CGI uygulamalarına ait disk kilit veya durum
+      dosyaları olabilir; <code class="program"><a href="./programs/httpd.html">httpd</a></code>’nin birden fazla kopyasının
+      çalışması nedeniyle bu dosyaların da üzerine yazılmadığından emin
+      olunmaya çalışılmalıdır.</p>
+
+    <p><code class="program"><a href="./programs/rotatelogs.html">rotatelogs</a></code> tarzı borulu günlükleme kullanımı gibi
+      durumlarda yarış koşullarının oluşması olasılığına karşı uyanık
+      olunmalıdır. Aynı günlük kayıt dosyalarını aynı anda döndürmeye çalışan
+      birden fazla <code class="program"><a href="./programs/rotatelogs.html">rotatelogs</a></code> kopyasının çalıştırılması
+      halinde bunların her biri diğerlerinin günlük kayıt dosyalarının kaybına
+      sebep olabilir.</p></div>
+</div></div>
+<div class="bottomlang">
+<p><span>Mevcut Diller: </span><a href="./de/stopping.html" hreflang="de" rel="alternate" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="./en/stopping.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./es/stopping.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="./fr/stopping.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/stopping.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/stopping.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/stopping.html" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Yorum</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/stopping.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br /><a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> altında lisanslıdır.</p>
+<p class="menu"><a href="./mod/">Modüller</a> | <a href="./mod/directives.html">Yönergeler</a> | <a href="http://wiki.apache.org/httpd/FAQ">SSS</a> | <a href="./glossary.html">Terimler</a> | <a href="./sitemap.html">Site Haritası</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

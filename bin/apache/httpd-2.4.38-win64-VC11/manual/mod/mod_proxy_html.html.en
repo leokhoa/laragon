@@ -1,0 +1,490 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_proxy_html - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Modules</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache Module mod_proxy_html</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_proxy_html.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_proxy_html.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a></p>
+</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">Description:</a></th><td>Rewrite HTML links in to ensure they are addressable
+from Clients' networks in a proxy context.</td></tr>
+<tr><th><a href="module-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">Module Identifier:</a></th><td>proxy_html_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">Source File:</a></th><td>mod_proxy_html.c</td></tr>
+<tr><th><a href="module-dict.html#Compatibility">Compatibility:</a></th><td>Version 2.4 and later.  Available as a third-party module
+for earlier 2.x versions</td></tr></table>
+<h3>Summary</h3>
+
+<p>This module provides an output filter to rewrite HTML links in a
+proxy situation, to ensure that links work for users outside the proxy.
+It serves the same purpose as Apache's <code class="directive"><a href="../mod/mod_proxy.html#proxypassreverse">ProxyPassReverse</a></code> directive does
+for HTTP headers, and is an essential component of a reverse proxy.</p>
+
+<p>For example, if a company has an application server at
+<code>appserver.example.com</code> that is only visible from within
+the company's internal network, and a public webserver
+<code>www.example.com</code>, they may wish to provide a gateway to the
+application server at <code>http://www.example.com/appserver/</code>.
+When the application server links to itself, those links need to be
+rewritten to work through the gateway. <code class="module"><a href="../mod/mod_proxy_html.html">mod_proxy_html</a></code> serves to rewrite
+<code>&lt;a href="http://appserver.example.com/foo/bar.html"&gt;foobar&lt;/a&gt;</code> to
+<code>&lt;a href="http://www.example.com/appserver/foo/bar.html"&gt;foobar&lt;/a&gt;</code>
+making it accessible from outside.</p>
+
+<p>mod_proxy_html was originally developed at WebÞing, whose
+extensive <a href="http://apache.webthing.com/mod_proxy_html/">documentation</a> may be useful to users.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3 class="directives">Directives</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyhtmlbufsize">ProxyHTMLBufSize</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyhtmlcharsetout">ProxyHTMLCharsetOut</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyhtmldoctype">ProxyHTMLDocType</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyhtmlenable">ProxyHTMLEnable</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyhtmlevents">ProxyHTMLEvents</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyhtmlextended">ProxyHTMLExtended</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyhtmlfixups">ProxyHTMLFixups</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyhtmlinterp">ProxyHTMLInterp</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyhtmllinks">ProxyHTMLLinks</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyhtmlmeta">ProxyHTMLMeta</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyhtmlstripcomments">ProxyHTMLStripComments</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyhtmlurlmap">ProxyHTMLURLMap</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_proxy_html">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_proxy_html">Report a bug</a></li></ul><h3>See also</h3>
+<ul class="seealso">
+<li><a href="#comments_section">Comments</a></li></ul></div>
+
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyHTMLBufSize" id="ProxyHTMLBufSize">ProxyHTMLBufSize</a> <a name="proxyhtmlbufsize" id="proxyhtmlbufsize">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Sets the buffer size increment for buffering inline scripts and
+stylesheets.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyHTMLBufSize <var>bytes</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyHTMLBufSize 8192</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy_html</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Version 2.4 and later; available as a third-party
+for earlier 2.x versions</td></tr>
+</table>
+<p>In order to parse non-HTML content (stylesheets and scripts) embedded
+in HTML documents, <code class="module"><a href="../mod/mod_proxy_html.html">mod_proxy_html</a></code>
+has to read the entire script or stylesheet into a buffer.  This buffer will
+be expanded as necessary to hold the largest script or stylesheet in a page,
+in increments of <var>bytes</var> as set by this directive.</p>
+<p>The default is 8192, and will work well for almost all pages.  However,
+if you know you're proxying pages containing stylesheets and/or
+scripts bigger than 8K (that is, for a single script or stylesheet,
+NOT in total), it will be more efficient to set a larger buffer
+size and avoid the need to resize the buffer dynamically during a request.
+</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyHTMLCharsetOut" id="ProxyHTMLCharsetOut">ProxyHTMLCharsetOut</a> <a name="proxyhtmlcharsetout" id="proxyhtmlcharsetout">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Specify a charset for mod_proxy_html output.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyHTMLCharsetOut <var>Charset | *</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy_html</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Version 2.4 and later; available as a third-party
+for earlier 2.x versions</td></tr>
+</table>
+<p>This selects an encoding for mod_proxy_html output.  It should not
+normally be used, as any change from the default <code>UTF-8</code>
+(Unicode - as used internally by libxml2) will impose an additional
+processing overhead.  The special token <code>ProxyHTMLCharsetOut *</code>
+will generate output using the same encoding as the input.</p>
+<p>Note that this relies on <code class="module"><a href="../mod/mod_xml2enc.html">mod_xml2enc</a></code> being loaded.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyHTMLDocType" id="ProxyHTMLDocType">ProxyHTMLDocType</a> <a name="proxyhtmldoctype" id="proxyhtmldoctype">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Sets an HTML or XHTML document type declaration.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyHTMLDocType HTML|XHTML [Legacy]<br /><strong>OR</strong>
+<br />ProxyHTMLDocType <var>fpi</var> [SGML|XML]</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy_html</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Version 2.4 and later; available as a third-party
+for earlier 2.x versions</td></tr>
+</table>
+<p>In the first form, documents will be declared as HTML 4.01 or XHTML 1.0
+according to the option selected.  This option also determines whether
+HTML or XHTML syntax is used for output.   Note that the format of the
+documents coming from the backend server is immaterial: the parser will
+deal with it automatically.  If the optional second argument is set to
+<code>Legacy</code>, documents will be declared "Transitional", an option that may
+be necessary if you are proxying pre-1998 content or working with defective
+authoring/publishing tools.</p>
+<p>In the second form, it will insert your own FPI.  The optional second
+argument determines whether SGML/HTML or XML/XHTML syntax will be used.</p>
+<p>The default is changed to omitting any FPI,
+on the grounds that no FPI is better than a bogus one.  If your backend
+generates decent HTML or XHTML, set it accordingly.</p>
+<p>If the first form is used, mod_proxy_html
+will also clean up the HTML to the specified standard.  It cannot
+fix every error, but it will strip out bogus elements and attributes.
+It will also optionally log other errors at <code class="directive"><a href="../mod/core.html#loglevel">LogLevel</a></code> Debug.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyHTMLEnable" id="ProxyHTMLEnable">ProxyHTMLEnable</a> <a name="proxyhtmlenable" id="proxyhtmlenable">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Turns the proxy_html filter on or off.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyHTMLEnable On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyHTMLEnable Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy_html</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Version 2.4 and later; available as a third-party
+module for earlier 2.x versions.</td></tr>
+</table>
+    <p>A simple switch to enable or disable the proxy_html filter.
+    If <code class="module"><a href="../mod/mod_xml2enc.html">mod_xml2enc</a></code> is loaded it will also automatically
+    set up internationalisation support.</p>
+    <p>Note that the proxy_html filter will only act on HTML data
+    (Content-Type text/html or application/xhtml+xml) and when the
+    data are proxied.  You can override this (at your own risk) by
+    setting the <var>PROXY_HTML_FORCE</var> environment variable.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyHTMLEvents" id="ProxyHTMLEvents">ProxyHTMLEvents</a> <a name="proxyhtmlevents" id="proxyhtmlevents">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Specify attributes to treat as scripting events.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyHTMLEvents <var>attribute [attribute ...]</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy_html</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Version 2.4 and later; available as a third-party
+for earlier 2.x versions</td></tr>
+</table>
+<p>Specifies one or more attributes to treat as scripting events and
+apply <code class="directive"><a href="#proxyhtmlurlmap">ProxyHTMLURLMap</a></code>s to where enabled.
+You can specify any number of attributes in one or more
+<code class="directive">ProxyHTMLEvents</code> directives.</p>
+<p>Normally you'll set this globally.  If you set <code class="directive">ProxyHTMLEvents</code> in more than
+one scope so that one overrides the other, you'll need to specify a complete
+set in each of those scopes.</p>
+<p>A default configuration is supplied in <var>proxy-html.conf</var>
+and defines the events in standard HTML 4 and XHTML 1.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyHTMLExtended" id="ProxyHTMLExtended">ProxyHTMLExtended</a> <a name="proxyhtmlextended" id="proxyhtmlextended">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Determines whether to fix links in inline scripts, stylesheets,
+and scripting events.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyHTMLExtended On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyHTMLExtended Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy_html</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Version 2.4 and later; available as a third-party
+for earlier 2.x versions</td></tr>
+</table>
+<p>Set to <code>Off</code>, HTML links are rewritten according to the
+<code class="directive"><a href="#proxyhtmlurlmap">ProxyHTMLURLMap</a></code> directives, but links appearing
+in Javascript and CSS are ignored.</p>
+<p>Set to <code>On</code>, all scripting events (as determined by
+<code class="directive"><a href="#proxyhtmlevents">ProxyHTMLEvents</a></code>) and embedded scripts or
+stylesheets are also processed by the <code class="directive"><a href="#proxyhtmlurlmap">ProxyHTMLURLMap</a></code>
+rules, according to the flags set for each rule.  Since this requires more
+parsing, performance will be best if you only enable it when strictly necessary.
+</p><p>
+You'll also need to take care over patterns matched, since the parser has no
+knowledge of what is a URL within an embedded script or stylesheet.
+In particular, extended matching of <code>/</code> is likely to lead to
+false matches.
+</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyHTMLFixups" id="ProxyHTMLFixups">ProxyHTMLFixups</a> <a name="proxyhtmlfixups" id="proxyhtmlfixups">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Fixes for simple HTML errors.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyHTMLFixups [lowercase] [dospath] [reset]</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy_html</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Version 2.4 and later; available as a third-party
+for earlier 2.x versions</td></tr>
+</table>
+<p>This directive takes one to three arguments as follows:</p>
+<ul>
+<li><code>lowercase</code> Urls are rewritten to lowercase</li>
+<li><code>dospath</code> Backslashes in URLs are rewritten to forward slashes.</li>
+<li><code>reset</code> Unset any options set at a higher level in the configuration.</li>
+</ul>
+<p>Take care when using these.  The fixes will correct certain authoring
+mistakes, but risk also erroneously fixing links that were correct to start with.
+Only use them if you know you have a broken backend server.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyHTMLInterp" id="ProxyHTMLInterp">ProxyHTMLInterp</a> <a name="proxyhtmlinterp" id="proxyhtmlinterp">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Enables per-request interpolation of
+<code class="directive">ProxyHTMLURLMap</code> rules.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyHTMLInterp On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyHTMLInterp Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy_html</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Version 2.4 and later; available as a third-party
+module for earlier 2.x versions</td></tr>
+</table>
+    <p>This enables per-request interpolation in
+    <code class="directive"><a href="#proxyhtmlurlmap">ProxyHTMLURLMap</a></code> to- and from- patterns.</p>
+    <p>If interpolation is not enabled, all rules are pre-compiled at startup.
+    With interpolation, they must be re-compiled for every request, which
+    implies an extra processing overhead.  It should therefore be
+    enabled only when necessary.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyHTMLLinks" id="ProxyHTMLLinks">ProxyHTMLLinks</a> <a name="proxyhtmllinks" id="proxyhtmllinks">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Specify HTML elements that have URL attributes to be rewritten.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyHTMLLinks <var>element attribute [attribute2 ...]</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy_html</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Version 2.4 and later; available as a third-party
+for earlier 2.x versions</td></tr>
+</table>
+<p>Specifies elements that have URL attributes that should be rewritten
+using standard <code class="directive"><a href="#proxyhtmlurlmap">ProxyHTMLURLMap</a></code>s.
+You will need one <code class="directive">ProxyHTMLLinks</code> directive per element,
+but it can have any number of attributes.</p>
+<p>Normally you'll set this globally.  If you set <code class="directive">ProxyHTMLLinks</code> in more than
+one scope so that one overrides the other, you'll need to specify a complete
+set in each of those scopes.</p>
+<p>A default configuration is supplied in <var>proxy-html.conf</var>
+and defines the HTML links for standard HTML 4 and XHTML 1.</p>
+<div class="example"><h3>Examples from proxy-html.conf</h3><pre class="prettyprint lang-config">ProxyHTMLLinks  a          href
+ProxyHTMLLinks  area       href
+ProxyHTMLLinks  link       href
+ProxyHTMLLinks  img        src longdesc usemap
+ProxyHTMLLinks  object     classid codebase data usemap
+ProxyHTMLLinks  q          cite
+ProxyHTMLLinks  blockquote cite
+ProxyHTMLLinks  ins        cite
+ProxyHTMLLinks  del        cite
+ProxyHTMLLinks  form       action
+ProxyHTMLLinks  input      src usemap
+ProxyHTMLLinks  head       profile
+ProxyHTMLLinks  base       href
+ProxyHTMLLinks  script     src for</pre>
+</div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyHTMLMeta" id="ProxyHTMLMeta">ProxyHTMLMeta</a> <a name="proxyhtmlmeta" id="proxyhtmlmeta">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Turns on or off extra pre-parsing of metadata in HTML
+<code>&lt;head&gt;</code> sections.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyHTMLMeta On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyHTMLMeta Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy_html</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Version 2.4 and later; available as a third-party
+module for earlier 2.x versions.</td></tr>
+</table>
+    <p>This turns on or off pre-parsing of metadata in HTML
+    <code>&lt;head&gt;</code> sections.</p>
+    <p>If not required, turning ProxyHTMLMeta Off will give a small
+    performance boost by skipping this parse step.  However, it
+    is sometimes necessary for internationalisation to work correctly.</p>
+    <p><code class="directive">ProxyHTMLMeta</code> has two effects.  Firstly and most importantly
+    it enables detection of character encodings declared in the form</p>
+    <pre>&lt;meta http-equiv="Content-Type" content="text/html;charset=<var>foo</var>"&gt;</pre>
+    <p>or, in the case of an XHTML document, an XML declaration.
+    It is NOT required if the charset is declared in a real HTTP header
+    (which is always preferable) from the backend server, nor if the
+    document is <var>utf-8</var> (unicode) or a subset such as ASCII.
+    You may also be able to dispense with it where documents use a
+    default declared using <code class="directive"><a href="../mod/mod_xml2enc.html#xml2encdefault">xml2EncDefault</a></code>, but that risks propagating an
+    incorrect declaration.  A <code class="directive"><a href="#proxyhtmlcharsetout">ProxyHTMLCharsetOut</a></code>
+    can remove that risk, but is likely to be a bigger processing
+    overhead than enabling ProxyHTMLMeta.</p>
+    <p>The other effect of enabling <code class="directive">ProxyHTMLMeta</code> is to parse all
+    <code>&lt;meta http-equiv=...&gt;</code> declarations and convert
+    them to real HTTP headers, in keeping with the original purpose
+    of this form of the HTML &lt;meta&gt; element.</p>
+
+    <div class="warning"><h3>Warning</h3>
+      Because ProxyHTMLMeta promotes <strong>all</strong>
+      <code>http-equiv</code> elements to HTTP headers, it is important that you
+      only enable it in cases where you trust the HTML content as much as you
+      trust the upstream server. If the HTML is controlled by bad actors, it
+      will be possible for them to inject arbitrary, possibly malicious, HTTP
+      headers into your server's responses.
+    </div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyHTMLStripComments" id="ProxyHTMLStripComments">ProxyHTMLStripComments</a> <a name="proxyhtmlstripcomments" id="proxyhtmlstripcomments">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Determines whether to strip HTML comments.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyHTMLStripComments On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyHTMLStripComments Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy_html</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Version 2.4 and later; available as a third-party
+for earlier 2.x versions</td></tr>
+</table>
+<p>This directive will cause mod_proxy_html to strip HTML comments.
+Note that this will also kill off any scripts or styles embedded in
+comments (a bogosity introduced in 1995/6 with Netscape 2 for the
+benefit of then-older browsers, but still in use today).
+It may also interfere with comment-based processors such as SSI or ESI:
+be sure to run any of those <em>before</em> mod_proxy_html in the
+filter chain if stripping comments!</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyHTMLURLMap" id="ProxyHTMLURLMap">ProxyHTMLURLMap</a> <a name="proxyhtmlurlmap" id="proxyhtmlurlmap">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Defines a rule to rewrite HTML links</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyHTMLURLMap <var>from-pattern to-pattern [flags] [cond]</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy_html</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Version 2.4 and later; available as a third-party
+module for earlier 2.x versions.</td></tr>
+</table>
+<p>This is the key directive for rewriting HTML links. When parsing a document,
+whenever a link target matches <var>from-pattern</var>, the matching
+portion will be rewritten to <var>to-pattern</var>, as modified by any
+flags supplied and by the 
+<code class="directive"><a href="#proxyhtmlextended">ProxyHTMLExtended</a></code> directive.
+Only the elements specified using
+the <code class="directive"><a href="#proxyhtmllinks">ProxyHTMLLinks</a></code> directive
+will be considered as HTML links.</p>
+
+<p>The optional third argument may define any of the following
+<strong>Flags</strong>.  Flags are case-sensitive.</p>
+<dl>
+<dt>h</dt>
+<dd><p>Ignore HTML links (pass through unchanged)</p></dd>
+<dt>e</dt>
+<dd><p>Ignore scripting events (pass through unchanged)</p></dd>
+<dt>c</dt>
+<dd><p>Pass embedded script and style sections through untouched.</p></dd>
+
+<dt>L</dt>
+<dd><p>Last-match.  If this rule matches, no more rules are applied
+(note that this happens automatically for HTML links).</p></dd>
+<dt>l</dt>
+<dd><p>Opposite to L.  Overrides the one-change-only default
+behaviour with HTML links.</p></dd>
+<dt>R</dt>
+<dd><p>Use Regular Expression matching-and-replace.  <code>from-pattern</code>
+is a regexp, and <code>to-pattern</code> a replacement string that may be
+based on the regexp.  Regexp memory is supported: you can use brackets ()
+in the <code>from-pattern</code> and retrieve the matches with $1 to $9
+in the <code>to-pattern</code>.</p>
+
+<p>If R is not set, it will use string-literal search-and-replace.
+The logic is <em>starts-with</em> in HTML links, but
+<em>contains</em> in scripting events and embedded script and style sections.
+</p>
+</dd>
+<dt>x</dt>
+<dd><p>Use POSIX extended Regular Expressions.  Only applicable with R.</p></dd>
+<dt>i</dt>
+<dd><p>Case-insensitive matching.  Only applicable with R.</p></dd>
+
+<dt>n</dt>
+<dd><p>Disable regexp memory (for speed).  Only applicable with R.</p></dd>
+<dt>s</dt>
+<dd><p>Line-based regexp matching.  Only applicable with R.</p></dd>
+<dt>^</dt>
+<dd><p>Match at start only.  This applies only to string matching
+(not regexps) and is irrelevant to HTML links.</p></dd>
+<dt>$</dt>
+<dd><p>Match at end only.  This applies only to string matching
+(not regexps) and is irrelevant to HTML links.</p></dd>
+<dt>V</dt>
+<dd><p>Interpolate environment variables in <code>to-pattern</code>.
+A string of the form <code>${varname|default}</code> will be replaced by the
+value of environment variable <code>varname</code>.  If that is unset, it
+is replaced by <code>default</code>.  The <code>|default</code> is optional.</p>
+<p>NOTE: interpolation will only be enabled if
+<code class="directive"><a href="#proxyhtmlinterp">ProxyHTMLInterp</a></code> is <var>On</var>.</p>
+</dd>
+
+<dt>v</dt>
+<dd><p>Interpolate environment variables in <code>from-pattern</code>.
+Patterns supported are as above.</p>
+<p>NOTE: interpolation will only be enabled if
+<code class="directive"><a href="#proxyhtmlinterp">ProxyHTMLInterp</a></code> is <var>On</var>.</p>
+</dd>
+</dl>
+
+<p>The optional fourth <strong>cond</strong> argument defines a condition
+that will be evaluated per Request, provided
+<code class="directive"><a href="#proxyhtmlinterp">ProxyHTMLInterp</a></code> is <var>On</var>.
+If the condition evaluates FALSE the map will not be applied in this request.
+If TRUE, or if no condition is defined, the map is applied.</p>
+<p>A <strong>cond</strong> is evaluated by the <a href="../expr.html">Expression Parser</a>.  In addition, the simpler syntax of conditions
+in mod_proxy_html 3.x for HTTPD 2.0 and 2.2 is also supported.</p>
+
+</div>
+</div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_proxy_html.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_proxy_html.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_proxy_html.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

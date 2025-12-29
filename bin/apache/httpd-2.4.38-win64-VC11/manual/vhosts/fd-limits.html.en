@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>File Descriptor Limits - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page" class="no-sidebar"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Virtual Hosts</a></div><div id="page-content"><div id="preamble"><h1>File Descriptor Limits</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/vhosts/fd-limits.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/fd-limits.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/vhosts/fd-limits.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/vhosts/fd-limits.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/fd-limits.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+
+    <p>When using a large number of Virtual Hosts, Apache may run
+    out of available file descriptors (sometimes called <cite>file
+    handles</cite>) if each Virtual Host specifies different log
+    files. The total number of file descriptors used by Apache is
+    one for each distinct error log file, one for every other log
+    file directive, plus 10-20 for internal use. Unix operating
+    systems limit the number of file descriptors that may be used
+    by a process; the limit is typically 64, and may usually be
+    increased up to a large hard-limit.</p>
+
+    <p>Although Apache attempts to increase the limit as required,
+    this may not work if:</p>
+
+    <ol>
+      <li>Your system does not provide the <code>setrlimit()</code>
+      system call.</li>
+
+      <li>The <code>setrlimit(RLIMIT_NOFILE)</code> call does not
+      function on your system (such as Solaris 2.3)</li>
+
+      <li>The number of file descriptors required exceeds the hard
+      limit.</li>
+
+      <li>Your system imposes other limits on file descriptors,
+      such as a limit on stdio streams only using file descriptors
+      below 256. (Solaris 2)</li>
+    </ol>
+
+    <p>In the event of problems you can:</p>
+
+    <ul>
+      <li>Reduce the number of log files; don't specify log files
+      in the <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code>
+      sections, but only log to the main log files. (See <a href="#splitlogs">Splitting up your log files</a>, below, for more
+      information on doing this.)</li>
+
+      <li>
+        If you system falls into 1 or 2 (above), then increase the
+        file descriptor limit before starting Apache, using a
+        script like
+
+        <div class="example"><p><code>
+          <code>#!/bin/sh<br />
+           ulimit -S -n 100<br />
+           exec httpd</code>
+        </code></p></div>
+      </li>
+    </ul>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="splitlogs" id="splitlogs">Splitting up your log files</a></h2>
+
+<p>If you want to log multiple virtual hosts to the same log file, you
+may want to split up the log files afterwards in order to run
+statistical analysis of the various virtual hosts. This can be
+accomplished in the following manner.</p>
+
+<p>First, you will need to add the virtual host information to the log
+entries. This can be done using the <code class="directive"><a href="../mod/mod_log_config.html#logformat">
+LogFormat</a></code>
+directive, and the <code>%v</code> variable. Add this to the beginning
+of your log format string:</p>
+
+<pre class="prettyprint lang-config">LogFormat "%v %h %l %u %t \"%r\" %&gt;s %b" vhost
+CustomLog logs/multiple_vhost_log vhost</pre>
+
+
+<p>This will create a log file in the common log format, but with the
+canonical virtual host (whatever appears in the
+<code class="directive"><a href="../mod/core.html#servername">ServerName</a></code> directive) prepended to
+each line. (See <code class="module"><a href="../mod/mod_log_config.html">mod_log_config</a></code> for
+more about customizing your log files.)</p>
+
+<p>When you wish to split your log file into its component parts (one
+file per virtual host) you can use the program <code><a href="../programs/other.html">split-logfile</a></code> to accomplish
+this. You'll find this program in the <code>support</code> directory
+of the Apache distribution.</p>
+
+<p>Run this program with the command:</p>
+
+<div class="example"><p><code>
+split-logfile &lt; /logs/multiple_vhost_log
+</code></p></div>
+
+<p>This program, when run with the name of your vhost log file, will
+generate one file for each virtual host that appears in your log file.
+Each file will be called <code>hostname.log</code>.</p>
+
+</div></div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/vhosts/fd-limits.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/fd-limits.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/vhosts/fd-limits.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/vhosts/fd-limits.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/fd-limits.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/vhosts/fd-limits.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

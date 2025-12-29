@@ -1,0 +1,583 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="tr" xml:lang="tr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>SuEXEC Desteği - Apache HTTP Sunucusu Sürüm 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">Modüller</a> | <a href="./mod/directives.html">Yönergeler</a> | <a href="http://wiki.apache.org/httpd/FAQ">SSS</a> | <a href="./glossary.html">Terimler</a> | <a href="./sitemap.html">Site Haritası</a></p>
+<p class="apache">Apache HTTP Sunucusu Sürüm 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Sunucusu</a> &gt; <a href="http://httpd.apache.org/docs/">Belgeleme</a> &gt; <a href="./">Sürüm 2.4</a></div><div id="page-content"><div id="preamble"><h1>SuEXEC Desteği</h1>
+<div class="toplang">
+<p><span>Mevcut Diller: </span><a href="./en/suexec.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/suexec.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/suexec.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/suexec.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/suexec.html" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+    <p><strong>SuEXEC</strong> özelliği, Apache HTTP Sunucusu kullanıcılarına
+      <strong>CGI</strong> ve <strong>SSI</strong> programlarını sunucunun
+      aidiyetinde çalıştığı kullanıcıdan farklı bir kullanıcının aidiyetinde
+      çalıştırma olanağı verir. Normalde, <strong>CGI</strong> ve
+      <strong>SSI</strong> programlarını çalıştıranla sunucuyu çalıştıran
+      aynı kullanıcıdır.</p>
+
+    <p>Gerektiği gibi kullanıldığında bu özellik, kullanıcılara
+      <strong>CGI</strong> ve <strong>SSI</strong> programlarını çalıştırma
+      ve geliştirmeye izin vermekle ortaya çıkan güvenlik risklerini azaltır.
+      Bununla birlikte, <strong>suEXEC</strong> gerektiği gibi
+      yapılandırılmadığı takdirde bazı sorunlara yol açabilir ve bilgisayar
+      güvenliğinizde yeni delikler ortaya çıkmasına sebep olabilir.
+      Güvenlikle ilgili mevcut sorunlarla başa çıkmada ve <em>setuid
+      root</em> programları yönetmekte bilgi ve deneyim sahibi değilseniz
+      <strong>suEXEC</strong> kullanmayı kesinlikle düşünmemenizi
+      öneririz.</p>
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#before">Başlamadan önce</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#model">SuEXEC Güvenlik Modeli</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#install">suEXEC’in Yapılandırılması ve Kurulumu</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#enable">suEXEC’in etkin kılınması ve iptal edilmesi</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#usage">SuEXEC’in kullanımı</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#debug">SuEXEC ve hata ayıklama</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#jabberwock">Uyarılar ve Örnekler</a></li>
+</ul><h3>Ayrıca bakınız:</h3><ul class="seealso"><li><a href="#comments_section">Yorum</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="before" id="before">Başlamadan önce</a></h2>
+
+    <p>Belgeye balıklama dalmadan önce, suexec'i kullanacağınız ortam ve
+      kendiniz hakkında yapılmış çeşitli kabuller hakkında bilgi sahibi
+      olmalısınız.</p>
+
+    <p>Öncelikle, üzerinde <strong>setuid</strong> va <strong>setgid</strong>
+      işlemlerinin yapılabildiği Unix türevi bir işletim sistemi
+      kullandığınızı varsayıyoruz. Tüm komut örnekleri buna dayanarak
+      verilmiştir. Bu desteğe sahip başka platformlar varsa onlardaki
+      yapılandırma burada anlattığımız yapılandırmadan farklı olabilir.</p>
+
+    <p>İkinci olarak, bilgisayarınızın güvenliği ve yönetimi ile ilgili bazı
+      temel kavramları bildiğinizi kabul ediyoruz. Buna
+      <strong>setuid/setgid</strong> işlemlerinin sisteminiz ve güvenlik
+      seviyesi üzerindeki etkilerini bilmek dahildir.</p>
+
+    <p>Üçüncü olarak, <strong>suEXEC</strong> kodunun
+      <strong>değiştirilmemiş</strong> bir sürümünü kullandığınızı
+      varsayıyoruz. Tüm suEXEC kodu, geliştiricilerin yanında sayısız beta
+      kullanıcısı tarafından dikkatle incelenmiş ve denenmiştir. Kodların hem
+      basit hem de sağlam bir şekilde güvenli olması için gerekli tüm
+      önlemler alınmıştır. Bu kodun değiştirilmesi beklenmedik sorunlara ve
+      yeni güvenlik risklerine yol açabilir. Özellikle güvenlikle ilgili
+      programlarda deneyimli değilseniz suEXEC kodunda kesinlikle bir
+      değişiklik yapmamalısınız. Değişiklik yaparsanız kodlarınızı gözden
+      geçirmek ve tartışmak üzere Apache HTTP Sunucusu geliştirme ekibi ile
+      paylaşmanızı öneririz.</p>
+
+    <p>Dördüncü ve son olarak, Apache HTTP Sunucusu geliştirme ekibinin
+      suEXEC’i öntanımlı httpd kurulumunun bir parçası yapmama kararından
+      bahsetmek gerekir. Bunun sonucu olarak, suEXEC yapılandırması sistem
+      yöneticisinin ayrıntılı bir incelemesini gerektirir. Gerekli incelemeden
+      sonra yönetici tarafından suEXEC yapılandırma seçeneklerine karar
+      verilip, normal yollardan sisteme kurulumu yapılır. Bu seçeneklerin
+      belirlenmesi, suEXEC işlevselliğinin kullanımı sırasında sistem
+      güvenliğini gerektiği gibi sağlamak için yönetici tarafından dikkatle
+      saptanmayı gerektirir. Bu sürecin ayrıntılarının yöneticiye bırakılma
+      sebebi, suEXEC kurulumunu, suEXEC’i dikkatle kullanacak yeterliliğe sahip
+      olanlarla sınırlama  beklentimizdir.</p>
+
+    <p>Hala bizimle misiniz? Evet mi? Pekala, o halde devam!</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="model" id="model">SuEXEC Güvenlik Modeli</a></h2>
+
+    <p>SuEXEC yapılandırması ve kurulumuna girişmeden önce biraz da
+      gerçekleşmesini istediğiniz güvenlik modelinin ayrıntıları üzerinde
+      duralım. Böylece, suEXEC’in içinde olup bitenleri ve sisteminizin
+      güvenliği için alınacak önlemleri daha iyi anlayabilirsiniz.</p>
+
+    <p><strong>suEXEC</strong> işlevselliği, Apache HTTP Sunucusu tarafından
+      gerektiği takdirde artalanda çalıştırılan bir setuid programa dayanır.
+      Bu program, bir CGI veya SSI betiğine bir HTTP isteği yapıldığı zaman,
+      bu betiği, yöneticinin ana sunucunun aidiyetinde çalıştığı kullanıcıdan
+      farklı olarak seçtiği bir kullanıcının aidiyetinde çalıştırmak için
+      çağrılır. Böyle bir istek geldiğinde, Apache httpd artalandaki setuid
+      programına, HTTP isteği yapılan programın ismiyle beraber aidiyetinde
+      çalışacağı kullanıcı ve grup kimliklerini de aktarır.</p>
+
+    <p>Artalanda çalıştırılan setuid program başarıyı ve başarısızlığı
+      aşağıdaki süreci izleyerek saptar. Bunlardan herhangi biri başarısız
+      olursa program başarısızlık durumunu günlüğe kaydeder ve bir hata
+      vererek çıkar. Aksi takdirde çalışmaya devam eder.</p>
+
+    <ol>
+      <li>
+        <strong>Setuid programı çalıştıran kullanıcı sistemin geçerli
+        kullanıcılarından biri mi?</strong>
+
+        <p class="indent">Bu, setuid programı çalıştıran kullanıcının
+        sistemin gerçek bir kullanıcısı olduğunudan emin olunmasını sağlar.
+        </p>
+     </li>
+
+     <li>
+        <strong>Setuid program yeterli sayıda argümanla çağrılmış mı?
+        </strong>
+
+        <p class="indent">Apache HTTP Sunucusunun artalanda çağırdığı
+          setuid program ancak yeterli sayıda argüman sağlandığı takdirde
+          çalışacaktır. Argümanların sayısını ve sırasını Apache HTTP sunucusu
+          bilir. Eğer setuid program yeterli sayıda argümanla çağrılmamışsa
+          ya kendisinde bir değişiklik yapılmıştır ya da kurulu Apache httpd
+          çalıştırılabilirinin suEXEC ile ilgili kısmında yanlış giden bir
+          şeyler vardır.</p>
+      </li>
+
+      <li>
+        <strong>Bu geçerli kullanıcının bu setuid programı çalıştırma
+          yetkisi var mı?</strong>
+
+        <p class="indent">Sadece tek bir kullanıcı (Apache’nin aidiyetinde
+          çalıştığı kullanıcı) bu programı çalıştırmaya yetkilidir.</p>
+      </li>
+
+      <li>
+        <strong>Hedef CGI veya SSI programı hiyerarşik olarak güvenliği
+          bozacak bir dosya yolu üzerinde mi?</strong>
+
+        <p class="indent">Hedef CGI veya SSI programının dosya yolu '/' veya
+          '..' ile başlıyor  mu? Buna izin verilmez. Hedef CGI veya SSI
+          programı suEXEC’in belge kök dizininde yer almalıdır (aşağıda
+          <code>--with-suexec-docroot=<em>DİZİN</em></code> seçeneğine
+          bakınız).</p>
+      </li>
+
+      <li>
+        <strong>Hedef kullanıcı ismi geçerli mi?</strong>
+
+        <p class="indent">Hedef kullanıcı mevcut mu?</p>
+      </li>
+
+      <li>
+        <strong>Hedef grup ismi geçerli mi?</strong>
+
+        <p class="indent">Hedef grup mevcut mu?</p>
+      </li>
+
+      <li>
+        <strong>Hedef kullanıcı <code>root</code> değil, değil mi?</strong>
+
+        <p class="indent">Mevcut durumda, <code>root</code> kullanıcısının
+          CGI/SSI programlarını çalıştırmasına izin verilmemektedir.</p>
+      </li>
+
+      <li>
+        <strong>Hedef kullanıcı kimliği asgari kullanıcı numarasından
+          <em>BÜYÜK</em> mü?</strong>
+
+        <p class="indent">Asgari kullanıcı numarası yapılandırma sırasında
+          belirtilir. Böylece CGI/SSI programlarını çalıştırmasına izin
+          verilecek olası en düşük kullanıcı numarasını belirlemeniz mümkün
+          kılınmıştır. Bu bazı “sistem” hesaplarını devreden çıkarmak için
+          yararlıdır.</p>
+      </li>
+
+      <li>
+        <strong>Hedef grup <code>root</code>  değil, değil mi?</strong>
+
+        <p class="indent"><code>root</code> grubunun CGI/SSI
+          programlarını çalıştırmasına izin verilmemektedir.</p>
+      </li>
+
+      <li>
+        <strong>Hedef grup numarası asgari grup numarasından
+          <em>BÜYÜK</em> mü?</strong>
+
+        <p class="indent">Asgari grup numarası yapılandırma sırasında
+          belirtilir. Böylece CGI/SSI programlarını çalıştırmasına izin
+          verilecek olası en düşük grup numarasını belirlemeniz mümkün
+          kılınmıştır. Bu bazı “sistem” hesaplarını devreden çıkarmak için
+          yararlıdır.</p>
+      </li>
+
+      <li>
+        <strong>Apache’nin artalanda çağırdığı setuid program hedef
+          kullanıcı ve grubun aidiyetine geçebildi mi?</strong>
+
+        <p class="indent">Bu noktadan itibaren program setuid ve setgid
+          çağrıları üzerinden hedef kullanıcı ve grubun aidiyetine geçer.
+          Erişim grubu listesi de ayrıca kullanıcının üyesi olduğu tüm
+          gruplara genişletilir.</p>
+      </li>
+
+      <li>
+        <strong>Hedef CGI/SSI programının bulunduğu dizine geçebildik mi?
+        </strong>
+
+        <p class="indent">Dizin mevcut değilse dosyaları da içeremez. Hedef
+          dizine geçemiyorsak bu, dizin mevcut olmadığından olabilir.</p>
+      </li>
+
+      <li>
+        <strong>Hedef dizin Apache için izin verilen yerlerden biri mi?
+        </strong>
+
+        <p class="indent">İstek sunucunun normal bir bölümü için yapılmış
+          olsa da istenen dizin acaba suEXEC’in belge kök dizini altında mı?
+          Yani, istenen dizin, suEXEC’in aidiyetinde çalıştığı kullanıcının
+          ev dizini altında bulunan, <code class="directive"><a href="./mod/mod_userdir.html#userdir">UserDir</a></code> ile belirtilen dizinin altında mı? (<a href="#install">suEXEC’in yapılandırma seçeneklerine</a>
+          bakınız).</p>
+      </li>
+
+      <li>
+        <strong>Hedef dizin başkaları tarafından yazılabilen bir dizin değil,
+          değil mi?</strong>
+
+        <p class="indent">Başkaları da yazabilsin diye bir dizin açmıyoruz;
+          dizin içeriğini sadece sahibi değiştirebilmelidir.</p>
+      </li>
+
+      <li>
+        <strong>Hedef CGI/SSI programı mevcut mu?</strong>
+
+        <p class="indent">Mevcut değilse çalıştırılamaz.</p>
+      </li>
+
+      <li>
+        <strong>Hedef CGI/SSI program dosyasına başkaları tarafından
+          yazılamıyor, değil mi?</strong>
+
+        <p class="indent">Hedef CGI/SSI programının dosyasına sahibinden
+          başka kimsenin bir şeyler yazmasını istemeyiz.</p>
+      </li>
+
+      <li>
+        <strong>Hedef CGI/SSI program setuid veya setgid <em>değil</em>,
+          değil mi?</strong>
+
+        <p class="indent">UID/GID‘i tekrar değiştirecek programlar
+          çalıştırmayı istemeyiz.</p>
+      </li>
+
+      <li>
+        <strong>Hedef kullanıcı/grup, programın kullanıcı/grubu ile aynı mı?
+        </strong>
+
+        <p class="indent">Hedef kullanıcı dosyanın sahibi mi?</p>
+      </li>
+
+      <li>
+        <strong>İşlemlerin güvenle yapılabilmesi için süreç ortamını
+          başarıyla temizleyebildik mi?</strong>
+
+        <p class="indent">suEXEC, sürecin çalışacağı ortama güvenli bir
+          program çalıştırma yolu sağlamaktan başka, yapılandırma sırasında
+          oluşturulan güvenli ortam değişkenleri listesinde isimleri bulunan
+          ortam değişkenlerinden başkasını aktarmayacaktır.</p>
+      </li>
+
+      <li>
+        <strong>Hedef CGI/SSI programı haline gelip çalışabildik mi?</strong>
+
+        <p class="indent">Burası suEXEC’in bitip CGI/SSI programının
+          başladığı yerdir.</p>
+      </li>
+    </ol>
+
+    <p>Bu süreç suEXEC güvenlik modelinin standart işlemlerini oluşturur.
+      Biraz zorlayıcı ve CGI/SSI tasarımına yeni kurallar ve sınırlamalar
+      getiriyor olsa da düşünülen güvenliği adım adım sağlayacak şekilde
+      tasarlanmıştır.</p>
+
+    <p>Düzgün bir suEXEC yapılandırmasının hangi güvenlik risklerinden
+      kurtulmayı sağladığı ve bu güvenlik modelinin sunucu yapılandırmasıyla
+      ilgili sorumluluklarınızı nasıl sınırlayabildiği hakkında daha
+      ayrıntılı bilgi edinmek için bu belgenin <a href="#jabberwock">"Uyarılar ve Örnekler"</a> bölümüne bakınız.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="install" id="install">suEXEC’in Yapılandırılması ve Kurulumu</a></h2>
+
+    <p>Eğlence başlıyor.</p>
+
+    <p><strong>suEXEC yapılandırma seçenekleri</strong><br />
+    </p>
+
+    <dl>
+      <dt><code>--enable-suexec</code></dt>
+
+      <dd>Bu seçenek, hiçbir zaman öntanımlı olarak kurulmayan ve
+        etkinleştirilmeyen suEXEC özelliğini etkin kılar. suEXEC özelliğini
+        kullanma isteğinizi Apache’nin kabul edebilmesi için
+        <code>--enable-suexec</code> seçeneğinin yanında en azından bir tane
+        de <code>--with-suexec-xxxxx</code> seçeneği belirtilmiş
+        olmalıdır.</dd>
+
+      <dt><code>--with-suexec-bin=<em>YOL</em></code></dt>
+
+      <dd>Güvenlik sebebiyle <code>suexec</code> çalıştırılabilirinin
+        bulunduğu yer sunucu koduna yazılır. Bu seçenekle öntanımlı yol
+        değiştirilmiş olur. Örnek:<br />
+        <code>--with-suexec-bin=/usr/sbin/suexec</code></dd>
+
+      <dt><code>--with-suexec-caller=<em>KULLANICI</em></code></dt>
+
+      <dd>Normalde httpd’nin aidiyetinde çalıştığı <a href="mod/mpm_common.html#user">kullanıcı</a>dır. Bu, suEXEC
+        çalıştırıcısını çalıştırmasına izin verilen tek kullanıcıdır.</dd>
+
+      <dt><code>--with-suexec-userdir=<em>DİZİN</em></code></dt>
+
+      <dd><p>Kullanıcıların ev dizinleri altında suEXEC’in erişmesine izin
+        verilen alt dizinin yerini tanımlar. Bu dizin altında suEXEC
+        kullanıcısı tarafından çalıştırılacak tüm programlar "güvenilir"
+        olmalıdır. Eğer “basit” bir <code class="directive"><a href="./mod/mod_userdir.html#userdir">UserDir</a></code> yönergesi kullanıyorsanız ( içinde “*”
+        bulunmayan), bunun aynı dizin olması gerekir. Eğer burada belirtilen
+        dizin, <code>passwd</code> dosyasında kullanıcı için belirtilmiş
+        dizinin altında <code class="directive"><a href="./mod/mod_userdir.html#userdir">UserDir</a></code>
+        yönergesinde belirtilen dizin olmadığı takdirde suEXEC işini
+        gerektiği gibi yapmayacaktır. Öntanımlı değer
+        <code>public_html</code>’dir.</p>
+
+      <p>Eğer, sanal konaklarınızın herbiri farklı <code class="directive"><a href="./mod/mod_userdir.html#userdir">UserDir</a></code> yönergeleri içeriyorsa
+        burada belirtilecek dizinin üst dizininin hepsinde aynı olması
+        gerekir. <strong>Aksi takdirde, "~<em><code>kullanıcı</code></em>"
+        istekleri düzgün çalışmayacaktır.</strong></p></dd>
+
+      <dt><code>--with-suexec-docroot=<em>DİZİN</em></code></dt>
+
+      <dd>httpd için belge kök dizinini belirler. Bu, (<code class="directive"><a href="./mod/mod_userdir.html#userdir">UserDir</a></code>’lardan başka) suEXEC için
+        kullanılacak tek hiyerarşi olacaktır. Öntanımlı dizin sonuna
+        "<code>/htdocs</code>" eklenmiş <code>--datadir</code> dizinidir.
+        Yani, seçeneği "<code>--datadir=/home/apache</code>" olarak
+        belirtmişseniz suEXEC çalıştırıcısı için belge kök dizini
+        "<code>/home/apache/htdocs</code>" olur.</dd>
+
+      <dt><code>--with-suexec-uidmin=<em>UID</em></code></dt>
+
+      <dd>suEXEC kullanıcısının kullanıcı kimliği olarak izin verilen en
+        düşük değeri belirler. Çoğu sistemde bu ya 500’dür ya da 100; 100
+        öntanımlıdır.</dd>
+
+      <dt><code>--with-suexec-gidmin=<em>GID</em></code></dt>
+
+      <dd>suEXEC kullanıcısının grup kimliği olarak izin verilen en düşük
+        değeri belirler. Çoğu sistemde bu 100 olup, seçeneğin de öntanımlı
+        değeridir.</dd>
+
+      <dt><code>--with-suexec-logfile=<em>DOSYA</em></code></dt>
+
+      <dd>suEXEC hareketlerinin ve hatalarının kaydedileceği günlük
+        dosyasının adını belirler (denetim ve hata ayıklama için
+        kullanışlıdır). Öntanımlı günlük dosyası ismi
+        "<code>suexec_log</code>" olup yeri (<code>--logfiledir</code>
+        seçeneği ile belirtilen) günlük dosyaları dizinidir.</dd>
+
+      <dt><code>--with-suexec-safepath=<em>YOL</em></code></dt>
+
+      <dd>CGI çalıştırılabilirlerine aktarılacak güvenilir <code>PATH</code>
+        ortam değişkeninin değerini tanımlar.
+        "<code>/usr/local/bin:/usr/bin:/bin</code>" öntanımlıdır.</dd>
+    </dl>
+
+    <h3>SuEXEC çalıştırıcısının derlenmesi ve kurulumu</h3>
+      
+
+      <p>SuEXEC özelliğini <code>--enable-suexec</code> seçeneği ile
+        etkinleştirdiyseniz <code>make</code> komutunu verdiğinizde httpd
+        ile birlikte <code>suexec</code> çalıştırılabilir dosyası da
+        derlenecektir.</p>
+
+      <p>Tüm bileşenler derlendikten sonra <code>make install</code> komutunu
+        vererek kurulumu tamamlayabilirsiniz. <code>suexec</code>
+        çalıştırılabilir dosyası <code>--sbindir</code> seçeneği ile
+        tanımlanan dizine kurulacaktır; öntanımlı yeri
+        <code>/usr/local/apache2/bin/</code> dizinidir.</p>
+
+      <p>Kurulum adımında <strong><em>root yetkisine</em></strong> sahip
+        olmanız gerektiğini unutmayın. Çalıştırıcıya kullanıcı kimliğinin
+        atanabilmesi ve dosyanın sahibi olan kullanıcı kimliği ile
+        çalıştırılabilmesini mümkün kılan bitinin etkin kılınabilmesi için
+        kurulumun <code><em>root</em></code> tarafından yapılması
+        önemlidir.</p>
+    
+
+    <h3>Paranoyak yetkilendirme</h3>
+      
+
+      <p>SuEXEC çalıştırıcısı kendini çalıştıran kullanıcının
+        <code class="program"><a href="./programs/configure.html">configure</a></code> betiğine
+        <code>--with-suexec-caller</code> seçeneği ile belirtilen kullanıcı
+        olup olmadığına bakacaksa da, bu sınamanın da bir sistem veya
+        kütüphane çağrısı ile istismar edilmiş olma ihtimali gözardı
+        edilmemelidir. Bunun meydana gelmesini önlemek için ve genelde
+        yapıldığı gibi dosyanın izinlerini suEXEC çalıştırıcısı sadece
+        httpd'nin aidiyetinde çalıştığı grup tarafından çalıştırılacak
+        şekilde ayarlayınız.</p>
+
+      <p>Örneğin, sunucunuz şöyle yapılandırılmışsa:</p>
+
+      <pre class="prettyprint lang-config">User www
+Group webgroup</pre>
+
+
+      <p>Ve <code class="program"><a href="./programs/suexec.html">suexec</a></code> çalıştırılabilir de
+        <code>/usr/local/apache2/bin/</code> dizinine kurulmuşsa şu komutları
+        vermelisiniz:</p>
+
+      <div class="example"><p><code>
+          chgrp apache-grup /usr/local/apache2/bin/suexec<br />
+          chmod 4750 /usr/local/apache2/bin/suexec<br />
+      </code></p></div>
+
+      <p>Böylece suEXEC çalıştırıcısını httpd’yi çalıştıran grubun
+        üyelerinden başkasının çalıştıramayacağından emin olabilirsiniz.</p>
+    
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="enable" id="enable">suEXEC’in etkin kılınması ve iptal edilmesi</a></h2>
+    
+
+    <p>httpd başlatıldığı sırada <code class="program"><a href="./programs/suexec.html">suexec</a></code> çalıştırıcısı için
+      <code>--sbindir</code> seçeneği ile tanımlanan dizine bakar (seçeneğin
+      öntanımlı değeri <code>/usr/local/apache/sbin/suexec</code>’tir). httpd
+      düzgün yapılandırılmış bir suEXEC çalıştırıcısı bulduğu takdirde hata
+      günlüğüne şöyle bir ileti yazacaktır:</p>
+
+<div class="example"><p><code>
+    [notice] suEXEC mechanism enabled (wrapper: <var>/dosya/yolu/suexec</var>)
+</code></p></div>
+
+    <p>Sunucu başlatıldığında bu ileti yazılmazsa sunucu ya çalıştırıcı
+      programı umduğu yerde bulamamıştır ya da dosyanın <em>setuid</em> biti
+      <em>root</em> tarafından etkin kılınmamıştır.</p>
+
+     <p>SuEXEC mekanizmasını etkin kılmak istediğiniz sunucu çalışmaktaysa
+      sunucuyu önce öldürmeli sonra yeniden başlatmalısınız.  Basit bir
+      <code>HUP</code> veya <code>USR1</code> sinyali ile yeniden başlamasını
+      sağlamak yeterli olmayacaktır.</p>
+
+     <p>SuEXEC mekanizmasını iptal etmek için ise <code class="program"><a href="./programs/suexec.html">suexec</a></code>
+      dosyasını sildikten sonra httpd'yi öldürüp yeniden başlamalısınız.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="usage" id="usage">SuEXEC’in kullanımı</a></h2>
+
+    <p>CGI programlarına yapılan isteklerin suEXEC çalıştırıcısı tarafından
+      yerine getirilebilmesi için sanal konağın bir <code class="directive"><a href="./mod/mod_suexec.html#suexecusergroup">SuexecUserGroup</a></code> yönergesi içermesi veya
+      isteğin <code class="module"><a href="./mod/mod_userdir.html">mod_userdir</a></code> tarafından işleme konulması
+      gerekir.</p>
+
+    <p><strong>Sanal Konaklar:</strong><br />SuEXEC çalıştırıcısını farklı
+      bir kullanıcı ile etkin kılmanın tek yolu <code class="directive"><a href="./mod/core.html#virtualhost">VirtualHost</a></code> bölümleri içinde <code class="directive"><a href="./mod/mod_suexec.html#suexecusergroup">SuexecUserGroup</a></code> yönergesini
+      kullanmaktır. Bu yönergede ana sunucuyu çalıştıran kullanıcıdan farklı
+      bir kullanıcı  belirterek ilgili sanal konak üzerinden CGI kaynakları
+      için yapılan tüm isteklerin belirtilen <em>kullanıcı</em> ve
+      <em>grup</em> tarafından çalıştırılması sağlanır. Bu yönergeyi
+      içermeyen sanal konaklar için ana sunucunun kullanıcısı
+      öntanımlıdır.</p>
+
+    <p><strong>Kullanıcı dizinleri:</strong><br />
+    <code class="module"><a href="./mod/mod_userdir.html">mod_userdir</a></code> tarafından işleme sokulan tüm istekler için
+    suEXEC çalıştırıcısı istek yapılan kullanıcı dizininin sahibinin
+    aidiyetinde çalıştırılacaktır. Bu özelliğin çalışması için tek
+    gereklilik, kullanıcının SuEXEC çalıştırıcısı için etkin kılınmış olması
+    ve çalıştırıcının yukarıdaki <a href="#model">güvenlik sınamalarından</a>
+    geçebilmesidir. Ayrıca,  <code>--with-suexec-userdir</code> <a href="#install">derleme</a> seçeneğinin açıklamasına da bakınız.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="debug" id="debug">SuEXEC ve hata ayıklama</a></h2>
+
+    <p>SuEXEC çalıştırıcısı yukarıda değinildiği gibi günlük bilgilerini
+      <code>--with-suexec-logfile</code> seçeneği ile belirtilen dosyaya
+      yazacaktır. Çalıştırıcıyı doğru yapılandırarak kurduğunuzdan emin olmak
+      istiyorsanız, yolunda gitmeyen şeyler var mı diye bu günlük dosyasına
+      bakmayı ihmal etmeyin.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="jabberwock" id="jabberwock">Uyarılar ve Örnekler</a></h2>
+    
+
+    <p><strong>UYARI!</strong> Bu bölüm henüz bitmedi. Bu bölümün son hali
+      için <a href="http://httpd.apache.org/docs/2.4/suexec.html">çevrimiçi
+      belgelere</a> bakınız.</p>
+
+    <p>SuEXEC çalıştırıcısından dolayı sunucu ayarlarına bazı sınırlamalar
+      getiren bir kaç önemli nokta mevcuttur. SuEXEC ile ilgili hata
+      bildiriminde bulunmadan önce bunlara bir göz atmalısınız.</p>
+
+    <ul>
+      <li><strong>suEXEC ile ilgili önemli noktalar</strong></li>
+
+      <li>Hiyerarşik sınırlamalar
+
+        <p class="indent">Güvenlik ve verimlilik adına, tüm suEXEC
+          isteklerinin sanal konaklar için üst düzey belge kökünün altındaki
+          dosyalarla, kullanıcı dizinleri için ise üst düzey bireysel belge
+          köklerinin altındaki dosyalarla sınırlı kalması gerekir. Örneğin,
+          dört sanal konağınız varsa ve suEXEC çalıştırıcısının
+          getirilerinden faydalanmak istiyorsanız, sanal konaklarınızın belge
+          kök dizinlerini ana sunucunun belge kök dizininin altında kalacak
+          şekilde yapılandırmanız gerekir (örnek yolda).</p>
+      </li>
+
+      <li>SuEXEC'in <code>PATH</code> ortam değişkeni
+
+        <p class="indent">Bunu değiştirmek tehlikeli olabilir. Bu değişkende
+          tanımladığınız her yolun <strong>güvenli</strong> bir dizini işaret
+          ettiğinden emin olmalısınız. Başkalarının oralarda bir truva atı
+          çalıştırmasını istemiyorsanız buna çok dikkat ediniz.</p>
+      </li>
+
+      <li>SuEXEC kodunda değişiklik
+
+        <p class="indent">Gerçekte ne yaptığınızı bilmiyorsanız bu,
+          <strong>büyük bir sorun</strong> olabilir. Böyle şeyler yapmaktan
+          mümkün olduğunca uzak durmalısınız.</p>
+      </li>
+    </ul>
+
+</div></div>
+<div class="bottomlang">
+<p><span>Mevcut Diller: </span><a href="./en/suexec.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/suexec.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/suexec.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/suexec.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/suexec.html" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Yorum</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/suexec.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br /><a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> altında lisanslıdır.</p>
+<p class="menu"><a href="./mod/">Modüller</a> | <a href="./mod/directives.html">Yönergeler</a> | <a href="http://wiki.apache.org/httpd/FAQ">SSS</a> | <a href="./glossary.html">Terimler</a> | <a href="./sitemap.html">Site Haritası</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

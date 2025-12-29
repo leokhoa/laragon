@@ -1,0 +1,604 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>ログファイル - Apache HTTP サーバ バージョン 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">モジュール</a> | <a href="./mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">用語</a> | <a href="./sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="./">バージョン 2.4</a></div><div id="page-content"><div id="preamble"><h1>ログファイル</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="./en/logs.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/logs.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/logs.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/logs.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/logs.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+
+    <p>ウェブサーバを効果的に管理するためには、サーバの活動やパフォーマンス、
+    今発生しているかもしれない問題に関するフィードバックを得ることが必要です。
+    Apache HTTP サーバには非常に包括的で柔軟なロギング機能があります。
+    この文書はロギング機能の設定の仕方と、ログに何が書かれているかを
+    理解するための方法を説明します。</p>
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#security">
+    セキュリティに関する警告</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#errorlog">エラーログ</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#accesslog">アクセスログ</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#rotation">ログの交替</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#piped">パイプ経由のログ</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#virtualhosts">バーチャルホスト</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#other">他のログファイル</a></li>
+</ul><h3>参照</h3><ul class="seealso"><li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="security" id="security">
+    セキュリティに関する警告</a></h2>
+
+    <p>Apache がログファイルを書いているディレクトリに書き込める人は、
+    ほぼ確実にサーバが起動された uid へのアクセスを手に入れることができます。
+    そして、それは通常は root ユーザです。
+    ちゃんと結果を考えることなく、そのディレクトリへの
+    書き込み権限を与え<em>ない</em>でください。詳しくは
+    <a href="misc/security_tips.html">セキュリティのこつ</a>の文書を
+    読んでください。</p>
+
+    <p>加えて、ログファイルにはクライアントからの情報がそのまま、
+    エスケープされることなく書かれています。ですから、悪意のある
+    クライアントがログファイルに制御文字を挿入することができます。
+    生のログを扱うときは注意してください。</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="errorlog" id="errorlog">エラーログ</a></h2>
+    
+    <table class="related"><tr><th>関連モジュール</th><th>関連ディレクティブ</th></tr><tr><td /><td><ul><li><code class="directive"><a href="./mod/core.html#errorlog">ErrorLog</a></code></li><li><code class="directive"><a href="./mod/core.html#loglevel">LogLevel</a></code></li></ul></td></tr></table>
+
+    <p><code class="directive"><a href="./mod/core.html#errorlog">ErrorLog</a></code> ディレクティブにより
+    名前と場所が決まるサーバのエラーログは、一番重要なログファイルです。
+    Apache の診断情報はここに送られ、リクエストを処理しているときに
+    発生したエラーはすべてここに記録されます。サーバを起動したときや、
+    サーバの動作に問題が起こったときは、一番最初に調べるべき
+    ところです。間違いの詳細や修正方法がそこに書かれていることが
+    よくあります。</p>
+
+    <p>エラーログは普通はファイルに書かれます (通常 Unix システムでは
+    <code>error_log</code>、Windows と OS/2 では <code>error.log</code>)。
+    Unix システムではエラーを <code>syslog</code> や
+    <a href="#piped">パイプでプログラムに送る</a> ことができます。</p>
+
+    <p>エラーログの書式は比較的自由度の高いもので、説明的に書かれています。
+    ただし、いくつかの情報はほとんどのエラーログのエントリにあります。
+    例えば、代表的なものに次のようなメッセージがあります。</p>
+
+    <div class="example"><p><code>
+      [Wed Oct 11 14:32:52 2000] [error] [client 127.0.0.1]
+      client denied by server configuration:
+      /export/home/live/ap/htdocs/test
+    </code></p></div>
+
+    <p>ログエントリの最初の項目はメッセージの日付と時刻です。
+    二つめの項目は報告されているエラーの重要度です。
+    <code class="directive"><a href="./mod/core.html#loglevel">LogLevel</a></code> で重要度のレベルを
+    制限することによりエラーログに送られるエラーの種類を制御することが
+    できます。三つ目の項目はエラーを発生させたクライアントの IP アドレス
+    です。残りはメッセージで、この場合はサーバがクライアントのアクセスを
+    拒否するように設定されている、ということを示しています。
+    サーバはリクエストされた文書の (ウェブのパスではなく) ファイルシステムの
+    パスを報告します。</p>
+
+    <p>非常に広範囲のメッセージがエラーログに現れます。たいていのものは
+    上の例のような感じです。エラーログには CGI スクリプトのデバッグ
+    出力も書かれます。CGI スクリプトが <code>stderr</code> に書いた
+    すべての情報は直接エラーログにコピーされます。</p>
+
+    <p>情報を追加したり削除したりしてエラーログをカスタマイズすることは
+    できません。しかし、リクエストに対するエラーログのエントリは、
+    対応するエントリが<a href="#accesslog">アクセスログ</a>にあります。
+    例えば、上の例のエントリはアクセスログのステータスコード 403 の
+    エントリに対応します。アクセスログはカスタマイズ可能ですので、
+    そちらを使うことによりエラーの状況に関する情報をより多く
+    手に入れることができます。</p>
+
+    <p>テストの最中は、問題が発生しているかどうかを見るために、
+    常にエラーログを監視するのが役に立つ場合がよくあります。
+    Unix システムでは、次のものを使うことができます。</p>
+
+    <div class="example"><p><code>
+      tail -f error_log
+    </code></p></div>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="accesslog" id="accesslog">アクセスログ</a></h2>
+    
+
+    <table class="related"><tr><th>関連モジュール</th><th>関連ディレクティブ</th></tr><tr><td><ul><li><code class="module"><a href="./mod/mod_log_config.html">mod_log_config</a></code></li><li><code class="module"><a href="./mod/mod_setenvif.html">mod_setenvif</a></code></li></ul></td><td><ul><li><code class="directive"><a href="./mod/mod_log_config.html#customlog">CustomLog</a></code></li><li><code class="directive"><a href="./mod/mod_log_config.html#logformat">LogFormat</a></code></li><li><code class="directive"><a href="./mod/mod_setenvif.html#setenvif">SetEnvIf</a></code></li></ul></td></tr></table>
+
+    <p>サーバアクセスログはサーバが処理をしたすべてのリクエストを
+    記録します。アクセスログの場所と内容は <code class="directive"><a href="./mod/mod_log_config.html#customlog">CustomLog</a></code>
+    ディレクティブにより決まります。ログの内容の選択を簡潔にするために
+    <code class="directive"><a href="./mod/mod_log_config.html#logformat">LogFormat</a></code>
+    ディレクティブを使用することができます。このセクションはアクセスログに
+    情報を記録するためのサーバの設定方法を説明します。</p>
+
+    <p>もちろん、アクセスログに情報を蓄積することはログ管理の
+    始まりに過ぎません。次の段階は有用な統計を取るためにこの情報を
+    解析することです。一般的なログ解析はこの文書の範囲外で、
+    ウェブサーバ自身の仕事というわけでもありません。この話や、
+    ログ解析を行なうアプリケーションの情報を得るには、<a href="http://dmoz.org/Computers/Software/Internet/Site_Management/Log_Analysis/">
+    Open Directory</a> を調べてください。</p>
+
+    <p>いろんなバージョンの Apache httpd が mod_log_config,
+    mod_log_agent, <code>TransferLog</code> ディレクティブといった、
+    他のモジュールやディレクティブを使ってアクセスのロギングを
+    制御してきました。今では、<code class="directive"><a href="./mod/mod_log_config.html#customlog">CustomLog</a></code> がすべての古い
+    ディレクティブの機能を含むようになっています。</p>
+
+    <p>アクセスログの書式は非常に柔軟な設定が可能です。
+    書式は C の printf(1) フォーマット文字列に非常に似た
+    <code class="directive"><a href="./mod/mod_log_config.html#フォーマット文字列">フォーマット文字列</a></code>
+    により指定されます。いくつか次の節で例を示します。
+    フォーマット文字列に使用できる内容の一覧は <a href="mod/mod_log_config.html">mod_log_config の文書</a>
+    を見てください。</p>
+
+    <h3><a name="common" id="common">Common Log Format</a></h3>
+      
+
+      <p>アクセスログのよくある設定に以下のものがあります。</p>
+
+      <div class="example"><p><code>
+        LogFormat "%h %l %u %t \"%r\" %&gt;s %b" common<br />
+         CustomLog logs/access_log common
+      </code></p></div>
+
+      <p>これは、<em>ニックネーム</em> <code>common</code> を定義し、
+      ログのフォーマット文字列の一つと関連付けます。フォーマット文字列は
+      パーセントディレクティブからなり、それぞれのパーセントディレクティブは
+      サーバにどの情報をロギングするかを指示します。フォーマット文字列に
+      文字をそのまま入れることもでき、それらはログの出力に直接コピーされます。
+      そこに引用文字 (<code>"</code>) を書くときは、
+      フォーマット文字列の最後として解釈
+      されることを防ぐためにバックスラッシュでエスケープする必要があります。
+      フォーマット文字列には改行用の "<code>\n</code>"、タブ用の
+      "<code>\t</code>" という特別な制御文字も含めることができます。</p>
+
+      <p><code class="directive"><a href="./mod/mod_log_config.html#customlog">CustomLog</a></code> ディレクティブは
+      既に定義された
+      <em>ニックネーム</em> を使って新しいログファイルを設定します。
+      アクセスログのファイル名はスラッシュで始まらない限り、
+      <code class="directive"><a href="./mod/core.html#serverroot">ServerRoot</a></code> からの相対パスとして
+      扱われます。</p>
+
+      <p>上の設定は Common Log Format (CLF) と呼ばれる形式で
+      ログエントリを書きます。この標準の形式は異なるウェブサーバの多くが
+      生成することができ、多くのログ解析プログラムが読みこむことができます。
+      CLF により生成されたログファイルのエントリは以下のようになります:</p>
+
+      <div class="example"><p><code>
+        127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] "GET
+        /apache_pb.gif HTTP/1.0" 200 2326
+      </code></p></div>
+
+      <p>このログエントリのそれぞれの部分の意味は以下で説明します。</p>
+
+      <dl>
+	<dt><code>127.0.0.1</code> (<code>%h</code>)</dt>
+
+	<dd>これはサーバへリクエストをしたクライアント (リモートホスト)
+	の IP アドレスです。<code class="directive"><a href="./mod/core.html#hostnamelookups">HostnameLookups</a></code> が
+	<code>On</code> の場合は、サーバはホスト名を調べて、
+	IP アドレスが書かれているところに記録します。しかし、この設定は
+	サーバをかなり遅くするので、あまりお勧めできません。
+	そうではなく、<code class="program"><a href="./programs/logresolve.html">logresolve</a></code> の
+	ようなログの後処理を行なうプログラムでホスト名を調べるのが良いでしょう。
+	ここに報告される IP アドレスは必ずしもユーザが使っているマシンの
+	ものであるとは限りません。ユーザとサーバの間にプロキシサーバが
+	あれば、このアドレスは元のマシンのものではなく、プロキシの
+	アドレスになります。</dd>
+
+	<dt><code>-</code> (<code>%l</code>)</dt>
+
+	<dd>出力中の「ハイフン」は要求された情報が手に入らなかったということを
+	意味します。この場合、取得できなかった情報はクライアントのマシンの
+	<code>identd</code> により決まる RFC 1413 のクライアントの
+	アイデンティティです。この情報はあまり信用することができず、
+	しっかりと管理された内部ネットワークを除いては使うべきではありません。
+	Apache は <code class="directive"><a href="./mod/core.html#identitycheck">IdentityCheck</a></code> が
+	<code>On</code> になっていない限り、この情報を得ようとすらしません。</dd>
+
+	<dt><code>frank</code> (<code>%u</code>)</dt>
+
+	<dd>これは HTTP 認証による、ドキュメントをリクエストした人の
+	ユーザ ID です。CGI スクリプトには通常同じ値が <code>REMOTE_USER</code>
+	環境変数として与えられます。リクエストのステータスコード
+	(以下を参照) が 401 であった場合は、ユーザは認証に失敗しているので、
+	この値は信用できません。ドキュメントがパスワードで保護されていない
+	場合は、この部分は前のものと同じように "<code>-</code>" に
+	なります。</dd>
+
+	<dt><code>[10/Oct/2000:13:55:36 -0700]</code>
+	(<code>%t</code>)</dt>
+
+	<dd>
+	  サーバがリクエストを受け取った時刻です。書式は:
+
+	    <p class="indent">
+	      <code>[day/month/year:hour:minute:second zone]<br />
+	       day = 2*digit<br />
+	       month = 3*letter<br />
+	       year = 4*digit<br />
+	       hour = 2*digit<br />
+	       minute = 2*digit<br />
+	       second = 2*digit<br />
+	       zone = (`+' | `-') 4*digit</code>
+	    </p>
+	  ログのフォーマット文字列に <code>%{format}t</code> を
+	  指定することで、別の形式で時刻を表示させることもできます。
+	  このとき、<code>format</code> は C の標準ライブラリの
+	  <code>strftime(3)</code> の形式になります。
+	</dd>
+
+	<dt><code>"GET /apache_pb.gif HTTP/1.0"</code>
+	(<code>\"%r\"</code>)</dt>
+
+	<dd>クライアントからのリクエストが二重引用符の中に示されています。
+	リクエストには多くの有用な情報があります。まず、この場合クライアントが
+	使ったメソッドは <code>GET</code> です。次に、クライアントは
+	リソース <code>/apache_pb.gif</code> を要求しました。そして、
+	クライアントはプロトコル <code>HTTP/1.0</code> を使用しました。
+	リクエストの各部分を独立にログ収集することもできます。例えば、
+	フォーマット文字列 "<code>%m %U%q %H</code>" は
+	メソッド、パス、クエリ文字列、プロトコルをログ収集し、
+	結局 "<code>%r</code>" とまったく同じ出力になります。</dd>
+
+	<dt><code>200</code> (<code>%&gt;s</code>)</dt>
+
+	<dd>サーバがクライアントに送り返すステータスコードです。
+	この情報は、リクエストが成功応答 (2 で始まるコード) であったか、
+	リダイレクション (3 で始まるコード) であったか、クライアントによる
+	エラー (4 で始まるコード) であったか、サーバのエラー (5 で始まるコード)
+	であったか、を表すので、非常に大切です。ステータスコードの
+	完全なリストは <a href="http://www.w3.org/Protocols/rfc2616/rfc2616.txt">HTTP
+	規格</a> (RFC2616 第 10 節) にあります。</dd>
+
+	<dt><code>2326</code> (<code>%b</code>)</dt>
+
+	<dd>この最後の部分はクライアントに送信されたオブジェクトの、
+	応答ヘッダを除いたサイズを表します。コンテントがクライアントに送られなかった
+	場合は、この値は "<code>-</code>" になります。コンテントが無い場合に
+	"<code>0</code>" をログ収集するには、<code>%b</code> ではなく
+	<code>%B</code> を使ってください。</dd>
+
+      </dl>
+    
+
+    <h3><a name="combined" id="combined">Combined Log Format</a></h3>
+      
+
+      <p>もう一つのよく使われる書式は Combined Log Format と呼ばれています。
+      以下のようにして使うことができます。</p>
+
+      <div class="example"><p><code>
+        LogFormat "%h %l %u %t \"%r\" %&gt;s %b \"%{Referer}i\"
+        \"%{User-agent}i\"" combined<br />
+         CustomLog log/access_log combined
+      </code></p></div>
+
+      <p>この書式の最初の方は Common Log Format とまったく同じで、最後に
+      二つ追加のエントリがあります。追加のエントリはパーセントディレクティブ
+      <code>%{<em>header</em>}i</code> を使っています。ここで
+      <em>header</em> は HTTP のリクエストヘッダのどれかです。この書式による
+      アクセスログは以下のような感じになります:</p>
+
+      <div class="example"><p><code>
+        127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] "GET
+        /apache_pb.gif HTTP/1.0" 200 2326
+        "http://www.example.com/start.html" "Mozilla/4.08 [en]
+        (Win98; I ;Nav)"
+      </code></p></div>
+
+      <p>追加のエントリは:</p>
+
+      <dl>
+	<dt><code>"http://www.example.com/start.html"</code>
+	(<code>\"%{Referer}i\"</code>)</dt>
+
+	<dd>"Referer" (意図的な綴り間違い) HTTP リクエストヘッダです。
+	これはクライアントが報告してくる参照元のサイトを表します。
+	(この場合は、<code>/apache_pb.gif</code> にリンクしているか、
+	それを含んでいるページです)。</dd>
+
+	<dt><code>"Mozilla/4.08 [en] (Win98; I ;Nav)"</code>
+	(<code>\"%{User-agent}i\"</code>)</dt>
+
+	<dd>User-Agent HTTP リクエストヘッダです。これはクライアントのブラウザが
+	自分自身のことを報告してくる情報です。</dd>
+      </dl>
+    
+
+    <h3><a name="multiple" id="multiple">複数のアクセスログ</a></h3>
+      
+
+    <p>複数のアクセスログは単に設定ファイルに複数の <code class="directive"><a href="./mod/mod_log_config.html#customlog">CustomLog</a></code>
+    ディレクティブを書くことで作成されます。例えば、以下のディレクティブは
+    三つのアクセスログを作ります。最初のものは基本的な CLF の情報で、
+    二つ目と三つ目は referer とブラウザの情報です。最後二つの
+    <code class="directive"><a href="./mod/mod_log_config.html#customlog">CustomLog</a></code> は
+    <code>ReferLog</code> ディレクティブと
+    <code>AgentLog</code> ディレクティブの効果をまねる方法を示しています。</p>
+
+      <div class="example"><p><code>
+        LogFormat "%h %l %u %t \"%r\" %&gt;s %b" common<br />
+        CustomLog logs/access_log common<br />
+        CustomLog logs/referer_log "%{Referer}i -&gt; %U"<br />
+        CustomLog logs/agent_log "%{User-agent}i"
+      </code></p></div>
+
+    <p>この例は <code class="directive"><a href="./mod/mod_log_config.html#logformat">LogFormat</a></code> で
+    ニックネームを定義する必要がない、
+    ということも示しています。ニックネームの代わりに、
+    <code class="directive"><a href="./mod/mod_log_config.html#customlog">CustomLog</a></code> ディレクティブに
+    直接ログの書式を指定することができます。</p>
+    
+
+    <h3><a name="conditional" id="conditional">条件付きログ</a></h3>
+      
+
+    <p>クライアントのリクエストの特徴に基づいてアクセスログにエントリの
+    一部をロギングしない方が便利なことがあります。これは <a href="env.html">環境変数</a> の補助により簡単に実現できます。まず、
+    リクエストが何らかの条件に合うということを表すために環境変数が
+    設定される必要があります。これは通常は <code class="directive"><a href="./mod/mod_setenvif.html#setenvif">SetEnvIf</a></code> により
+    行なわれます。そして、<code class="directive"><a href="./mod/mod_log_config.html#customlog">CustomLog</a></code> ディレクティブの
+    <code>env=</code> 節を使って環境変数が設定されているリクエストを
+    含めたり排除したりすることができます。いくつか例を挙げます:</p>
+
+      <div class="example"><p><code>
+        # Mark requests from the loop-back interface<br />
+        SetEnvIf Remote_Addr "127\.0\.0\.1" dontlog<br />
+        # Mark requests for the robots.txt file<br />
+        SetEnvIf Request_URI "^/robots\.txt$" dontlog<br />
+        # Log what remains<br />
+        CustomLog logs/access_log common env=!dontlog
+      </code></p></div>
+
+    <p>他の例として、英語を話す人からのリクエストとそれ以外の人からのリクエストを
+    分けたい、という場合を考えてみてください。</p>
+
+      <div class="example"><p><code>
+        SetEnvIf Accept-Language "en" english<br />
+        CustomLog logs/english_log common env=english<br />
+        CustomLog logs/non_english_log common env=!english
+      </code></p></div>
+
+    <p>ここまででは条件付きロギングが非常に強力で柔軟であることを示してきましたが、
+    それがログの内容を制御する唯一の方法というわけではありません。ログファイルは
+    サーバの活動の完全な記録である方がより役に立ちます。単純にログファイルを
+    後処理して、考慮したくないログを削除する方が簡単であることがよくあります。</p>
+    
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="rotation" id="rotation">ログの交替</a></h2>
+    
+
+    <p>普通の負荷のサーバでさえ、ログファイルに保存される情報の量は
+    膨大になります。アクセスログのファイルは普通 10,000 リクエスト毎に
+    1 MB 以上増えます。ですから、既存のログを移動したり、削除したりして、
+    定期的にログを交替させることが必要になります。これはサーバの実行中には
+    行なえません。というのは、Apache はファイルが open されている間は
+    ずっと古いログファイルに書き続けるからです。
+    新しいログファイルを open できるように、ログファイルが移動されたり
+    削除された後に、サーバを<a href="stopping.html">再起動</a>する
+    必要があります。</p>
+
+    <p><em>優雅な</em> 再起動を行なうことで、サーバは既存のコネクションや
+    処理待ちのコネクションを失うことなく新しいログファイルを open させる
+    ことができます。しかし、これを実現するために、サーバは古いリクエストを
+    扱っている間は古いログファイルに書き続ける必要があります。
+    ですから、再起動の後ではログファイルの処理を始める前に、しばらく待たなければ
+    なりません。単にログを交替させて、ディスクの節約のために古いログを
+    圧縮する普通のシナリオは:</p>
+
+    <div class="example"><p><code>
+      mv access_log access_log.old<br />
+      mv error_log error_log.old<br />
+      apachectl graceful<br />
+      sleep 600<br />
+      gzip access_log.old error_log.old
+    </code></p></div>
+
+    <p>ログの交替をするもう一つの方法は<a href="#piped">パイプ経由のログ</a>を使うもので、次の節で説明されています。</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="piped" id="piped">パイプ経由のログ</a></h2>
+    
+
+    <p>Apache httpd はエラーログとアクセスログをファイルに直接書く代わりに、
+    パイプを通して別のプログラムに書き出すことができます。
+    この機能により、主サーバにコードを追加することなく
+    ロギングの柔軟性が非常に高まっています。パイプにログを書くためには、
+    単にファイル名をパイプ文字 "<code>|</code>" に置き換え、その続きに
+    標準入力からログのエントリを受けとる実行プログラムの名前を書くだけです。
+    Apache はパイプ経由のログ用のプロセスをサーバの起動時に実行し、
+    サーバの実行中にそのプログラムがクラッシュしたときはそれを再び
+    実行します。(この最後の機能がこの技術が「信頼性のあるパイプ経由のロギング」
+    と呼ばれている理由です。)</p>
+
+    <p>パイプ経由のログ用のプロセスは Apache httpd の親プロセスから起動され、
+    そのプロセスのユーザ ID を継承します。これは、パイプ経由のログ用の
+    プログラムは普通 root として実行されることを意味します。
+    ですから、プログラムを簡単で安全に保つことが非常に重要です。</p>
+
+    <p>パイプ経由のログの重要な利用法は、サーバの再起動なしでログの交替を
+    することです。Apache HTTP サーバにはこのための  <code class="program"><a href="./programs/rotatelogs.html">rotatelogs</a></code> と呼ばれる簡単な
+    プログラムが付属しています。たとえば、24 時間毎にログを交替させるには、
+    以下のものを使うことができます:</p>
+
+    <div class="example"><p><code>
+      CustomLog "|/usr/local/apache/bin/rotatelogs
+      /var/log/access_log 86400" common
+    </code></p></div>
+
+    <p>パイプの先で呼ばれるコマンド全体が引用符で囲まれていることに注目して
+    ください。この例はアクセスログを使っていますが、エラーログにも同じ技術を
+    使うことができます。</p>
+
+    <p>似ているけれど、よりずっと柔軟な
+    <a href="http://www.cronolog.org/">cronolog</a> というログ交替用の
+    プログラムが外部のサイトにあります。</p>
+
+    <p>条件付きロギングと同様、パイプ経由のログは非常に強力な
+    道具ですが、オフラインの後処理のような、より簡単な解決方法があるときは
+    使わない方が良いでしょう。</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="virtualhosts" id="virtualhosts">バーチャルホスト</a></h2>
+    
+
+    <p>多くの <a href="vhosts/">バーチャルホスト</a> のあるサーバを実行している
+    ときは、ログファイルの扱い方にいくつかの方法があります。
+    まず、単独のホストのみのサーバとまったく同じようにログを使うことができます。
+    ロギングディレクティブを主サーバのコンテキストの
+    <code class="directive"><a href="./mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> セクションの外に置くことで、
+    すべてのログを同じアクセスログとエラーログにログ収集することができます。
+    この手法では個々のバーチャルホストの統計を簡単にとることはできません。</p>
+
+    <p><code class="directive"><a href="./mod/mod_log_config.html#customlog">CustomLog</a></code> や
+    <code class="directive"><a href="./mod/mod_log_config.html#errorlog">ErrorLog</a></code> ディレクティブが
+    <code class="directive"><a href="./mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> の中に
+    置かれた場合は、そのバーチャル
+    ホストへのすべてのリクエストやエラーがそこで指定されたファイルにのみ
+    ログ収集されます。ロギングディレクティブのないバーチャルホストは
+    依然としてリクエストが主サーバのログに送られます。この手法は少ない
+    バーチャルホストに対しては非常に有用ですが、ホストの数が非常に多くなると
+    管理が大変になります。さらに、<a href="vhosts/fd-limits.html">ファイル記述子の限界</a>の問題を起こすことが
+    あります。</p>
+
+    <p>アクセスログには、非常に良い妥協案があります。バーチャルホストの
+    情報をログのフォーマット文字列に加えることで、すべてのホストへの
+    リクエストを同じログにログ収集して、後でログを個々のファイルに分割することが
+    できます。たとえば、以下のディレクティブを見てください。</p>
+
+    <div class="example"><p><code>
+      LogFormat "%v %l %u %t \"%r\" %&gt;s %b"
+      comonvhost<br />
+      CustomLog logs/access_log comonvhost
+    </code></p></div>
+
+    <p><code>%v</code> がリクエストを扱っているバーチャルホストの名前を
+    ログ収集するために使われています。そして、<a href="programs/other.html">split-logfile</a> のようなプログラムを
+    使ってアクセスログを後処理することで、
+    バーチャルホスト毎のファイルにログを分割することができます。</p>
+
+    <p>残念ながら、エラーログには同様の手法はありません。ですから、
+    すべてのバーチャルホストを同じエラーログの中に混ぜるか、
+    バーチャルホスト毎にエラーログを使うかを選ばなければなりません。</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="other" id="other">他のログファイル</a></h2>
+    
+
+    <table class="related"><tr><th>関連モジュール</th><th>関連ディレクティブ</th></tr><tr><td><ul><li><code class="module"><a href="./mod/mod_logio.html">mod_logio</a></code></li><li><code class="module"><a href="./mod/mod_log_forensic.html">mod_log_forensic</a></code></li><li><code class="module"><a href="./mod/mod_cgi.html">mod_cgi</a></code></li><li><code class="module"><a href="./mod/mod_rewrite.html">mod_rewrite</a></code></li></ul></td><td><ul><li><code class="directive"><a href="./mod/mod_log_config.html#logformat">LogFormat</a></code></li><li><code class="directive"><a href="./mod/mod_log_forensic.html#forensiclog">ForensicLog</a></code></li><li><code class="directive"><a href="./mod/mpm_common.html#pidfile">PidFile</a></code></li><li><code class="directive"><a href="./mod/mod_rewrite.html#rewritelog">RewriteLog</a></code></li><li><code class="directive"><a href="./mod/mod_rewrite.html#rewriteloglevel">RewriteLogLevel</a></code></li><li><code class="directive"><a href="./mod/mod_cgi.html#scriptlog">ScriptLog</a></code></li><li><code class="directive"><a href="./mod/mod_cgi.html#scriptlogbuffer">ScriptLogBuffer</a></code></li><li><code class="directive"><a href="./mod/mod_cgi.html#scriptloglength">ScriptLogLength</a></code></li></ul></td></tr></table>
+
+    <h3>実際に送受信したバイト数のログ</h3>
+      
+
+      <p><code class="module"><a href="./mod/mod_logio.html">mod_logio</a></code> は、
+         ネットワーク上で実際に送受信した数をログする
+         二つのフィールド (%I と %O) を
+         <code class="directive"><a href="./mod/mod_log_config.html#logformat">LogFormat</a></code> 
+         ディレクティブに追加します。</p>
+    
+
+    <h3>Forensic ログ</h3>
+      
+
+      <p><code class="module"><a href="./mod/mod_log_forensic.html">mod_log_forensic</a></code> はクライアントリクエストの
+         forensic ログを取ります。ログはリクエスト処理前と処理後に
+         行われますので、1 リクエストに対して 2 行のログが出力されます。
+         forensic ロガーはとても厳密でカスタマイズできません。
+         デバッグやセキュリティ用のツールとして有効かもしれません。</p>
+    
+
+    <h3><a name="pidfile" id="pidfile">PID ファイル</a></h3>
+      
+
+      <p>起動時に、Apache は親 httpd プロセスのプロセス ID を
+      <code>logs/httpd.pid</code> に保存します。この
+      ファイル名は <code class="directive"><a href="./mod/mpm_common.html#pidfile">PidFile</a></code> ディレクティブを使って
+      変更することができます。プロセス ID は管理者が親プロセスに
+      シグナルを送ることでデーモンを再起動したり終了させたりするときに
+      使用します。Windows では、代わりに -k コマンドオプションを
+      使ってください。詳しい情報は <a href="stopping.html">終了と
+      再起動</a> のページを見てください。</p>
+    
+
+    <h3><a name="scriptlog" id="scriptlog">スクリプトログ</a></h3>
+      
+
+      <p>デバッグの補助のために、<code class="directive"><a href="./mod/mod_cgi.html#scriptlog">ScriptLog</a></code> ディレクティブは
+      CGI スクリプトの入力と出力を記録するようにできます。
+      これはテスト用にのみ使用して、通常のサーバでは使用しないでください。
+      詳しい情報は <a href="mod/mod_cgi.html">mod_cgi の文書</a> にあります。</p>
+    
+
+    <h3><a name="rewritelog" id="rewritelog">リライトログ</a></h3>
+      
+
+      <p><code class="directive"><a href="./mod/mod_rewrite.html#mod_rewrite">mod_rewrite</a></code> の強力で
+      複雑な機能を
+      使っているときは、ほぼいつもデバッグを簡単にするために
+      <code class="directive"><a href="./mod/mod_rewrite.html#rewritelog">RewriteLog</a></code> の使用が
+      必要でしょう。このログファイルにはリライトエンジンがリクエストを
+      書き換える方法の詳細な解析が出力されます。詳しさの度合は <code class="directive"><a href="./mod/mod_rewrite.html#rewriteloglevel">RewriteLogLevel</a></code>
+      で制御できます。</p>
+    
+  </div></div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="./en/logs.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/logs.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/logs.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/logs.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/logs.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/logs.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="./mod/">モジュール</a> | <a href="./mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">用語</a> | <a href="./sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

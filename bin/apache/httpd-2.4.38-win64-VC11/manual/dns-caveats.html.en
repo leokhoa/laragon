@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Issues Regarding DNS and Apache HTTP Server - Apache HTTP Server Version 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">Modules</a> | <a href="./mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">Glossary</a> | <a href="./sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="./">Version 2.4</a></div><div id="page-content"><div id="preamble"><h1>Issues Regarding DNS and Apache HTTP Server</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="./en/dns-caveats.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/dns-caveats.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/dns-caveats.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/dns-caveats.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/dns-caveats.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+    <p>This page could be summarized with the statement: don't
+    configure Apache HTTP Server in such a way that it relies on DNS resolution
+    for parsing of the configuration files. If httpd requires DNS
+    resolution to parse the configuration files then your server
+    may be subject to reliability problems (ie. it might not start up),
+    or denial and theft of service attacks (including virtual hosts able
+    to steal hits from other virtual hosts).</p>
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#example">A Simple Example</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#denial">Denial of Service</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#main">The "main server" Address</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#tips">Tips to Avoid These Problems</a></li>
+</ul><h3>See also</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="example" id="example">A Simple Example</a></h2>
+    
+
+    <pre class="prettyprint lang-config"># This is a misconfiguration example, do not use on your server
+&lt;VirtualHost www.example.dom&gt;
+  ServerAdmin webgirl@example.dom
+  DocumentRoot "/www/example"
+&lt;/VirtualHost&gt;</pre>
+
+
+    <p>In order for the server to function properly, it absolutely needs
+    to have two pieces of information about each virtual host: the
+    <code class="directive"><a href="./mod/core.html#servername">ServerName</a></code> and at least one
+    IP address that the server will bind and respond to. The above
+    example does not include the IP address, so httpd must use DNS
+    to find the address of <code>www.example.dom</code>. If for some
+    reason DNS is not available at the time your server is parsing
+    its config file, then this virtual host <strong>will not be
+    configured</strong>. It won't be able to respond to any hits
+    to this virtual host.</p>
+
+    <p>Suppose that <code>www.example.dom</code> has address 192.0.2.1.
+    Then consider this configuration snippet:</p>
+
+    <pre class="prettyprint lang-config"># This is a misconfiguration example, do not use on your server
+&lt;VirtualHost 192.0.2.1&gt;
+  ServerAdmin webgirl@example.dom
+  DocumentRoot "/www/example"
+&lt;/VirtualHost&gt;</pre>
+
+
+    <p>This time httpd needs to use reverse DNS to find the
+    <code>ServerName</code> for this virtualhost. If that reverse
+    lookup fails then it will partially disable the virtualhost.
+    If the virtual host is name-based then it will effectively be
+    totally disabled, but if it is IP-based then it will mostly
+    work. However, if httpd should ever have to generate a full
+    URL for the server which includes the server name (such as when a
+    Redirect is issued), then it will fail to generate a valid URL.</p>
+
+    <p>Here is a snippet that avoids both of these problems:</p>
+
+    <pre class="prettyprint lang-config">&lt;VirtualHost 192.0.2.1&gt;
+  ServerName www.example.dom
+  ServerAdmin webgirl@example.dom
+  DocumentRoot "/www/example"
+&lt;/VirtualHost&gt;</pre>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="denial" id="denial">Denial of Service</a></h2>
+    
+
+    <p>Consider this configuration snippet:</p>
+
+    <pre class="prettyprint lang-config">&lt;VirtualHost www.example1.dom&gt;
+  ServerAdmin webgirl@example1.dom
+  DocumentRoot "/www/example1"
+&lt;/VirtualHost&gt;
+&lt;VirtualHost www.example2.dom&gt;
+  ServerAdmin webguy@example2.dom
+  DocumentRoot "/www/example2"
+&lt;/VirtualHost&gt;</pre>
+
+
+    <p>Suppose that you've assigned 192.0.2.1 to
+    <code>www.example1.dom</code> and 192.0.2.2 to
+    <code>www.example2.dom</code>. Furthermore, suppose that
+    <code>example1.dom</code> has control of their own DNS. With this
+    config you have put <code>example1.dom</code> into a position where
+    they can steal all traffic destined to <code>example2.dom</code>. To
+    do so, all they have to do is set <code>www.example1.dom</code> to
+    192.0.2.2. Since they control their own DNS you can't stop them
+    from pointing the <code>www.example1.dom</code> record wherever they
+    wish.</p>
+
+    <p>Requests coming in to 192.0.2.2 (including all those where
+    users typed in URLs of the form
+    <code>http://www.example2.dom/whatever</code>) will all be served by
+    the <code>example1.dom</code> virtual host. To better understand why
+    this happens requires a more in-depth discussion of how httpd
+    matches up incoming requests with the virtual host that will
+    serve it. A rough document describing this <a href="vhosts/details.html">is available</a>.</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="main" id="main">The "main server" Address</a></h2>
+    
+
+    <p><a href="vhosts/name-based.html">Name-based
+    virtual host support</a> requires httpd to know
+    the IP address(es) of the host that <code class="program"><a href="./programs/httpd.html">httpd</a></code>
+    is running on. To get this address it uses either the global
+    <code class="directive"><a href="./mod/core.html#servername">ServerName</a></code>
+    (if present) or calls the C function <code>gethostname</code>
+    (which should return the same as typing "hostname" at the
+    command prompt). Then it performs a DNS lookup on this address.
+    At present there is no way to avoid this lookup.</p>
+
+    <p>If you fear that this lookup might fail because your DNS
+    server is down then you can insert the hostname in
+    <code>/etc/hosts</code> (where you probably already have it so
+    that the machine can boot properly). Then ensure that your
+    machine is configured to use <code>/etc/hosts</code> in the
+    event that DNS fails. Depending on what OS you are using this
+    might be accomplished by editing <code>/etc/resolv.conf</code>,
+    or maybe <code>/etc/nsswitch.conf</code>.</p>
+
+    <p>If your server doesn't have to perform DNS for any other
+    reason then you might be able to get away with running httpd
+    with the <code>HOSTRESORDER</code> environment variable set to
+    "local". This all depends on what OS and resolver libraries you
+    are using. It also affects CGIs unless you use
+    <code class="module"><a href="./mod/mod_env.html">mod_env</a></code> to control the environment. It's best
+    to consult the man pages or FAQs for your OS.</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="tips" id="tips">Tips to Avoid These Problems</a></h2>
+    
+
+    <ul>
+      <li>
+        use IP addresses in
+        <code class="directive"><a href="./mod/core.html#virtualhost">VirtualHost</a></code>
+      </li>
+
+      <li>
+        use IP addresses in
+        <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code>
+      </li>
+
+      <li>
+        ensure all virtual hosts have an explicit
+        <code class="directive"><a href="./mod/core.html#servername">ServerName</a></code>
+      </li>
+
+      <li>create a <code>&lt;VirtualHost _default_:*&gt;</code>
+      server that has no pages to serve</li>
+    </ul>
+  </div></div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="./en/dns-caveats.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/dns-caveats.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/dns-caveats.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/dns-caveats.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/dns-caveats.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/dns-caveats.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="./mod/">Modules</a> | <a href="./mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">Glossary</a> | <a href="./sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

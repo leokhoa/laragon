@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Apache HTTP Server の停止と再起動 - Apache HTTP サーバ バージョン 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">モジュール</a> | <a href="./mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">用語</a> | <a href="./sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="./">バージョン 2.4</a></div><div id="page-content"><div id="preamble"><h1>Apache HTTP Server の停止と再起動</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="./de/stopping.html" hreflang="de" rel="alternate" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="./en/stopping.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./es/stopping.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="./fr/stopping.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/stopping.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/stopping.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/stopping.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+    <p>この文書では Unix に類似したシステムでの
+    Apache HTTP Serverの停止と再起動について扱っています。
+    Windows NT, 2000, XP ユーザは<a href="platform/windows.html#winsvc">サービスとして
+    httpd を実行する</a>で、Windows 9x, MEユーザは<a href="platform/windows.html#wincons">コンソールアプリケーションとして
+    httpd を実行する</a>で、
+    これらのプラットホームでの使用方法をご覧下さい。</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#introduction">イントロダクション</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#term">急な停止</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#graceful">緩やかな再起動</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#hup">急な再起動</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#gracefulstop">緩やかな停止</a></li>
+</ul><h3>参照</h3><ul class="seealso"><li><code class="program"><a href="./programs/httpd.html">httpd</a></code></li><li><code class="program"><a href="./programs/apachectl.html">apachectl</a></code></li><li><a href="invoking.html">Starting</a></li><li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="introduction" id="introduction">イントロダクション</a></h2>
+
+    <p>Apache HTTP Server を停止したり再起動したりするためには、実行されている
+    <code class="program"><a href="./programs/httpd.html">httpd</a></code> プロセスにシグナルを送る必要があります。
+    シグナルを送るには二つの方法があります。
+    一つ目はプロセスに直接シグナルを送る unix の <code>kill</code>
+    コマンドを使用する方法です。
+    システムを見ればたくさんの <code class="program"><a href="./programs/httpd.html">httpd</a></code> が
+    実行されているのに気が付くでしょうが、シグナルを送るのは
+    親プロセスだけで、それ以外の個々のプロセスには
+    シグナルを送らないで下さい。その親プロセスの pid は
+    <code class="directive"><a href="./mod/mpm_common.html#pidfile">PidFile</a></code>
+    に書かれています。これはつまり、親以外のプロセスに
+    シグナルを送る必要すらない、ということです。
+    親プロセスに送ることができる 4 種類のシグナルがあります:
+    <code><a href="#term">TERM</a></code>,
+    <code><a href="#hup">HUP</a></code>, 
+    <code><a href="#graceful">USR1</a></code>,
+    <code><a href="#gracefulstop">WINCH</a></code>
+    です。これらの説明については続きをご覧下さい。</p>
+
+    <p>親プロセスにシグナルを送るには、
+    次のようなコマンドを発行して下さい:</p>
+
+<div class="example"><p><code>kill -TERM `cat /usr/local/apache2/logs/httpd.pid`</code></p></div>
+
+    <p><code class="program"><a href="./programs/httpd.html">httpd</a></code> プロセスにシグナルを送る 2 番目の方法は
+    <code>-k</code> というコマンドライン引数を使用することです。
+    下で説明されているように、<code>stop</code>, <code>restart</code>, 
+    <code>graceful</code>, <code>graceful-stop</code> を指定できます。
+    これらは <code class="program"><a href="./programs/httpd.html">httpd</a></code> の引数ですが、
+    制御用のスクリプト <code class="program"><a href="./programs/apachectl.html">apachectl</a></code> はそれらの引数をそのまま
+    <code class="program"><a href="./programs/httpd.html">httpd</a></code> に渡します。</p>
+
+    <p><code class="program"><a href="./programs/httpd.html">httpd</a></code> にシグナルを送った後、
+    実行状況を次のコマンドで読むことができます:</p>
+
+<div class="example"><p><code>tail -f /usr/local/apache2/logs/error_log</code></p></div>
+    <p>ここに挙げた例は、各自の
+    <code class="directive"><a href="./mod/core.html#serverroot">ServerRoot</a></code>
+    と
+    <code class="directive"><a href="./mod/mpm_common.html#pidfile">PidFile</a></code>
+    の設定に適合するように適宜修正して下さい。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="term" id="term">急な停止</a></h2>
+
+<dl><dt>シグナル: TERM</dt>
+<dd><code>apachectl -k stop</code></dd>
+</dl>
+
+    <p><code>TERM</code> あるいは <code>stop</code> 
+    シグナルを親プロセスに送ると、即座に子プロセス全てを kill しようとします。
+    子プロセスを完全に kill し終わるまでに数秒かかるかもしれません。
+    その後、親プロセス自身が終了します。
+    処理中のリクエストは全て停止され、もはやリクエストに対する
+    応答はされません。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="graceful" id="graceful">緩やかな再起動</a></h2>
+
+<dl><dt>シグナル: USR1</dt>
+<dd><code>apachectl -k graceful</code></dd>
+</dl>
+
+    <p>親プロセスは <code>USR1</code> あるいは <code>graceful</code>
+    シグナルを受け取ると、子プロセスに現在のリクエストの処理の後に終了する
+    (あるいは何もしていなければすぐに終了する)
+    ように<em>助言</em>します。
+    親プロセスは設定ファイルを再読込して、ログファイルを開き直します。
+    子プロセスが徐々になくなるに従って、
+    新しい<em>世代</em>の設定による子プロセスに置き換えていきます。
+    そして、これらが新たなリクエストに即座に応答し始めます。</p>
+
+    <p>このコードは常に
+    MPM のプロセス制御ディレクティブの設定を重視しますので、
+    クライアントのリクエストを扱うプロセスとスレッドの数を再起動の処理中も
+    適切な値に維持されます。。また、次のようにして
+    <code class="directive"><a href="./mod/mpm_common.html#startservers">StartServers</a></code>
+    を守ります:
+    少なくとも 1 秒後に <code class="directive"><a href="./mod/mpm_common.html#startservers">StartServers</a></code> 個の新しい子プロセスが
+    生成されていなければ、その数になるように適宜プロセスを生成します。
+    この挙動は現在の負荷に対して適切な子プロセスの数と
+    <code class="directive"><a href="./mod/mpm_common.html#startservers">StartServers</a></code> パラメータでの
+    希望の数の両方を維持しようとしています。</p>
+
+    <p><code class="module"><a href="./mod/mod_status.html">mod_status</a></code> を
+    使用している場合は、<code>USR1</code> シグナルが送られた際に
+    サーバ統計がゼロに<strong>設定されない</strong>ことに
+    注意してください。
+    サーバが新しいリクエストに応答不能な時間を最小にするように
+    (リクエストは OS によってキューに追加されるので絶対に紛失はしません)、
+    また同時に、希望のチューニングパラメータを守るように
+    コードは書かれています。
+    このようにするために、世代をまたがった全子プロセスの追跡に使われている
+    <em>スコアボード</em>を維持しなければなりません。</p>
+
+    <p>status モジュールは、緩やかな再起動以前から開始して
+    リクエストに応答し続けている子プロセスを特定するために、
+    <code>G</code> を使うこともします。</p>
+
+    <p>現在、<code>USR1</code> を使うログ移動スクリプトでは、
+    再起動前の子プロセスがログを書き終わったことを確証する方法が
+    ありません。古いログに対して何かする前に、
+    <code>USR1</code> シグナルを送った後いくらか適当な時間待つことを
+    提案します。例えば、帯域の狭い通信路のユーザのリクエストのほとんどが 10 
+    分以下で完了しているということが分かっていれば、
+    古いログに何かする前に 15 分待つということです。</p>
+
+    <div class="note"><p>再起動が発行されると設定ファイルの構文チェックがまず走り、
+    設定ファイルに (構文上の) 誤りがないかチェックされます。
+    誤りがあった場合エラーメッセージでその旨が示され、サーバは再起動されません。
+    こうすることでサーバが終了しているけれども再起動できないという状況を
+    防ぎ、サーバが機能不全な状態になるのを防いでいます。</p>
+
+    <p>ただしこれでもサーバが正しく再起動することは保証されません。
+    設定ファイルの意味的な内容を構文と同様に検証したい場合は、
+    非 root ユーザで <code class="program"><a href="./programs/httpd.html">httpd</a></code> を起動しようとすればわかります。
+    もしエラーがなければ、ソケットやログを開こうとして
+    root でないため
+    (もしくは実行中の <code class="program"><a href="./programs/httpd.html">httpd</a></code>
+    が既に必要なポートにバインドしているため)
+    に失敗するでしょう。
+    これ以外の理由で起動に失敗したのであれば、
+    それは設定ファイルのエラーで、
+    緩やかな再起動を行う前にその誤りを修正しなければなりません。</p>
+    </div>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="hup" id="hup">急な再起動</a></h2>
+
+<dl><dt>シグナル: HUP</dt>
+<dd><code>apachectl -k restart</code></dd>
+</dl>
+
+    <p><code>HUP</code> あるいは <code>restart</code> シグナルを親プロセスに送ると、
+    <code>TERM</code> と同様に子プロセスを kill しますが、
+    親プロセスは終了しません。
+    設定ファイルを再読込して、ログファイル全てを開き直します。
+    その後、新しい子プロセスを起動して応答を続けます。</p>
+
+    <p><code class="module"><a href="./mod/mod_status.html">mod_status</a></code>
+    を使っている場合は、<code>HUP</code> が送られた場合に
+    サーバ統計がゼロに設定されることに注意してください。</p>
+
+    <div class="note">graceful 再起動時は、再起動前に構文チェックが行われます。
+    もし構文エラーがあればその旨が示され、再起動は行われません。</div>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="gracefulstop" id="gracefulstop">緩やかな停止</a></h2>
+
+<dl><dt>Signal: WINCH</dt>
+<dd><code>apachectl -k graceful-stop</code></dd>
+</dl>
+
+    <p><code>WINCH</code> や <code>graceful-stop</code> シグナルを受け取ると、
+    親プロセスは子プロセスに現在処理中のリクエストの後に終了する
+    (あるいは処理中のものが何もなければ直ちに終了する)
+    ように<em>アドバイス</em>します。
+    その後親プロセスは <code class="directive"><a href="./mod/mpm_common.html#pidfile">PidFile</a></code>
+    を削除し、ポートでの Listen を全て停止します。
+    親プロセスはどの子プロセスがリクエスト処理中かを監視し続けています。
+    全ての子プロセスが終了するか
+    <code class="directive"><a href="./mod/mpm_common.html#gracefulshutdowntimeout">GracefulShutdownTimeout</a></code>
+    で設定した時間が過ぎると、親プロセスも終了します。
+    タイムアウトに達した場合、残りの子プロセスには <code>TERM</code>
+    シグナルが送信され強制的に終了されます。</p>
+    
+    <p>"graceful" 状態の場合 <code>TERM</code> シグナルを受け取ると、
+    親プロセスも子プロセスもすぐに終了します。しかしながら
+    <code class="directive"><a href="./mod/mpm_common.html#pidfile">PidFile</a></code>
+    が削除されてしまっているので、<code>apachectl</code>
+    や <code>httpd</code> にこのシグナルを送ることはできません。</p>
+
+    <div class="note"><p><code>graceful-stop</code> を使うとまったく同一に設定された
+    複数の <code class="program"><a href="./programs/httpd.html">httpd</a></code> を同時に実行することができます。
+    httpd を緩やかにアップグレードするのにはとても便利ですが、
+    設定ファイルによってはデッドロックやレースコンディションを
+    引き起こすこともあります。</p>
+
+    <p>ディスク上のファイルを使うもの、たとえばロックファイル
+    (<code class="directive"><a href="./mod/core.html#mutex">Mutex</a></code>) や Unix ソケットファイル
+    (<code class="directive"><a href="./mod/mod_cgid.html#scriptsock">ScriptSock</a></code>) 
+    などはサーバの PID を含めて管理されていて、
+    共存できるよう注意が払われています。
+    しかしその他設定ディレクティブやサードパーティ製のモジュール、
+    CGI ユーティリティのパーシステント層などで
+    ディスク上にロックファイルや状態管理ファイルを
+    使っている場合は、実行されている複数の <code class="program"><a href="./programs/httpd.html">httpd</a></code>
+    が互いに衝突しないように気をつけなければなりません。</p>
+
+    <p><code class="program"><a href="./programs/rotatelogs.html">rotatelogs</a></code> 形式のパイプを使ったログといった、
+    その他潜在的なレースコンディションについても注意しなければなりません。
+    複数の <code class="program"><a href="./programs/rotatelogs.html">rotatelogs</a></code> が同じファイルを同時に
+    rotate しようとすると、互いにログファイルを破壊してしまいます。</p>
+    </div>
+</div></div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="./de/stopping.html" hreflang="de" rel="alternate" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="./en/stopping.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./es/stopping.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="./fr/stopping.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/stopping.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/stopping.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/stopping.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/stopping.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="./mod/">モジュール</a> | <a href="./mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">用語</a> | <a href="./sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

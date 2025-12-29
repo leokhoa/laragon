@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Le cache des objets partagés du serveur HTTP Apache - Serveur HTTP Apache Version 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page" class="no-sidebar"><div id="page-header">
+<p class="menu"><a href="./mod/">Modules</a> | <a href="./mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">Glossaire</a> | <a href="./sitemap.html">Plan du site</a></p>
+<p class="apache">Serveur HTTP Apache Version 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">Serveur HTTP</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="./">Version 2.4</a></div><div id="page-content"><div id="preamble"><h1>Le cache des objets partagés du serveur HTTP Apache</h1>
+<div class="toplang">
+<p><span>Langues Disponibles: </span><a href="./en/socache.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/socache.html" title="Français">&nbsp;fr&nbsp;</a></p>
+</div>
+
+    <p>Le cache des objets partagés est un concept de partage de données
+    de base entre tous les processus d'un serveur, sans se préoccuper du
+    <a href="mpm.html">modèle de threads et de processus</a>. On
+    l'utilise lorsque les avantages apportés par le partage de données
+    entre processus contrebalance la perte de performances consécutive à
+    la communication interprocessus.</p>
+  </div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="providers" id="providers">Fournisseurs du cache d'objets partagés</a></h2>
+    
+    <p>Le cache d'objets partagés en tant que tel est une abstraction.
+    Il est implémenté par quatre modules différents. Pour pouvoir
+    utiliser le cache, un ou plusieurs de ces modules doivent être
+    présents et configurés.</p>
+    <p>Le seul élément de configuration consiste à définir le
+    fournisseur de cache à utiliser. Ceci est de la responsabilité des
+    modules qui utilisent le cache, et pour cela, ils activent la
+    sélection via des directives telles que <code class="directive"><a href="./mod/mod_cache_socache.html#cachesocache">CacheSocache</a></code>, <code class="directive"><a href="./mod/mod_authn_socache.html#authncachesocache">AuthnCacheSOCache</a></code>, <code class="directive"><a href="./mod/mod_ssl.html#sslsessioncache">SSLSessionCache</a></code>, et <code class="directive"><a href="./mod/mod_ssl.html#sslstaplingcache">SSLStaplingCache</a></code>.</p>
+    <p>Les fournisseurs actuellement disponibles sont :</p>
+    <dl>
+    <dt>"dbm" (<code class="module"><a href="./mod/mod_socache_dbm.html">mod_socache_dbm</a></code>)</dt>
+    <dd>Celui-ci utilise un fichier de hashage DBM. Le choix de la
+    DBM sous-jacente peut être configurable si la version
+    d'APR installée supporte de multiples implémentations de DBM.</dd>
+    <dt>"dc" (<code class="module"><a href="./mod/mod_socache_dc.html">mod_socache_dc</a></code>)</dt>
+    <dd>Celui-ci utilise les bibliothèques de mise en cache de sessions
+    distribuées <a href="http://distcache.sourceforge.net/">distcache</a>.</dd>
+    <dt>"memcache" (<code class="module"><a href="./mod/mod_socache_memcache.html">mod_socache_memcache</a></code>)</dt>
+    <dd>Celui-ci utilise le système à hautes performances de mise en
+    cache d'objets de mémoire distribuée <a href="http://memcached.org/">memcached</a>.</dd>
+    <dt>"shmcb" (<code class="module"><a href="./mod/mod_socache_shmcb.html">mod_socache_shmcb</a></code>)</dt>
+    <dd>Celui-ci utilise un tampon cyclique à hautes performances au
+    sein d'un segment de mémoire partagée.</dd>
+    </dl>
+
+    <p>L'API fournit les fonctions suivantes :</p>
+
+    <dl>
+      <dt>const char *create(ap_socache_instance_t **instance, const char *arg,
+                          apr_pool_t *tmp, apr_pool_t *p);</dt>
+      <dd>Cette fonction permet de créer un cache de session basé sur
+      la chaîne de configuration spécifiée. Le pointeur d'instance
+      renvoyé dans le paramètre instance sera passé comme premier
+      argument des invocations subséquentes.</dd>
+
+      <dt>apr_status_t init(ap_socache_instance_t *instance, const char *cname,
+                         const struct ap_socache_hints *hints,
+                         server_rec *s, apr_pool_t *pool)</dt>
+      <dd>Cette fonction permet d'initialiser le cache. L'argument cname
+      doit avoir une longueur maximale de 16 caractères et permet
+      d'identifier de manière unique l'utilisateur du cache au sein du
+      serveur ; il est recommandé d'utiliser le nom du module, par
+      exemple "mod_ssl-sess". Comme cette chaîne peut être utilisée au
+      sein d'un système de fichiers, il est conseillé de n'utiliser que
+      des caractères alphanumériques [a-z0-9_-]. Si l'argument hints
+      n'est pas égal à NULL, il fournit un ensemble d'indications au
+      fournisseur. La valeur retournée est le code d'erreur APR.</dd>
+
+      <dt>void destroy(ap_socache_instance_t *instance, server_rec *s)</dt>
+      <dd>Cette fonction permet de détruire l'instance de cache
+      spécifiée.</dd>
+
+      <dt>apr_status_t store(ap_socache_instance_t *instance, server_rec *s,
+                          const unsigned char *id, unsigned int idlen,
+                          apr_time_t expiry,
+                          unsigned char *data, unsigned int datalen,
+                          apr_pool_t *pool)</dt>
+      <dd>Cette fonction permet de stocker un objet dans une instance de
+      cache.</dd>
+
+      <dt>apr_status_t retrieve(ap_socache_instance_t *instance, server_rec *s,
+                             const unsigned char *id, unsigned int idlen,
+                             unsigned char *data, unsigned int *datalen,
+                             apr_pool_t *pool)</dt>
+      <dd>Cette fonction permet d'extraire un objet du cache.</dd>
+
+      <dt>apr_status_t remove(ap_socache_instance_t *instance, server_rec *s,
+                           const unsigned char *id, unsigned int idlen,
+                           apr_pool_t *pool)</dt>
+      <dd>Supprime un objet du cache.</dd>
+
+      <dt>void status(ap_socache_instance_t *instance, request_rec *r, int flags)</dt>
+      <dd>Renvoie le statut d'une instance de cache à destination de mod_status.</dd>
+
+      <dt>apr_status_t iterate(ap_socache_instance_t *instance, server_rec *s,
+                            void *userctx, ap_socache_iterator_t *iterator,
+                            apr_pool_t *pool)</dt>
+      <dd>Envoie tous les objets gardés en cache à une fonction pour traitement itératif.</dd>
+    </dl>
+
+  </div></div>
+<div class="bottomlang">
+<p><span>Langues Disponibles: </span><a href="./en/socache.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/socache.html" title="Français">&nbsp;fr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Commentaires</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/socache.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Autorisé sous <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="./mod/">Modules</a> | <a href="./mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">Glossaire</a> | <a href="./sitemap.html">Plan du site</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

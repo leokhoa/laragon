@@ -1,0 +1,692 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>認証、承認、アクセス制御 - Apache HTTP サーバ バージョン 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="../">バージョン 2.4</a> &gt; <a href="./">How-To / チュートリアル</a></div><div id="page-content"><div id="preamble"><h1>認証、承認、アクセス制御</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="../en/howto/auth.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../es/howto/auth.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="../fr/howto/auth.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/howto/auth.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/howto/auth.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/howto/auth.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+
+    <p>「認証」とは、誰かが自分は誰であるかを主張した場合に、
+    それを確認するための全過程を指します。「承認」とは、
+    誰かが行きたい場所に行けるように、あるいは欲しい情報を
+    得ることができるようにするための全過程を指します。</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#related">関連するモジュールとディレクティブ</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#introduction">はじめに</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#theprerequisites">準備</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#gettingitworking">動作させる</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#lettingmorethanonepersonin">
+複数の人が入れるようにする</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#possibleproblems">起こりえる問題</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#dbmdbd">パスワードの保存形式を変える</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#multprovider">複数のプロバイダを使用する</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#beyond">単純な承認のその先</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#moreinformation">追加情報</a></li>
+</ul><h3>参照</h3><ul class="seealso"><li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="related" id="related">関連するモジュールとディレクティブ</a></h2>
+<p>認証と承認の処理に関連する 3 種類のモジュールがあります。
+それぞれ少なくともひとつずつ必要です。</p>
+
+<ul>
+  <li>認証のタイプ (
+      <code class="directive"><a href="../mod/core.html#authtype">AuthType</a></code> ディレクティブ参照)
+    <ul>
+      <li><code class="module"><a href="../mod/mod_auth_basic.html">mod_auth_basic</a></code></li>
+      <li><code class="module"><a href="../mod/mod_auth_digest.html">mod_auth_digest</a></code></li>
+    </ul>
+  </li>
+  <li>認証プロバイダ (
+  <code class="directive"><a href="../mod/mod_auth_basic.html#authbasicprovider">AuthBasicProvider</a></code>,
+  <code class="directive"><a href="../mod/mod_auth_digest.html#authdigestprovider">AuthDigestProvider</a></code> ディレクティブ参照)
+
+    <ul>
+      <li><code class="module"><a href="../mod/mod_authn_anon.html">mod_authn_anon</a></code></li>
+      <li><code class="module"><a href="../mod/mod_authn_dbd.html">mod_authn_dbd</a></code></li>
+      <li><code class="module"><a href="../mod/mod_authn_dbm.html">mod_authn_dbm</a></code></li>
+      <li><code class="module"><a href="../mod/mod_authn_default.html">mod_authn_default</a></code></li>
+      <li><code class="module"><a href="../mod/mod_authn_file.html">mod_authn_file</a></code></li>
+      <li><code class="module"><a href="../mod/mod_authnz_ldap.html">mod_authnz_ldap</a></code></li>
+    </ul>
+  </li>
+  <li>承認 (
+      <code class="directive"><a href="../mod/core.html#require">Require</a></code> ディレクティブ参照)
+    <ul>
+      <li><code class="module"><a href="../mod/mod_authnz_ldap.html">mod_authnz_ldap</a></code></li>
+      <li><code class="module"><a href="../mod/mod_authz_dbm.html">mod_authz_dbm</a></code></li>
+      <li><code class="module"><a href="../mod/mod_authz_dbm.html">mod_authz_dbm</a></code></li>
+      <li><code class="module"><a href="../mod/mod_authz_default.html">mod_authz_default</a></code></li>
+      <li><code class="module"><a href="../mod/mod_authz_groupfile.html">mod_authz_groupfile</a></code></li>
+      <li><code class="module"><a href="../mod/mod_authz_host.html">mod_authz_host</a></code></li>
+      <li><code class="module"><a href="../mod/mod_authz_owner.html">mod_authz_owner</a></code></li>
+      <li><code class="module"><a href="../mod/mod_authz_user.html">mod_authz_user</a></code></li>
+    </ul>
+  </li>
+</ul>
+
+  <p>これらのモジュールに加えて、<code class="module"><a href="../mod/mod_authn_core.html">mod_authn_core</a></code>
+  と <code class="module"><a href="../mod/mod_authz_core.html">mod_authz_core</a></code> があります。
+  この 2 つのモジュールは認証モジュールに共通なコアディレクティブを
+  実装しています。</p>
+
+  <p><code class="module"><a href="../mod/mod_authnz_ldap.html">mod_authnz_ldap</a></code> は認証プロバイダと承認プロバイダの
+  両方の機能を持っています。
+  <code class="module"><a href="../mod/mod_authz_host.html">mod_authz_host</a></code> はホスト名、IP アドレスや
+  リクエストの特徴に基づいたアクセス制御を行いますが、
+  認証プロバイダのシステムの一部ではありません。
+  mod_access との後方互換性のため、
+  新しいモジュールの <code class="module"><a href="../mod/mod_access_compat.html">mod_access_compat</a></code> があります。</p>
+
+  <p>様々なアクセス制御の行ない方については、
+  <a href="access.html">アクセス制御</a>の方法をご覧ください。</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="introduction" id="introduction">はじめに</a></h2>
+    <p>もし機密の情報や、ごくごく少数グループの人向けの情報を
+    ウェブサイトに置くのであれば、この文書に書かれている
+    テクニックを使うことで、そのページを見ている人たちが
+    望みの人たちであることを確実にできるでしょう。</p>
+
+    <p>この文書では、多くの人が採用するであろう、
+    ウェブサイトの一部分を保護する「一般的な」
+    方法についてカバーしています。</p>
+
+    <div class="note"><h3>注意</h3>
+    <p>データが本当に機密なのであれば、認証に加えてさらに
+    <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> を使うと良いでしょう。</p>
+    </div>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="theprerequisites" id="theprerequisites">準備</a></h2>
+    <p>この文書で取り扱われるディレクティブは、
+    メインサーバ設定ファイル (普通は 
+    <code class="directive"><a href="../mod/core.html#directory">&lt;Directory&gt;</a></code>
+    セクション中) か、あるいはディレクトリ毎の設定ファイル 
+    (<code>.htaccess</code> ファイル) かで用います。</p>
+
+    <p><code>.htaccess</code> ファイルを用いるのであれば、
+    これらのファイルに認証用のディレクティブを置けるように
+    サーバの設定をしないといけないでしょう。これは
+    <code class="directive"><a href="../mod/core.html#allowoverride">AllowOverride</a></code>
+    ディレクティブで可能になります。
+    <code class="directive"><a href="../mod/core.html#allowoverride">AllowOverride</a></code>
+    ディレクティブでは、ディレクトリ毎の設定ファイル中に置くことのできる
+    ディレクティブを、もしあれば、指定します。</p>
+
+    <p>認証について話を進めているので、次のような
+    <code class="directive"><a href="../mod/core.html#allowoverride">AllowOverride</a></code>
+    ディレクティブが必要になるでしょう。</p>
+
+    <div class="example"><p><code>
+      AllowOverride AuthConfig
+    </code></p></div>
+
+    <p>そうでなく、メインサーバ設定ファイルの中に
+    直接置くのであれば、当然ながらそのファイルへの書き込み
+    権限を持っていなければならないでしょう。</p>
+
+    <p>また、どのファイルがどこに保存されているか知るために、
+    サーバのディレクトリ構造について少し知っておく
+    必要があるでしょう。
+    これはそんなに難しくないので、この文書中で
+    ディレクトリ構造について知っておく必要がある場面では、
+    明らかになるようにします。</p>
+
+    <p><code class="module"><a href="../mod/mod_authn_core.html">mod_authn_core</a></code> と <code class="module"><a href="../mod/mod_authz_core.html">mod_authz_core</a></code> 
+    の両方が httpd バイナリに静的に組み込み済みであるか、httpd.conf 
+    設定ファイルで動的にロードされるかして、httpd に組み込まれていなければ
+    なりません。これらの二つのモジュールは、設定ファイルのなかで非常に
+    重要でウェブサーバの認証と承認で使用されるコアディレクティブと
+    その機能を提供しています。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="gettingitworking" id="gettingitworking">動作させる</a></h2>
+    <p>では、サーバ上のあるディレクトリをパスワードで保護する
+    基本手順を示します。</p>
+
+    <p>まずはじめに、パスワードファイルを作ります。
+    どの認証プロバイダを使うかによって、パスワードファイル生成の手順は
+    大きく異なります。ここでの例では、手始めにテキストパスワードファイルを
+    使います。</p>
+
+    <p>このパスワードファイルは、ウェブからアクセスできる場所に
+    置くべきではありません。他の人がパスワードファイルを
+    ダウンロードできないようにするためです。例えば、
+    <code>/usr/local/apache/htdocs</code> でドキュメントを
+    提供しているのであれば、パスワードファイルは
+    <code>/usr/local/apache/passwd</code>
+    などに置いた方が良いでしょう。</p>
+
+    <p>ファイルを作るためには、Apache 付属の <code class="program"><a href="../programs/htpasswd.html">htpasswd</a></code> 
+    を使います。このコマンドは Apache をどこにインストールしようとも、
+    インストールディレクトリの <code>bin</code> 
+    ディレクトリ以下に置かれます。サードバーティ製のパッケージで
+    インストールした場合は、実行パスの中で見つかるでしょう。</p>
+    
+    <p>ファイルを作るには、次のようにタイプしてください。</p>
+
+    <div class="example"><p><code>
+      htpasswd -c /usr/local/apache/passwd/passwords rbowen
+    </code></p></div>
+
+    <p><code class="program"><a href="../programs/htpasswd.html">htpasswd</a></code> は、パスワードを要求し、その後
+    確認のためにもう一度入力するように要求してきます。</p>
+
+    <div class="example"><p><code>
+      # htpasswd -c /usr/local/apache/passwd/passwords rbowen<br />
+      New password: mypassword<br />
+      Re-type new password: mypassword<br />
+      Adding password for user rbowen
+    </code></p></div>
+
+    <p>もし <code class="program"><a href="../programs/htpasswd.html">htpasswd</a></code> がパスの中に入っていない場合は、
+    もちろん、実行するためにプログラムまでのフルパスを
+    タイプする必要があります。デフォルトのインストール状態であれば、
+    <code>/usr/local/apache/bin/htpasswd</code>
+    にプログラムが置かれています。</p>
+
+    <p>次に、サーバがパスワードを要求するように設定して、
+    どのユーザがアクセスを許されているかをサーバに知らせなければ
+    なりません。 <code>httpd.conf</code> を編集するか
+    <code>.htaccess</code> ファイルを使用するかで
+    設定します。例えば、ディレクトリ
+    <code>/usr/local/apache/htdocs/secret</code>
+    を保護したい場合は、
+    <code>/usr/local/apache/htdocs/secret/.htaccess</code>
+    か httpd.conf 中の &lt;Directory
+    /usr/local/apache/htdocs/secret&gt; セクションに
+    配置して、次のディレクティブを使うことができます。</p>
+
+    <div class="example"><p><code>
+      AuthType Basic<br />
+      AuthName "Restricted Files"<br />
+      # (Following line optional)<br />
+      AuthBasicProvider file<br />
+      AuthUserFile /usr/local/apache/passwd/passwords<br />
+      Require user rbowen
+    </code></p></div>
+
+    <p>個々のディレクティブについて見てみましょう。
+    <code class="directive"><a href="../mod/core.html#authtype">AuthType</a></code>
+    ディレクティブはどういう認証方法でユーザの認証を行うかを
+    選択します。最も一般的な方法は <code>Basic</code>
+    で、これは <code class="module"><a href="../mod/mod_auth_basic.html">mod_auth_basic</a></code>
+    で実装されています。しかしながら、
+    これは気を付けるべき重要なポイントなのですが、
+    Basic 認証はクライアントからサーバへ、
+    パスワードを暗号化せずに送ります。ですからこの方法は、
+    <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> と組み合わせない状態では、
+    特に機密性の高いデータに対しては用いるべきでは
+    ありません。 Apache ではもう一つ別の認証方法:
+    <code>AuthType Digest</code> をサポートしています。
+    この方法は <code class="module"><a href="../mod/mod_auth_digest.html">mod_auth_digest</a></code>
+    で実装されていて、もっと安全です。
+    最近のクライアントは Digest
+    認証をサポートしているようです。</p>
+
+    <p><code class="directive"><a href="../mod/core.html#authname">AuthName</a></code>
+    ディレクティブでは、認証に使う <dfn>Realm</dfn> (訳注: 領域)
+    を設定します。Realm は大きく分けて二つの機能を提供します。
+    一つ目は、クライアントがパスワードダイアログボックスの
+    一部としてユーザにこの情報をよく提示する、というものです。
+    二つ目には、クライアントが与えられた認証領域に対してどのパスワードを
+    送信すれば良いのかを決定するために使われる、という機能です。</p>
+
+    <p>例えば、<code>"Restricted Files"</code> 領域中で
+    一度認証されれば、同一サーバ上で <code>"Restricted Files"</code>
+    Realm としてマークされたどんな領域でも、クライアントは
+    自動的に同じパスワードを使おうと試みます。
+    このおかげで、複数の制限領域に同じ realm を共有させて、
+    ユーザがパスワードを何度も要求される事態を
+    防ぐことができます。もちろん、セキュリティ上の理由から、
+    サーバのホスト名が変わればいつでも必ず、
+    クライアントは再びパスワードを尋ねる必要があります。</p>
+
+    <p><code class="directive"><a href="../mod/mod_auth_basic.html#authbasicprovider">AuthBasicProvider</a></code>
+    はデフォルト値が <code>file</code> なので、今回の場合は無くても構いません。
+    <code class="module"><a href="../mod/mod_authn_dbm.html">mod_authn_dbm</a></code> や <code class="module"><a href="../mod/mod_authn_dbd.html">mod_authn_dbd</a></code>
+    といった他のモジュールを使う場合には必要になります。
+    </p>
+
+    <p><code class="directive"><a href="../mod/mod_authn_file.html#authuserfile">AuthUserFile</a></code>
+    ディレクティブは <code class="program"><a href="../programs/htpasswd.html">htpasswd</a></code> で作った
+    パスワードファイルへのパスを設定します。
+    ユーザ数が多い場合は、リクエスト毎のユーザの認証のための
+    プレーンテキストの探索が非常に遅くなることがあります。
+    Apache ではユーザ情報を高速なデータベースファイルに
+    保管することもできます。
+    <code class="module"><a href="../mod/mod_authn_dbm.html">mod_authn_dbm</a></code> モジュールが
+    <code class="directive"><a href="../mod/mod_authn_dbm.html#authdbmuserfile">AuthDBMUserFile</a></code>
+    ディレクティブを提供します。これらのファイルは <code class="program"><a href="../programs/dbmmanage.html">dbmmanage</a></code>
+    プログラムで作成したり操作したりできます。
+    <a href="http://modules.apache.org/">Apache 
+    モジュールデータベース</a>中にあるサードパーティー製の
+    モジュールで、その他多くのタイプの認証オプションが
+    利用可能です。</p>
+
+    <p>最後に、<code class="directive"><a href="../mod/core.html#require">Require</a></code>
+    ディレクティブが、サーバのこの領域にアクセスできるユーザを
+    指定することによって、プロセスの承認部分を提供します。
+    次のセクションでは、<code class="directive"><a href="../mod/core.html#require">Require</a></code>
+    ディレクティブの様々な用法について述べます。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="lettingmorethanonepersonin" id="lettingmorethanonepersonin">
+複数の人が入れるようにする</a></h2>
+    <p>上記のディレクティブは、ただ一人 (具体的にはユーザ名
+    <code>rbowen</code> の誰か) がディレクトリに
+    入れるようにします。多くの場合は、複数の人が
+    入れるようにしたいでしょう。ここで
+    <code class="directive"><a href="../mod/mod_authz_groupfile.html#authgroupfile">AuthGroupFile</a></code>
+    の登場です。</p>
+
+    <p>もし複数の人が入れるようにしたいのであれば、
+    グループに属するユーザの一覧の入っている、グループ名のついた
+    グループファイルを作る必要があります。このファイルの
+    書式はきわめて単純で、お好みのエディタで生成できます。
+    ファイルの中身は次のようなものです。</p>
+
+   <div class="example"><p><code>
+     GroupName: rbowen dpitts sungo rshersey
+   </code></p></div>
+
+    <p>一行にスペース区切りで、グループに所属するメンバーの
+    一覧をならべるだけです。</p>
+
+    <p>既に存在するパスワードファイルにユーザを加える場合は、
+    次のようにタイプしてください。</p>
+
+    <div class="example"><p><code>
+      htpasswd /usr/local/apache/passwd/passwords dpitts
+    </code></p></div>
+
+    <p>以前と同じ応答が返されますが、新しいファイルを
+    作るのではなく、既にあるファイルに追加されています。
+    (新しいパスワードファイルを作るには <code>-c</code>
+    を使います。)</p>
+
+    <p>ここで次のようにして <code>.htaccess</code> ファイルを
+    修正する必要があります。</p>
+
+    <div class="example"><p><code>
+      AuthType Basic<br />
+      AuthName "By Invitation Only"<br />
+      # Optional line:<br />
+      AuthBasicProvider file<br />
+      AuthUserFile /usr/local/apache/passwd/passwords<br />
+      AuthGroupFile /usr/local/apache/passwd/groups<br />
+      Require group GroupName
+    </code></p></div>
+
+    <p>これで、グループ <code>GroupName</code> にリストされていて、
+    <code>password</code> ファイルにエントリがある人は、
+    正しいパスワードをタイプすれば入ることができるでしょう。</p>
+
+    <p>もっと特定せずに複数のユーザが入れるようにする、
+    もう一つの方法があります。グループファイルを作るのではなく、
+    次のディレクティブを使えばできます。</p>
+
+    <div class="example"><p><code>
+      Require valid-user
+    </code></p></div>
+
+    <p><code>require user rbowen</code> 行でなく、上記を使うと、
+    パスワードファイルにリストされている人であれば誰でも
+    許可されます。
+    単にパスワードファイルをグループ毎に分けておくことで、
+    グループのような振る舞いをさせることもできます。
+    このアプローチの利点は、Apache は二つではなく、
+    ただ一つのファイルだけを検査すればよいという点です。
+    欠点は、たくさんのパスワードファイルを管理して、その中から
+    <code class="directive"><a href="../mod/mod_authn_file.html#authuserfile">AuthUserFile</a></code>
+    ディレクティブに正しいファイルを参照させなければならない点です。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="possibleproblems" id="possibleproblems">起こりえる問題</a></h2>
+    <p>Basic 認証が指定されている場合は、
+    サーバにドキュメントをリクエストする度に
+    ユーザ名とパスワードを検査しなければなりません。
+    これは同じページ、ページにある全ての画像を
+    リロードする場合であっても該当します
+     (もし画像も保護されたディレクトリから来るのであれば) 。
+    予想される通り、これは動作を多少遅くします。
+    遅くなる程度はパスワードファイルの大きさと比例しますが、
+    これは、ファイルを開いてあなたの名前を発見するまで
+    ユーザ名のリストを読まなければならないからです。
+    そして、ページがロードされる度にこれを行わなければ
+    なりません。</p>
+
+    <p>結論としては、一つのパスワードファイルに置くことのできる
+    ユーザ数には実質的な限界があります。
+    この限界はサーバマシンの性能に依存して変わりますが、
+    数百のエントリを越えたあたりから速度低下が見られると予期されています。
+    その時は他の認証方法を考慮に入れた方が良いでしょう。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="dbmdbd" id="dbmdbd">パスワードの保存形式を変える</a></h2>
+
+    <p>プレーンテキストでパスワードを保存する方法には上記の問題があり、
+    データベースのような別の場所にパスワードを保存したいと思う
+    かもしれません。</p>
+
+    <p><code class="module"><a href="../mod/mod_authn_dbm.html">mod_authn_dbm</a></code> と <code class="module"><a href="../mod/mod_authn_dbd.html">mod_authn_dbd</a></code>
+    を使うと、それができるようになります。
+    <code class="directive"><a href="../mod/mod_auth_basic.html#authbasicsource">AuthBasicSource</a></code>
+    で file の代わりに、<code>dbm</code> あるいは <code>dbd</code>
+    を格納形式として選べます。</p>
+
+    <p>テキストファイルの代わりに dbm ファイルを選択する場合は、たとえば次のようにします。</p>
+
+    <div class="example"><p><code>
+    &lt;Directory /www/docs/private&gt;<br />
+    AuthName "Private"<br />
+    AuthType Basic<br />
+    AuthBasicProvider dbm<br />
+    AuthDBMUserFile /www/passwords/passwd.dbm<br />
+    Require valid-user<br />
+    &lt;/Directory&gt;
+    </code></p></div>
+
+    <p>この他のオプションも存在します。詳細に関しては
+    <code class="module"><a href="../mod/mod_authn_dbm.html">mod_authn_dbm</a></code> のドキュメントをご覧ください。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="multprovider" id="multprovider">複数のプロバイダを使用する</a></h2>
+
+    <p>認証承認アーキテクチャに基づいている新しいプロバイダを使うと、
+    認証承認の方法をひとつに縛る必要がなくなります。
+    いくつものプロバイダを組み合わせて、自分の望みの挙動にできます。
+    次の例では file 認証プロバイダと ldap 認証プロバイダを
+    組み合わせています。</p>
+
+    <div class="example"><p><code>
+    &lt;Directory /www/docs/private&gt;<br />
+    AuthName "Private"<br />
+    AuthType Basic<br />
+    AuthBasicProvider file ldap<br />
+    AuthUserFile /usr/local/apache/passwd/passwords<br />
+    AuthLDAPURL ldap://ldaphost/o=yourorg<br />
+    Require valid-user
+    </code></p></div>
+
+    <p>この例では、まず file プロバイダがユーザ認証を試みます。
+    認証できなかった場合には、ldap プロバイダが呼び出されます。
+    組織で複数の認証格納方法を使っている際などに、
+    この方法を使って認証のスコープを拡大できます。
+    もうひとつのシナリオは、ひとつの認証タイプと異なる承認を
+    組み合わせる方法でしょう。たとえば、パスワードファイルで認証して、
+    ldap ディレクトリで承認を行うといった場合です。</p>
+
+    <p>認証プロバイダを複数実装できるように、承認方法も複数使用できます。
+    この例では file グループ承認と ldap グループ承認を使っています。</p>
+
+    <div class="example"><p><code>
+    &lt;Directory /www/docs/private&gt;<br />
+    AuthName "Private"<br />
+    AuthType Basic<br />
+    AuthBasicProvider file<br />
+    AuthUserFile /usr/local/apache/passwd/passwords<br />
+    AuthLDAPURL ldap://ldaphost/o=yourorg
+    AuthGroupFile /usr/local/apache/passwd/groups<br />
+    Require group GroupName<br />
+    Require ldap-group cn=mygroup,o=yourorg
+    </code></p></div>
+
+    <p>承認をより細かく制御したい場合は、
+    <code class="directive"><a href="../mod/mod_authz_core.html#&lt;satisfyall&gt;">&lt;SatisfyAll&gt;</a></code> と
+    <code class="directive"><a href="../mod/mod_authz_core.html#&lt;satisfyone&gt;">&lt;SatisfyOne&gt;</a></code> 
+    ディレクティブを使って AND/OR ロジックで指定し、設定ファイルで
+    承認の処理順番の制御ができるようになっています。
+    これらのディレクティブをどのように使えるか、網羅した例をご覧ください。</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="beyond" id="beyond">単純な承認のその先</a></h2>
+
+    <p>承認の方法は、ひとつのデータソースを見て一回だけチェックするのと比べて、
+    ずっと多彩な適用方法ができます。
+    承認処理の適用順序や制御、選択ができるようになりました。</p>
+
+    <h3><a name="authandororder" id="authandororder">AND/OR ロジックの適用と順序付け</a></h3>
+        <p>承認がどのような順序で適用されているか、また、それをどのように制御するかは、
+        これまで混乱を招いていました。
+        Apache 2.2 ではプロバイダベースの認証メカニズムが導入され、
+        承認処理から認証処理とサポート機能とが切り分けられました。
+        これによるひとつの効果として、
+        認証モジュールのロード順やモジュール自体の順序に依存することなく、
+        指定した順番で認証プロバイダが呼び出せるよう、
+	設定できるようになりました。
+        このプロバイダメカニズムは承認処理でも導入されています。
+        つまり、<code class="directive"><a href="../mod/mod_authz_core.html#require">Require</a></code>
+        ディレクティブは単にどの承認手法が使われるかを指定するだけではなく、
+        それらの呼び出し順序も指定できるようになりました。
+        複数の承認手法があるとき、その呼び出し順は、設定ファイルの
+        <code class="directive"><a href="../mod/mod_authz_core.html#require">Require</a></code> ディレクティブ中で
+        現れた順序と同じになります。</p>
+
+        <p>追加で導入された
+        <code class="directive"><a href="../mod/mod_authz_core.html#&lt;satisfyall&gt;">&lt;SatisfyAll&gt;</a></code>,
+        <code class="directive"><a href="../mod/mod_authz_core.html#&lt;satisfyone&gt;">&lt;SatisfyOne&gt;</a></code>
+        ディレクティブを使って、承認手法がいつ呼び出され、アクセスが許可された際に
+        どの手続きが適用されるか指定することができます。
+        たとえば、次の承認ブロックのロジックを見てみましょう:</p>
+
+        <div class="example"><p><code>
+          # if ((user == "John") ||<br />
+          # &nbsp;&nbsp; ((Group == "admin")<br />
+          # &nbsp; &nbsp; &amp;&amp; (ldap-group &lt;ldap-object&gt; contains auth'ed_user)<br />
+          # &nbsp; &nbsp; &amp;&amp; ((ldap-attribute dept == "sales")<br />
+          # &nbsp; &nbsp; &nbsp; &nbsp; || (file-group contains auth'ed_user))))<br />
+          # then<br />
+          # &nbsp; auth_granted<br />
+          # else<br />
+          # &nbsp; auth_denied<br />
+          #<br />
+          &lt;Directory /www/mydocs&gt;<br />
+          <span class="indent">
+            Authname ...<br />
+            AuthBasicProvider ...<br />
+            ...<br />
+            Require user John<br />
+            &lt;SatisfyAll&gt;<br />
+            <span class="indent">
+              Require Group admins<br />
+              Require ldap-group cn=mygroup,o=foo<br />
+              &lt;SatisfyOne&gt;<br />
+              <span class="indent">
+                Require ldap-attribute dept="sales"<br />
+                Require file-group<br />
+              </span>
+              &lt;/SatisfyOne&gt;<br />
+            </span>
+            &lt;/SatisfyAll&gt;<br />
+          </span>
+          &lt;/Directory&gt;
+        </code></p></div>
+
+        <p>デフォルトでは <code class="directive"><a href="../mod/mod_authz_core.html#require">Require</a></code>
+        ディレクティブは OR 操作として扱われます。つまり、もし指定した承認手法の
+        ひとつでも合格すれば、承認されます。
+        <code class="directive"><a href="../mod/mod_authz_core.html#require">Require</a></code> ディレクティブのセットを
+        ひとつの <code class="directive"><a href="../mod/mod_authz_core.html#&lt;satisfyall&gt;">&lt;SatisfyAll&gt;</a></code>
+        ブロックで囲むとAND 操作となり、全ての承認手法で合格しなければ許可されません。</p>
+
+    
+
+    <h3><a name="reqaccessctrl" id="reqaccessctrl">アクセス制御における Require と Reject の使い方</a></h3>
+        <p>ユーザ名とパスワードによる認証は全体の一部分でしかありません。
+        誰がアクセスしてきたかといった情報以外の条件を使いたい、
+	とよく思うことでしょう。
+        たとえば、どこからアクセスしてきているか、といった具合です。</p>
+    
+        <p>承認プロバイダ <code class="directive"><a href="../mod/mod_authz_host.html#all">all</a></code>,
+        <code class="directive"><a href="../mod/mod_authz_host.html#env">env</a></code>, 
+        <code class="directive"><a href="../mod/mod_authz_host.html#host">host</a></code>,
+        <code class="directive"><a href="../mod/mod_authz_host.html#ip">ip</a></code>
+        を使うと、リクエストを送信してきているマシンのホスト名や IP アドレス
+        といった、ホストベースでのアクセス制御ができます。</p>
+    
+        <p>これらプロバイダの扱いは
+        <code class="directive"><a href="../mod/mod_authz_core.html#require">Require</a></code> や
+        <code class="directive"><a href="../mod/mod_authz_core.html#reject">Reject</a></code> で
+        指定されます。これらのディレクティブは承認プロバイダを登録し、
+        リクエスト処理の承認段階で呼び出されます。たとえば:</p>
+    
+        <div class="example"><p><code>
+          Require ip <var>address</var>
+        </code></p></div>
+    
+        <p>ここで、<var>address</var> は IP アドレス (あるいは IP アドレスの
+        一部) か : </p>
+    
+        <div class="example"><p><code>
+          Require host <var>domain_name</var>
+        </code></p></div>
+    
+        <p>ここで <var>domain_name</var> は FQDN (あるいはドメイン名の一部)
+        で、必要であれば複数のアドレスやドメイン名を書くことができます。</p>
+    
+        <p>たとえば、スパムメッセージを送信してくる誰かを拒否したい場合、
+        次のようになります : </p>
+    
+        <div class="example"><p><code>
+          Reject ip 10.252.46.165
+        </code></p></div>
+    
+        <p>このディレクティブが有効な範囲のコンテンツに対しては、
+        そのアドレスからアクセスしてきても見ることができません。
+        もしマシン名がわかっていて IP アドレスよりもそちらで
+        指定したいのであれば、そのマシン名が使えます。</p>
+    
+        <div class="example"><p><code>
+          Reject host <var>host.example.com</var>
+        </code></p></div>
+    
+        <p>また、特定のドメインからのアクセス全てをブロックしたい場合は、
+        IP アドレスの一部や、ドメイン名が指定できます :</p>
+    
+        <div class="example"><p><code>
+          &lt;SatisfyAll&gt;<br />
+          <span class="indent">
+            Reject ip <var>192.168.205</var><br />
+            Reject host <var>phishers.example.com</var> <var>moreidiots.example</var><br />           Reject host ke<br />
+          </span>
+          &lt;/SatisfyAll&gt;
+        </code></p></div>
+    
+        <p><code class="directive"><a href="../mod/mod_authz_host.html#reject">Reject</a></code> ディレクティブを
+        <code class="directive"><a href="../mod/mod_authz_core.html#&lt;satisfyall&gt;">&lt;SatisfyAll&gt;</a></code> ブロックの中で使うと、
+        許可したいグループにのみアクセスができるように確認できます。</p>
+    
+        <p>上記の例では <code class="directive"><a href="../mod/mod_authz_core.html#&lt;satisfyall&gt;">&lt;SatisfyAll&gt;</a></code>
+        を使って、アクセスに合格する前段階で、全ての 
+        <code class="directive"><a href="../mod/mod_authz_host.html#reject">Reject</a></code> ディレクティブが
+        満たされていることを確認しています。</p>
+    
+    
+
+    <h3><a name="filesystem" id="filesystem">アクセス制御の後方互換性</a></h3>
+        <p>認証プロバイダベースの機構があるため、以前使用されていたディレクティブ
+        <code class="directive"><a href="../mod/mod_access_compat.html#order">Order</a></code>,
+        <code class="directive"><a href="../mod/mod_access_compat.html#allow">Allow</a></code>,
+        <code class="directive"><a href="../mod/mod_access_compat.html#deny">Deny</a></code>,
+        <code class="directive"><a href="../mod/mod_access_compat.html#satisfy">Satisfy</a></code>
+        は必要なくなりました。
+        とはいうものの、古い設定ファイルでの後方互換性を提供するため、
+        これらのディレクティブは <code class="module"><a href="../mod/mod_access_compat.html">mod_access_compat</a></code> モジュールに移されました。</p>
+
+        <p>これらのディレクティブの抱えていた問題のひとつに、承認の設定行とアクセス制御の設定行の
+        関係がとてもあいまいだったことが挙げられます。
+        <code class="directive"><a href="../mod/mod_access_compat.html#satisfy">Satisfy</a></code> ディレクティブは
+        リクエスト処理中でそれ自身を呼び出すことによって、これらの 2 つの処理段階を結びつけようとします。
+        現在は、これらのディレクティブは <code class="module"><a href="../mod/mod_access_compat.html">mod_access_compat</a></code> に移動し、
+        新しい認証ディレクティブと古いアクセス制御ディレクティブを混ぜて使うことは
+        難しくなっています。この問題のため、<code class="module"><a href="../mod/mod_authz_default.html">mod_authz_default</a></code> モジュールを
+        ロードすることがとても重要で、必須になっています。
+        <code class="module"><a href="../mod/mod_authz_default.html">mod_authz_default</a></code>　モジュールの主な目的は、どの承認プロバイダで
+        処理されなかった承認リクエストを受けることにあります。
+        しかし、古いアクセス制御ディレクティブが用いられた場合には、
+        アクセス制御と承認を結びつけて、すべての処理段階の出力結果を見てアクセスに合格するかを決めています。
+        ですから、古いディレクティブがうまく動作しない場合は、
+        <code class="module"><a href="../mod/mod_authz_default.html">mod_authz_default</a></code> がロードされていないからかもしれない、
+        と疑ってみてください。</p>
+
+    
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="moreinformation" id="moreinformation">追加情報</a></h2>
+    <p>これら全てがどのように動作するかについて
+    もっと多くの情報が書かれている <code class="module"><a href="../mod/mod_auth_basic.html">mod_auth_basic</a></code> と
+    <code class="module"><a href="../mod/mod_authz_host.html">mod_authz_host</a></code>
+    の文書も読むとよいでしょう。
+    <code class="directive"><a href="../mod/mod_authn_core.html#&lt;authnprovideralias&gt;">&lt;AuthnProviderAlias&gt;</a></code>
+    ディレクティブを使うと、特定の認証設定が簡単に書けるようになります。</p>
+
+    <p><a href="access.html">アクセス制御</a>の方法も、
+    関連するトピックがたくさん記載されていますので、ご覧ください。</p>
+
+</div></div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="../en/howto/auth.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../es/howto/auth.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="../fr/howto/auth.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/howto/auth.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/howto/auth.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/howto/auth.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/howto/auth.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

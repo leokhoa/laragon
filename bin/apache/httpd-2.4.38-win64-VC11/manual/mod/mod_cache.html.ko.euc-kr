@@ -1,0 +1,532 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+<meta content="text/html; charset=EUC-KR" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_cache - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">모듈</a></div>
+<div id="page-content">
+<div id="preamble"><h1>아파치 모듈 mod_cache</h1>
+<div class="toplang">
+<p><span>가능한 언어: </span><a href="../en/mod/mod_cache.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_cache.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_cache.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_cache.html" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div>
+<div class="outofdate">이 문서는 최신판 번역이 아닙니다.
+            최근에 변경된 내용은 영어 문서를 참고하세요.</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">설명:</a></th><td>URI를 키로 사용하여 내용을 캐쉬한다.</td></tr>
+<tr><th><a href="module-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">모듈명:</a></th><td>cache_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">소스파일:</a></th><td>mod_cache.c</td></tr></table>
+<h3>요약</h3>
+
+    <div class="warning">
+      이 모듈은 실험적인 상태이다. 문서는 아직 작업중이다...
+    </div>
+
+    <p><code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code>는 같은 컴퓨터에 있는 내용이나
+    프록시된 내용을 캐쉬할 수 있는 <a href="http://www.ietf.org/rfc/rfc2616.txt">RFC 2616</a>
+    호환 HTTP 내용캐쉬를 구현한다. <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code>를
+    사용하려면 저장관리모듈(storage management module)이 필요하다.
+    기본 아파치 배포본에는 두가지 저장관리모듈이 있다:</p>
+    <dl>
+    <dt><code class="module"><a href="../mod/mod_cache_disk.html">mod_cache_disk</a></code></dt>
+    <dd>는 디스크기반 저장관리자를 구현한다.</dd>
+
+    <dt><code class="module"><a href="../mod/mod_mem_cache.html">mod_mem_cache</a></code></dt>
+    <dd>는 메모리기반 저장관리자를 구현한다.
+    <code class="module"><a href="../mod/mod_mem_cache.html">mod_mem_cache</a></code>는 파일기술자를 캐쉬하거나
+    힙(heap) 공간에 객체를 캐쉬하는 두가지 방식중 한가지 방법으로
+    동작하도록 설정할 수 있다. <code class="module"><a href="../mod/mod_mem_cache.html">mod_mem_cache</a></code>는
+    자신이 생성한 내용을 캐쉬하거나, (<dfn>역프록시(reverse proxy)</dfn>로
+    알려진) <code class="directive"><a href="../mod/mod_proxy.html#proxypass">ProxyPass</a></code>를
+    사용하여 <code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code>를 위해 뒷단 서버내용을
+    캐쉬할 수 있다.</dd>
+    </dl>
+
+    <p>내용을 URI를 토대로 만든 키로 캐쉬에 저장하고 가져온다.
+    접근보호가 된 내용은 캐쉬하지않는다.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>주제</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#related">관련된 모듈과 지시어</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#sampleconf">설정예</a></li>
+</ul><h3 class="directives">지시어들</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#cachedefaultexpire">CacheDefaultExpire</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachedetailheader">CacheDetailHeader</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachedisable">CacheDisable</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheenable">CacheEnable</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheheader">CacheHeader</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheignorecachecontrol">CacheIgnoreCacheControl</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheignoreheaders">CacheIgnoreHeaders</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheignorenolastmod">CacheIgnoreNoLastMod</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheignorequerystring">CacheIgnoreQueryString</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheignoreurlsessionidentifiers">CacheIgnoreURLSessionIdentifiers</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachekeybaseurl">CacheKeyBaseURL</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachelastmodifiedfactor">CacheLastModifiedFactor</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachelock">CacheLock</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachelockmaxage">CacheLockMaxAge</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachelockpath">CacheLockPath</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachemaxexpire">CacheMaxExpire</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheminexpire">CacheMinExpire</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachequickhandler">CacheQuickHandler</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachestaleonerror">CacheStaleOnError</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachestoreexpired">CacheStoreExpired</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachestorenostore">CacheStoreNoStore</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachestoreprivate">CacheStorePrivate</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_cache">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_cache">Report a bug</a></li></ul><h3>참고</h3>
+<ul class="seealso">
+<li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="related" id="related">관련된 모듈과 지시어</a></h2>
+    <table class="related"><tr><th>관련된 모듈</th><th>관련된 지시어</th></tr><tr><td><ul><li><code class="module"><a href="../mod/mod_cache_disk.html">mod_cache_disk</a></code></li><li><code class="module"><a href="../mod/mod_mem_cache.html">mod_mem_cache</a></code></li></ul></td><td><ul><li><code class="directive"><a href="../mod/mod_cache_disk.html#cacheroot">CacheRoot</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cachesize">CacheSize</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cachegcinterval">CacheGcInterval</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cachedirlevels">CacheDirLevels</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cachedirlength">CacheDirLength</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cacheexpirycheck">CacheExpiryCheck</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cacheminfilesize">CacheMinFileSize</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cachemaxfilesize">CacheMaxFileSize</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cachetimemargin">CacheTimeMargin</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cachegcdaily">CacheGcDaily</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cachegcunused">CacheGcUnused</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cachegcclean">CacheGcClean</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cachegcmemusage">CacheGcMemUsage</a></code></li><li><code class="directive"><a href="../mod/mod_mem_cache.html#mcachesize">MCacheSize</a></code></li><li><code class="directive"><a href="../mod/mod_mem_cache.html#mcachemaxobjectcount">MCacheMaxObjectCount</a></code></li><li><code class="directive"><a href="../mod/mod_mem_cache.html#mcacheminobjectsize">MCacheMinObjectSize</a></code></li><li><code class="directive"><a href="../mod/mod_mem_cache.html#mcachemaxobjectsize">MCacheMaxObjectSize</a></code></li><li><code class="directive"><a href="../mod/mod_mem_cache.html#mcacheremovalalgorithm">MCacheRemovalAlgorithm</a></code></li><li><code class="directive"><a href="../mod/mod_mem_cache.html#mcachemaxstreamingbuffer">MCacheMaxStreamingBuffer</a></code></li></ul></td></tr></table>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="sampleconf" id="sampleconf">설정예</a></h2>
+    <div class="example"><h3>Sample httpd.conf</h3><p><code>
+      #<br />
+      # 예제 캐쉬 설정<br />
+      #<br />
+      LoadModule cache_module modules/mod_cache.so<br />
+      <br />
+      &lt;IfModule mod_cache.c&gt;<br />
+      <span class="indent">
+        #LoadModule cache_disk_module modules/mod_cache_disk.so<br />
+        &lt;IfModule mod_cache_disk.c&gt;<br />
+        <span class="indent">
+          CacheRoot c:/cacheroot<br />
+          CacheSize 256<br />
+          CacheEnable disk  /<br />
+          CacheDirLevels 5<br />
+          CacheDirLength 3<br />
+        </span>
+        &lt;/IfModule&gt; <br />
+        <br />
+        LoadModule mem_cache_module modules/mod_mem_cache.so<br />
+        &lt;IfModule mod_mem_cache.c&gt;<br />
+        <span class="indent">
+          CacheEnable mem  /<br />
+          MCacheSize 4096<br />
+          MCacheMaxObjectCount 100<br />
+          MCacheMinObjectSize 1<br />
+          MCacheMaxObjectSize 2048<br />
+        </span>
+        &lt;/IfModule&gt;<br />
+      </span>
+      &lt;/IfModule&gt;
+    </code></p></div>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheDefaultExpire" id="CacheDefaultExpire">CacheDefaultExpire</a> <a name="cachedefaultexpire" id="cachedefaultexpire">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>만기시간을 지정하지않은 문서를 캐쉬할 기본 기간.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>CacheDefaultExpire <var>seconds</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">기본값:</a></th><td><code>CacheDefaultExpire 3600 (one hour)</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table>
+    <p><code class="directive">CacheDefaultExpire</code> 지시어는 문서의
+    만기시간과 최근수정시간이 없는 경우 문서를 캐쉬할 초단위
+    기본 시간을 지정한다. <code class="directive">CacheMaxExpire</code>로
+    지정한 값이 이 설정을 무시하지 <em>않는다</em>.</p>
+
+    <div class="example"><p><code>
+      CacheDefaultExpire 86400
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheDetailHeader" id="CacheDetailHeader">CacheDetailHeader</a> <a name="cachedetailheader" id="cachedetailheader">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>Add an X-Cache-Detail header to the response.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code /></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table><p>Documentation not yet translated. Please see English version of document.</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheDisable" id="CacheDisable">CacheDisable</a> <a name="cachedisable" id="cachedisable">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>특정 URL을 캐쉬하지 않는다</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>CacheDisable <var> url-string</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table>
+    <p><code class="directive">CacheDisable</code> 지시어를 사용하면
+    <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code>가 <var>url-string</var> 이하의
+    url들을 캐쉬하지 <em>않는다</em>.</p>
+
+    <div class="example"><h3>예제</h3><p><code>
+      CacheDisable /local_files
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheEnable" id="CacheEnable">CacheEnable</a> <a name="cacheenable" id="cacheenable">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>지정한 저장관리자를 사용하여 지정한 URL을 캐쉬한다</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>CacheEnable <var>cache_type</var> <var>url-string</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table>
+    <p><code class="directive">CacheEnable</code> 지시어를 사용하면
+    <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code>가 <var>url-string</var> 이하
+    url들을 캐쉬한다. 캐쉬 저장관리자는 <var>cache_type</var>
+    아규먼트로 지정한다. <var>cache_type</var> <code>mem</code>은
+    <code class="module"><a href="../mod/mod_mem_cache.html">mod_mem_cache</a></code>가 구현하는 메모리기반
+    저장관리자를 사용한다. <var>cache_type</var> <code>disk</code>는
+    <code class="module"><a href="../mod/mod_cache_disk.html">mod_cache_disk</a></code>가 구현하는 디스크기반
+    저장관리자를 사용한다. <var>cache_type</var> <code>fd</code>는
+    <code class="module"><a href="../mod/mod_mem_cache.html">mod_mem_cache</a></code>가 구현하는 파일기술자 캐쉬를
+    사용한다.</p>
+    <p>(아래 예와 같이) URL 공간이 다른
+    <code class="directive">CacheEnable</code> 지시어와 겹치면 실제로
+    한 저장관리자가 요청을 처리할때까지 두 저장관리자를 모두
+    실행한다. 설정파일에서 <code class="directive">CacheEnable</code>
+    지시어의 순서대로 저장관리자가 실행된다.</p>
+
+    <div class="example"><p><code>
+      CacheEnable  mem   /manual<br />
+      CacheEnable  fd    /images<br />
+      CacheEnable  disk  /<br />
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheHeader" id="CacheHeader">CacheHeader</a> <a name="cacheheader" id="cacheheader">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>Add an X-Cache header to the response.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code /></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table><p>Documentation not yet translated. Please see English version of document.</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheIgnoreCacheControl" id="CacheIgnoreCacheControl">CacheIgnoreCacheControl</a> <a name="cacheignorecachecontrol" id="cacheignorecachecontrol">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>클라이언트가 캐쉬하지않는 내용을 요청함을 무시한다.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>CacheIgnoreCacheControl On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">기본값:</a></th><td><code>CacheIgnoreCacheControl Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>보통 no-cache나 no-store 헤더값을 가진 문서는 캐쉬에
+    저장하지않는다. <code class="directive">CacheIgnoreCacheControl</code>
+    지시어는 이런 행동을 변경한다.
+    <code class="directive">CacheIgnoreCacheControl</code> On을 사용하면
+    서버는 문서에 no-cache나 no-store 헤더값이 있어도 문서를
+    캐쉬한다. 인증이 필요한 문서는 <em>절대로</em> 캐쉬하지
+    않는다.</p>
+
+    <div class="example"><p><code>
+      CacheIgnoreCacheControl On
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheIgnoreHeaders" id="CacheIgnoreHeaders">CacheIgnoreHeaders</a> <a name="cacheignoreheaders" id="cacheignoreheaders">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>캐쉬에 지정한 HTTP 헤더(들)를 저장하지 않는다
+</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>CacheIgnoreHeaders <var>header-string</var> [<var>header-string</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">기본값:</a></th><td><code>CacheIgnoreHeaders None</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>RFC 2616에 따르면 홉간(hop-by-hop) HTTP 헤더는 캐쉬에
+    저장하지 않는다. 홉간 HTTP 헤더에는 다음과 같은 것이 있으며,
+    <code class="directive">CacheIgnoreHeaders</code> 설정과 관계없이
+    <em>어떤</em> 경우에도 캐쉬에 저장되지 않는다.</p>
+
+    <ul>
+      <li><code>Connection</code></li>
+      <li><code>Keep-Alive</code></li>
+      <li><code>Proxy-Authenticate</code></li>
+      <li><code>Proxy-Authorization</code></li>
+      <li><code>TE</code></li>
+      <li><code>Trailers</code></li>
+      <li><code>Transfer-Encoding</code></li>
+      <li><code>Upgrade</code></li>
+    </ul>
+
+    <p><code class="directive">CacheIgnoreHeaders</code>는 캐쉬에 저장하면
+    안되는 HTTP 헤더를 추가로 지정한다. 예를 들어, 쿠키(cookie)를
+    캐쉬에 저장하면 안되는 경우가 있다.</p>
+
+    <p><code class="directive">CacheIgnoreHeaders</code>는 캐쉬에 저장하지
+    않을 HTTP 헤더들을 공백으로 구분한 목록을 받는다. (RFC 2616에
+    따라) 캐쉬에 홉간 헤더만 저장하지 않으려면,
+    <code class="directive">CacheIgnoreHeaders</code>를
+    <code>None</code>으로 설정한다.</p>
+
+    <div class="example"><h3>예제 1</h3><p><code>
+      CacheIgnoreHeaders Set-Cookie
+    </code></p></div>
+
+    <div class="example"><h3>예제 2</h3><p><code>
+      CacheIgnoreHeaders None
+    </code></p></div>
+
+    <div class="warning"><h3>경고:</h3>
+      <code class="directive">CacheIgnoreHeaders</code> 설정을 사용하여
+      <code>Expires</code> 같이 캐쉬 관리에 필요한 헤더를 저장하지
+      않으면, mod_cache는 비정상적으로 동작한다.
+    </div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheIgnoreNoLastMod" id="CacheIgnoreNoLastMod">CacheIgnoreNoLastMod</a> <a name="cacheignorenolastmod" id="cacheignorenolastmod">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>응답에 Last Modified 헤더가 없다는 사실을 무시한다.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>CacheIgnoreNoLastMod On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">기본값:</a></th><td><code>CacheIgnoreNoLastMod Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>보통 최근수정일이 없는 문서는 캐쉬하지 않는다. 어떤 경우
+    최근수정일을 (예를 들어 <code class="module"><a href="../mod/mod_include.html">mod_include</a></code> 처리중에)
+    빼거나 처음부터 없었을 수가 있다.
+    <code class="directive">CacheIgnoreNoLastMod</code> 지시어는 최근수정일이
+    없는 문서도 반드시 캐쉬하도록 만든다. 문서에 최근수정일과
+    만기시간이 없는 경우 <code class="directive">CacheDefaultExpire</code>
+    지시어로 지정한 값을 만기시간으로 사용한다.</p>
+
+    <div class="example"><p><code>
+      CacheIgnoreNoLastMod On
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheIgnoreQueryString" id="CacheIgnoreQueryString">CacheIgnoreQueryString</a> <a name="cacheignorequerystring" id="cacheignorequerystring">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>Ignore query string when caching</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code /></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table><p>Documentation not yet translated. Please see English version of document.</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheIgnoreURLSessionIdentifiers" id="CacheIgnoreURLSessionIdentifiers">CacheIgnoreURLSessionIdentifiers</a> <a name="cacheignoreurlsessionidentifiers" id="cacheignoreurlsessionidentifiers">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>Ignore defined session identifiers encoded in the URL when caching
+</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code /></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table><p>Documentation not yet translated. Please see English version of document.</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheKeyBaseURL" id="CacheKeyBaseURL">CacheKeyBaseURL</a> <a name="cachekeybaseurl" id="cachekeybaseurl">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>Override the base URL of reverse proxied cache keys.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code /></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table><p>Documentation not yet translated. Please see English version of document.</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheLastModifiedFactor" id="CacheLastModifiedFactor">CacheLastModifiedFactor</a> <a name="cachelastmodifiedfactor" id="cachelastmodifiedfactor">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>LastModified 시간으로 만기시간을 계산하는데 사용하는
+계수.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>CacheLastModifiedFactor <var>float</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">기본값:</a></th><td><code>CacheLastModifiedFactor 0.1</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>문서에 만기시간은 없지만 최근수정일이 있는 경우 최근수정일
+    이후 지난 시간으로 만기시간을 계산한다.
+    <code class="directive">CacheLastModifiedFactor</code> 지시어는
+    만기시간을 계산하는 다음 공식에서 사용할 <var>factor</var>를
+    지정한다:
+
+    <code>expiry-period = time-since-last-modified-date * <var>factor</var>
+    expiry-date = current-date + expiry-period</code>
+
+    예를 들어, 문서가 10 시간 전에 마지막으로 수정되었고 <var>factor</var>가
+    0.1이라면 만기기간은 10*01 = 1 시간이 된다. 현재 시간이
+    3:00pm이라면 만기시간은 3:00pm + 1시간 = 4:00pm이다.
+
+    만기기간이 <code class="directive">CacheMaxExpire</code> 보다 길다면
+    <code class="directive">CacheMaxExpire</code>를 사용한다.</p>
+
+    <div class="example"><p><code>
+      CacheLastModifiedFactor 0.5
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheLock" id="CacheLock">CacheLock</a> <a name="cachelock" id="cachelock">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>Enable the thundering herd lock.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code /></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table><p>Documentation not yet translated. Please see English version of document.</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheLockMaxAge" id="CacheLockMaxAge">CacheLockMaxAge</a> <a name="cachelockmaxage" id="cachelockmaxage">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>Set the maximum possible age of a cache lock.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code /></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table><p>Documentation not yet translated. Please see English version of document.</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheLockPath" id="CacheLockPath">CacheLockPath</a> <a name="cachelockpath" id="cachelockpath">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>Set the lock path directory.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code /></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table><p>Documentation not yet translated. Please see English version of document.</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheMaxExpire" id="CacheMaxExpire">CacheMaxExpire</a> <a name="cachemaxexpire" id="cachemaxexpire">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>문서를 캐쉬하는 초단위 최대시간</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>CacheMaxExpire <var>seconds</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">기본값:</a></th><td><code>CacheMaxExpire 86400 (하루)</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table>
+    <p><code class="directive">CacheMaxExpire</code> 지시어는 실제 서버를
+    검사하지않고 캐쉬가능한 HTTP 문서를 유지할 수 있는 초단위
+    최대시간을 지정한다. 즉, 문서는 최대한 이 설정값만큼 오래되었다.
+    문서가 만기시간을 지정하여도 이 최대값을 지킨다.</p>
+
+    <div class="example"><p><code>
+      CacheMaxExpire 604800
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheMinExpire" id="CacheMinExpire">CacheMinExpire</a> <a name="cacheminexpire" id="cacheminexpire">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>The minimum time in seconds to cache a document</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code /></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table><p>Documentation not yet translated. Please see English version of document.</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheQuickHandler" id="CacheQuickHandler">CacheQuickHandler</a> <a name="cachequickhandler" id="cachequickhandler">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>Run the cache from the quick handler.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code /></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table><p>Documentation not yet translated. Please see English version of document.</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheStaleOnError" id="CacheStaleOnError">CacheStaleOnError</a> <a name="cachestaleonerror" id="cachestaleonerror">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>Serve stale content in place of 5xx responses.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code /></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table><p>Documentation not yet translated. Please see English version of document.</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheStoreExpired" id="CacheStoreExpired">CacheStoreExpired</a> <a name="cachestoreexpired" id="cachestoreexpired">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>Attempt to cache responses that the server reports as expired</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code /></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table><p>Documentation not yet translated. Please see English version of document.</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheStoreNoStore" id="CacheStoreNoStore">CacheStoreNoStore</a> <a name="cachestorenostore" id="cachestorenostore">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>Attempt to cache requests or responses that have been marked as no-store.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code /></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table><p>Documentation not yet translated. Please see English version of document.</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheStorePrivate" id="CacheStorePrivate">CacheStorePrivate</a> <a name="cachestoreprivate" id="cachestoreprivate">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>Attempt to cache responses that the server has marked as private</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code /></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Experimental</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_cache</td></tr>
+</table><p>Documentation not yet translated. Please see English version of document.</p>
+</div>
+</div>
+<div class="bottomlang">
+<p><span>가능한 언어: </span><a href="../en/mod/mod_cache.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_cache.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_cache.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_cache.html" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_cache.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

@@ -1,0 +1,912 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_http2 - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Modules</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache Module mod_http2</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_http2.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_http2.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a></p>
+</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">Description:</a></th><td>Support for the HTTP/2 transport layer</td></tr>
+<tr><th><a href="module-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">Module Identifier:</a></th><td>http2_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">Source File:</a></th><td>mod_http2.c</td></tr>
+<tr><th><a href="module-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.4.17 and later</td></tr></table>
+<h3>Summary</h3>
+
+        <p>This module provides HTTP/2 (<a href="https://tools.ietf.org/html/rfc7540">RFC 7540</a>) 
+        support for the Apache HTTP Server.</p>
+        
+        <p>This module relies on <a href="http://nghttp2.org/">libnghttp2</a>
+        to provide the core http/2 engine.</p>
+        
+        <p>You must enable HTTP/2 via <code class="directive"><a href="../mod/core.html#protocols">Protocols</a></code>
+        in order to use the functionality described in this document. The
+        HTTP/2 protocol <a href="https://http2.github.io/faq/#does-http2-require-encryption">does not require</a> the use of encryption so two schemes are available:
+        <code>h2</code> (HTTP/2 over TLS) and <code>h2c</code> (HTTP/2 over TCP).</p>
+
+        <p>Two useful configuration schemes are:</p>
+        
+        <div class="note"><h3>HTTP/2 in a VirtualHost context (TLS only)</h3>
+        <pre class="prettyprint lang-config">Protocols h2 http/1.1</pre>
+
+        <p>Allows HTTP/2 negotiation (h2) via TLS ALPN in a secure
+        <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code>.
+        HTTP/2 preamble checking (Direct mode, see <code class="directive"><a href="#h2direct">H2Direct</a></code>) is disabled by default for <code>h2</code>.</p>
+        </div>
+
+        <div class="note"><h3>HTTP/2 in a Server context (TLS and cleartext)</h3>
+        <pre class="prettyprint lang-config">Protocols h2 h2c http/1.1</pre>
+
+        <p>Allows HTTP/2 negotiation (h2) via TLS ALPN for secure
+        <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code>. Allows
+        HTTP/2 cleartext negotiation (h2c) upgrading from an initial HTTP/1.1
+        connection or via HTTP/2 preamble checking (Direct mode, see
+        <code class="directive"><a href="#h2direct">H2Direct</a></code>).</p>
+        </div>
+
+        <p>Refer to the official <a href="https://http2.github.io/faq">HTTP/2 FAQ</a>
+        for any doubt about the protocol.</p>
+        
+    </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>Topics</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#how-it-works">How it works</a></li>
+</ul><h3 class="directives">Directives</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#h2copyfiles">H2CopyFiles</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#h2direct">H2Direct</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#h2earlyhints">H2EarlyHints</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#h2maxsessionstreams">H2MaxSessionStreams</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#h2maxworkeridleseconds">H2MaxWorkerIdleSeconds</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#h2maxworkers">H2MaxWorkers</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#h2minworkers">H2MinWorkers</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#h2moderntlsonly">H2ModernTLSOnly</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#h2push">H2Push</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#h2pushdiarysize">H2PushDiarySize</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#h2pushpriority">H2PushPriority</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#h2pushresource">H2PushResource</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#h2serializeheaders">H2SerializeHeaders</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#h2streammaxmemsize">H2StreamMaxMemSize</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#h2tlscooldownsecs">H2TLSCoolDownSecs</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#h2tlswarmupsize">H2TLSWarmUpSize</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#h2upgrade">H2Upgrade</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#h2windowsize">H2WindowSize</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_http2">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_http2">Report a bug</a></li></ul><h3>See also</h3>
+<ul class="seealso">
+<li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="how-it-works" id="how-it-works">How it works</a></h2>
+    
+    <h3><a name="dimensioning" id="dimensioning">HTTP/2 Dimensioning</a></h3>
+        <p>
+            Enabling HTTP/2 on your Apache Server has impact on the resource
+            consumption and if you have a busy site, you may need to consider
+            carefully the implications.
+        </p>
+        <p>
+            The first noticeable thing after enabling HTTP/2 is that your server
+            processes will start additional threads. The reason for this is that
+            HTTP/2 gives all requests that it receives to its own <em>Worker</em>
+            threads for processing, collects the results and streams them out
+            to the client.
+        </p>
+        <p>
+            In the current implementation, these workers use a separate thread
+            pool from the MPM workers that you might be familiar with. This is
+            just how things are right now and not intended to be like this forever.
+            (It might be forever for the 2.4.x release line, though.) So, HTTP/2
+            workers, or shorter H2Workers, will not show up in <code class="module"><a href="../mod/mod_status.html">mod_status</a></code>. They
+            are also not counted against directives such as <code class="directive"><a href="../mod/mpm_common.html#threadsperchild">ThreadsPerChild</a></code>. However
+            they take <code class="directive"><a href="../mod/mpm_common.html#threadsperchild">ThreadsPerChild</a></code>
+            as default if you have not configured something
+            else via <code class="directive"><a href="#h2minworkers">H2MinWorkers</a></code> and
+            <code class="directive"><a href="#h2maxworkers">H2MaxWorkers</a></code>.
+        </p>
+        <p>
+            Another thing to watch out for is is memory consumption. Since HTTP/2
+            keeps more state on the server to manage all the open request, priorities
+            for and dependencies between them, it will always need more memory
+            than HTTP/1.1 processing. There are three directives which steer the
+            memory footprint of a HTTP/2 connection:
+            <code class="directive"><a href="#h2maxsessionstreams">H2MaxSessionStreams</a></code>,
+            <code class="directive"><a href="#h2windowsize">H2WindowSize</a></code> and
+            <code class="directive"><a href="#h2streammaxmemsize">H2StreamMaxMemSize</a></code>.
+        </p>
+        <p>
+            <code class="directive"><a href="#h2maxsessionstreams">H2MaxSessionStreams</a></code> limits the
+            number of parallel requests that a client can make on a HTTP/2 connection.
+            It depends on your site how many you should allow. The default is 100 which
+            is plenty and unless you run into memory problems, I would keep it this
+            way. Most requests that browsers send are GETs without a body, so they
+            use up only a little bit of memory until the actual processing starts.
+        </p>
+        <p>
+            <code class="directive"><a href="#h2windowsize">H2WindowSize</a></code> controls how much
+            the client is allowed to send as body of a request, before it waits
+            for the server to encourage more. Or, the other way around, it is the
+            amount of request body data the server needs to be able to buffer. This
+            is per request.
+        </p>
+        <p>
+            And last, but not least, <code class="directive"><a href="#h2streammaxmemsize">H2StreamMaxMemSize</a></code>
+            controls how much response data shall be buffered. The request sits in
+            a H2Worker thread and is producing data, the HTTP/2 connection tries
+            to send this to the client. If the client does not read fast enough,
+            the connection will buffer this amount of data and then suspend the
+            H2Worker.
+        </p>
+    
+    
+    <h3><a name="misdirected" id="misdirected">Multiple Hosts and Misdirected Requests</a></h3>
+        <p>
+            Many sites use the same TLS certificate for multiple virtual hosts. The 
+            certificate either has a wildcard name, such as '*.example.org' or carries
+            several alternate names. Browsers using HTTP/2 will recognize that and reuse
+            an already opened connection for such hosts.
+        </p>
+        <p>
+            While this is great for performance, it comes at a price: such vhosts 
+            need more care in their configuration. The problem is that you will have
+            multiple requests for multiple hosts on the same TLS connection. And that
+            makes renegotiation impossible, in face the HTTP/2 standard forbids it.
+        </p>
+        <p>
+            So, if you have several virtual hosts using the same certificate and
+            want to use HTTP/2 for them, you need to make sure that all vhosts have
+            exactly the same SSL configuration. You need the same protocol, 
+            ciphers and settings for client verification.
+        </p>
+        <p>
+            If you mix things, Apache httpd will detect it and return a special
+            response code, 421 Misdirected Request, to the client.
+        </p>
+    
+
+    <h3><a name="envvars" id="envvars">Environment Variables</a></h3>
+        <p>
+            This module can be configured to provide HTTP/2 related information
+            as additional environment variables to the SSI and CGI namespace, as well
+            as in custom log configurations (see <code>%{VAR_NAME}e</code>).
+        </p>
+        
+        <table class="bordered">
+            
+            <tr>
+                <th><a name="table3">Variable Name:</a></th>
+                <th>Value Type:</th>
+                <th>Description:</th>
+            </tr>
+            <tr><td><code>HTTP2</code></td><td>flag</td><td>HTTP/2 is being used.</td></tr>
+            <tr><td><code>H2PUSH</code></td><td>flag</td><td>HTTP/2 Server Push is enabled for this connection and also supported by the client.</td></tr>
+            <tr><td><code>H2_PUSH</code></td><td>flag</td><td>alternate name for <code>H2PUSH</code></td></tr>
+            <tr><td><code>H2_PUSHED</code></td><td>string</td><td>empty or <code>PUSHED</code> for a request being pushed by the server.</td></tr>
+            <tr><td><code>H2_PUSHED_ON</code></td><td>number</td><td>HTTP/2 stream number that triggered the push of this request.</td></tr>
+            <tr><td><code>H2_STREAM_ID</code></td><td>number</td><td>HTTP/2 stream number of this request.</td></tr>
+            <tr><td><code>H2_STREAM_TAG</code></td><td>string</td><td>HTTP/2 process unique stream identifier, consisting of connection id and stream id separated by <code>-</code>.</td></tr>
+        </table>
+    
+    
+    </div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="H2CopyFiles" id="H2CopyFiles">H2CopyFiles</a> <a name="h2copyfiles" id="h2copyfiles">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Determine file handling in responses</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>H2CopyFiles on|off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>H2CopyFiles off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_http2</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.4.24 and later.</td></tr>
+</table>
+            <p>
+                This directive influences how file content is handled in
+                responses. When <code>off</code>, which is the default, file handles
+                are passed from the requestion processing down to the main
+                connection, using the usual Apache setaside handling for
+                managing the lifetime of the file.
+            </p>
+            <p>
+                When set to <code>on</code>, file content is copied while the
+                request is still being processed and the buffered data is passed
+                on to the main connection. This is better if a third party
+                module is injecting files with different lifetimes into the response. 
+            </p>
+            <p>
+                An example for such a module is <code>mod_wsgi</code> that may place
+                Python file handles into the response. Those files get close down when
+                Python thinks processing has finished. That may be well before
+                <code class="module"><a href="../mod/mod_http2.html">mod_http2</a></code> is done with them.
+            </p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="H2Direct" id="H2Direct">H2Direct</a> <a name="h2direct" id="h2direct">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>H2 Direct Protocol Switch</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>H2Direct on|off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>H2Direct on for h2c, off for h2 protocol</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_http2</td></tr>
+</table>
+            <p>
+                This directive toggles the usage of the HTTP/2 Direct Mode. This
+                should be used inside a 
+                <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> 
+                section to enable direct HTTP/2 communication for that virtual host. 
+            </p>
+            <p>
+                Direct communication means that if the first bytes received by the 
+                server on a connection match the HTTP/2 preamble, the HTTP/2
+                protocol is switched to immediately without further negotiation.
+                This mode is defined in RFC 7540 for the cleartext (h2c) case. Its
+                use on TLS connections not mandated by the standard.
+            </p>
+            <p>
+                When a server/vhost does not have h2 or h2c enabled via
+                <code class="directive"><a href="../mod/core.html#protocols">Protocols</a></code>,
+                the connection is never inspected for a HTTP/2 preamble.
+                <code class="directive">H2Direct</code>
+                does not matter then. This is important for connections that
+                use protocols where an initial read might hang indefinitely, such
+                as NNTP.
+            </p>
+            <p>
+                For clients that have out-of-band knowledge about a server
+                supporting h2c, direct HTTP/2 saves the client from having to
+                perform an HTTP/1.1 upgrade, resulting in better performance
+                and avoiding the Upgrade restrictions on request bodies.
+            </p>
+            <p>
+                This makes direct h2c attractive for server to server communication
+                as well, when the connection can be trusted or is secured by other means.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">H2Direct on</pre>
+</div>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="H2EarlyHints" id="H2EarlyHints">H2EarlyHints</a> <a name="h2earlyhints" id="h2earlyhints">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Determine sending of 103 status codes</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>H2EarlyHints on|off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>H2EarlyHints off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_http2</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.4.24 and later.</td></tr>
+</table>
+            <p>
+                This setting controls if HTTP status 103 interim responses are
+                forwarded to the client or not. By default, this is currently 
+                not the case since a range of clients still have trouble with
+                unexpected interim responses.
+            </p>
+            <p>
+                When set to <code>on</code>, PUSH resources announced with
+                <code>H2PushResource</code> will trigger an interim 103 response
+                before the final response. The 103 response will carry <code>Link</code>
+                headers that advise the <code>preload</code> of such resources. 
+            </p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="H2MaxSessionStreams" id="H2MaxSessionStreams">H2MaxSessionStreams</a> <a name="h2maxsessionstreams" id="h2maxsessionstreams">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Maximum number of active streams per HTTP/2 session.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>H2MaxSessionStreams <em>n</em></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>H2MaxSessionStreams 100</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_http2</td></tr>
+</table>
+            <p>
+                This directive sets the maximum number of active streams per HTTP/2 session (e.g. connection)
+                that the server allows. A stream is active if it is not <code>idle</code> or 
+                <code>closed</code> according to RFC 7540.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">H2MaxSessionStreams 20</pre>
+</div>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="H2MaxWorkerIdleSeconds" id="H2MaxWorkerIdleSeconds">H2MaxWorkerIdleSeconds</a> <a name="h2maxworkeridleseconds" id="h2maxworkeridleseconds">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Maximum number of seconds h2 workers remain idle until shut down.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>H2MaxWorkerIdleSeconds <em>n</em></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>H2MaxWorkerIdleSeconds 600</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_http2</td></tr>
+</table>
+            <p>
+                This directive sets the maximum number of seconds a h2 worker may 
+                idle until it shuts itself down. This only happens while the number of
+                h2 workers exceeds <code class="directive"><a href="#h2minworkers">H2MinWorkers</a></code>.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">H2MaxWorkerIdleSeconds 20</pre>
+</div>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="H2MaxWorkers" id="H2MaxWorkers">H2MaxWorkers</a> <a name="h2maxworkers" id="h2maxworkers">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Maximum number of worker threads to use per child process.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>H2MaxWorkers <em>n</em></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_http2</td></tr>
+</table>
+            <p>
+                This directive sets the maximum number of worker threads to spawn
+                per child process for HTTP/2 processing. If this directive is not used,
+                <code class="module"><a href="../mod/mod_http2.html">mod_http2</a></code> will chose a value suitable for the <code>mpm</code>
+                module loaded.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">H2MaxWorkers 20</pre>
+</div>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="H2MinWorkers" id="H2MinWorkers">H2MinWorkers</a> <a name="h2minworkers" id="h2minworkers">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Minimal number of worker threads to use per child process.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>H2MinWorkers <em>n</em></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_http2</td></tr>
+</table>
+            <p>
+                This directive sets the minimum number of worker threads to spawn
+                per child process for HTTP/2 processing. If this directive is not used,
+                <code class="module"><a href="../mod/mod_http2.html">mod_http2</a></code> will chose a value suitable for the <code>mpm</code>
+                module loaded.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">H2MinWorkers 10</pre>
+</div>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="H2ModernTLSOnly" id="H2ModernTLSOnly">H2ModernTLSOnly</a> <a name="h2moderntlsonly" id="h2moderntlsonly">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Require HTTP/2 connections to be "modern TLS" only</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>H2ModernTLSOnly on|off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>H2ModernTLSOnly on</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_http2</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.4.18 and later.</td></tr>
+</table>
+            <p>
+                This directive toggles the security checks on HTTP/2 connections
+                in TLS mode (https:). This can be used server wide or for specific
+                <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code>s. 
+            </p>
+            <p>
+                The security checks require that the TSL protocol is at least
+                TLSv1.2 and that none of the ciphers listed in RFC 7540, Appendix A
+                is used. These checks will be extended once new security requirements
+                come into place.
+            </p>
+            <p>
+                The name stems from the 
+                <a href="https://wiki.mozilla.org/Security/Server_Side_TLS">Security/Server Side TLS</a>
+                definitions at mozilla where "modern compatibility" is defined. Mozilla Firefox and
+                other browsers require modern compatibility for HTTP/2 connections. As everything
+                in OpSec, this is a moving target and can be expected to evolve in the future.
+            </p>
+            <p>
+                One purpose of having these checks in <code class="module"><a href="../mod/mod_http2.html">mod_http2</a></code> is to enforce this
+                security level for all connections, not only those from browsers. The other
+                purpose is to prevent the negotiation of HTTP/2 as a protocol should
+                the requirements not be met.
+            </p>
+            <p>
+                Ultimately, the security of the TLS connection is determined by the
+                server configuration directives for <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code>.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">H2ModernTLSOnly off</pre>
+</div>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="H2Push" id="H2Push">H2Push</a> <a name="h2push" id="h2push">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>H2 Server Push Switch</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>H2Push on|off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>H2Push on</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_http2</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.4.18 and later.</td></tr>
+</table>
+            <p>
+                This directive toggles the usage of the HTTP/2 server push 
+                protocol feature.
+            </p>
+            <p>
+                The HTTP/2 protocol allows the server to push other resources to
+                a client when it asked for a particular one. This is helpful
+                if those resources are connected in some way and the client can
+                be expected to ask for it anyway. The pushing then saves the
+                time it takes the client to ask for the resources itself. On the
+                other hand, pushing resources the client never needs or already
+                has is a waste of bandwidth.
+            </p>
+            <p>
+                Server pushes are detected by inspecting the <code>Link</code> headers of
+                responses (see https://tools.ietf.org/html/rfc5988 for the 
+                specification). When a link thus specified has the <code>rel=preload</code>
+                attribute, it is treated as a resource to be pushed.
+            </p>
+            <p> 
+                Link headers in responses are either set by the application or
+                can be configured via <code class="module"><a href="../mod/mod_headers.html">mod_headers</a></code> as:
+            </p>
+            <div class="example"><h3>mod_headers example</h3><pre class="prettyprint lang-config">&lt;Location /index.html&gt;
+    Header add Link "&lt;/css/site.css&gt;;rel=preload"
+    Header add Link "&lt;/images/logo.jpg&gt;;rel=preload"
+&lt;/Location&gt;</pre>
+</div>
+            <p>
+                As the example shows, there can be several link headers added
+                to a response, resulting in several pushes being triggered. There
+                are no checks in the module to avoid pushing the same resource
+                twice or more to one client. Use with care.
+            </p>
+            <p> 
+                HTTP/2 server pushes are enabled by default. This directive 
+                allows it to be switch off on all resources of this server/virtual
+                host.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">H2Push off</pre>
+</div>
+            <p>
+                Last but not least, pushes happen only when the client signals
+                its willingness to accept those. Most browsers do, some, like Safari 9,
+                do not. Also, pushes also only happen for resources from the same
+                <em>authority</em> as the original response is for.
+            </p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="H2PushDiarySize" id="H2PushDiarySize">H2PushDiarySize</a> <a name="h2pushdiarysize" id="h2pushdiarysize">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>H2 Server Push Diary Size</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>H2PushDiarySize <em>n</em></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>H2PushDiarySize 256</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_http2</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.4.19 and later.</td></tr>
+</table>
+            <p>
+                This directive toggles the maximum number of HTTP/2 server pushes 
+                that are remembered per HTTP/2 connection. This can be used inside the
+                <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> 
+                section to influence the number for all connections to that virtual host. 
+            </p>
+            <p>
+                The push diary records a digest (currently using a 64 bit number) of pushed
+                resources (their URL) to avoid duplicate pushes on the same connection.
+                These value are not persisted, so clients opening a new connection
+                will experience known pushes again. There is ongoing work to enable
+                a client to disclose a digest of the resources it already has, so
+                the diary maybe initialized by the client on each connection setup.
+            </p>
+            <p>
+                If the maximum size is reached, newer entries replace the oldest
+                ones. A diary entry uses 8 bytes, letting a
+                default diary with 256 entries consume around 2 KB of memory.
+            </p>
+            <p>
+                A size of 0 will effectively disable the push diary.
+            </p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="H2PushPriority" id="H2PushPriority">H2PushPriority</a> <a name="h2pushpriority" id="h2pushpriority">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>H2 Server Push Priority</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>H2PushPriority <em>mime-type</em> [after|before|interleaved] [weight]</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>H2PushPriority * After 16</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_http2</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.4.18 and later. For having an
+            effect, a nghttp2 library version 1.5.0 or newer is necessary.</td></tr>
+</table>
+            <p>
+                This directive defines the priority handling of pushed responses
+                based on the content-type of the response. This is usually defined
+                per server config, but may also appear in a virtual host. 
+            </p>
+            <p>
+                HTTP/2 server pushes are always related to a client request. Each
+                such request/response pairs, or <em>streams</em> have a dependency
+                and a weight, together defining the <em>priority</em> of a stream. 
+            </p>
+            <p>
+                When a stream <em>depends</em> on another, say X depends on Y,
+                then Y gets all bandwidth before X gets any. Note that this
+                does not mean that Y will block X. If Y has no data to send, 
+                all bandwidth allocated to Y can be used by X.
+            </p>
+            <p>
+                When a stream has more than one dependant, say X1 and X2 both
+                depend on Y, the <em>weight</em> determines the bandwidth
+                allocation. If X1 and X2 have the same weight, they both get
+                half of the available bandwidth. If the weight of X1 is twice
+                as large as that for X2, X1 gets twice the bandwidth of X2.
+            </p>
+            <p> 
+                Ultimately, every stream depends on the <em>root</em> stream which
+                gets all the bandwidth available, but never sends anything. So all
+                its bandwidth is distributed by weight among its children. Which
+                either have data to send or distribute the bandwidth to their
+                own children. And so on. If none of the children have data
+                to send, that bandwidth get distributed somewhere else according
+                to the same rules.
+            </p>
+            <p> 
+                The purpose of this priority system is to always make use of
+                available bandwidth while allowing precedence and weight
+                to be given to specific streams. Since, normally, all streams
+                are initiated by the client, it is also the one that sets
+                these priorities.
+            </p>
+            <p>
+                Only when such a stream results in a PUSH, gets the server to
+                decide what the <em>initial</em> priority of such a pushed
+                stream is. In the examples below, X is the client stream. It
+                depends on Y and the server decides to PUSH streams P1 and P2
+                onto X.
+            </p>
+            <p>
+                The default priority rule is:
+            </p>
+            <div class="example"><h3>Default Priority Rule</h3><pre class="prettyprint lang-config">H2PushPriority * After 16</pre>
+</div>
+            <p>
+                which reads as 'Send a pushed stream of any content-type
+                depending on the client stream with weight 16'. And so P1
+                and P2 will be send after X and, as they have equal weight,
+                share bandwidth equally among themselves.
+            </p>
+            <div class="example"><h3>Interleaved Priority Rule</h3><pre class="prettyprint lang-config">H2PushPriority text/css Interleaved 256</pre>
+</div>
+            <p>
+                which reads as 'Send any CSS resource on the same dependency and
+                weight as the client stream'. If P1 has content-type 'text/css',
+                it will depend on Y (as does X) and its effective weight will be
+                calculated as <code>P1ew = Xw * (P1w / 256)</code>. With P1w being 
+                256, this will make the effective weight the same as the weight
+                of X. If both X and P1 have data to send, bandwidth will be allocated
+                to both equally.
+            </p>
+            <p>
+                With Pw specified as 512, a pushed, interleaved stream would
+                get double the weight of X. With 128 only half as much. Note that
+                effective weights are always capped at 256.
+            </p>
+            <div class="example"><h3>Before Priority Rule</h3><pre class="prettyprint lang-config">H2PushPriority application/json Before</pre>
+</div>
+            <p>
+                This says that any pushed stream of content type 'application/json'
+                should be send out <em>before</em> X. This makes P1 dependent
+                on Y and X dependent on P1. So, X will be stalled as long as
+                P1 has data to send. The effective weight is inherited from the
+                client stream. Specifying a weight is not allowed.
+            </p>
+            <p>
+                Be aware that the effect of priority specifications is limited
+                by the available server resources. If a server does not have
+                workers available for pushed streams, the data for the stream
+                may only ever arrive when other streams have been finished.
+            </p>
+            <p>
+                Last, but not least, there are some specifics of the syntax
+                to be used in this directive:
+            </p>
+            <ol>
+                <li>'*' is the only special content-type that matches all others. 
+                    'image/*' will not work.</li>
+                <li>The default dependency is 'After'. </li>
+                <li>There are also default weights: for 'After' it is 16, 'interleaved' is 256. 
+                </li>
+            </ol>
+            <div class="example"><h3>Shorter Priority Rules</h3><pre class="prettyprint lang-config">H2PushPriority application/json 32         # an After rule
+H2PushPriority image/jpeg before           # weight inherited
+H2PushPriority text/css   interleaved      # weight 256 default</pre>
+</div>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="H2PushResource" id="H2PushResource">H2PushResource</a> <a name="h2pushresource" id="h2pushresource">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Declares resources for early pushing to the client</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>H2PushResource [add] path [critical]</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_http2</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.4.24 and later.</td></tr>
+</table>
+            <p>
+                When added to a directory/location HTTP/2 PUSHes will be attempted
+                for all paths added via this directive. This directive can be used
+                several times for the same location.
+            </p>
+            <p>
+                This directive pushes resources much earlier than adding 
+                <code>Link</code> headers via <code class="module"><a href="../mod/mod_headers.html">mod_headers</a></code>.
+                <code class="module"><a href="../mod/mod_http2.html">mod_http2</a></code> announces these resources in a
+                <code>103 Early Hints</code> interim response to the client.
+                That means that clients not supporting PUSH will still get
+                early preload hints.
+            </p>
+            <p>
+                In contrast to setting <code>Link</code> response headers 
+                via <code class="module"><a href="../mod/mod_headers.html">mod_headers</a></code>, this directive will only
+                take effect on HTTP/2 connections. 
+            </p>
+            <p>
+                By adding <code>critical</code> to such a resource, the server
+                will give processing it more preference and send its data, once
+                available, before the data from the main request.
+            </p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="H2SerializeHeaders" id="H2SerializeHeaders">H2SerializeHeaders</a> <a name="h2serializeheaders" id="h2serializeheaders">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Serialize Request/Response Processing Switch</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>H2SerializeHeaders on|off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>H2SerializeHeaders off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_http2</td></tr>
+</table>
+            <p>
+                This directive toggles if HTTP/2 requests shall be serialized in
+                HTTP/1.1 format for processing by <code>httpd</code> core or if
+                received binary data shall be passed into the <code>request_rec</code>s
+                directly.
+            </p>
+            <p>
+                Serialization will lower performance, but gives more backward
+                compatibility in case custom filters/hooks need it.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">H2SerializeHeaders on</pre>
+</div>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="H2StreamMaxMemSize" id="H2StreamMaxMemSize">H2StreamMaxMemSize</a> <a name="h2streammaxmemsize" id="h2streammaxmemsize">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Maximum amount of output data buffered per stream.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>H2StreamMaxMemSize <em>bytes</em></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>H2StreamMaxMemSize 65536</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_http2</td></tr>
+</table>
+            <p>
+                This directive sets the maximum number of outgoing data bytes buffered in memory
+                for an active streams. This memory is not allocated per stream as such. Allocations
+                are counted against this limit when they are about to be done. Stream processing
+                freezes when the limit has been reached and will only continue when buffered data
+                has been sent out to the client.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">H2StreamMaxMemSize 128000</pre>
+</div>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="H2TLSCoolDownSecs" id="H2TLSCoolDownSecs">H2TLSCoolDownSecs</a> <a name="h2tlscooldownsecs" id="h2tlscooldownsecs">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td /></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>H2TLSCoolDownSecs <em>seconds</em></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>H2TLSCoolDownSecs 1</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_http2</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.4.18 and later.</td></tr>
+</table>
+            <p>
+                This directive sets the number of seconds of idle time on a TLS
+                connection before the TLS write size falls back to small (~1300 bytes)
+                length.
+                This can be used server wide or for specific
+                <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code>s. 
+            </p>
+            <p>
+                See <code class="directive"><a href="#h2tlswarmupsize">H2TLSWarmUpSize</a></code> for a
+                description of TLS warmup. <code class="directive">H2TLSCoolDownSecs</code> reflects the fact
+                that connections may deteriorate over time (and TCP flow adjusts)
+                for idle connections as well. It is beneficial to overall performance
+                to fall back to the pre-warmup phase after a number of seconds that
+                no data has been sent. 
+            </p>
+            <p>
+                In deployments where connections can be considered reliable, this
+                timer can be disabled by setting it to 0. 
+            </p>
+            <p>
+                The following example sets the seconds to zero, effectively disabling
+                any cool down. Warmed up TLS connections stay on maximum record
+                size.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">H2TLSCoolDownSecs 0</pre>
+</div>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="H2TLSWarmUpSize" id="H2TLSWarmUpSize">H2TLSWarmUpSize</a> <a name="h2tlswarmupsize" id="h2tlswarmupsize">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td /></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>H2TLSWarmUpSize <em>amount</em></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>H2TLSWarmUpSize 1048576</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_http2</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.4.18 and later.</td></tr>
+</table>
+            <p>
+                This directive sets the number of bytes to be sent in small
+                TLS records (~1300 bytes) until doing maximum sized writes (16k)
+                on https: HTTP/2 connections.
+                This can be used server wide or for specific
+                <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code>s. 
+            </p>
+            <p>
+                Measurements by <a href="https://www.igvita.com">google performance
+                    labs</a> show that best performance on TLS connections is reached,
+                if initial record sizes stay below the MTU level, to allow a
+                complete record to fit into an IP packet.
+            </p>
+            <p>
+                While TCP adjust its flow-control and window sizes, longer TLS
+                records can get stuck in queues or get lost and need retransmission.
+                This is of course true for all packets. TLS however needs the 
+                whole record in order to decrypt it. Any missing bytes at the end
+                will stall usage of the received ones.
+            </p>
+            <p>
+                After a sufficient number of bytes have been send successfully,
+                the TCP state of the connection is stable and maximum TLS record
+                sizes (16 KB) can be used for optimal performance.
+            </p>
+            <p>
+                In deployments where servers are reached locally or over reliable
+                connections only, the value might be decreased with 0 disabling
+                any warmup phase altogether.
+            </p>
+            <p>
+                The following example sets the size to zero, effectively disabling
+                any warmup phase.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">H2TLSWarmUpSize 0</pre>
+</div>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="H2Upgrade" id="H2Upgrade">H2Upgrade</a> <a name="h2upgrade" id="h2upgrade">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>H2 Upgrade Protocol Switch</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>H2Upgrade on|off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>H2Upgrade on for h2c, off for h2 protocol</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_http2</td></tr>
+</table>
+            <p>
+                This directive toggles the usage of the HTTP/1.1 Upgrade method 
+                for switching to HTTP/2. This
+                should be used inside a 
+                <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> 
+                section to enable Upgrades to HTTP/2 for that virtual host. 
+            </p>
+            <p>
+                This method of switching protocols is defined in HTTP/1.1 and
+                uses the "Upgrade" header (thus the name) to announce willingness
+                to use another protocol. This may happen on any request of a
+                HTTP/1.1 connection.
+            </p>
+            <p>
+                This method of protocol switching is enabled by default on cleartext
+                (potential h2c) connections and disabled on TLS (potential h2), 
+                as mandated by RFC 7540. 
+            </p>
+            <p>
+                Please be aware that Upgrades are only accepted for requests
+                that carry no body. POSTs and PUTs with content will never
+                trigger an upgrade to HTTP/2. 
+                See <code class="directive"><a href="#h2direct">H2Direct</a></code> for an 
+                alternative to Upgrade.
+            </p>
+            <p>
+                This mode only has an effect when h2 or h2c is enabled via
+                the <code class="directive"><a href="../mod/core.html#protocols">Protocols</a></code>.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">H2Upgrade on</pre>
+</div>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="H2WindowSize" id="H2WindowSize">H2WindowSize</a> <a name="h2windowsize" id="h2windowsize">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Size of Stream Window for upstream data.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>H2WindowSize <em>bytes</em></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>H2WindowSize 65535</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_http2</td></tr>
+</table>
+            <p>
+                This directive sets the size of the window that is used for flow control
+                from client to server and limits the amount of data the server has to buffer.
+                The client will stop sending on a stream once the limit has been reached until
+                the server announces more available space (as it has processed some of the data).
+            </p><p>
+                This limit affects only request bodies, not its meta data such as headers. Also,
+                it has no effect on response bodies as the window size for those are managed
+                by the clients.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">H2WindowSize 128000</pre>
+</div>
+        
+</div>
+</div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_http2.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_http2.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_http2.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

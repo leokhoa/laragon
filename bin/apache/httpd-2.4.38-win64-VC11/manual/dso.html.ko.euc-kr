@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+<meta content="text/html; charset=EUC-KR" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>동적공유객체 (DSO) 지원 - Apache HTTP Server Version 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">모듈</a> | <a href="./mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">용어</a> | <a href="./sitemap.html">사이트맵</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="./">Version 2.4</a></div><div id="page-content"><div id="preamble"><h1>동적공유객체 (DSO) 지원</h1>
+<div class="toplang">
+<p><span>가능한 언어: </span><a href="./en/dso.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/dso.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="./ja/dso.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/dso.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/dso.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">이 문서는 최신판 번역이 아닙니다.
+            최근에 변경된 내용은 영어 문서를 참고하세요.</div>
+
+    <p>아파치 웹서버는 관리자가 모듈들을 선택하여 서버에 포함할
+    기능을 결정할 수 있는 모듈화된 프로그램이다. 서버를 컴파할때
+    <code>httpd</code> 실행파일에 정적으로 모듈을 컴파일할
+    수 있다. 아니면 모듈을 <code>httpd</code> 실행파일과
+    분리하여 동적공유객체(Dynamic Shared Objects, DSO)로 컴파일할
+    수 있다. DSO 모듈은 서버를 컴파일할때 컴파일하거나, Apache
+    Extension Tool (<a href="programs/apxs.html">apxs</a>)을
+    사용하여 나중에 컴파일하여 추가할 수 있다.</p>
+
+    <p>이 문서는 DSO 모듈 사용법과 배경 이론을 설명한다.</p>
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#implementation">구현</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#usage">사용법 요약</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#background">배경지식</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#advantages">장단점</a></li>
+</ul><h3>참고</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="implementation" id="implementation">구현</a></h2>
+
+<table class="related"><tr><th>관련된 모듈</th><th>관련된 지시어</th></tr><tr><td><ul><li><code class="module"><a href="./mod/mod_so.html">mod_so</a></code></li></ul></td><td><ul><li><code class="directive"><a href="./mod/mod_so.html#loadmodule">LoadModule</a></code></li></ul></td></tr></table>
+
+    <p>아파치 핵심에 정적으로 컴파일해야할
+    <code class="module"><a href="./mod/mod_so.c.html">mod_so.c</a></code>라는 모듈은 아파치 모듈을
+    읽어들이기위한 DSO를 지원한다.
+    이 모듈은 <code class="module"><a href="./mod/core.html">core</a></code>를 제외하고 DSO가
+    될 수 없는 유일한 모듈이다. 실제로 다른 모든 아파치 모듈은
+    <a href="install.html">설치 문서</a>에서 설명한
+    <code>configure</code>의 <code>--enable-<em>module</em>=shared</code>
+    옵션을 사용하여 DSO로 컴파일할 수 있다. 모듈을
+    <code>mod_foo.so</code>와 같이 DSO로 컴파일한후 <code>httpd.conf</code>
+    파일에 <code class="module"><a href="./mod/mod_so.html">mod_so</a></code>의
+    <code class="directive"><a href="./mod/mod_so.html#loadmodule">LoadModule</a></code> 명령어를
+    사용하여 서버 시작시 혹은 재시작시 그 모듈을 읽어들일 수
+    있다.</p>
+
+    <p>아파치 모듈(특히 제삼자가 만든 모듈)로 사용할 DSO 파일을 쉽게
+    만들기위해 <a href="programs/apxs.html">apxs</a> (<em>APache
+    eXtenSion</em>)라는 새로운 지원 프로그램이 있다. 이 프로그램은
+    아파치 소스 트리 <em>밖에서</em> DSO로 사용할 모듈을
+    컴파일할때 사용한다. 개념은 쉽다. 아파치를 설치할때
+    <code>configure</code>와 <code>make install</code>이
+    아파치 C 헤더파일을 설치하고, DSO 파일을 컴파일하기위한
+    플래폼 특유의 컴파일러 옵션과 링커 옵션을 <code>apxs</code>
+    프로그램에 기록한다. 그래서 <code>apxs</code>를 사용하는 사용자는
+    아파치 배포본 소스 트리없이, 또 DSO 지원을 위한 플래폼 특유의
+    컴파일러 옵션와 링커 옵션에 신경을 쓰지않고 자신의 아파치
+    모듈 소스를 컴파일할 수 있다.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="usage" id="usage">사용법 요약</a></h2>
+
+    <p>Apache 2.2의 DSO 기능에 대한 짧고 간략한 요약이다:</p>
+
+    <ol>
+      <li>
+        <em>배포본에 있는</em> 아파치 모듈을 컴파일하고 설치하는
+        경우. 예를 들어 <code>mod_foo.c</code>를 DSO
+        <code>mod_foo.so</code>로:
+
+<div class="example"><p><code>
+$ ./configure --prefix=/path/to/install --enable-foo=shared<br />
+$ make install
+</code></p></div>
+      </li>
+
+      <li>
+        <em>제삼자가 만든</em> 아파치 모듈을 컴파일하고 설치하는
+        경우. 예를 들어 <code>mod_foo.c</code>를 DSO
+        <code>mod_foo.so</code>로:
+
+<div class="example"><p><code>
+$ ./configure --add-module=module_type:/path/to/3rdparty/mod_foo.c --enable-foo=shared<br />
+$ make install
+</code></p></div>
+      </li>
+
+      <li>
+        공유 모듈을 <em>나중에 사용하기위해</em> 아파치를 구성하는
+        경우:
+
+<div class="example"><p><code>
+$ ./configure --enable-so<br />
+$ make install
+</code></p></div>
+      </li>
+
+      <li>
+        <em>제삼자가 만든</em> 아파치 모듈을 컴파일하고 설치하는
+        경우. <a href="programs/apxs.html">apxs</a>를 사용하여
+        아파치 소스 트리 <em>밖에서</em> <code>mod_foo.c</code>를
+        DSO <code>mod_foo.so</code>로:
+
+<div class="example"><p><code>
+$ cd /path/to/3rdparty<br />
+$ apxs -c mod_foo.c<br />
+$ apxs -i -a -n foo mod_foo.la
+</code></p></div>
+      </li>
+    </ol>
+
+    <p>모든 경우 일단 공유 모듈이 컴파일되면, <code>httpd.conf</code>에
+    <code class="directive"><a href="./mod/mod_so.html#loadmodule">LoadModule</a></code> 지시어를
+    사용하여 아파치가 그 모듈을 읽어들이게 만든다.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="background" id="background">배경지식</a></h2>
+
+    <p>현대적인 유닉스류에는 <em>동적공유객체</em> (DSO)의
+    동적 링킹/로딩(dynamic linking/loading)이라고 하여, 특별한
+    형식의 실행코드 조각을 만들어 실행중인 실행프로그램의
+    주소공간에 읽어들이는 멋진 기능이 있다.</p>
+
+    <p>보통 두가지 방법으로 읽어들일 수 있다. 하나는 실행프로그램이
+    시작할때 <code>ld.so</code>라는 시스템 프로그램이 자동으로
+    읽어들이는 경우고, 다른 하나는 실행중인 프로그램이
+    <code>dlopen()/dlsym()</code> 시스템호출로 유닉스 로더(loader)의
+    시스템 인터페이스을 사용하여 직접 읽어들이는 경우다.</p>
+
+    <p>첫번째 경우 DSO를 보통 <em>공유라이브러리(shared libraries)</em>
+    혹은 <em>DSO 라이브러리</em>라고 부르며, 파일은
+    <code>libfoo.so</code>나 <code>libfoo.so.1.2</code> 같은
+    이름을 가진다. 이들은 시스템 디렉토리(보통 <code>/usr/lib</code>)에
+    있고, 컴파일시 링커 명령어에 <code>-lfoo</code>를 주어
+    실행파일과 연결한다. 이렇게 직접 써준 라이브러리는 실행파일에
+    참조되여서, 프로그램이 시작할때 링커 옵션 <code>-R</code>로
+    직접 지정한 경로, 환경변수 <code>LD_LIBRARY_PATH</code>로
+    지정한 경로 혹은 <code>/usr/lib</code>에서 유닉스 로더가
+    <code>libfoo.so</code>를 찾을 수 있다. 그러면 실행프로그램의
+    (아직 못찾은(unresolved)) 심볼(symbol)을 DSO에서 찾게된다.</p>
+
+    <p>DSO는 보통 실행프로그램의 심볼을 찾지않기 때문에 (DSO가
+    재사용가능한 일반적인 코드 라이브러리이므로) 찾기는 여기서
+    끝난다. 유닉스 로더가 심볼 찾기를 완전히 담당하므로 실행프로그램이
+    직접 DSO에서 심볼을 찾을 필요가 없다. (사실 <code>ld.so</code>를
+    부르는 코드는 정적이 아닌 모든 실행프로그램에 링크되는 실행시
+    시작코드의 일부다.) 공통된 라이브러리 코드를 동적으로 읽어들이는
+    장점은 명확하다. 라이브러리 코드가 모든 프로그램에 중복해서
+    저장되는 대신 <code>libc.so</code>와 같은 시스템 라이브러리에
+    한번만 저장되기 때문에 디스크 공간이 절약된다.</p>
+
+    <p>두번째 경우 DSO를 보통 <em>공유객체(shared objects)</em>
+    혹은 <em>DSO 파일</em>이라고 부르고, (규칙상 이름은
+    <code>foo.so</code>이지만) 파일의 확장자는 자유롭다. 이
+    파일들은 보통 프로그램 자체 디렉토리에 위치하고 실행프로그램에
+    자동으로 연결되지 않는다. 대신 실행프로그램은 실행시
+    <code>dlopen()</code>을 사용하여 DSO를 주소공간에
+    직접 읽어들여야 한다. 이때 실행프로그램은 DSO에서 심볼을
+    찾지 않는다. 대신 앞에서 본 유닉스 로더는 자동으로 실행파일과
+    실행파일이 이미 읽어들인 DSO 라이브러리(특히 항상 존재하는
+    <code>libc.so</code>의 모든 심볼)에서 DSO의 (아직 못찾은)
+    심볼을 찾는다. 그래서 DSO는 마치 처음부터 실행프로그램에
+    정적으로 링크된것과 같이 실행파일의 심볼을 알게된다.</p>
+
+    <p>DSO의 API를 이용하기위해서 마지막으로 실행프로그램은
+    <code>dlsym()</code>으로 DSO에서 특정 심볼을 찾아서, 앞으로
+    사용하기위해 디스패치(dispatch) 표 <em>등</em>에 저장한다.
+    다른 말로 실행프로그램은 사용할 모든 실볼을 직접 찾아야한다.
+    이런 구조의 장점은 프로그램의 일부를 프로그램이
+    필요할때까지 읽어들이지 않아도 (그래서 메모리를 낭비하지
+    않게) 된다는 점이다. 기본 프로그램의 기능을 확장하기위해
+    필요한 경우 이 부분을 동적으로 읽어들일 수 있다.</p>
+
+    <p>이런 DSO 구조가 자연스럽게 보이지만, 최소한 어려운 점이
+    한가지있다. 프로그램을 확장하기위해 DSO를 사용할때 DSO가
+    실행프로그램의 심볼을 찾는 일이다. 왜? DSO가 실행프로그램의
+    심볼을 "역으로 찾는 것"은 (라이브러리는 자신을 사용하는 프로그램에
+    대해 모른다는) 라이브러리 설계에 반하며, 모든 플래폼에서
+    지원되지않고 표준화되지도 않았기 때문이다. 실제로 실행파일의
+    전역심볼(global symbol)은 보통 익스포트(export)되지 않기때문에
+    DSO가 사용할 수 없다. DSO를 사용하여 실행중 프로그램을 확장하려면
+    링커에게 모든 전역심볼을 익스포트하도록 강제하는 것이 주된
+    해결책이다.</p>
+
+    <p>공유라이브러리는 DSO 방식의 설계원칙대로 전형적이기때문에
+    운영체제가 제공하는 거의 모든 종류의 라이브러리가 사용한다.
+    반대로 많은 프로그램은 프로그램을 확장하기위해 공유객체를
+    사용하지 않는다.</p>
+
+    <p>1998년 실행중 실제로 기능을 확장하기위해 DSO 구조를 사용한
+    소프트웨어 패키지는 (XS 구조와 DynaLoader 모듈을 사용한)
+    Perl 5, Netscape Server <em>등</em>으로 드물었다. 아파치는
+    이미 기능을 확장하기위해 모듈 개념을 사용했고 외부 모듈을
+    아파치 핵심기능에 연결하기위해 내부적으로 디스패치목록을
+    이용한 접근방법을 사용했기때문에 1.3 버전부터 이 대열에 합류했다.
+    그래서 아파치는 실행중 모듈을 읽어들이는데 DSO를 사용하도록
+    운명지워졌다.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="advantages" id="advantages">장단점</a></h2>
+
+    <p>앞에서 말한 DSO를 사용하면 다음과 같은 장점이 있다:</p>
+
+    <ul>
+      <li>실제 서버 프로세스가 컴파일시 <code>configure</code>
+      옵션대신 <code>httpd.conf</code>의 <code class="directive"><a href="./mod/mod_so.html#loadmodule">LoadModule</a></code>을 사용하여 실행중에
+      결합되므로 서버 패키지 실행이 더 유연하다. 예를 들어 한번의
+      아파치 설치만으로 다른 서버(표준 버전과 SSL 버전, 최소화
+      버전과 기능추가 버전 [mod_perl, PHP3] <em>등</em>)를 실행할
+      수 있다.</li>
+
+      <li>서버는 설치후에도 제삼자가 만든 모듈을 사용하여 쉽게
+      확장할 수 있다. 최소한 기업의 패키지 제작자는 아파치 핵심
+      패키지와 별도로 PHP3, mod_perl, mod_fastcgi <em>등</em>을
+      추가 패키지로 만들 수 있어서 큰 이득이다.</li>
+
+      <li>DSO와 <code>apxs</code>를 가지고 아파치 소스 트리 밖에서
+      작업하고 <code>apxs -i</code>와 <code>apachectl restart</code>
+      명령어만으로 현재 개발한 모듈의 새 버전을 실행중인 아파치
+      서버에 반영할 수 있어서 더 쉽게 아파치 모듈을 개발할 수
+      있다.</li>
+    </ul>
+
+    <p>DSO는 다음과 같은 단점이 있다:</p>
+
+    <ul>
+      <li>프로그램의 주소공간에 코드를 동적으로 읽어들이는 기능을
+      지원하지않는 운영체제가 있기 때문에 모든 플래폼에서 DSO를
+      사용할 수 없다.</li>
+
+      <li>유닉스 로더가 심볼을 찾아야하기 때문에 서버 시작이
+      약 20% 정도 늦어진다.</li>
+
+      <li>서버는 위치독립코드(position independent code, PIC)
+      때문에 절대주소지정(absolute addressing)보다 느린
+      상대주소지정(relative addressing)의 복잡한 어셈블러 기법이
+      필요하므로 어떤 플래폼에서 실행시 약 5% 정도 늦다.</li>
+
+      <li>DSO 모듈을 다른 DSO기반 라이브러리(<code>ld -lfoo</code>)에
+      링크할 수 없는 플래폼이 있기때문에 (예를 들어 ELF기반
+      플래폼은 지원하지만 a.out기반 플래폼은 보통 이 기능을
+      지원하지 않는다) 모든 종류의 모듈에 DSO를 사용할 수 없다.
+      다른 말로 DSO 파일로 컴파일하는 모듈은 아파치 핵심과 아파치
+      핵심이 사용하는 C 라이브러리(<code>libc</code>)와 다른
+      동적/정적 라이브러리, 위치독립코드를 담고 있는 정적 라이브러리
+      아카이브(<code>libfoo.a</code>)의 심볼만을 사용할 수 있다.
+      다른 코드를 사용하려면 아파치 핵심이 그것을 참조하던지,
+      <code>dlopen()</code>으로 직접 코드를 읽어들여야 한다.</li>
+    </ul>
+
+</div></div>
+<div class="bottomlang">
+<p><span>가능한 언어: </span><a href="./en/dso.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/dso.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="./ja/dso.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/dso.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/dso.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/dso.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="./mod/">모듈</a> | <a href="./mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">용어</a> | <a href="./sitemap.html">사이트맵</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

@@ -1,0 +1,511 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Utilisation de RewriteMap - Serveur HTTP Apache Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p>
+<p class="apache">Serveur HTTP Apache Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">Serveur HTTP</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Rewrite</a></div><div id="page-content"><div id="preamble"><h1>Utilisation de RewriteMap</h1>
+<div class="toplang">
+<p><span>Langues Disponibles: </span><a href="../en/rewrite/rewritemap.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/rewrite/rewritemap.html" title="Français">&nbsp;fr&nbsp;</a></p>
+</div>
+
+
+    <p>Ce document est un complément à la <a href="../mod/mod_rewrite.html">documentation de référence</a> du
+    module <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>. Il décrit l'utilisation de la
+    directive <code class="directive"><a href="../mod/mod_rewrite.html#rewritemap">RewriteMap</a></code>, et
+    fournit des exemples pour chacun des différents types de
+    <code class="directive"><a href="../mod/mod_rewrite.html#rewritemap">RewriteMap</a></code>.</p>
+
+    <div class="warning">Notez que la plupart de ces exemples ne
+    fonctionneront pas en l'état dans le contexte de votre configuration
+    particulière ; vous devez donc vous attacher à les
+    comprendre, plutôt que de simplement les insérer dans votre
+    configuration par copier/coller.</div>
+
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#introduction">Introduction</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#int">int: Fonction interne</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#txt">txt: tables de correspondances au format texte</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#rnd">rnd: Fichier texte à valeurs de substitution multiples
+    choisies de manière aléatoire</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#dbm">dbm: Fichier condensé DBM</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#prg">prg: Programme de réécriture externe</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#dbd">dbd ou fastdbd: requête SQL</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#summary">Résumé</a></li>
+</ul><h3>Voir aussi</h3><ul class="seealso"><li><a href="../mod/mod_rewrite.html">Documentation du module
+  mod_rewrite</a></li><li><a href="intro.html">Introduction à mod_rewrite</a></li><li><a href="remapping.html">Redirection et remise en
+  correspondance</a></li><li><a href="access.html">Contrôle d'accès</a></li><li><a href="vhosts.html">Serveurs virtuels</a></li><li><a href="proxy.html">Mise en cache</a></li><li><a href="advanced.html">Techniques avancées</a></li><li><a href="avoid.html">Quand ne pas utiliser mod_rewrite</a></li><li><a href="#comments_section">Commentaires</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="introduction" id="introduction">Introduction</a></h2>
+    
+
+   <p>
+   La directive <code class="directive"><a href="../mod/mod_rewrite.html#rewritemap">RewriteMap</a></code>
+   définit une fonction externe qui peut être appelée depuis une
+   directive <code class="directive"><a href="../mod/mod_rewrite.html#rewriterule">RewriteRule</a></code> ou
+   <code class="directive"><a href="../mod/mod_rewrite.html#rewritecond">RewriteCond</a></code> pour
+   accomplir une réécriture trop compliquée, ou trop spécialisée pour
+   être effectuée à partir d'expressions rationnelles. Vous trouverez
+   ci-dessous les différents types disponibles pour la source de
+   données, ceux-ci étant par ailleurs énumérés dans la documentation de
+   référence de <code class="directive"><a href="../mod/mod_rewrite.html#rewritemap">RewriteMap</a></code>.</p>
+
+   <p>La syntaxe de la directive <code class="directive"><a href="../mod/mod_rewrite.html#rewritemap">RewriteMap</a></code> est la suivante
+   :</p>
+
+<pre class="prettyprint lang-config">RewriteMap <em>MapName</em> <em>MapType</em>:<em>MapSource</em></pre>
+
+
+    <p>L'argument <a id="mapfunc" name="mapfunc"><em>MapName</em></a>
+    est un nom arbitraire que vous associez à la table de
+    correspondances, et que vous
+    pourrez utilisez par la suite dans les directives de réécriture. Les
+    recherches dans la table de correspondance s'effectuent en
+    respectant cette syntaxe :</p>
+
+    <p class="indent">
+      <strong>
+        <code>${</code> <em>nom-map</em> <code>:</code>
+	<em>clé-recherche</em>
+        <code>}</code> <br /> <code>${</code> <em>nom-map</em> <code>:</code>
+        <em>clé-recherche</em> <code>|</code> <em>DefaultValue</em> <code>}</code>
+      </strong>
+    </p>
+
+    <p>Lorsque cette syntaxe est employée, la table de correspondances
+    <em>nom-map</em> est consultée et la clé <em>clé-recherche</em>
+    recherchée. Si la clé est trouvée, la fonction de recherche dans la
+    table de correspondance est remplacée par <em>SubstValue</em>, ou
+    par <em>DefaultValue</em> dans le cas contraire, ou par la chaîne
+    vide si aucune <em>DefaultValue</em> n'a été spécifiée.</p>
+
+    <p>Par exemple, vous pouvez définir une directive
+    <code class="directive"><a href="../mod/mod_rewrite.html#rewritemap">RewriteMap</a></code> comme suit :</p>
+    <pre class="prettyprint lang-config">RewriteMap examplemap "txt:/path/to/file/map.txt"</pre>
+
+    <p>Vous pourrez par la suite utiliser cette table de correspondances
+    dans une directive <code class="directive"><a href="../mod/mod_rewrite.html#rewriterule">RewriteRule</a></code> comme suit :</p>
+<pre class="prettyprint lang-config">RewriteRule "^/ex/(.*)" "${examplemap:$1}"</pre>
+
+
+<p>Il est possible de spécifier une valeur par défaut qui sera utilisée
+si la recherche dans la table de correspondances est infructueuse :</p>
+
+<pre class="prettyprint lang-config">RewriteRule "^/ex/(.*)" "${examplemap:$1|/not_found.html}"</pre>
+
+
+<div class="note"><h3>Contexte de répertoire et fichiers.htaccess</h3>
+<p>
+Vous ne pouvez utiliser la directive <code class="directive"><a href="../mod/mod_rewrite.html#rewritemap">RewriteMap</a></code> ni dans
+les sections <code class="directive"><a href="../mod/core.html#directory">&lt;Directory&gt;</a></code>, ni dans les fichiers
+<code>.htaccess</code>. Vous devez déclarer la table de correspondances
+au niveau du serveur principal ou dans un contexte de serveur virtuel.
+En revanche, si vous ne pouvez pas déclarer la table dans une section
+&lt;Directory&gt; ou dans un fichier <code>.htaccess</code>, vous
+pourrez y faire référence dans ces contextes, une fois cette table
+créée.
+</p>
+</div>
+
+<p>Les sections suivantes décrivent les différents types de tables de
+correspondances <em>type-map</em> disponibles, et fournissent des
+exemples pour chacun d'entre eux.</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="int" id="int">int: Fonction interne</a></h2>
+    
+
+    <p>Lorsque le type-map <code>int</code> est spécifié, la source est
+    une des fonctions RewriteMap internes disponibles. Les développeurs
+    de modules peuvent fournir des fonctions internes supplémentaires en
+    les enregistrant via l'API <code>ap_register_rewrite_mapfunc</code>.
+    Les fonctions fournies par défaut sont :
+    </p>
+
+    <ul>
+      <li><strong>toupper</strong>:<br />
+             Met tous les caractères de la clé en majuscules.</li>
+      <li><strong>tolower</strong>:<br />
+             Met tous les caractères de la clé en minuscules.</li>
+      <li><strong>escape</strong>:<br />
+             Protège les caractères spéciaux de la clé en les
+	     transformant en leur code hexadécimal.</li>
+      <li><strong>unescape</strong>:<br />
+             Retraduit les codes hexadécimaux de la clé en caractères
+	     spéciaux.</li>
+    </ul>
+
+    <p>
+    Pour utiliser une de ces fonctions, créez une
+    <code>RewriteMap</code> faisant référence à cette fonction int, et
+    utilisez-la dans votre règle <code>RewriteRule</code> :
+    </p>
+
+    <p> <strong>Redirige un URI vers son équivalent en minuscules</strong></p>
+    <pre class="prettyprint lang-config">RewriteMap lc int:tolower
+RewriteRule "(.*)" "${lc:$1}" [R]</pre>
+
+
+    <div class="note">
+    <p>Notez que cet exemple n'est fourni qu'à titre d'illustration,
+    et ne constitue en aucun cas une recommandation. Si vous voulez
+    rendre des URLs insensibles à la casse, vous devez plutôt vous
+    tourner vers <code class="module"><a href="../mod/mod_speling.html">mod_speling</a></code>.
+    </p>
+    </div>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="txt" id="txt">txt: tables de correspondances au format texte</a></h2>
+    
+
+    <p>Lorsqu'un type-map <code>txt</code> est utilisé, la source-map
+    est un chemin du système de fichiers vers un fichier de
+    correspondances au format texte, contenant sur chaque ligne une
+    paire clé/valeur séparées par un espace. Il est possible d'insérer
+    des commentaires sous la forme de chaînes commençant par le caractère
+    '#'.</p>
+
+    <p>Voici un exemple d'entrées valides dans un fichier de
+    correspondances :</p>
+
+    <div class="example"><p><code>
+      # Ligne de commentaires<br />
+      <strong><em>clé</em> <em>valeur-substitution</em></strong><br />
+      <strong><em>clé</em> <em>valeur-substitution</em></strong> # commentaire<br />
+    </code></p></div>
+
+    <p>Lorsque la table de correspondance fait l'objet d'une recherche,
+    la valeur spécifiée est recherchée dans le premier champ, et si elle
+    est trouvée, la valeur de substitution est renvoyée.</p>
+
+    <p>Par exemple, nous pourrions utiliser un fichier de
+    correspondances pour traduire des noms de produits en identifiants
+    produits pour obtenir des URLs plus simples à mémoriser, en
+    utilisant la recette suivante :</p>
+
+    <p><strong>Product to ID configuration</strong></p>
+    <pre class="prettyprint lang-config">RewriteMap product2id "txt:/etc/apache2/productmap.txt"
+RewriteRule "^/product/(.*)" "/prods.php?id=${product2id:$1|NOTFOUND}" [PT]</pre>
+
+
+    <p>Nous supposons ici que le script <code>prods.php</code> sait quoi
+    faire lorsqu'il reçoit un argument <code>id=NOTFOUND</code>, dans
+    le cas où le produit ne se trouve pas dans la table de
+    correspondances.</p>
+
+    <p>Le fichier <code>/etc/apache2/map-produit.txt</code> contient ce
+    qui suit :</p>
+
+    <div class="example"><h3>Fichier de correspondances Produit - Identifiant</h3><p><code>
+##<br />
+##  map-produit.txt - Fichier de correspondances Produit - Identifiant<br />
+##<br />
+<br />
+TELEVISION 993<br />
+STEREO     198<br />
+CANNE-A-PECHE 043<br />
+BALLON-BASKET 418<br />
+TELEPHONE  328
+    </code></p></div>
+
+    <p>Ainsi, lorsqu'une requête pour
+    <code>http://example.com/produit/TELEVISION</code> arrive, la directive
+    <code class="directive"><a href="../mod/mod_rewrite.html#rewriterule">RewriteRule</a></code> s'applique, et la
+    requête est transformée en interne en <code>/prods.php?id=993</code>.</p>
+
+    <div class="note"><h3>Note: fichiers .htaccess</h3>
+    L'exemple donné est conçu pour être utilisé dans un contexte de
+    serveur principal ou de serveur virtuel. Si vous voulez l'utiliser
+    dans un fichier <code>.htaccess</code>, vous devrez supprimer le
+    slash de début dans le modèle de réécriture afin que ce dernier
+    puisse correspondre à toute URL :
+    <pre class="prettyprint lang-config">RewriteRule "^product/(.*)" "/prods.php?id=${product2id:$1|NOTFOUND}" [PT]</pre>
+
+    </div>
+
+    <div class="note"><h3>Recherches mises en cache</h3>
+    <p>
+    Les clés de recherche sont mises en cache par httpd jusqu'à ce que
+    le <code>mtime</code> (date de modification) du fichier de
+    correspondances soit modifié, ou que le serveur httpd soit
+    redémarré, ce qui améliore les performances pour les tables de
+    correspondances consultées par de nombreuses requêtes.
+    </p>
+    </div>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="rnd" id="rnd">rnd: Fichier texte à valeurs de substitution multiples
+    choisies de manière aléatoire</a></h2>
+    
+
+    <p>Lorsque le type-map spécifié est <code>rnd</code>, la source est
+    un chemin du système de fichiers vers un fichier de correspondances
+    au format texte dont chaque ligne contient une clé, et une ou
+    plusieurs valeurs séparées par le caractère <code>|</code>. Si une
+    clé convient, une des valeurs correspondantes sera choisie de
+    manière aléatoire.</p>
+
+    <p>Par exemple, vous pouvez utiliser le fichier de correspondances
+    et les directives suivants pour implémenter une répartition de
+    charge aléatoire entre plusieurs serveurs d'arrière-plan, par
+    l'intermédiaire d'un mandataire inverse. Les images sont envoyées
+    vers un des serveurs de l'ensemble 'statique', tandis que tout le
+    reste est envoyé vers un des serveurs de l'ensemble 'dynamique'.</p>
+
+    <div class="example"><h3>Fichier de correspondances</h3><p><code>
+##<br />
+##  map.txt -- table de réécriture<br />
+##<br />
+<br />
+statique   www1|www2|www3|www4<br />
+dynamique  www5|www6
+    </code></p></div>
+<p><strong>Directives de configuration</strong></p>
+    <pre class="prettyprint lang-config">RewriteMap servers "rnd:/path/to/file/map.txt"
+
+RewriteRule "^/(.*\.(png|gif|jpg))" "http://${servers:static}/$1" [NC,P,L]
+RewriteRule "^/(.*)"                "http://${servers:dynamic}/$1" [P,L]</pre>
+
+
+
+    <p>Ainsi, lorsqu'une image est demandée et que la première règle
+    convient, <code class="directive"><a href="../mod/mod_rewrite.html#rewritemap">RewriteMap</a></code> recherche la chaîne
+    <code>statique</code> dans le fichier de correspondances qui
+    renvoie un des noms de serveurs spécifiés de manière aléatoire,
+    ce dernier étant utilisé dans la cible de la règle
+    <code class="directive"><a href="../mod/mod_rewrite.html#rewriterule">RewriteRule</a></code>.</p>
+
+    <p>Si vous voulez qu'un des serveurs soit plus souvent sollicité que
+    les autres (par exemple s'il possède plus de mémoire, et peut donc
+    traiter d'avantage de requêtes), spécifiez-le plusieurs fois dans la
+    liste des serveurs.</p>
+
+    <div class="example"><p><code>
+statique   www1|www1|www2|www3|www4
+    </code></p></div>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="dbm" id="dbm">dbm: Fichier condensé DBM</a></h2>
+    
+
+    <p>Lorsque le type-map <code>dbm</code> est utilisé, la source est
+    un chemin du système de fichiers vers un fichier de données DBM
+    contenant des paires clé/valeur permettant d'effectuer la
+    correspondance. Le fonctionnement est identique à celui du type-map
+    <code>txt</code>, mais beaucoup plus rapide car un fichier DBM est
+    indexé, alors qu'un fichier texte ne l'est pas. L'accès à la clé
+    recherchée est donc plus rapide.</p>
+
+    <p>Vous pouvez éventuellement spécifier un type dbm particulier :</p>
+
+ <pre class="prettyprint lang-config">RewriteMap examplemap "dbm=sdbm:/etc/apache/mapfile.dbm"</pre>
+
+
+    <p>Ce type peut être choisi parmi <code>sdbm</code>, <code>gdbm</code>,
+    <code>ndbm</code> ou <code>db</code>. Il est
+    cependant recommandé d'utiliser l'utilitaire <a href="../programs/httxt2dbm.html">httxt2dbm</a> fourni avec le
+    serveur HTTP Apache, car il utilise la bibliothèque DBM appropriée,
+    à savoir celle qui a été utilisée lors de la compilation de httpd.</p>
+
+    <p>Pour créer un fichier dbm, créez tout d'abord un fichier de
+    correspondances au format texte comme décrit dans la section <a href="#txt">txt</a>. Traitez ensuite ce fichier avec
+    <code>httxt2dbm</code> :</p>
+
+<div class="example"><p><code>
+$ httxt2dbm -i fichier-map.txt -o fichier-map.map
+</code></p></div>
+
+<p>Vous pouvez alors faire référence au fichier obtenu dans votre
+directive <code class="directive"><a href="../mod/mod_rewrite.html#rewritemap">RewriteMap</a></code> :</p>
+<pre class="prettyprint lang-config">RewriteMap mapname "dbm:/etc/apache/mapfile.map"</pre>
+
+
+<div class="note">
+<p>Notez qu'avec certains types dbm, plusieurs fichiers possédant le
+même nom de base sont créés. Par exemple, vous pouvez obtenir deux
+fichiers nommés <code>fichier-map.map.dir</code> et
+<code>fichier-map.map.pag</code>. Ceci est tout à fait normal, et vous
+ne devez utiliser que le nom de base <code>fichier-map.map</code> dans votre
+directive <code class="directive"><a href="../mod/mod_rewrite.html#rewritemap">RewriteMap</a></code>.</p>
+</div>
+
+<div class="note"><h3>Mise en cache des recherches</h3>
+<p>
+    Les clés de recherche sont mises en cache par httpd jusqu'à ce que
+    le <code>mtime</code> (date de modification) du fichier de
+    correspondances soit modifié, ou que le serveur httpd soit
+    redémarré, ce qui améliore les performances pour les tables de
+    correspondances consultées par de nombreuses requêtes.
+</p>
+</div>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="prg" id="prg">prg: Programme de réécriture externe</a></h2>
+
+    <p>Lorque le type-map <code>prg</code> est spécifié, la source est
+    un chemin du système de fichiers vers un programme exécutable
+    destiné à effectuer la mise en correspondance. Il peut s'agir d'un
+    fichier binaire compilé, ou d'un programme en langage interprété
+    comme Perl ou Python.</p>
+
+    <p>Ce programme est lancé une fois au démarrage du serveur HTTP
+    Apache, puis communique avec le moteur de réécriture via
+    <code>STDIN</code> et <code>STDOUT</code>. En d'autres termes, pour
+    chaque recherche de correspondance, il reçoit un argument via
+    <code>STDIN</code>, et doit renvoyer en guise de réponse une chaîne
+    terminée par un caractère nouvelle-ligne sur <code>STDOUT</code>. Si
+    la recherche de correspondance est infructueuse, le programme doit
+    l'indiquer en retournant la chaîne de quatre caractères
+    "<code>NULL</code>".</p>
+
+    <p>Les programmes de réécriture externes ne sont pas lancés s'il
+    n'ont pas été définis dans un contexte où la directive <code class="directive"><a href="../mod/mod_rewrite.html#rewriteengine">RewriteEngine</a></code> est définie à
+    <code>on</code>.</p>
+
+    <p>Par défaut, les programmes de réécriture externes sont lancés par
+    l'utilisateur/groupe qui a démarré httpd. Pour changer ce comportement, il
+    est possible sur les systèmes de style Unix de spécifier un autre couple
+    utilisateur/groupe via le troisième argument de la directive <code class="directive"><a href="../mod/mod_rewrite.html#rewritemap">RewriteMap</a></code>, et ceci au format
+    <code>utilisateur:groupe</code>.</p>
+
+    <p>Cette fonctionnalité utilise le mutex <code>rewrite-map</code>
+    nécessaire à la fiabilité des communications avec le programme. Le
+    mécanisme de mutex et le fichier verrou peuvent être définis via la
+    directive <code class="directive"><a href="../mod/core.html#mutex">Mutex</a></code>.</p>
+
+    <p>Voici un exemple simple qui remplace tous les tirets par des
+    caractères de soulignement dans l'URI de la requête.</p>
+
+    <p><strong>Configuration de la réécriture</strong></p>
+    <pre class="prettyprint lang-config">RewriteMap d2u "prg:/www/bin/dash2under.pl" apache:apache
+RewriteRule "-" "${d2u:%{REQUEST_URI}}"</pre>
+
+
+    <p><strong>dash2under.pl</strong></p>
+    <pre class="prettyprint lang-perl">    #!/usr/bin/perl
+    $| = 1; # Turn off I/O buffering
+    while (&lt;STDIN&gt;) {
+        s/-/_/g; # Remplace tous les tirets par des caractères de soulignement
+        print $_;
+    }</pre>
+
+
+<div class="note"><h3>Mises en garde !</h3>
+<ul>
+<li>Votre programme doit être le plus
+simple possible. Si le programme se bloque, httpd va attendre
+indéfiniment une réponse de sa part, et par conséquent ne répondra plus
+aux requêtes.</li>
+<li>Assurez-vous de bien désactiver la mise en tampon dans votre
+programme. En Perl, ceci est effectué à la seconde ligne du script de
+l'exemple - <code>$| = 1;</code> - La syntaxe sera bien entendu
+différente dans
+d'autres langages. Si les entrées/sorties sont mises en tampon, httpd va
+attendre une sortie, et va par conséquent se bloquer.</li>
+<li>Rappelez-vous qu'il n'existe qu'une copie du programme lancé au
+démarrage du serveur, et que toutes les requêtes vont devoir passer par
+ce goulot d'étranglement. Ceci peut provoquer des ralentissements
+significatifs si de nombreuses requêtes doivent être traitées, ou si le
+script lui-même est très lent.</li>
+</ul>
+</div>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="dbd" id="dbd">dbd ou fastdbd: requête SQL</a></h2>
+    
+
+    <p>Lorsque le type-map <code>dbd</code> ou <code>fastdbd</code> est
+    spécifié, la source est une requête SQL SELECT qui reçoit un
+    argument et renvoie une seule valeur.</p>
+
+    <p>Pour que cette requête puisse être exécutée,
+    <code class="module"><a href="../mod/mod_dbd.html">mod_dbd</a></code> doit être configuré pour attaquer la base
+    de données concernée.</p>
+
+    <p>Ce type-map existe sous deux formes. Avec le type-map
+    <code>dbd</code>, la requête est exécutée à chaque demande, tandis
+    qu'avec le type-map <code>fastdbd</code>, les recherches dans la
+    base de données sont mises en cache en interne. <code>fastdbd</code>
+    est donc plus efficace et donc plus rapide ; par contre, il ne
+    tiendra pas compte des modifications apportées à la base de données
+    jusqu'à ce que le serveur soit redémarré.</p>
+
+    <p>Si une requête renvoie plusieurs enregistrements, un de ceux-ci
+    sera sélectionné aléatoirement.</p>
+
+    <div class="example"><h3>Exemple</h3><pre class="prettyprint lang-config">RewriteMap ma-requete "fastdbd:SELECT destination FROM rewrite WHERE source = %s"</pre>
+</div>
+
+    <div class="note"><h3>Note</h3>
+    <p>Le nom de la requête est transmis au pilote de base de données en tant
+    que label pour une requête SQL préparée, et doit donc respecter toutes les
+    règles imposées par votre base de données (comme la sensibilité à la casse).</p></div>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="summary" id="summary">Résumé</a></h2>
+    
+
+    <p>La directive <code class="directive"><a href="../mod/mod_rewrite.html#rewritemap">RewriteMap</a></code> peut apparaître
+    plusieurs fois. Utilisez une directive
+    <code class="directive"><a href="../mod/mod_rewrite.html#rewritemap">RewriteMap</a></code> pour chaque fonction de mise en
+    correspondance pour déclarer son fichier de correspondances.</p>
+
+    <p>Bien que l'on ne puisse pas <strong>déclarer</strong> de fonction
+    de mise en correspondance dans un contexte de répertoire (fichier
+    <code>.htaccess</code> ou section <code class="directive"><a href="../mod/core.html#directory">&lt;Directory&gt;</a></code>), il est
+    possible d'utiliser cette fonction dans un tel contexte.</p>
+
+  </div></div>
+<div class="bottomlang">
+<p><span>Langues Disponibles: </span><a href="../en/rewrite/rewritemap.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/rewrite/rewritemap.html" title="Français">&nbsp;fr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Commentaires</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/rewrite/rewritemap.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Autorisé sous <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

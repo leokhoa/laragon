@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+<meta content="text/html; charset=EUC-KR" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>HPUX에서 고성능 웹서버 실행하기 - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page" class="no-sidebar"><div id="page-header">
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Platform Specific Notes</a></div><div id="page-content"><div id="preamble"><h1>HPUX에서 고성능 웹서버 실행하기</h1>
+<div class="toplang">
+<p><span>가능한 언어: </span><a href="../en/platform/perf-hp.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/platform/perf-hp.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ko/platform/perf-hp.html" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div>
+<div class="outofdate">이 문서는 최신판 번역이 아닙니다.
+            최근에 변경된 내용은 영어 문서를 참고하세요.</div>
+
+
+<pre>Date: Wed, 05 Nov 1997 16:59:34 -0800
+From: Rick Jones &lt;<a href="mailto:raj@cup.hp.com">raj@cup.hp.com</a>&gt;
+Reply-To: <a href="mailto:raj@cup.hp.com">raj@cup.hp.com</a>
+Organization: Network Performance
+Subject: HP-UX tuning tips</pre>
+
+    <p>이 글은 성능향상 페이지에 추가할 HP-UX 성능향상 팁이다.</p>
+
+    <p>HP-UX 9.X는: 10.20으로 업그레이드하라<br />
+    HP-UX 10.[00|01|10]은: 10.20으로 업그레이드하라</p>
+
+    <p>HP-UX 10.20은:</p>
+
+    <p>최근 ARPA Transport 패치 모음을 설치한다. 그러면 TCP
+    연결찾기 해쉬테이블 크기를 설정할 수 있다. 기본값은
+    256 개이고, 2의 거듭제곱값으로 지정해야 한다. adb로 커널의
+    *disc* 이미지를 수정하여 설정한다. 변수명은
+    <code>tcp_hash_size</code>이다. <code>tcp_hash_size</code>
+    변수값이 32비트이므로 disc 이미지를 수정할때 반드시 16비트
+    값을 기록하는 "<code>w</code>" 대신 32비트 값을 기록하는
+    "<code>W</code>"를 사용해야 한다.</p>
+
+    <p>어떤 값을 고를까? <a href="ftp://ftp.cup.hp.com/dist/networking/tools/connhist">ftp://ftp.cup.hp.com/dist/networking/tools/connhist</a>의
+    결과를 보고, 시스템에 존재하는 TCP 연결 총개수를 살펴봐라.
+    이 숫자를 해쉬테이블 크기로 나눈 값이 상당히 (10 이하) 작으면
+    좋다. HP의 SPECweb96 결과에서 일반적인 설정을 볼 수 있다.
+    결과는 <a href="http://www.specbench.org/">http://www.specbench.org/</a>에
+    있다. HP-UX 시스템이 초당 1000번 SPECweb96 연결을 하는 경우
+    <code>TIME_WAIT</code>가 60초라면 60,000개의 TCP "연결"을
+    추적한다는 뜻이다.</p>
+
+    <p><a href="ftp://ftp.cup.hp.com/dist/networking/misc/listenq">ftp://ftp.cup.hp.com/dist/networking/misc/listenq</a>를
+    실행하여 시스템의 연결대기행렬 깊이를 알 수 있다.</p>
+
+    <p>PA-8000기반 시스템에서 아파치를 실행한다면, 아파치
+    실행파일이 큰 페이지크기를 사용하도록 "chatr"한다. 명령은
+    "<code>chatr +pi L &lt;실행파일&gt;</code>"이다. 실행파일을
+    실행하는 GID에 <code>MLOCK</code> 권한이 반드시 필요하다.
+    <code>MLOCK</code> 부여에 대해서는 <code>Setprivgrp(1m)</code>를
+    참고하라. 수정후 Glance를 실행하여 서버의 메모리영역을 살펴보면
+    상당한 text 세그먼트가 잠겨있음을 확인할 수 있다.</p>
+
+    <p>다중프로세스 시스템에서 아파치를 실행한다면, 프로세스를
+    프로세스에 배정하는 <code>mpctl()</code>를 사용한 작은
+    프로그램을 작성해봐라. 단순한 <code>pid % numcpu</code>
+    알고리즘으로도 충분할 것이다. 이 부분은 앞으로 소스코드에
+    포함될 수 있다.</p>
+
+    <p><code>FIN_WAIT_2</code> 연결의 개수가 걱정스럽다면,
+    nettune을 사용하여 <code>tcp_keepstart</code> 값을 줄일
+    수 있다. 그러나 조심해야 한다 - 4분 보다 작게 설정하지 마라.
+    <code>tcp_hash_size</code>를 잘 설정하였다면,
+    <code>FIN_WAIT_2</code> 값이 커도 (심지어 기본값인 2시간도)
+    문제없다 - 보통 성능에 큰 영향을 주지 않는다.</p>
+
+    <p>앞으로 소스코드에 포함될 부분이 더 있지만, 여기서 줄인다.
+    관심이 있다면 메일을 주길 바란다.</p>
+
+    <p>그럼 이만,</p>
+
+    <p>rick jones</p>
+
+    <p><a href="http://www.cup.hp.com/netperf/NetperfPage.html">http://www.cup.hp.com/netperf/NetperfPage.html</a></p>
+
+  </div>
+</div>
+<div class="bottomlang">
+<p><span>가능한 언어: </span><a href="../en/platform/perf-hp.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/platform/perf-hp.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ko/platform/perf-hp.html" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/platform/perf-hp.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

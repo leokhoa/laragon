@@ -1,0 +1,638 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="tr" xml:lang="tr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Kimlik Doğrulama ve Yetkilendirme - Apache HTTP Sunucusu Sürüm 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modüller</a> | <a href="../mod/directives.html">Yönergeler</a> | <a href="http://wiki.apache.org/httpd/FAQ">SSS</a> | <a href="../glossary.html">Terimler</a> | <a href="../sitemap.html">Site Haritası</a></p>
+<p class="apache">Apache HTTP Sunucusu Sürüm 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Sunucusu</a> &gt; <a href="http://httpd.apache.org/docs/">Belgeleme</a> &gt; <a href="../">Sürüm 2.4</a> &gt; <a href="./">Nasıllar ve Öğreticiler</a></div><div id="page-content"><div id="preamble"><h1>Kimlik Doğrulama ve Yetkilendirme</h1>
+<div class="toplang">
+<p><span>Mevcut Diller: </span><a href="../en/howto/auth.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../es/howto/auth.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="../fr/howto/auth.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/howto/auth.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/howto/auth.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/howto/auth.html" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+    <p>Kimlik Doğrulama istediğiniz kişileri teyid etme işlemidir.
+      Yetkilendirme ise kişilerin nereye gireceklerine ve hangi bilgiye
+      ulaşacaklarına müsaade edilmesi işlemidir.</p>
+
+    <p>Genel erişim denetimi için <a href="access.html">Erişim Denetimi
+      Nasıl</a> belgesine bakınız.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#related">İlgili modüller ve Yönergeler</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#introduction">Giriş</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#theprerequisites">Ön gereksinimler</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#gettingitworking">Çalışmaya Başlama</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#lettingmorethanonepersonin">Birden çok kişiye izin vermek</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#possibleproblems">Olası Sorunlar</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#dbmdbd">Diğer parola depolama yöntemleri</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#multprovider">Birden çok tedarikçi kullanmak</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#beyond">Yetkilendirmenin biraz ötesi</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#socache">Kimlik Doğrulama Arabelleği</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#moreinformation">Daha fazla bilgi</a></li>
+</ul><h3>Ayrıca bakınız:</h3><ul class="seealso"><li><a href="#comments_section">Yorum</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="related" id="related">İlgili modüller ve Yönergeler</a></h2>
+
+    <p>Kimlik Doğrulama ve yetkilendirme işlemi ile ilgili üç tür modül
+    vardır. Genellikle her bir gruptan en az bir modül seçeceksiniz.</p>
+
+    <ul>
+      <li>Kimlik Doğrulama türü (bkz. <code class="directive"><a href="../mod/mod_authn_core.html#authtype">AuthType</a></code> yönergesi)
+        <ul>
+          <li><code class="module"><a href="../mod/mod_auth_basic.html">mod_auth_basic</a></code></li>
+          <li><code class="module"><a href="../mod/mod_auth_digest.html">mod_auth_digest</a></code></li>
+        </ul>
+      </li>
+
+      <li>Kimlik Doğrulayıcı (bkz.
+      <code class="directive"><a href="../mod/mod_auth_basic.html#authbasicprovider">AuthBasicProvider</a></code>
+      ve <code class="directive"><a href="../mod/mod_auth_digest.html#authdigestprovider">AuthDigestProvider</a></code> yönergeleri)
+        <ul>
+          <li><code class="module"><a href="../mod/mod_authn_anon.html">mod_authn_anon</a></code></li>
+          <li><code class="module"><a href="../mod/mod_authn_dbd.html">mod_authn_dbd</a></code></li>
+          <li><code class="module"><a href="../mod/mod_authn_dbm.html">mod_authn_dbm</a></code></li>
+          <li><code class="module"><a href="../mod/mod_authn_file.html">mod_authn_file</a></code></li>
+          <li><code class="module"><a href="../mod/mod_authnz_ldap.html">mod_authnz_ldap</a></code></li>
+          <li><code class="module"><a href="../mod/mod_authn_socache.html">mod_authn_socache</a></code></li>
+        </ul>
+      </li>
+      <li>Yetkilendirme (bkz.
+          <code class="directive"><a href="../mod/mod_authz_core.html#require">Require</a></code> yönergesi)
+        <ul>
+          <li><code class="module"><a href="../mod/mod_authnz_ldap.html">mod_authnz_ldap</a></code></li>
+          <li><code class="module"><a href="../mod/mod_authz_dbd.html">mod_authz_dbd</a></code></li>
+          <li><code class="module"><a href="../mod/mod_authz_dbm.html">mod_authz_dbm</a></code></li>
+          <li><code class="module"><a href="../mod/mod_authz_groupfile.html">mod_authz_groupfile</a></code></li>
+          <li><code class="module"><a href="../mod/mod_authz_host.html">mod_authz_host</a></code></li>
+          <li><code class="module"><a href="../mod/mod_authz_owner.html">mod_authz_owner</a></code></li>
+          <li><code class="module"><a href="../mod/mod_authz_user.html">mod_authz_user</a></code></li>
+        </ul>
+      </li>
+    </ul>
+
+    <p>Bu modüllere ek olarak, <code class="module"><a href="../mod/mod_authn_core.html">mod_authn_core</a></code> ve
+    <code class="module"><a href="../mod/mod_authz_core.html">mod_authz_core</a></code> modülleri bulunur. Bu modüller
+    yetkilendirme modüllerinin çekirdeğini oluşturan temel yönergeleri
+    gerçekler.</p>
+
+    <p><code class="module"><a href="../mod/mod_authnz_ldap.html">mod_authnz_ldap</a></code> modülü kimlik doğrulama ve
+    yetkilendirme işlemlerinin ikisini birden gerçekleştirir.
+    <code class="module"><a href="../mod/mod_authz_host.html">mod_authz_host</a></code> modülü bu işlemleri sunucu adına, IP
+    adresine ve isteğin karekteristiğine bağlı olarak gerçekleştirir.
+    Ancak kimlik doğrulama sisteminin bir parçası değildir.
+    <code>mod_access</code> ile geriye uyumluluk için
+    <code class="module"><a href="../mod/mod_access_compat.html">mod_access_compat</a></code> diye bir modül daha vardır.</p>
+
+    <p>Muhtemelen göz atmak isteyeceğiniz <a href="access.html">Erişim
+    Denetimi</a> nasıl belgesi, sunucuya erişimlerin çeşitli yollarından
+    bahsetmektedir.</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="introduction" id="introduction">Giriş</a></h2>
+    <p>Sitenizde sadece küçük bir grup insana hitap eden ya da hassas
+    bilgileriniz varsa, bu makaledeki teknikleri kullanarak dilediğiniz
+    kişilerin sadece dilediğiniz sayfaları görüntülemesini
+    sağlayabilirsiniz.</p>
+
+    <p>Bu makale sitenizin bazı parçalarını korumak için kullanacağınız
+    "standart" yolları içermektedir.</p>
+
+    <div class="note"><h3>Bilginize:</h3>
+      <p>Eğer bilgileriniz gerçekten gizliliğe ihtiyaç duyuyorsa kimlik
+      doğrulamasına ilaveten <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> modülünü de
+      kullanabilirsiniz.</p>
+    </div>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="theprerequisites" id="theprerequisites">Ön gereksinimler</a></h2>
+    
+    <p>Bu makalede bahsi geçen yönergeler ya ana sunucu yapılandırma
+    dosyasında (genellikle <code class="directive"><a href="../mod/core.html#directory">&lt;Directory&gt;</a></code> bölümünde) ya da dizin içi
+    yapılandırma dosyalarında (<code>.htaccess</code> dosyaları)
+    bulunmak zorundadır.</p>
+
+    <p>Eğer <code>.htaccess</code> dosyalarını kullanmayı
+    tasarlıyorsanız, kimlik doğrulama yönergelerine bu dosyaların içine
+    koymaya izin veren sunucu yapılandırmasına ihtiyacınız olacaktır.
+    Bunun için, dizin içi yapılandırma dosyalarının içine hangi
+    yönergelerin konacağını belirleyen <code class="directive"><a href="../mod/core.html#allowoverride">AllowOverride</a></code> yönergesi kullanılır.</p>
+
+    <p>Kimlik doğrulamadan sözettiğimize göre, aşağıda gösterilen
+    şekilde bir <code class="directive"><a href="../mod/core.html#allowoverride">AllowOverride</a></code> yönergesine ihtiyacınız olacaktır:</p>
+
+    <pre class="prettyprint lang-config">AllowOverride AuthConfig</pre>
+
+
+    <p>Yönergeleri doğrudan ana sunucunun yapılandırma dosyasına
+    koyacaksanız bu dosyaya yazma izniniz olmalıdır.</p>
+
+    <p>Bazı dosyaların nerede saklandığını bilmek için sunucunun dizin
+    yapısı hakkında biraz bilgi sahibi olmanız gerekmektedir. Bu çok da
+    zor olmamakla birlikte bu noktaya gelindiğinde konuyu
+    netleştireceğiz.</p>
+
+    <p>Ayrıca <code class="module"><a href="../mod/mod_authn_core.html">mod_authn_core</a></code> ve
+    <code class="module"><a href="../mod/mod_authz_core.html">mod_authz_core</a></code> modülleri ya <code>httpd</code>
+    çalıştırılabilirinin içinde derlenmiş olmalı ya da
+    <code>httpd.conf</code> yapılandırma dosyası ile yüklenmelidir. Bu
+    iki modül HTTP sunucusunda kimlik doğrulama ve yetkilendirme
+    kullanımı ve yapılandırması için büyük öneme sahip temel yönergeleri
+    ve işlevselliği sağlar.</p>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="gettingitworking" id="gettingitworking">Çalışmaya Başlama</a></h2>
+    <p>Burada, sunucu üzerindeki bir dizini parolayla korumak için
+    gereken temel bilgiler verilecektir.</p>
+
+    <p>İlk olarak bir parola dosyası oluşturmalısınız. Bunu nasıl
+    yapacağınız, özellikle, seçtiğiniz kimlik doğrulayıcıya göre
+    değişiklik gösterir. Bunun üzerinde ileride daha fazla duracağız.
+    Başlangıç için parolaları bir metin dosyasında tutacağız.</p>
+
+    <p>Bu dosya belge kök dizini altında olmamalıdır. Böylece başkaları
+    parola dosyasını indiremezler. Örneğin belgeleriniz
+    <code>/usr/local/apache/htdocs</code> üzerinden sunuluyorsa parola
+    dosyanızı <code>/usr/local/apache/passwd</code> dizininde
+    tutabilirsiniz.</p>
+
+    <p>Dosyayı oluşturmak için Apache ile gelen
+    <code class="program"><a href="../programs/htpasswd.html">htpasswd</a></code> uygulamasını kullanacağız. Bu uygulama
+    Apache'nin kurulumunda belirtilen  <code>bin</code> dizininde
+    bulunur. Eğer Apache'yi üçüncü parti paketlerden  kurduysanız,
+    çalıştırılabilir dosyaların bulunduğu yollar üzerinde olmalıdır.</p>
+
+    <p>Bir dosya oluşturmak için şunları yazın:</p>
+
+    <div class="example"><p><code>
+      htpasswd -c /usr/local/apache/passwd/passwords umut
+    </code></p></div>
+
+    <p><code class="program"><a href="../programs/htpasswd.html">htpasswd</a></code> size parola soracaktır arkasından da
+    teyit etmek için parolayı tekrar girmenizi isteyecektir:</p>
+
+    <div class="example"><p><code>
+      # htpasswd -c /usr/local/apache/passwd/passwords umut<br />
+      New password: parolam<br />
+      Re-type new password: parolam<br />
+      Adding password for user umut
+    </code></p></div>
+
+    <p>Eğer <code class="program"><a href="../programs/htpasswd.html">htpasswd</a></code> normal yollar üzerinde değilse
+    çalıştırmak için dosyanın bulunduğu tam yeri belirtmeniz
+    gerekecektir. Dosyanın öntanımlı kurulum yeri:
+    <code>/usr/local/apache2/bin/htpasswd</code></p>
+
+    <p>Bundan sonra, sunucuyu, parola sorması için ve kimlerin erişim
+    izni olacağını belirlemek için yapılandıracaksınız. Bu işlemi
+    <code>httpd.conf</code>dosyasını düzenleyerek ya da bir
+    <code>.htaccess</code> dosyası kullanarak yapabilirsiniz. Örneğin,
+    <code>/usr/local/apache/htdocs/secret</code> dizinini korumayı
+    amaçlıyorsanız, şu yönergeleri kullanabilirsiniz. Bu yönergeleri
+    <code>/usr/local/apache/htdocs/secret/.htaccess</code> dosyası içine
+    veya <code>httpd.conf</code> içindeki &lt;Directory
+    "/usr/local/apache/htdocs/secret"&gt; bölümüne koyabilirsiniz.</p>
+
+    <pre class="prettyprint lang-config">AuthType Basic
+AuthName "Gizli Dosyalar"
+# (Aşağıdaki satırın kullanımı isteğe bağlıdır)
+AuthBasicProvider file
+AuthUserFile "/usr/local/apache/passwd/passwords"
+Require user umut</pre>
+
+
+    <p>Bu yönergeleri tek tek inceleyelim.
+    <code class="directive"><a href="../mod/mod_authn_core.html#authtype">AuthType</a></code> yönergesi
+    kullanıcının kimliğini doğrulamakta kullanılacak yöntemi seçer. En
+    çok kullanılan yöntem <code>Basic</code>'tir ve bu yöntem
+    <code class="module"><a href="../mod/mod_auth_basic.html">mod_auth_basic</a></code> modülüyle gerçeklenmiştir. Temel
+    (<code>Basic</code>) kimlik doğrulamasıyla gönderilen parolanın
+    şifrelenmeyeceğini unutmayın. Bu yöntem, bu sebepten dolayı
+    <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> eşliğinde kullanılmadığı sürece yüksek
+    hassasiyete sahip bilgiler için kullanılmamalıdır. Apache bir başka
+    kimlik doğrulama yöntemini daha destekler: <code>AuthType
+    Digest</code>. Bu yöntem <code class="module"><a href="../mod/mod_auth_digest.html">mod_auth_digest</a></code> tarafından
+    gerçeklenmişti ve çok daha güvenli olacağı düşünülmüştü. Bu artık
+    geçerliliğini yitirdiğinden bağlantının bundan böyle
+    <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> ile şifrelenmesi gerekmektedir.</p>
+
+    <p><code class="directive"><a href="../mod/mod_authn_core.html#authname">AuthName</a></code> yönergesi
+    ile kimlik doğrulamada kullanılacak <dfn>Saha</dfn> da
+    belirtilebilir. Saha kullanımının, başlıca iki işlevi vardır.
+    Birincisi, istemci sıklıkla bu bilgiyi kullanıcıya parola diyalog
+    kutusunun bir parçası olarak sunar. İkincisi, belirtilen kimlik
+    doğrulamalı alan için gönderilecek parolayı belirlerken istemci
+    tarafından kullanılır.</p>
+
+    <p>Örneğin, bir istemcinin <code>"Gizli Dosyalar"</code> alanında
+    kimliği doğrulanmış olsun. Aynı sunucu üzerinde <code>"Gizli
+    Dosyalar"</code> Sahası olarak belirlenmiş alanlarda aynı parola
+    özdevinimli olarak yinelenecektir. Böylece parola bir kere girilerek
+    aynı Sahayı paylaşan çok sayıda kısıtlanmış alana ulaşırken oluşacak
+    gecikmeden kullanıcı korunmuş olur. Güvenlik gerekçelerinden dolayı,
+    her sunucu adı değiştirilişinde istemcinin parolayı yeniden sorması
+    gerekir.</p>
+
+    <p><code class="directive"><a href="../mod/mod_auth_basic.html#authbasicprovider">AuthBasicProvider</a></code>
+    yönergesinin öntanımlı değeri <code>file</code> olduğundan, bu
+    durumda, bu yönergenin kullanımı isteğe bağlıdır. Ancak, eğer kimlik
+    doğrulaması için  <code class="module"><a href="../mod/mod_authn_dbm.html">mod_authn_dbm</a></code> ya da
+    <code class="module"><a href="../mod/mod_authn_dbd.html">mod_authn_dbd</a></code> gibi farklı bir kaynak seçecekseniz
+    bu yönergeyi kullanmanız gerekecektir.</p>
+
+    <p><code class="directive"><a href="../mod/mod_authn_file.html#authuserfile">AuthUserFile</a></code>
+    yönergesi <code class="program"><a href="../programs/htpasswd.html">htpasswd</a></code> ile oluşturduğumuz parola
+    dosyasının yerini belirtmek için kullanılır. Eğer çok sayıda
+    kullanıcınız varsa her bir kullanıcıyı her kimlik doğrulama isteği
+    için kimlik bilgilerini bir metin dosyasında aramak gayet yavaş
+    olacaktır. Apache, kullanıcı bilgilerini hızlı bir veritabanı
+    dosyasında depolama özelliğine de sahiptir. Bu amaçla,
+    <code class="module"><a href="../mod/mod_authn_dbm.html">mod_authn_dbm</a></code> modülünün
+    <code class="directive"><a href="../mod/mod_authn_dbm.html#authdbmuserfile">AuthDBMUserFile</a></code>
+    yönergesi kullanılabilir. Bu dosyalar <code class="program"><a href="../programs/dbmmanage.html">dbmmanage</a></code> ve
+    <code class="program"><a href="../programs/htdbm.html">htdbm</a></code> programı ile oluşturulabilir ve değiştirilebilir.
+    <a href="http://modules.apache.org/">Apache modülleri
+    Veritabanı</a> içindeki üçüncü parti modüllerinde çok sayıda
+    başka kimlik doğrulama türü de vardır.</p>
+
+    <p>Son olarak <code class="directive"><a href="../mod/mod_authz_core.html#require">Require</a></code>
+    yönergesi, sunucunun bu bölgesine erişimine izin verilen
+    kullanıcıları ayarlama işleminin kimlik doğrulamasıyla ilgili
+    kısmını sağlar. Bir sonraki bölümde <code class="directive"><a href="../mod/mod_authz_core.html#require">Require</a></code> yönergesini kullanmanın
+    çeşitli yoları üzerinde duracağız.</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="lettingmorethanonepersonin" id="lettingmorethanonepersonin">Birden çok kişiye izin vermek</a></h2>
+    
+    <p>Yukarıdaki yönergelerle bir dizinde sadece bir kişiye
+    (<code>umut</code> adlı kullanıcıya) izin verir. Çoğunlukla birden
+    çok kişiye izin verilmesi istenir. Bu durumda <code class="directive"><a href="../mod/mod_authz_groupfile.html#authgroupfile">AuthGroupFile</a></code> yönergesi
+    devreye girer.</p>
+
+    <p>Eğer birden çok kişiye izin vermek istiyorsanız içinde kullanıcı
+    isimlerinin olduğu bir grup dosyası oluşturmalısınız. Bu dosyanın
+    biçemi gayet basittir ve bunu herhangi bir metin düzenleyici ile
+    oluşturabilirsiniz. Bu dosyanın içeriği aşağıdaki gibi
+    görünecektir:</p>
+
+    <div class="example"><p><code>
+     GroupName: umut samet engin kubilay
+    </code></p></div>
+
+    <p>Dosya, sadece, boşluklarla birbirinden ayrılmış gurup üyelerinin
+    isimlerinden oluşan uzun bir liste içerir.</p>
+
+    <p>Varolan parola dosyasına bir kullanıcı eklemek için şunu
+    yazın:</p>
+
+    <div class="example"><p><code>
+      htpasswd /usr/local/apache/passwd/passwords birey
+    </code></p></div>
+
+    <p>Evvelce almış olduğunuz yanıtı yine alacaksınız ama bu sefer yeni
+    bir dosya oluşturulmak yerine var olan bir dosyaya eklenecektir.
+    (Yeni bir parola dosyası oluşturmak için <code>-c</code> seçeneği
+    kullanılır).</p>
+
+    <p>Şimdi, <code>.htaccess</code> dosyanızı veya
+    <code class="directive"><a href="../mod/core.html#directory">&lt;Directory&gt;</a></code> bölümünüzü
+    aşağıda görüldüğü şekilde değiştirebilirsiniz:</p>
+
+    <pre class="prettyprint lang-config">AuthType Basic
+AuthName "Davete Binaen"
+# Satır isteğe bağlıdır:
+AuthBasicProvider file
+AuthUserFile "/usr/local/apache/passwd/passwords"
+AuthGroupFile "/usr/local/apache/passwd/groups"
+Require group Grupismi</pre>
+
+
+    <p>Artık, <code>Grupismi</code> gurubunda listelenmiş ve
+    <code>password</code> dosyasında kaydı olan kişiye, parolayı doğru
+    yazdığı takdirde izin verilecektir.</p>
+
+    <p>Çoklu kullanıcıya izin veren biraz daha az kullanılan başka bir
+    yol daha mevcuttur. Bir gurup dosyası oluşturmaktansa, şu yönergeyi
+    kullanabilirsiniz:</p>
+
+    <pre class="prettyprint lang-config">Require valid-user</pre>
+
+
+    <p><code>Require user umut</code> satırı ile parola dosyasında
+    listelenmiş ve parolayı doğru olarak giren herhangi bir kişiye izin
+    vermektense, her grup için ayrı bir parola dosyası tutarak grup
+    davranışını taklit edebilirsiniz.</p>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="possibleproblems" id="possibleproblems">Olası Sorunlar</a></h2>
+    <p>Temel kimlik doğrulama yolu belirtildiği için, sunucuya
+    yaptığınız her belge istediğinde kullanıcı adınızın ve parolanızın
+    doğrulanması gerekir. Hatta aynı sayfayı yeniden yüklerken ya da
+    sayfadaki her bir resim için bu yapılmalıdır (şayet korunmakta olan
+    bir dizinden geliyorsa). Bu işlem hızı azaltacaktır. Yavaşlama
+    miktarı parola dosyanızın büyüklüğü ile orantılı olacaktır, çünkü bu
+    işlem sırasında dosya açılacak ve kullanıcıların arasında isminiz
+    bulunana kadar liste aşağı doğru taranacaktır. Bu işlem sayfa her
+    yüklenişinde tekrar edilecektir.</p>
+
+    <p>Buradan çıkacak sonuç, bir parola dosyasına konulan kullanıcı
+    sayısında bir üst sınır olması gerekliliğidir. Bu sınır sunucunuzun
+    başarımına bağlı olarak değişiklik gösterir. Bir kaç yüz kayıtın
+    üstünde giriş yaptığınızda hız düşüşünü gözlemlebilirsiniz İşte bu
+    anda kimlik doğrulama için başka bir yöntem aramaya başlarsınız.</p>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="dbmdbd" id="dbmdbd">Diğer parola depolama yöntemleri</a></h2>
+    
+    <p>Parolaları basit bir metin dosyasında depolamak yukarıda
+    bahsedilen sorunlara yol açtığından parolaları başka bir yerde
+    depolamayı düşünebilirsiniz; örneğin bir veritabanında.</p>
+
+    <p><code class="module"><a href="../mod/mod_authn_dbm.html">mod_authn_dbm</a></code> ve <code class="module"><a href="../mod/mod_authn_dbd.html">mod_authn_dbd</a></code>
+    modülleri bunu mümkün kılan iki modüldür. Depolama yönemi olarak
+    <code><code class="directive"><a href="../mod/mod_auth_basic.html#authbasicprovider">AuthBasicProvider</a></code> file</code> yerine, <code>dbm</code>
+    veya <code>dbd</code> kullanabilirsiniz.</p>
+
+    <p>Bir metin dosyası yerine bir dbm dosyası kullanım örneği:</p>
+
+    <pre class="prettyprint lang-config">&lt;Directory "/www/docs/private"&gt;
+    AuthName "Private"
+    AuthType Basic
+    AuthBasicProvider dbm
+    AuthDBMUserFile "/www/passwords/passwd.dbm"
+    Require valid-user
+&lt;/Directory&gt;</pre>
+
+
+    <p>Başka seçenekler de mümkündür. Ayrınılar için
+    <code class="module"><a href="../mod/mod_authn_dbm.html">mod_authn_dbm</a></code> belgesine başvurun.</p>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="multprovider" id="multprovider">Birden çok tedarikçi kullanmak</a></h2>
+    
+    <p>Kimlik doğrulama ve yetkilendirme mimarisine dayalı yeni
+    tedarikçiyi kullanarak tek bir yetkilendirme ya da kimlik doğrulama
+    yöntemine kilitlenip kalmayacaksınız. Aslında birden çok tedarikçi
+    ihtiyacınıza cevap vermek için bir arada kullanılabilir. Aşağıdaki
+    örnekte dosya ve LDAP tabanlı kimlik doğrulama tedarikçileri bir
+    arada kullanılmıştır.</p>
+
+    <pre class="prettyprint lang-config">&lt;Directory "/www/docs/private"&gt;
+    AuthName "Private"
+    AuthType Basic
+    AuthBasicProvider file ldap
+    AuthUserFile "/usr/local/apache/passwd/passwords"
+    AuthLDAPURL ldap://ldaphost/o=yourorg
+    Require valid-user
+&lt;/Directory&gt;</pre>
+
+
+    <p>Bu örnekte dosya tedarikçisi, ilk olarak kullanıcının kimliğini
+    doğrulamaya teşebbüs edecektir. Kullanıcının kimliği
+    doğrulanamıyorsa LDAP tedarikçisi çağırılır. Eğer kurumunuz birden
+    çok kimlik doğrulama tedarikçisini yürürlüğe koyuyorsa bu, kimlik
+    doğrulama faaliyet alanının genişletilmesini sağlar. Diğer kimlik
+    kanıtlama ve yetkilendirme senaryoları tek bir kimlik doğrulaması
+    ile birden fazla yetkilendirme türüne izin verebilir.</p>
+
+    <p>Çok sayıda kimlik doğrulama tedarikçisi uygulamaya konulabileceği
+    gibi, çok sayıda yetkilendirme yöntemi de kullanılabilir. Bu örnekte
+    dosya için hem dosyalı hem de LDAP grup kimlik doğrulaması
+    kullanılmıştır.</p>
+
+    <pre class="prettyprint lang-config">&lt;Directory "/www/docs/private"&gt;
+    AuthName "Private"
+    AuthType Basic
+    AuthBasicProvider file
+    AuthUserFile "/usr/local/apache/passwd/passwords"
+    AuthLDAPURL ldap://ldaphost/o=yourorg
+    AuthGroupFile "/usr/local/apache/passwd/groups"
+    Require group GroupName
+    Require ldap-group cn=mygroup,o=yourorg
+&lt;/Directory&gt;</pre>
+
+
+    <p>Kimlik doğrulama konusunu biraz daha genişletirsek, <code class="directive"><a href="../mod/mod_authz_core.html#requireall">&lt;RequireAll&gt;</a></code> ve
+    <code class="directive"><a href="../mod/mod_authz_core.html#requireany">&lt;RequireAny&gt;</a></code> gibi yetkilendirme taşıyıcısı
+    yönergelerle hangi iznin hangi sırayla uygulanacağını
+    belirlenebilir. <a href="../mod/mod_authz_core.html#logic">Yetkilendirme Taşıyıcıları</a> bölümünde bunun bir uygulama
+    örneğini görebilirsiniz.</p>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="beyond" id="beyond">Yetkilendirmenin biraz ötesi</a></h2>
+    <p>Tek bir veri deposundan yapılacak tek bir sınamadan çok daha
+    esnek kimlik doğrulaması yapılabilir. Sıralama, mantık ve hangi
+    kimlik doğrulamasının kullanılacağını seçmek mümkündür.</p>
+
+    <h3><a name="authandororder" id="authandororder">Mantık ve sıralamanın uygulanması</a></h3>
+      
+      <p>Yetkilendirmenin hangi sırayla uygulanacağı ve nasıl
+      denetleneceği geçmişte biraz gizemli bir konuydu. Apache 2.2'de,
+      tedarikçi tabanlı kimlik doğrulamasının devreye girmesiyle asıl
+      kimlik doğrulama işlemini yetkilendirme ve destek işlevselliğinden
+      ayırmak mümkün oldu. Bunun faydalarından birisi de kimlik
+      doğrulama tedarikçilerinin yapılandırılabilmesi ve auth modülünün
+      kendi yükleme sırasından bağımsız olarak özel bir sırayla
+      çağrılabilmesidir. Bu tedarikçi tabanlı mekanizmanın aynısı
+      yetkilendirmeye de getirilmiştir. Bunun anlamı <code class="directive"><a href="../mod/mod_authz_core.html#require">Require</a></code> yönergesinde hangi
+      izin yönteminin kullanılması gerektiğinin belirtmesinin yanında
+      hangi sırayla çağırılacaklarının da belirlenebildiğidir. Çok
+      sayıda yetkilendirme yöntemi kullanıldığında, bunlar, <code class="directive"><a href="../mod/mod_authz_core.html#require">Require</a></code> yönergelerinin
+      yapılandırma dosyasında göründükleri sıra ile çağırılır.</p>
+
+      <p><code class="directive"><a href="../mod/mod_authz_core.html#requireall">&lt;RequireAll&gt;</a></code> ve <code class="directive"><a href="../mod/mod_authz_core.html#requireany">&lt;RequireAny&gt;</a></code> gibi yetkilendirme
+      taşıyıcısı yönergelerin devreye girmesiyle yetkilendirme
+      yöntemlerinin ne zaman çağırılacağı ve çağırıldığında ve erişime
+      izin verirken hangi kuralların uygulanacağı konusunda denetim
+      yapılandırmanın eline geçmektedir. Karmaşık yetkilendime mantığını
+      ifade etmek için kullanılan bir örneği görmek için
+      <a href="../mod/mod_authz_core.html#logic">Yetkilendirme
+      Taşıyıcıları</a> bölümüne bakınız.</p>
+
+      <p>Öntanımlı olarak tüm <code class="directive"><a href="../mod/mod_authz_core.html#require">
+      Require</a></code> yönergeleri, <code class="directive"><a href="../mod/mod_authz_core.html#requireany">&lt;RequireAny&gt;</a></code>
+      taşıyıcı yönergesinin içine konur. Başka bir deyişle eğer
+      belirtilen kimlik doğrulama yöntemlerinden herhangi biri başarılı
+      olursa yetkilendirme de sağlanmış olur.</p>
+
+    
+
+    <h3><a name="reqaccessctrl" id="reqaccessctrl">Erişim denetimi için yetkilendirme tedarikçilerinin
+      kullanımı</a></h3>
+      
+      <p>Kullanıcı adı ve parolasına göre kimlik doğrulama hikayenin
+      sadece bir bölümüdür. Sıklıkla insanlara kim olduklarına göre
+      değil birşeylere dayanarak izin vermek istersiniz. Örneğin nereden
+      geldikleri gibi.</p>
+
+      <p><code>all</code>, <code>env</code>, <code>host</code> ve
+      <code>ip</code> gibi yetkilendirme tedarikçileri ile, bir belgenin
+      istendiği makinenin IP adresi veya konak ismi gibi bazı özelliklerine
+      dayalı olarak erişime izin verip vermeyeceğinizi belirtebilirsiniz.</p>
+
+      <p>Bu tedarikçilerin kullanımı <code class="directive"><a href="../mod/mod_authz_core.html#require">Require</a></code> yönergesinde açıklanmıştır. Bu yönergeler,
+      isteklerin işlenmesi sırasında yetkilendirme aşamasında
+      çağırılacak yetkilendirme tedarikçilerini kayda geçirir. Örneğin:
+      </p>
+
+      <pre class="prettyprint lang-config">Require ip <var>adres</var></pre>
+
+
+      <p>Burada, <var>adres</var> bir IP adresidir (veya kısmi bir IP
+        addresidir)</p>
+
+      <pre class="prettyprint lang-config">Require host <var>alan_adı</var></pre>
+
+
+      <p>Burada, <var>alan_adı</var> bir tam nitelikli alan adıdır
+      (ya da kısmi alan adıdır); gerekirse çok sayıda alan adı veya IP
+      adresi de belirtilebilir.</p>
+
+      <p>Örneğin, yorum alanını gereksiz iletilerle dolduran birini uzak
+      tutmak istediğinizi varsayalım. Bu kişiyi uzak tutmak için şunları
+      yapabilirsiniz:</p>
+
+        <pre class="prettyprint lang-config">&lt;RequireAll&gt;
+    Require all granted
+    Require not ip 10.252.46.165
+&lt;/RequireAll&gt;</pre>
+
+
+      <p>Bu adresden gelen ziyaretçiler bu yönergedeki içeriği
+      göremeyeceklerdir. Bunun yerine, elinizde IP adresi değil de
+      makine adı varsa şunu kullanabilirsiniz:</p>
+
+        <pre class="prettyprint lang-config">&lt;RequireAll&gt;
+    Require all granted
+    Require not host host.example.com
+&lt;/RequireAll&gt;</pre>
+
+
+      <p>Eğer alan adının tamanıdan gelecek olan bütün erişimleri
+      engellemek isterseniz adresin ya da alan adının bir parçasını
+      belirtin:</p>
+
+        <pre class="prettyprint lang-config">&lt;RequireAll&gt;
+    Require all granted
+    Require not ip 192.168.205
+    Require not host phishers.example.com moreidiots.example
+    Require not host ke
+&lt;/RequireAll&gt;</pre>
+
+
+        <p><code class="directive"><a href="../mod/mod_authz_core.html#requireall">&lt;RequireAll&gt;</a></code> yönergesini çok sayıda
+        <code class="directive"><a href="../mod/mod_authz_core.html#require">&lt;Require&gt;</a></code> yönergesi ile birlikte kullanarak,
+        sadece <code>not</code> ile olumsuzlanan tüm koşulları gerçekleyen
+        bağlantılara erişim verilir. Başka bir deyişle, olumsuzlanan koşulları
+        gerçeklemeyen bağlantıların erişimi engellenir.</p>
+
+    
+
+    <h3><a name="filesystem" id="filesystem">Erişim denetimi ve geriye uyumluluk</a></h3>
+      
+      <p>Kimlik doğrulama için tedarik tabanlı mekanizma kullanımının
+      yan etkilerinden birisi,
+      <code class="directive"><a href="../mod/mod_access_compat.html#order">Order</a></code>,
+      <code class="directive"><a href="../mod/mod_access_compat.html#allow">Allow</a></code>,
+      <code class="directive"><a href="../mod/mod_access_compat.html#deny">Deny</a></code> ve
+      <code class="directive"><a href="../mod/mod_access_compat.html#satisfy">Satisfy</a></code> erişim
+      denetim yönergelerine artık ihtiyaç duyulmamasıdır. Ancak eski
+      yapılandırmalarla uyumluluğu sağlamak için bu yönergeler
+      <code class="module"><a href="../mod/mod_access_compat.html">mod_access_compat</a></code> modülüne taşınmıştır.</p>
+
+      <div class="warning"><h3>Note</h3>
+        <p><code class="module"><a href="../mod/mod_access_compat.html">mod_access_compat</a></code> ile sağlanan yönergelerin 
+        kullanımı artık önerilmemekte, <code class="module"><a href="../mod/mod_authz_host.html">mod_authz_host</a></code> 
+        modülündeki yönergeler önerilmektedir. <code class="directive"><a href="../mod/mod_access_compat.html#order">Order</a></code>, <code class="directive"><a href="../mod/mod_access_compat.html#allow">Allow</a></code> veya <code class="directive"><a href="../mod/mod_access_compat.html#deny">Deny</a></code> ile
+        <code class="directive"><a href="../mod/mod_authz_core.html#require">Require</a></code> gibi daha yeni 
+        olanlarının yenilerle karışık kullanımı teknik olarak mümkünse de 
+        önerilmemektedir. <code class="module"><a href="../mod/mod_access_compat.html">mod_access_compat</a></code> modülü, 2.4 
+        yükseltmesini kolaylaştırmak için sadece eski yönergeleri içeren 
+        yapılandırmaları desteklemek üzere oluşturulmuştur.  Daha ayrıntılı 
+        bilgi için <a href="../upgrading.html">yükseltme</a> belgesine bakınız.
+        </p>
+      </div>
+    
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="socache" id="socache">Kimlik Doğrulama Arabelleği</a></h2>
+    <p>Zaman zaman kimlik doğrulama ağınızda veya sağlayıcı(ları)nızda kabul
+    edilemez yükler oluşturur. Bu çoğunlukla <code class="module"><a href="../mod/mod_authn_dbd.html">mod_authn_dbd</a></code>
+    (veya üçüncü parti/özel sağlayıcıların) kullanıcılarını etkiler. Bununla
+    ilgilenmek için httpd 2.3/2.4, kimlik bilgilerini arabelleklemek ve özgün
+    sağlayıcıların yüklerini azaltmak için yeni bir arabellekleme sağlayıcısı
+    olarak <code class="module"><a href="../mod/mod_authn_socache.html">mod_authn_socache</a></code> modülü ile gelmektedir.</p>
+    <p>Bu, bazı kullanıcılar için önemli bir başarım artışı sağlayabilir.</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="moreinformation" id="moreinformation">Daha fazla bilgi</a></h2>
+    <p>Daha fazla bilgi için <code class="module"><a href="../mod/mod_auth_basic.html">mod_auth_basic</a></code> ve
+    <code class="module"><a href="../mod/mod_authz_host.html">mod_authz_host</a></code> modüllerinin belgelerine bakınız.
+    <code class="directive"><a href="../mod/mod_authn_core.html#authnprovideralias">AuthnProviderAlias</a></code>
+    yönergesi ile bazı yapılandırmalarınızı basitleştirebilirsiniz.</p>
+
+    <p>Apache tarafından desteklenen şifrelerle ilgili bilgi için <a href="../misc/password_encryptions.html">Parola Biçemleri</a>
+    belgesine bakınız.</p>
+
+    <p><a href="access.html">Erişim Denetimi</a> nasıl belgesinden de
+    bazı bilgiler edinebilirsiniz.</p>
+  </div></div>
+<div class="bottomlang">
+<p><span>Mevcut Diller: </span><a href="../en/howto/auth.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../es/howto/auth.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="../fr/howto/auth.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/howto/auth.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/howto/auth.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/howto/auth.html" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Yorum</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/howto/auth.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br /><a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> altında lisanslıdır.</p>
+<p class="menu"><a href="../mod/">Modüller</a> | <a href="../mod/directives.html">Yönergeler</a> | <a href="http://wiki.apache.org/httpd/FAQ">SSS</a> | <a href="../glossary.html">Terimler</a> | <a href="../sitemap.html">Site Haritası</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

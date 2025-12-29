@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+<meta content="text/html; charset=EUC-KR" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>보안 팁 - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Miscellaneous Documentation</a></div><div id="page-content"><div id="preamble"><h1>보안 팁</h1>
+<div class="toplang">
+<p><span>가능한 언어: </span><a href="../en/misc/security_tips.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/misc/security_tips.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ko/misc/security_tips.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/misc/security_tips.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">이 문서는 최신판 번역이 아닙니다.
+            최근에 변경된 내용은 영어 문서를 참고하세요.</div>
+
+    <p>웹서버를 운영할때 도움이 될 보안 관련 힌트와 팁이다.
+    어떤 것은 일반적이고, 어떤 것은 아파치에만 해당하는 것이다.</p>
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#uptodate">최신판으로 유지하기</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#serverroot">ServerRoot 디렉토리 권한</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ssi">Server Side Includes</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cgi">일반적인 CGI</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#nsaliasedcgi">ScriptAlias하지 않은 CGI</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#saliasedcgi">ScriptAlias한 CGI</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#dynamic">동적 내용을 생성하는 다른 방법</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#systemsettings">시스템 설정 보호하기</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#protectserverfiles">기본적으로 서버에 있는 파일 보호하기</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#watchyourlogs">로그 살펴보기</a></li>
+</ul><h3>참고</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="uptodate" id="uptodate">최신판으로 유지하기</a></h2>
+
+    <p>아파치 웹서버는 안전과 보안 문제에 관심이 많은 개발자
+    공동체로 유명하다. 그러나 크건 작건 발표후 발견되는 문제들을
+    피할 수 없다. 그래서 소프트웨어를 최신버전으로 유지하는
+    것이 중요하다. 아파치에서 직접 웹서버를 다운로드했다면,
+    새로운 버전과 보안 업데이트를 알려주는 <a href="http://httpd.apache.org/lists.html#http-announce">아파치
+    웹서버 발표 메일링리스트</a>를 구독하길 강력히 권한다.
+    아파치 소프트웨어를 배포하는 많은 제삼자들도 비슷한 서비스를
+    제공한다.</p>
+
+    <p>물론 웹서버 코드때문에 웹서버가 공격을 당하는 경우는
+    많지 않다. 그보다 추가 코드, CGI 스크립트, 하위 운영체제의
+    문제로 공격을 당하는 경우가 많다. 그러므로 항상 주의하며
+    시스템의 모든 소프트웨어를 업데이트해야 한다.</p>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="serverroot" id="serverroot">ServerRoot 디렉토리 권한</a></h2>
+  
+    
+    
+    <p>보통 root 사용자가 아파치를 시작한 후, 요청을 서비스하기위해
+    <code class="directive"><a href="../mod/mpm_common.html#user">User</a></code> 지시어로
+    지정한 사용자로 변환한다. root가 실행하는 명령어가 있다면,
+    root 이외의 사용자가 수정하지 못하도록 주의해야 한다. 이
+    파일들을 root만 쓸 수 있어야 하고, 디렉토리와 모든 상위디렉토리도
+    마찬가지다. 예를 들어, ServerRoot로 /usr/local/apache를
+    사용한다면 root 사용자가 다음과 같이 디렉토리를 만들길
+    제안한다:</p>
+    
+    <div class="example"><p><code>
+      mkdir /usr/local/apache <br />
+      cd /usr/local/apache <br />
+      mkdir bin conf logs <br />
+      chown 0 . bin conf logs <br />
+      chgrp 0 . bin conf logs <br />
+      chmod 755 . bin conf logs
+    </code></p></div>
+    
+    <p>그러면 /, /usr, /usr/local 은 root만이 수정할 수 있다.
+    httpd 실행파일을 설치할때 다음과 같이 보호해야 한다:</p>
+    
+    <div class="example"><p><code>
+      cp httpd /usr/local/apache/bin <br />
+      chown 0 /usr/local/apache/bin/httpd <br />
+      chgrp 0 /usr/local/apache/bin/httpd <br />
+      chmod 511 /usr/local/apache/bin/httpd
+    </code></p></div>
+    
+    <p>htdocs 하위디렉토리는 다른 사용자들이 수정할 수 있도록
+    만들 수 있다 -- root는 그곳에 있는 파일을 실행하지도, 만들지도
+    않아야 한다.</p>
+    
+    <p>root가 아닌 사용자가 root가 실행하거나 쓰기가능한 파일을
+    수정할 수 있다면 시스템의 root 권한을 훔칠 수 있다. 예를
+    들어, 누군가 httpd 실행파일을 변경하였다면 다음번 시작할때
+    임의의 코드를 실행하게 된다. logs 디렉토리가 (root가 아닌
+    사용자에게) 쓰기가능하다면 누군가 로그파일을 다른 시스템파일로
+    심볼링크를 걸어서 root가 파일에 임의의 자료를 덮어쓸 수
+    있다. 로그파일이 (root가 아닌 사용자에게) 쓰기가능하다면
+    누군가 로그에 이상한 자료를 기록할 수 있다.</p>
+    
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="ssi" id="ssi">Server Side Includes</a></h2>
+  
+    
+    
+    <p>Server Side Includes (SSI)는 서버 관리자에게 보안상 몇가지
+    잠재적인 위험이다.</p>
+    
+    <p>첫번째 위험은 서버의 부하를 늘리는 점이다. 아파치는 파일에
+    SSI 지시어가 있는지 여부와 관계없이 모든 SSI 파일을 분석해야
+    한다. 조금 부하가 늘지만, 서버를 여러 사람이 같이 사용하는
+    환경에서는 심각할 수 있다.</p>
+    
+    <p>또, SSI 파일은 일반적인 CGI 스크립트와 동일한 위험을
+    가진다. SSI 파일에서 "exec cmd"를 사용하면 httpd.conf에서
+    아파치를 실행하도록 설정한 사용자와 그룹 권한으로 CGI
+    스크립트나 프로그램을 실행할 수 있다.</p>
+    
+    <p>장점을 활용하면서 SSI 파일의 보안을 향상시키는 방법이
+    있다.</p>
+    
+    <p>SSI 파일이 가져올 수 있는 피해를 격리하기위해 서버관리자는
+    <a href="#cgi">일반적인 CGI</a> 절에서 설명하는 방법으로
+    <a href="../suexec.html">suexec</a>를 사용할 수 있다</p>
+    
+    <p>.html이나 .htm 확장자를 SSI 파일로 사용하는 것은 위험하다.
+    특히 여러 사람이 공유하거나 통신량이 많은 서버 환경에서
+    위험하다. SSI 파일은 일반적으로 많이 사용하는 .shtml 같은
+    별도의 확장자를 가져야 한다. 그러면 서버 부하를 최소화하고
+    위험요소를 쉽게 관리할 수 있다.</p>
+    
+    <p>다른 방법은 SSI 페이지가 스크립트나 프로그램을 실행하지
+    못하도록 만드는 것이다. <code class="directive"><a href="../mod/core.html#options">Options</a></code> 지시어에서 <code>Includes</code>
+    대신 <code>IncludesNOEXEC</code>를 사용한다. 그래도 스크립트가
+    <code class="directive"><a href="../mod/mod_alias.html#scriptalias">ScriptAlias</a></code> 지시어로
+    지정한 디렉토리에 있다면 &lt;--#include virtual="..." --&gt;를
+    사용하여 CGI 스크립트를 실행할 수 있음을 주의하라.</p>
+    
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="cgi" id="cgi">일반적인 CGI</a></h2>
+  
+    
+    
+    <p>결국 당신은 항상 CGI 스크립트/프로그램의 저자를 신뢰해야
+    하고, 고의건 실수이건 CGI의 잠재적인 보안상 허점을 발견할
+    수 있어야 한다. 기본적으로 CGI 스크립트는 웹서버 사용자
+    권한으로 시스템에서 어떤 명령어라도 실행할 수 있기때문에
+    주의있게 확인하지 않으면 매우 위험하다.</p>
+    
+    <p>모든 CGI 스크립트가 같은 사용자로 실행되기때문에 다른
+    스크립트와 (고의건 실수이건) 충돌할 가능성이 있다. 예를
+    들어, 사용자 A는 사용자 B를 매우 싫어하여, 사용자 B의 CGI
+    데이터베이스를 지워버리는 스크립트를 작성할 수 있다. 아파치
+    1.2 버전부터 포함되었고 아파치 서버에서 특별한 훅(hook)으로
+    동작하는 <a href="../suexec.html">suEXEC</a>는 스크립트를
+    다른 사용자로 실행하는 방법중 하나다. 다른 대중적인 방법에는
+    <a href="http://cgiwrap.unixtools.org/">CGIWrap</a>이 있다.</p>
+    
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="nsaliasedcgi" id="nsaliasedcgi">ScriptAlias하지 않은 CGI</a></h2>
+  
+    
+    
+    <p>다음 조건을 만족할때만 사용자가 어떤 디렉토리에서라도
+    CGI 스크립트를 실행하도록 허용할 수 있다:</p>
+    
+    <ul>
+      <li>당신은 고의건 실수이건 사용자가 시스템을 공격에 노출시키는
+      스크립트를 작성하지 않는다고 믿는다.</li>
+      <li>시스템의 다른 부분의 보안이 약해서, 잠재적인 허점을
+      하나 더 만들어도 나빠질 것이 없다고 생각하는 경우.</li>
+      <li>사용자가 없고, 아마 아무도 서버를 방문하지않는 경우.</li>
+    </ul>
+    
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="saliasedcgi" id="saliasedcgi">ScriptAlias한 CGI</a></h2>
+  
+    
+    
+    <p>특정 디렉토리에서만 CGI를 실행할 수 있도록 제한하면 관리자는
+    이들 디렉토리를 통제할 수 있다. 이 경우는 scriptalias하지
+    않은 CGI보다 확실히 안전하다. 단, 신뢰하는 사용자만 디렉토리에
+    접근할 수 있고, 관리자가 새로운 CGI 스크립트/프로그램의
+    잠재적인 보안상 허점을 검사할 용이가 있다면.</p>
+    
+    <p>대부분의 사이트는 scriptalias하지 않은 CGI 방식 대신
+    이 방식을 사용한다.</p>
+    
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="dynamic" id="dynamic">동적 내용을 생성하는 다른 방법</a></h2>
+
+  
+
+  <p>
+  mod_php, mod_perl, mod_tcl, mod_python 같이 서버의 일부로
+  동작하는 임베디드 스크립트는 서버와 같은 사용자로 (<code class="directive"><a href="../mod/mpm_common.html#user">User</a></code> 지시어 참고) 실행되기때문에,
+  스크립트 엔진이 실행하는 스크립트는 잠재적으로 서버 사용자가
+  접근할 수 있는 모든 것에 접근할 수 있다. 어떤 스크립트 엔진은
+  어느정도 제한을 하지만, 안전하다고 가정하지 않는 것이 좋다.</p>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="systemsettings" id="systemsettings">시스템 설정 보호하기</a></h2>
+  
+    
+    
+    <p>정말로 안전한 서버를 운영하려면 사용자가
+    <code>.htaccess</code> 파일을 사용하여 당신이 설정한 보안기능을
+    변경하길 바라지 않을 것이다. 그러기위해 다음과 같은 방법이
+    있다.</p>
+    
+    <p>서버 설정파일에 다음을 추가한다</p>
+    
+    <div class="example"><p><code>
+      &lt;Directory /&gt; <br />
+        AllowOverride None <br />
+      &lt;/Directory&gt;
+    </code></p></div>
+    
+    <p>그러면 사용가능하도록 명시적으로 허용한 디렉토리를 제외하고는
+    <code>.htaccess</code> 파일을 사용할 수 없다.</p>
+    
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="protectserverfiles" id="protectserverfiles">기본적으로 서버에 있는 파일 보호하기</a></h2>
+  
+    
+    
+    <p>사람들은 종종 아파치의 기본 접근에 대해 잘못 알고있다.
+    즉, 서버가 일반적인 URL 대응 규칙을 사용하여 파일을 찾을
+    수 있다면, 특별히 조치를 하지 않는한 클라이언트에게 파일이
+    서비스될 수 있다.</p>
+    
+    <p>예를 들어, 아래와 같은 경우:</p>
+    
+    <div class="example"><p><code>
+      # cd /; ln -s / public_html <br />
+      <code>http://localhost/~root/</code> 에 접근한다
+    </code></p></div>
+    
+    <p>그러면 클라이언트는 전체 파일시스템을 돌아다닐 수 있다.
+    이를 막기위해 서버설정에서 다음과 같은 조치를 한다:</p>
+    
+    <div class="example"><p><code>
+      &lt;Directory /&gt; <br />
+      Order Deny,Allow <br />
+      Deny from all <br />
+      &lt;/Directory&gt;
+    </code></p></div>
+    
+    <p>그러면 파일시스템 위치에 대해 기본 접근이 거부된다.
+    원하는 영역에 접근할 수 있도록 다음과 같은 <code class="directive"><a href="../mod/core.html#directory">Directory</a></code> 블록을 추가한다.</p>
+    
+    <div class="example"><p><code>
+      &lt;Directory /usr/users/*/public_html&gt; <br />
+        Order Deny,Allow <br />
+        Allow from all <br />
+      &lt;/Directory&gt; <br />
+      &lt;Directory /usr/local/httpd&gt; <br />
+        Order Deny,Allow <br />
+        Allow from all <br />
+      &lt;/Directory&gt;
+    </code></p></div>
+    
+    <p><code class="directive"><a href="../mod/core.html#location">Location</a></code>과 <code class="directive"><a href="../mod/core.html#directory">Directory</a></code> 지시어를 같이 사용하는
+    경우 특별히 주의를 기울여라. 예를 들어, <code>&lt;Directory
+    /&gt;</code>가 접근을 거부하더라도 <code>&lt;Location
+    /&gt;</code> 지시어가 이를 무시할 수 있다</p>
+    
+    <p><code class="directive"><a href="../mod/mod_userdir.html#userdir">UserDir</a></code> 지시어를
+    사용하는 경우에도 주의하라. 지시어를 "./" 같이 설정하면
+    root 사용자에 대해 바로 위의 경우와 같은 문제가 발생한다.
+    아파치 1.3 이상을 사용한다면 서버 설정파일에 아래 줄을 추가하길
+    강력히 권한다:</p>
+    
+    <div class="example"><p><code>
+      UserDir disabled root
+    </code></p></div>
+    
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="watchyourlogs" id="watchyourlogs">로그 살펴보기</a></h2>
+  
+    
+    
+    <p>실제로 서버에서 무슨 일이 있어나고 있는지 알려면 <a href="../logs.html">로그파일</a>을 살펴봐야 한다. 로그파일은
+    이미 일어난 일만을 보고하지만, 서버에 어떤 공격이 있었는지
+    알려주고 현재 필요한 만큼 안전한지 확인하게 해준다.</p>
+    
+    <p>여러가지 예:</p>
+    
+    <div class="example"><p><code>
+      grep -c "/jsp/source.jsp?/jsp/ /jsp/source.jsp??" access_log <br />
+      grep "client denied" error_log | tail -n 10
+    </code></p></div>
+    
+    <p>첫번째 예는 <a href="http://online.securityfocus.com/bid/4876/info/">잘못된
+    Source.JSP 요청으로 서버정보를 알아낼 수 있는 Tomcat의
+    취약점</a>를 이용하려는 공격 횟수를 알려주고, 두번째 예는
+    접근이 거부된 최근 클라이언트 10개를 다음과 같이 보여준다:</p>
+    
+    <div class="example"><p><code>
+      [Thu Jul 11 17:18:39 2002] [error] [client foo.bar.com] client denied
+      by server configuration: /usr/local/apache/htdocs/.htpasswd
+    </code></p></div>
+    
+    <p>잘 알 듯이 로그파일은 이미 발생한 사건만을 보고한다.
+    그래서 클라이언트가 <code>.htpasswd</code> 파일에 접근할
+    수 있었다면 <a href="../logs.html#accesslog">접근 로그</a>에
+    다음과 같은 기록이 남을 것이다:</p>
+    
+    <div class="example"><p><code>
+      foo.bar.com - - [12/Jul/2002:01:59:13 +0200] "GET /.htpasswd HTTP/1.1"
+    </code></p></div>
+    
+    <p>즉, 당신은 서버 설정파일에서 다음 부분을 주석처리했을
+    것이다:</p>
+    
+    <div class="example"><p><code>
+      &lt;Files ".ht*"&gt; <br />
+        Order allow,deny <br />
+        Deny from all <br />
+      &lt;Files&gt;
+    </code></p></div>
+    
+  </div></div>
+<div class="bottomlang">
+<p><span>가능한 언어: </span><a href="../en/misc/security_tips.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/misc/security_tips.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ko/misc/security_tips.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/misc/security_tips.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/misc/security_tips.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

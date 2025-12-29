@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+<meta content="text/html; charset=EUC-KR" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>apxs - APache eXtenSion 도구 - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Programs</a></div><div id="page-content"><div id="preamble"><h1>apxs - APache eXtenSion 도구</h1>
+<div class="toplang">
+<p><span>가능한 언어: </span><a href="../en/programs/apxs.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/programs/apxs.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ko/programs/apxs.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/programs/apxs.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">이 문서는 최신판 번역이 아닙니다.
+            최근에 변경된 내용은 영어 문서를 참고하세요.</div>
+
+    <p><code>apxs</code>는 아파치 하이퍼텍스트 전송 프로토콜
+    (HTTP) 서버의 확장모듈을 컴파일하고 설치하는 도구이다. 이
+    도구는 여러 소스와 오브젝트<var>파일</var>을 가지고,
+    <code class="module"><a href="../mod/mod_so.html">mod_so</a></code>의 <code class="directive"><a href="../mod/mod_so.html#loadmodule">LoadModule</a></code> 지시어로 실행중에
+    아파치 서버로 읽어들일 수 있는 동적공유객체(DSO)를 만든다.</p>
+
+    <p>그래서 이런 확장방식을 사용하려면 플래폼이 DSO 기능을
+    지원하고 아파치 <code>httpd</code> 실행파일을
+    <code class="module"><a href="../mod/mod_so.html">mod_so</a></code> 모듈과 같이 컴파일해야 한다.
+    <code>apxs</code> 도구는 이 조건이 만족하지않으면 실행하지
+    않는다. 직접 명령어를 실행하여 조건이 만족하는지 알아볼
+    수 있다</p>
+
+    <div class="example"><p><code>
+      $ httpd -l
+    </code></p></div>
+
+    <p>목록에 <code class="module"><a href="../mod/mod_so.html">mod_so</a></code> 모듈이 나와야 한다. 조건을
+    만족하면 <code>apxs</code> 도구로 DSO 모듈을 설치하여
+    아파치서버의 기능을 쉽게 확장할 수 있다:</p>
+
+    <div class="example"><p><code>
+      $ apxs -i -a -c mod_foo.c<br />
+      gcc -fpic -DSHARED_MODULE -I/path/to/apache/include -c mod_foo.c<br />
+      ld -Bshareable -o mod_foo.so mod_foo.o<br />
+      cp mod_foo.so /path/to/apache/modules/mod_foo.so<br />
+      chmod 755 /path/to/apache/modules/mod_foo.so<br />
+      [activating module `foo' in /path/to/apache/etc/httpd.conf]<br />
+      $ apachectl restart<br />
+      /path/to/apache/sbin/apachectl restart: httpd not running, trying to start<br />
+      [Tue Mar 31 11:27:55 1998] [debug] mod_so.c(303): loaded module foo_module<br />
+      /path/to/apache/sbin/apachectl restart: httpd started<br />
+      $ _
+    </code></p></div>
+
+    <p>아규먼트 <var>files</var>에는 C 소스파일 (.c) 이나
+    오브젝트파일 (.o), 라이브러리모음 (.a)을 사용할 수 있다.
+    <code>apxs</code> 도구는 확장자를 보고 자동으로 C 소스파일은
+    컴파일하고, 오브젝트와 모음파일은 링크에만 사용한다. 그러나
+    컴파일한 오브젝트를 사용하려면 동적으로 읽어들일 수 있는
+    공유객체로 사용하기위해 반드시 오브젝트를 위치독립코드(PIC,
+    position independent code)로 컴파일해야 한다. GCC의 경우
+    <code>-fpic</code>을 사용하면 된다. 다른 C 컴파일러는 설명서를
+    참고하거나 <code>apxs</code>가 오브젝트파일을 컴파일할때
+    사용하는 옵션을 참고하라.</p>
+
+    <p>아파치의 DSO 지원에 대한 더 자세한 내용은
+    <code class="module"><a href="../mod/mod_so.html">mod_so</a></code> 문서를 참고하거나
+    <code>src/modules/standard/mod_so.c</code> 소스파일을 읽어봐라.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#synopsis">개요</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#options">옵션</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#examples">예제</a></li>
+</ul><h3>참고</h3><ul class="seealso"><li><a href="apachectl.html">apachectl</a></li><li><a href="httpd.html">httpd</a></li><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="synopsis" id="synopsis">개요</a></h2>
+    <p><code><strong>apxs</strong> -<strong>g</strong>
+    [ -<strong>S</strong> <var>name</var>=<var>value</var> ]
+    -<strong>n</strong> <var>modname</var></code></p>
+
+    <p><code><strong>apxs</strong> -<strong>q</strong>
+    [ -<strong>S</strong> <var>name</var>=<var>value</var> ]
+    <var>query</var> ...</code></p>
+
+    <p><code><strong>apxs</strong> -<strong>c</strong>
+    [ -<strong>S</strong> <var>name</var>=<var>value</var> ]
+    [ -<strong>o</strong> <var>dsofile</var> ]
+    [ -<strong>I</strong> <var>incdir</var> ]
+    [ -<strong>D</strong> <var>name</var>=<var>value</var> ]
+    [ -<strong>L</strong> <var>libdir</var> ]
+    [ -<strong>l</strong> <var>libname</var> ]
+    [ -<strong>Wc,</strong><var>compiler-flags</var> ]
+    [ -<strong>Wl,</strong><var>linker-flags</var> ]
+    <var>files</var> ...</code></p>
+
+    <p><code><strong>apxs</strong> -<strong>i</strong>
+    [ -<strong>S</strong> <var>name</var>=<var>value</var> ]
+    [ -<strong>n</strong> <var>modname</var> ]
+    [ -<strong>a</strong> ]
+    [ -<strong>A</strong> ]
+    <var>dso-file</var> ...</code></p>
+
+    <p><code><strong>apxs</strong> -<strong>e</strong>
+    [ -<strong>S</strong> <var>name</var>=<var>value</var> ]
+    [ -<strong>n</strong> <var>modname</var> ]
+    [ -<strong>a</strong> ]
+    [ -<strong>A</strong> ]
+    <var>dso-file</var> ...</code></p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="options" id="options">옵션</a></h2>
+    <h3><a name="options.common" id="options.common">공통 옵션</a></h3>
+      <dl>
+      <dt><code>-n <var>modname</var></code></dt>
+      <dd><code>-i</code> (install)과 <code>-g</code> (template
+      generation) 옵션을 사용할때 직접 모듈명을 지정한다. 이
+      옵션을 사용하여 모듈명을 직접 지정한다. <code>-g</code>
+      옵션을 사용한다면 이 옵션을 반드시 사용해야하고,
+      <code>-i</code> 옵션을 사용한다면 <code>apxs</code> 도구는
+      소스나 (마지막 시도로) 파일명을 가지고 이름을 추측한다.</dd>
+      </dl>
+    
+
+    <h3><a name="options.query" id="options.query">질의 옵션</a></h3>
+      <dl>
+      <dt><code>-q</code></dt>
+      <dd><code>apxs</code>의 설정값을 알아낸다. <var>query</var>에는
+      다음을 사용할 수 있다: <code>CC</code>, <code>CFLAGS</code>,
+      <code>CFLAGS_SHLIB</code>, <code>INCLUDEDIR</code>,
+      <code>LD_SHLIB</code>, <code>LDFLAGS_SHLIB</code>,
+      <code>LIBEXECDIR</code>, <code>LIBS_SHLIB</code>,
+      <code>SBINDIR</code>, <code>SYSCONFDIR</code>, <code>TARGET</code>.
+
+      <p>설정을 직접 알아낼때 사용한다.</p>
+      <div class="example"><p><code>
+        INC=-I`apxs -q INCLUDEDIR`
+      </code></p></div>
+
+      <p>예를 들어, 아파치 C 헤더파일을 직접 접근한다면
+      Makefile에서 위와 같이 사용한다.</p></dd>
+      </dl>
+    
+
+    <h3><a name="options.conf" id="options.conf">설정 옵션</a></h3>
+      <dl>
+      <dt><code>-S <var>name</var>=<var>value</var></code></dt>
+      <dd>이 옵션은 위에서 설명한 apxs 설정을 변경한다.</dd>
+      </dl>
+    
+
+    <h3><a name="options.template" id="options.template">견본(template) 생성 옵션</a></h3>
+      <dl>
+      <dt><code>-g</code></dt>
+      <dd>하위디렉토리 <var>name</var>을 만들고 (<code>-n</code>
+      옵션 참고) 그곳에 파일 두개를 만든다: 한 파일은
+      <code>mod_<var>name</var>.c</code>라는 견본 모듈소스파일로,
+      자신의 모듈을 만들때 견본으로 사용하거나 apxs 기능을
+      시험해볼때 사용한다. 다른 파일은 이 모듈을 쉽게 컴파일하고
+      설치하기위한 <code>Makefile</code>이다.</dd>
+      </dl>
+    
+
+    <h3><a name="options.dso" id="options.dso">DSO 컴파일 옵션</a></h3>
+      <dl>
+      <dt><code>-c</code></dt>
+      <dd>컴파일을 지시한다. 먼저 <var>files</var>에서 C
+      소스파일들(.c)을 오브젝트파일(.o)로 컴파일하고,
+      <var>files</var>의 나머지 오브젝트파일들(.o과 .a)과
+      링크하여 동적공유객체 <var>dsofile</var>을 만든다.
+      <code>-o</code> 옵션을 사용하지않으면 <var>files</var>의
+      첫번째 파일명에서 이름을 추측하여 보통
+      <code>mod_<var>name</var>.so</code>를 사용한다.</dd>
+
+      <dt><code>-o <var>dsofile</var></code></dt>
+      <dd>생성할 동적공유객체 파일명을 직접 지정한다. 이름을
+      지정하지않고 <var>files</var> 목록에서 이름을 추측하지
+      못하면 마지막으로 <code>mod_unknown.so</code>를 이름으로
+      사용한다.</dd>
+
+      <dt><code>-D <var>name</var>=<var>value</var></code></dt>
+      <dd>이 옵션을 컴파일 명령어로 직접 전달한다.
+      컴파일때 자신의 define을 추가한다.</dd>
+
+      <dt><code>-I <var>incdir</var></code></dt>
+      <dd>이 옵션을 컴파일 명령어로 직접 전달한다.
+      컴파일때 include를 찾을 디렉토리를 추가한다.</dd>
+
+      <dt><code>-L <var>libdir</var></code></dt>
+      <dd>이 옵션을 링커 명령어로 직접 전달한다.
+      컴파일때 라이브러리를 찾을 디렉토리를 추가한다.</dd>
+
+      <dt><code>-l <var>libname</var></code></dt>
+      <dd>이 옵션을 링커 명령어로 직접 전달한다.
+      컴파일때 사용할 라이브러리를 추가한다.</dd>
+
+      <dt><code>-Wc,<var>compiler-flags</var></code></dt>
+      <dd>이 옵션은 추가 옵션 <var>compiler-flags</var>를
+      <code>libtool --mode=compile</code> 명령어로 전달한다.
+      컴파일러 특유의 옵션을 추가할때 사용한다.</dd>
+
+      <dt><code>-Wl,<var>linker-flags</var></code></dt>
+      <dd>이 옵션은 추가 옵션 <var>linker-flags</var>를
+      <code>libtool --mode=link</code> 명령어로 전달한다. 링커
+      특유의 옵션을 추가할때 사용한다.</dd>
+      </dl>
+    
+
+    <h3><a name="options.dsoinstall" id="options.dsoinstall">DSO 설치과 설정 옵션</a></h3>
+    
+      <dl>
+      <dt><code>-i</code></dt>
+      <dd>설치를 지시한다. 여러 동적공유객체를 서버의
+      <var>modules</var> 디렉토리에 설치한다.</dd>
+
+      <dt><code>-a</code></dt>
+      <dd>아파치 <code>httpd.conf</code> 설정파일에 적절한
+      <code class="directive"><a href="../mod/mod_so.html#loadmodule">LoadModule</a></code> 줄을
+      추가하거나 이미 있다면 활성화하여 모듈을 사용하도록
+      만든다.</dd>
+
+      <dt><code>-A</code></dt>
+      <dd><code>-a</code>와 비슷하지만, <code class="directive"><a href="../mod/mod_so.html#loadmodule">LoadModule</a></code> 지시어 앞에
+      우물정자(<code>#</code>)를 붙인다. <em>즉</em>, 현재는
+      사용하지않지만 나중에 사용할 수 있도록 모듈을 준비한다.</dd>
+
+      <dt><code>-e</code></dt>
+      <dd>편집을 지시한다. <code>-a</code> 혹은 <code>-A</code>
+      옵션과 같이 사용할 수 있으며, <code>-i</code> 명령과
+      비슷하지만 모듈을 설치하지않고 아파치
+      <code>httpd.conf</code> 설정파일만 편집한다.</dd>
+      </dl>
+    
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="examples" id="examples">예제</a></h2>
+    <p>아파치서버의 기능을 확장하는 <code>mod_foo.c</code>라는
+    아파치 모듈이 있다고 가정하자. 먼저 다음 명령어를 사용하여
+    C 소스를 아파치 서버가 읽어들일 공유객체로 컴파일한다:</p>
+
+    <div class="example"><p><code>
+      $ apxs -c mod_foo.c<br />
+      /path/to/libtool --mode=compile gcc ... -c mod_foo.c<br />
+      /path/to/libtool --mode=link gcc ... -o mod_foo.la mod_foo.slo<br />
+      $ _
+    </code></p></div>
+
+    <p>그리고 이 공유객체를 읽어들이는 <code class="directive"><a href="../mod/mod_so.html#loadmodule">LoadModule</a></code> 지시어를 아파치
+    설정에 추가한다. <code>apxs</code>는 자동으로 공유객체를
+    "modules" 디렉토리에 설치하고 <code>httpd.conf</code> 파일을
+    알맞게 수정하여 간단히 작업을 마친다. 다음 같이 실행한다:</p>
+
+    <div class="example"><p><code>
+      $ apxs -i -a mod_foo.la<br />
+      /path/to/instdso.sh mod_foo.la /path/to/apache/modules<br />
+      /path/to/libtool --mode=install cp mod_foo.la /path/to/apache/modules
+      ...
+      chmod 755 /path/to/apache/modules/mod_foo.so<br />
+      [/path/to/apache/conf/httpd.conf에서 `foo' 모듈을 활성화한다]<br />
+      $ _
+    </code></p></div>
+
+    <p>그러면 다음과 같은 줄을</p>
+
+    <div class="example"><p><code>
+      LoadModule foo_module modules/mod_foo.so
+    </code></p></div>
+
+    <p>설정파일에 없다면 추가한다. 이 설정을 기본적으로 사용하지
+    않는다면 <code>-A</code> 옵션을 사용한다. <em>즉</em></p>
+
+    <div class="example"><p><code>
+      $ apxs -i -A mod_foo.c
+    </code></p></div>
+
+    <p>apxs를 쉽게 사용하려고 다음과 같이 아파치 모듈 견본과
+    Makefile을 만들 수 있다:</p>
+
+    <div class="example"><p><code>
+      $ apxs -g -n foo<br />
+      Creating [DIR]  foo<br />
+      Creating [FILE] foo/Makefile<br />
+      Creating [FILE] foo/modules.mk<br />
+      Creating [FILE] foo/mod_foo.c<br />
+      Creating [FILE] foo/.deps<br />
+      $ _
+    </code></p></div>
+
+    <p>그런후 바로 견본 모듈을 공유객체로 컴파일하여 아파치
+    서버가 읽도록한다:</p>
+
+    <div class="example"><p><code>
+      $ cd foo<br />
+      $ make all reload<br />
+      apxs -c mod_foo.c<br />
+      /path/to/libtool --mode=compile gcc ... -c mod_foo.c<br />
+      /path/to/libtool --mode=link gcc ... -o mod_foo.la mod_foo.slo<br />
+      apxs -i -a -n "foo" mod_foo.la<br />
+      /path/to/instdso.sh mod_foo.la /path/to/apache/modules<br />
+      /path/to/libtool --mode=install cp mod_foo.la /path/to/apache/modules
+      ...
+      chmod 755 /path/to/apache/modules/mod_foo.so<br />
+      [/path/to/apache/conf/httpd.conf에서 `foo' 모듈을 활성화한다]<br />
+      apachectl restart<br />
+      /path/to/apache/sbin/apachectl restart: httpd not running, trying to start<br />
+      [Tue Mar 31 11:27:55 1998] [debug] mod_so.c(303): loaded module foo_module<br />
+      /path/to/apache/sbin/apachectl restart: httpd started<br />
+      $ _
+    </code></p></div>
+
+</div></div>
+<div class="bottomlang">
+<p><span>가능한 언어: </span><a href="../en/programs/apxs.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/programs/apxs.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ko/programs/apxs.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/programs/apxs.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/programs/apxs.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

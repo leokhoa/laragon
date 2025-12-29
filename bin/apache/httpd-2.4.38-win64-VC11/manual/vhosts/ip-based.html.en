@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Apache IP-based Virtual Host Support - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Virtual Hosts</a></div><div id="page-content"><div id="preamble"><h1>Apache IP-based Virtual Host Support</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/vhosts/ip-based.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/ip-based.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/vhosts/ip-based.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/vhosts/ip-based.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/ip-based.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#explanation">What is IP-based virtual hosting</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#requirements">System requirements</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#howto">How to set up Apache</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#multiple">Setting up multiple daemons</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#single">Setting up a single daemon
+  with virtual hosts</a></li>
+</ul><h3>See also</h3><ul class="seealso"><li>
+<a href="name-based.html">Name-based Virtual Hosts Support</a>
+</li><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="explanation" id="explanation">What is IP-based virtual hosting</a></h2>
+<p>IP-based virtual hosting is a method to apply different directives
+based on the IP address and port a request is received on.  Most commonly,
+this is used to serve different websites on different ports or interfaces.</p>
+
+<p>In many cases, <a href="name-based.html">name-based
+virtual hosts</a> are more convenient, because they allow
+many virtual hosts to share a single address/port.
+See <a href="name-based.html#namevip">Name-based vs. IP-based
+Virtual Hosts</a> to help you decide.  </p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="requirements" id="requirements">System requirements</a></h2>
+
+    <p>As the term <cite>IP-based</cite> indicates, the server
+    <strong>must have a different IP address/port combination for each IP-based
+    virtual host</strong>. This can be achieved by the machine
+    having several physical network connections, or by use of
+    virtual interfaces which are supported by most modern operating
+    systems (see system documentation for details, these are
+    frequently called "ip aliases", and the "ifconfig" command is
+    most commonly used to set them up), and/or using multiple
+    port numbers.</p>
+
+    <p> In the terminology of Apache HTTP Server, using a single IP address
+    but multiple TCP ports, is also IP-based virtual hosting.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="howto" id="howto">How to set up Apache</a></h2>
+
+    <p>There are two ways of configuring apache to support multiple
+    hosts. Either by running a separate <code class="program"><a href="../programs/httpd.html">httpd</a></code> daemon for
+    each hostname, or by running a single daemon which supports all the
+    virtual hosts.</p>
+
+    <p>Use multiple daemons when:</p>
+
+    <ul>
+      <li>There are security partitioning issues, such as company1
+      does not want anyone at company2 to be able to read their
+      data except via the web. In this case you would need two
+      daemons, each running with different <code class="directive"><a href="../mod/mod_unixd.html#user">User</a></code>, <code class="directive"><a href="../mod/mod_unixd.html#group">Group</a></code>, <code class="directive"><a href="../mod/mpm_common.html#listen">Listen</a></code>, and <code class="directive"><a href="../mod/core.html#serverroot">ServerRoot</a></code> settings.</li>
+
+      <li>You can afford the memory and file descriptor
+      requirements of listening to every IP alias on the
+      machine. It's only possible to <code class="directive"><a href="../mod/mpm_common.html#listen">Listen</a></code> to the "wildcard"
+      address, or to specific addresses. So if you have a need to
+      listen to a specific address for whatever reason, then you
+      will need to listen to all specific addresses. (Although one
+      <code class="program"><a href="../programs/httpd.html">httpd</a></code> could listen to N-1 of the addresses, and another could
+      listen to the remaining address.)</li>
+    </ul>
+
+    <p>Use a single daemon when:</p>
+
+    <ul>
+      <li>Sharing of the httpd configuration between virtual hosts
+      is acceptable.</li>
+
+      <li>The machine services a large number of requests, and so
+      the performance loss in running separate daemons may be
+      significant.</li>
+    </ul>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="multiple" id="multiple">Setting up multiple daemons</a></h2>
+
+    <p>Create a separate <code class="program"><a href="../programs/httpd.html">httpd</a></code> installation for each
+    virtual host. For each installation, use the <code class="directive"><a href="../mod/mpm_common.html#listen">Listen</a></code> directive in the
+    configuration file to select which IP address (or virtual host)
+    that daemon services. e.g.</p>
+
+    <pre class="prettyprint lang-config">Listen 192.0.2.100:80</pre>
+
+
+    <p>It is recommended that you use an IP address instead of a
+    hostname (see <a href="../dns-caveats.html">DNS caveats</a>).</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="single" id="single">Setting up a single daemon
+  with virtual hosts</a></h2>
+
+    <p>For this case, a single <code class="program"><a href="../programs/httpd.html">httpd</a></code> will service
+    requests for the main server and all the virtual hosts. The <code class="directive"><a href="../mod/core.html#virtualhost">VirtualHost</a></code> directive
+    in the configuration file is used to set the values of <code class="directive"><a href="../mod/core.html#serveradmin">ServerAdmin</a></code>, <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code>, <code class="directive"><a href="../mod/core.html#documentroot">DocumentRoot</a></code>, <code class="directive"><a href="../mod/core.html#errorlog">ErrorLog</a></code> and <code class="directive"><a href="../mod/mod_log_config.html#transferlog">TransferLog</a></code>
+    or <code class="directive"><a href="../mod/mod_log_config.html#customlog">CustomLog</a></code>
+    configuration directives to different values for each virtual
+    host. e.g.</p>
+
+    <pre class="prettyprint lang-config">&lt;VirtualHost 172.20.30.40:80&gt;
+    ServerAdmin webmaster@www1.example.com
+    DocumentRoot "/www/vhosts/www1"
+    ServerName www1.example.com
+    ErrorLog "/www/logs/www1/error_log"
+    CustomLog "/www/logs/www1/access_log" combined
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost 172.20.30.50:80&gt;
+    ServerAdmin webmaster@www2.example.org
+    DocumentRoot "/www/vhosts/www2"
+    ServerName www2.example.org
+    ErrorLog "/www/logs/www2/error_log"
+    CustomLog "/www/logs/www2/access_log" combined
+&lt;/VirtualHost&gt;</pre>
+
+
+    <p>It is recommended that you use an IP address instead of a
+    hostname in the &lt;VirtualHost&gt; directive
+    (see <a href="../dns-caveats.html">DNS caveats</a>).</p>
+
+    <p> Specific IP addresses or ports have precedence over their wildcard
+    equivalents, and any virtual host that matches has precedence over
+    the servers base configuration.</p>
+
+    <p>Almost <strong>any</strong> configuration directive can be
+    put in the VirtualHost directive, with the exception of
+    directives that control process creation and a few other
+    directives. To find out if a directive can be used in the
+    VirtualHost directive, check the <a href="../mod/directive-dict.html#Context">Context</a> using the
+    <a href="../mod/quickreference.html">directive index</a>.</p>
+
+    <p><code class="directive"><a href="../mod/mod_suexec.html#suexecusergroup">SuexecUserGroup</a></code>
+    may be used inside a
+    VirtualHost directive if the <a href="../suexec.html">suEXEC
+    wrapper</a> is used.</p>
+
+    <p><em>SECURITY:</em> When specifying where to write log files,
+    be aware of some security risks which are present if anyone
+    other than the user that starts Apache has write access to the
+    directory where they are written. See the <a href="../misc/security_tips.html">security tips</a> document
+    for details.</p>
+
+</div></div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/vhosts/ip-based.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/ip-based.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/vhosts/ip-based.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/vhosts/ip-based.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/ip-based.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/vhosts/ip-based.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

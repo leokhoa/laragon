@@ -1,0 +1,752 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>コンテントネゴシエーション - Apache HTTP サーバ バージョン 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">モジュール</a> | <a href="./mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">用語</a> | <a href="./sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="./">バージョン 2.4</a></div><div id="page-content"><div id="preamble"><h1>コンテントネゴシエーション</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="./en/content-negotiation.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/content-negotiation.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/content-negotiation.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/content-negotiation.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/content-negotiation.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+
+
+    <p>Apache は HTTP/1.1 の規格に記述されているコンテントネゴシエーションを
+    サポートしています。
+    ブラウザにより提供されたメディアタイプ、
+    言語、文字セット、エンコーディングの優先傾向に基づいて、
+    最適なリソースの表現を選択できます。
+    また、不完全なネゴシエーション情報を送ってくるブラウザからのリクエストを
+    もっと賢く取り扱えるよう、いくつか機能も実装してあります。</p>
+
+    <p>コンテントネゴシエーションは
+    <code class="module"><a href="./mod/mod_negotiation.html">mod_negotiation</a></code>
+    モジュールによって提供されていて、デフォルトで組み込まれています。</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#about">コンテントネゴシエーションについて</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#negotiation">Apache におけるネゴシエーション</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#methods">ネゴシエーション方法</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#better">品質の値を変える</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#extensions">Transparent Content Negotiation
+の拡張</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#naming">リンクと名前の変換に関する注意点</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#caching">キャッシュに関する注意事項</a></li>
+</ul><h3>参照</h3><ul class="seealso"><li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="about" id="about">コンテントネゴシエーションについて</a></h2>
+
+    <p>リソースは、幾つか異なった表現で利用できる場合があります。
+    例えば、異なる言語や異なるメディアタイプ、
+    またはそれらの組み合わせで利用できるかも知れません。
+    もっとも適した選択をする方法の一つには、インデックスページを
+    ユーザに見せて、ユーザに選んでもらう方法があります。
+    しかし、サーバが自動的に選ぶことができる場合が多くあります。
+    これは、ブラウザがリクエスト毎に、
+    どの表現を嗜好するかという情報を送ることで動作しています。
+    例えばブラウザは、可能ならフランス語で情報を見たい、
+    不可能ならその代わりに英語でもよいと、
+    自分の嗜好を知らせることができます。
+    ブラウザはリクエストのヘッダで自分の優先傾向を知らせます。
+    フランス語のみの表現を要求する場合は、ブラウザは次を送ります。</p>
+
+<div class="example"><p><code>Accept-Language: fr</code></p></div>
+
+    <p>この優先傾向は、選択可能な表現が存在して、
+    言語によって様々な表現がある場合にのみ適用される
+    ということに注意してください。</p>
+
+    <p>もっと複雑なリクエストの例を挙げましょう。
+    このブラウザはフランス語と英語を受け付ける、しかしフランス語を好む、
+    そして様々なメディアタイプを受け付けるが、
+    プレインテキストや他のタイプよりは HTML を好む、
+    他のメディアタイプよりは GIF や JPEG を好む、しかし最終手段として
+    他のメディアタイプも受け付ける、と設定されています。</p>
+
+<div class="example"><p><code>
+  Accept-Language: fr; q=1.0, en; q=0.5<br />
+  Accept: text/html; q=1.0, text/*; q=0.8, image/gif; q=0.6, image/jpeg; q=0.6, image/*; q=0.5, */*; q=0.1
+</code></p></div>
+
+    <p>Apache は HTTP/1.1 規格で定義されている 'server
+    driven' コンテントネゴシエーションをサポートしています。
+    <code>Accept</code>, <code>Accept-Language</code>, 
+    <code>Accept-Charset</code>, <code>Accept-Encoding</code>
+    リクエストヘッダを完全にサポートしています。Apache は
+    'transparent' コンテントネゴシエーションもサポートしていますが、
+    これは RFC 2295 と RFC 2296 で定義されている試験的な
+    ネゴシエーションプロトコルです。
+    これらの RFCで定義されている 'feature negotiation'
+    はサポートしていません。</p>
+
+    <p><strong>リソース</strong>とは URI
+    で特定される概念上のもののことです (RFC 2396)。 Apache
+    のような HTTP サーバは、その名前空間の中での
+    リソースの<strong>表現</strong>へのアクセスを提供します。
+    それぞれの表現は
+    定義されたメディアタイプ、文字セット、エンコーディング等の
+    付属した、バイト列の形式です。
+    それぞれのリソースはある時点で 0 個、1 個、それ以上の表現と
+    関連付けられる可能性があります。複数の表現が利用できる場合は、
+    リソースは<strong>ネゴシエーション可能である</strong>とされ、
+    個々の表現は <strong>variant</strong> と呼ばれます。
+    ネゴシエーション可能なリソースの variant が異なる、
+    その状態を指して、
+    ネゴシエーションの<strong>次元</strong>と呼びます。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="negotiation" id="negotiation">Apache におけるネゴシエーション</a></h2>
+
+    <p>リソースをネゴシエーションするためには、
+    サーバは variant それぞれについての情報を知っておく必要があります。
+    これは以下の二つの方法のどちらかで行われます。</p>
+
+    <ul>
+      <li>タイプマップ
+      (<em>すなわち</em> <code>*.var</code> ファイル)
+      を使う方法。 これは variant
+      を明示的に挙げているファイルを指定します。</li>
+
+      <li>'Multiviews'
+      を使って、サーバが暗黙の内にファイル名にパターン照合を
+      行なってその結果から選択する方法。</li>
+    </ul>
+
+   <h3><a name="type-map" id="type-map">type-map ファイルを使う</a></h3>
+
+    <p>タイプマップは <code>type-map</code> ハンドラ
+    (もしくは、古い Apache
+    の設定と下位互換である <a class="glossarylink" href="./glossary.html#mime-type" title="用語集を参照">MIME タイプ</a>
+    <code>application/x-type-map</code>)
+    に関連付けられたドキュメントです。
+    この機能を使うためには、あるファイルの拡張子を
+    <code>type-map</code>
+    として定義するようなハンドラを、
+    設定ファイル中に置く必要があることに注意してください。
+    これは</p>
+
+<div class="example"><p><code>AddHandler type-map .var</code></p></div>
+
+    <p>をサーバ設定ファイル中に書くことが一番良い方法です。</p>
+
+    <p>タイプマップファイルは記述するリソースと同じ名前を持っていて、
+    利用可能な variant それぞれのエントリを持っている必要があります。
+    そして、このエントリは連続した HTTP のヘッダ行で構成されます。
+    異なる variant のためのエントリは空行で区切られています。
+    エントリ中に空行が複数あってはいけません。
+    習慣的には、マップファイルは全体を結合したもののエントリから始まります
+    (しかしこれは必須ではなく、あったとしても無視されるものです)。
+    次に例を示します。このファイルはリソース <code>foo</code> 
+    を記述しているので、<code>foo.var</code> という名前になります。</p>
+
+<div class="example"><p><code>
+  URI: foo<br />
+<br />
+  URI: foo.en.html<br />
+  Content-type: text/html<br />
+  Content-language: en<br />
+<br />
+  URI: foo.fr.de.html<br />
+  Content-type: text/html;charset=iso-8859-2<br />
+  Content-language: fr, de<br />
+</code></p></div>
+    <p>たとえ MultiViews を使用するようになっていたとしても、
+    ファイル名の拡張子よりタイプマップの方が優先権を持つということにも
+    注意してください。
+    variant の品質が違うときは、この画像のように (JPEG, GIF, ASCII
+    アートがあります) メディアタイプの "qs"
+    パラメータで指定されます。</p>
+
+<div class="example"><p><code>
+  URI: foo<br />
+<br />
+  URI: foo.jpeg<br />
+  Content-type: image/jpeg; qs=0.8<br />
+<br />
+  URI: foo.gif<br />
+  Content-type: image/gif; qs=0.5<br />
+<br />
+  URI: foo.txt<br />
+  Content-type: text/plain; qs=0.01<br />
+</code></p></div>
+
+    <p>qs 値の範囲は 0.000 から 1.000 です。qs 値が
+    0.000 の variant は決して
+    選択されないことに注意してください。'qs' 値のない variant
+    は qs 値 1.0 を 与えられます。qs
+    パラメータはクライアントの能力に関係無く、他の variant と
+    比較したときの variant
+    の相対的な「品質」を示します。
+    例えば、写真を表現しようとしているときは JPEG
+    ファイルの方が普通は ASCII
+    ファイルよりも高い品質になります。しかし、リソースが元々
+    ASCII アートで表現されているときは、ASCII ファイルの
+    方が JPEG ファイルよりも高い品質になります。このように、qs
+    は 表現されるリソースの性質によって variant
+    毎に特有の値を取ります。</p>
+
+    <p>認識されるヘッダの一覧は
+    <a href="mod/mod_negotiation.html#typemaps">mod_negotiation</a>
+    ドキュメントにあります。</p>
+
+
+<h3><a name="multiviews" id="multiviews">Multiviews</a></h3>
+
+    <p><code>MultiViews</code> はディレクトリ毎のオプションで、
+    <code>httpd.conf</code>ファイルの
+    <code class="directive"><a href="./mod/core.html#directory">&lt;Directory&gt;</a></code>, 
+    <code class="directive"><a href="./mod/core.html#location">&lt;Location&gt;</a></code>, 
+    <code class="directive"><a href="./mod/core.html#files">&lt;Files&gt;</a></code>
+    セクション中や、(<code class="directive"><a href="./mod/core.html#allowoverride">AllowOverride</a></code>
+    が適切な値に 設定されていると) <code>.htaccess</code>
+    ファイルで <code class="directive"><a href="./mod/core.html#options">Options</a></code>
+    ディレクティブによって設定することができます。
+    <code>Options All</code> は
+    <code>MultiViews</code>
+    をセットしないことに注意してください。明示的に
+    その名前を書く必要があります。</p>
+
+    <p><code>MultiViews</code> の効果は以下のようになります:
+    サーバが <code>/some/dir/foo</code>
+    へのリクエストを受け取り、<code>/some/dir</code> で
+    <code>MultiViews</code> が有効であって、
+    <code>/some/dir/foo</code> が存在<em>しない</em>場合、
+    サーバはディレクトリを読んで <code>foo.*</code>
+    にあてはまる全てのファイルを探し、
+    事実上それらのファイルをマップするタイプマップを作ります。
+    そのとき、メディアタイプとコンテントエンコーディングは、そのファイル名を
+    直接指定したときと同じものが割り当てられます。
+    それからクライアントの要求に一番合うものを選びます。</p>
+
+    <p>サーバがディレクトリの索引を作ろうとしている場合、
+    <code>MultiViews</code>
+    は <code class="directive"><a href="./mod/mod_dir.html#directoryindex">DirectoryIndex</a></code>
+    ディレクティブで指定されたファイルを探す過程にも
+    適用されます。設定ファイルに</p>
+<div class="example"><p><code>DirectoryIndex index</code></p></div>
+    <p>が書かれていて、<code>index.html</code> と
+    <code>index.html3</code> が
+    両方存在していると、サーバはその中からどちらかを適当に選びます。
+    もしその両方が存在せずに <code>index.cgi</code>
+    が存在していると、 サーバはそれを実行します。</p>
+
+    <p>もしディレクトリを読んでいる際に、
+    文字セット、コンテントタイプ、言語、エンコーディングを
+    指定するための <code>mod_mime</code> 
+    で認識できる拡張子を持たないファイルが見つかると、結果は
+    <code class="directive"><a href="./mod/mod_mime.html#multiviewsmatch">MultiViewsMatch</a></code>
+    ディレクティブの設定に依存します。このディレクティブは
+    ハンドラ、フィルタ、他のファイル拡張子タイプのどれが
+    MultiViews ネゴシエーションで使用できるかを決定します。</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="methods" id="methods">ネゴシエーション方法</a></h2>
+
+    <p>Apache はリソースの variant の一覧を、タイプマップファイルか
+    ディレクトリ内のファイル名からかで取得した後、
+    「最適な」 variant を決定するために二つの方法の
+    どちらかを起動します。
+    Apache のコンテントネゴシエーションの機能を使うために、
+    どのようにしてこの調停が行われるか詳細を知る必要はありません。
+    しかしながら、この文書の残りでは関心のある人のために、
+    使用されている方法について説明しています。</p>
+
+    <p>ネゴシエーション方法は二つあります。</p>
+
+    <ol>
+      <li>通常は <strong>Apache のアルゴリズムを用いた Server
+      driven negotiation</strong> が使用されます。Apache
+      のアルゴリズムは後に詳細に説明されています。
+      このアルゴリズムが使用された場合、Apache
+      はより良い結果になるように、特定の次元において品質の値を
+      「変える」ことができます。Apache
+      が品質の値を変える方法は後で詳細に説明されています。</li>
+
+      <li>RFC 2295
+      で定義されている機構を用いてブラウザが特に指定した場合、
+      <strong>transparent content negotiation</strong>
+      が使用されます。このネゴシエーション方法では、「最適な」
+      variant の決定をブラウザが完全に制御することができます。
+      ですから、結果はブラウザが使用しているアルゴリズムに依存します。
+      Transparent negotiation の処理の過程で、ブラウザは RFC 2296
+      で 定義されている 'remote variant selection algorithm'
+      を実行するように頼むことができます。</li>
+    </ol>
+
+<h3><a name="dimensions" id="dimensions">ネゴシエーションの次元</a></h3>
+
+    <table>
+      
+      <tr valign="top">
+        <th>次元</th>
+
+        <th>説明</th>
+      </tr>
+
+      <tr valign="top">
+        <td>メディアタイプ</td>
+
+        <td>ブラウザは <code>Accept</code>
+	ヘッダフィールドで優先傾向を指定します。
+	アイテムそれぞれは、関連した品質数値を持つことができます。
+	variant の説明も品質数値を持つことができます
+	("qs" パラメータをご覧下さい)。</td>
+      </tr>
+
+      <tr valign="top">
+        <td>言語</td>
+
+	<td>ブラウザは <code>Accept-Language</code>
+	ヘッダフィールドで優先傾向を指定します。
+	要素それぞれに品質数値を持たせることができます。
+	variants は 0 か 1 つかそれ以上の言語と
+	関連づけることができます。</td>
+      </tr>
+
+      <tr valign="top">
+        <td>エンコーディング</td>
+
+	<td>ブラウザは <code>Accept-Encoding</code>
+	ヘッダフィールドで優先傾向を指定します。
+	要素それぞれに品質数値を持たせることができます。</td>
+      </tr>
+
+      <tr valign="top">
+        <td>文字セット</td>
+
+	<td>ブラウザは <code>Accept-Charset</code>
+	ヘッダフィールドで優先傾向を指定します。
+	要素それぞれに品質数値を持たせることができます。
+	variant はメディアタイプのパラメータとして文字セットを
+	指定することもできます。</td>
+      </tr>
+    </table>
+
+
+<h3><a name="algorithm" id="algorithm">Apache ネゴシエーションアルゴリズム</a></h3>
+
+    <p>ブラウザに返す「最適な」variant を (もしあれば) 選択するように
+    Apache は次のアルゴリズムを使うことができます。
+    このアルゴリズムを設定により変更することはできません。
+    次のように動作します:</p>
+
+    <ol>
+      <li>まずはじめに、ネゴシエーションの次元それぞれについて適切な
+      <em>Accept*</em> ヘッダフィールドを調べ、
+      variant それぞれに品質を割り当てます。
+      もしある次元の <em>Accept*</em> ヘッダでその variant
+      が許容できないことが示されていれば、それを削除します。
+      variant が一つも残っていなければ、ステップ 4 に行きます。</li>
+
+      <li>
+	消去法で「最適な」 variant を選びます。
+	次のテストが順番に適用されます。
+	テストで選択されなかった variant は削除されていきます。
+	テスト後 variant が一つだけ残っていれば、それを最適なものとして
+	ステップ 3 に進みます。
+	複数 variant が残っていれば、次のテストに進みます。
+
+        <ol>
+	  <li>variant のメディアタイプの品質数値と <code>Accept</code>
+	  ヘッダの品質数値との積を計算して、最高値の variant
+	  を選びます。</li>
+
+	  <li>言語品質数値が最高の variant を選びます。</li>
+
+	  <li>(もしあれば) <code>Accept-Language</code> ヘッダの言語順か、
+	  (もしあれば)
+	  <code class="directive"><a href="./mod/mod_negotiation.html#languagepriority">LanguagePriority</a></code> 
+	  ディレクティブの言語順で最適な言語の variant を選びます。</li>
+
+	  <li>最高「レベル」のメディアパラメータ
+	  (text/html メディアタイプのバージョンを与えるために使われます)
+	  を持つ variant を選びます。</li>
+
+	  <li><code>Accept-Charset</code> ヘッダ行で与えられている最高の文字セット
+	  メディアパラメータを持つ variant を選びます。
+	  明示的に除外されていない限り、ISO-8859-1
+	  が許容されるようになっています。
+	  <code>text/*</code> メディアタイプであるけれども
+	  特定の文字セットに明示的に関連づけられているわけではない
+	  variant は ISO-8859-1 であると仮定されます。</li>
+
+	  <li>ISO-8859-1 <em>ではない</em>文字セットメディアパラメータと
+	  関連づけられている variant を選びます。
+	  そのような variant がない場合は、代わりに全ての
+	  variant を選びます。</li>
+
+	  <li>最適なエンコーディングの variant を選びます。
+	  もし user-agent が許容するエンコーディングがあれば、
+	  その variant のみを選びます。
+	  そうではなく、もしエンコードされたものとそうでない
+	  variant が混ざって存在していたらエンコードされていない
+	  variant のみを選びます。
+	  variant が全部エンコードされているか
+	  variant が全部エンコードされていないという場合は、
+	  全ての variant を選びます。</li>
+
+	  <li>内容の最も短い variant を選びます。</li>
+
+	  <li>残っている variant の最初のものを選びます。
+	  タイプマップファイルの最初にリストされているか、
+	  variant がディレクトリから最初に読み込まれる時に
+	  ASCII順でソートしてファイル名が先頭になったか、のどちらかです。</li>
+        </ol>
+      </li>
+
+      <li>アルゴリズムを使って一つの「最適な」variant を選びましたので、
+      それを応答として返します。ネゴシエーションの次元を指定するために
+      HTTP レスポンスヘッダ <code>Vary</code> が設定されます
+      (リソースのキャッシュをする時に、
+      ブラウザやキャッシュはこの情報を使うことができます)。
+      以上で終わり。</li>
+
+      <li>ここに来たということは、variant が一つも選択されなかった
+      (ブラウザが許容するものがなかったため) ということです。
+      406 ステータス ("No Acceptable representation" を意味する)
+      が、利用可能な variant のリストのついた HTML 
+      ドキュメントとともに返されます。
+      相違の次元を示す HTTP <code>Vary</code> ヘッダも設定されます。</li>
+    </ol>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="better" id="better">品質の値を変える</a></h2>
+
+    <p>上記の Apache ネゴシエーションアルゴリズムの厳格な解釈で
+    得られるであろう値から、Apache は品質数値を時々変えます。
+    これは、このアルゴリズムで完全ではない、あるいは正確でない情報を送る
+    ブラウザ向けによりよい結果を得るために行われます。
+    かなりポピュラーなブラウザで、もしないと間違った variant
+    を選択する結果になってしまうような <code>Accept</code>
+    ヘッダ情報を送るものもあります。
+    ブラウザが完全で正しい情報を送っていれば、
+    この数値変化は適用されません。</p>
+
+<h3><a name="wildcards" id="wildcards">メディアタイプとワイルドカード</a></h3>
+
+    <p><code>Accept:</code> リクエストヘッダはメディアタイプの優先傾向を指定します。
+    これはまた、"image/*" や "*/*"
+    といった「ワイルドカード」メディアタイプを含むことができます。
+    ここで * は任意の文字列にマッチします。
+    ですから、次の:</p>
+
+<div class="example"><p><code>Accept: image/*, */*</code></p></div>
+
+    <p>を含むリクエストは、"image/" ではじまるタイプ全てが許容できる、
+    そして他のどんなタイプも許容できる
+    (この場合はじめの "image/*" は冗長になります)
+    ことを示します。
+    扱うことのできる明示的なタイプに加えて、機械的に
+    ワイルドカードを送るブラウザもあります。例えば:</p>
+
+<div class="example"><p><code>
+  Accept: text/html, text/plain, image/gif, image/jpeg, */*
+</code></p></div>
+    <p>こうすることの狙いは、明示的にリストしているタイプが優先されるけれども、
+    異なる表現が利用可能であればそれでも良い、ということです。
+    しかしながら、上の基本的なアルゴリズムでは、
+    */* ワイルドカードは他の全てのタイプと全く同等なので優先されません。
+    ブラウザは */* にもっと低い品質 (優先) 
+    値を付けてリクエストを送るべきなのです。例えば:</p>
+<div class="example"><p><code>
+  Accept: text/html, text/plain, image/gif, image/jpeg, */*; q=0.01
+</code></p></div>
+    <p>明示的なタイプには品質数値が付けられていませんので、
+    デフォルトの 1.0 (最高値) の優先になります。
+    ワイルドカード */* は低い優先度 0.01 を与えられているので、
+    明示的にリストされているタイプに合致する variant がない場合にのみ、
+    他のタイプが返されます。</p>
+
+    <p>もし <code>Accept:</code> ヘッダが q 値を全く含んで<em>いなければ</em>、
+    望みの挙動をするために、
+    Apache は "*/*" があれば 0.01 の q 値を設定します。
+    また、"type/*" の形のワイルドカードには 0.02 の q 値を設定します
+    (ですからこれらは "*/*" のマッチよりも優先されます)。
+    もし <code>Accept:</code> ヘッダ中のメディアタイプのどれかが q
+    値を含んでいれば、これらの特殊な値は適応<em>されず</em>、
+    正しい情報を送るブラウザからのリクエストは期待通りに
+    動作するようになります。</p>
+
+
+<h3><a name="exceptions" id="exceptions">言語ネゴシエーションの例外処理</a></h3>
+
+    <p>Apache 2.0 では新たに、言語ネゴシエーションが適合するものを
+    見つけるのに失敗した時に、優雅にフォールバックできるような
+    ネゴシエーションアルゴリズムが幾つか追加されました。</p>
+
+    <p>サーバのページをクライアントがリクエストしたけれども、
+    ブラウザの送ってきた <code>Accept-Language</code> に合致するページが一つも
+    見つからなかった場合に、サーバは "No Acceptable Variant"
+    か "Multiple Choices" レスポンスをクライアントに返します。
+    これらのエラーメッセージを返さないように、
+    このような場合には Apache が <code>Accept-Language</code> を無視して、
+    クライアントのリクエストに明示的には合致しないドキュメントを
+    提供するように設定できます。
+    <code class="directive"><a href="./mod/mod_negotiation.html#forcelanguagepriority">ForceLanguagePriority</a></code>
+    ディレクティブは、これらのエラーの一つか両方をオーバーライドするために
+    使用できて、
+    <code class="directive"><a href="./mod/mod_negotiation.html#languagepriority">LanguagePriority</a></code>
+    ディレクティブの内容を使ってサーバの判断を代行するようにできます。</p>
+
+    <p>サーバは他に適合するものが見つからなければ、
+    言語サブセットで適合するものを試そうともします。
+    例えばクライアントが英国英語である <code>en-GB</code> 言語で
+    ドキュメントをリクエストした場合、サーバは HTTP/1.1
+    規格では、単に <code>en</code> とマークされているドキュメントを
+    マッチするものとすることは通常は許されていません。
+    (英国英語は理解できるけど一般的な英語は理解できないという読み手は
+    考えられないので、Accept-Language ヘッダで <code>en-GB</code> 
+    を含んで <code>en</code> を含まないのはほぼ確実に設定の間違いである、
+    ということに注意してください。
+    ですが不幸なことに、多くのクライアントではデフォルトで
+    このような設定になっています。)
+    しかしながら、他の言語にはマッチせず、"No Acceptable Variants"
+    エラーを返したり、
+    <code class="directive"><a href="./mod/mod_negotiation.html#languagepriority">LanguagePriority</a></code>
+    にフォールバックしようとしているときは、
+    サブセット指定を無視して、<code>en-GB</code> を <code>en</code>
+    にマッチします。
+    Apache はクライアントの許容言語リストに暗黙に
+    非常に低い品質値の親言語を加えることになります。
+    しかし、クライアントが "en-GB; q=0.9, fr; q=0.8" とリクエストして、
+    サーバが "en" と "fr" と設計されたドキュメントを持っている場合は、
+    "fr" ドキュメントが返されることに注意してください。
+    このような処理は、HTTP 1.1 規格との整合性を維持して、
+    適切に設定されたクライアントともきちんと動作するために
+    必要です。</p>
+
+    <p>より高度なテクニック (Cookie や特殊な URL パス等)
+    においてもユーザの言語選択をサポートするため、
+    Apache 2.0.47 からは、<code class="module"><a href="./mod/mod_negotiation.html">mod_negotiation</a></code>
+    が<a href="env.html">環境変数</a> <code>prefer-language</code>
+    を認識するようになりました。
+    この変数が存在して、適切な言語タグが代入されているのであれば、
+    <code class="module"><a href="./mod/mod_negotiation.html">mod_negotiation</a></code> は合致する variant
+    を選択しようとします。合致するものが無ければ、
+    通常のネゴシエーション手順が適用されます。</p>
+
+    <div class="example"><h3>Example</h3><p><code>
+      SetEnvIf Cookie "language=(.+)" prefer-language=$1<br />
+      Header append Vary cookie 
+    </code></p></div>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="extensions" id="extensions">Transparent Content Negotiation
+の拡張</a></h2> 
+
+<p>Apache は transparent content negotiation プロトコル
+(RFC 2295) を次のように拡張しています。
+特定のコンテントエンコーディングのみが利用可能である variant 
+に印を付けるために、新たに <code>{encoding ..}</code> 
+要素を variant リスト中に使っています。
+リスト中のエンコードされた variant を認識し、
+<code>Accept-Encoding</code> リクエストヘッダに従って許容される
+エンコードをもった variant は、どれでも候補 variant
+として使用するように、
+RVSA/1.0 アルゴリズム (RFC 2296) の実装が拡張されました。
+RVSA/1.0 の実装では、最適な variant が見つかるまで、
+計算した品質数値は小数点以下 5 桁まで丸めません。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="naming" id="naming">リンクと名前の変換に関する注意点</a></h2>
+
+    <p>言語ネゴシエーションを使っている場合は、
+    ファイルが一つ以上の拡張子を持てて、
+    拡張子の順番は通常は考慮されない
+    (詳細は <a href="mod/mod_mime.html#multipleext">mod_mime</a> 
+    を参照) ので、
+    幾つかの異なる名前の変換を選べることになります。</p>
+
+    <p>典型的なファイルでは、MIME タイプ拡張子 (<em>例えば</em>
+    <code>html</code>) を持っていて、エンコーディング拡張子
+    (<em>例えば</em> <code>gz</code>) を持っているかもしれなくて、
+    このファイルに異なる言語 variant を用意していれば、
+    もちろん言語拡張子 (<em>例えば</em> <code>en</code>)
+    を持っているでしょう。</p>
+
+    <p>例:</p>
+
+    <ul>
+      <li>foo.en.html</li>
+
+      <li>foo.html.en</li>
+
+      <li>foo.en.html.gz</li>
+    </ul>
+
+    <p>ファイル名と、それに対して使えるリンクと使えないリンクの例です:</p>
+
+    <table class="bordered">
+      
+      <tr>
+        <th>ファイル名</th>
+
+        <th>使えるリンク</th>
+
+        <th>使えないリンク</th>
+      </tr>
+
+      <tr>
+        <td><em>foo.html.en</em></td>
+
+        <td>foo<br />
+         foo.html</td>
+
+        <td>-</td>
+      </tr>
+
+      <tr>
+        <td><em>foo.en.html</em></td>
+
+        <td>foo</td>
+
+        <td>foo.html</td>
+      </tr>
+
+      <tr>
+        <td><em>foo.html.en.gz</em></td>
+
+        <td>foo<br />
+         foo.html</td>
+
+        <td>foo.gz<br />
+         foo.html.gz</td>
+      </tr>
+
+      <tr>
+        <td><em>foo.en.html.gz</em></td>
+
+        <td>foo</td>
+
+        <td>foo.html<br />
+         foo.html.gz<br />
+         foo.gz</td>
+      </tr>
+
+      <tr>
+        <td><em>foo.gz.html.en</em></td>
+
+        <td>foo<br />
+         foo.gz<br />
+         foo.gz.html</td>
+
+        <td>foo.html</td>
+      </tr>
+
+      <tr>
+        <td><em>foo.html.gz.en</em></td>
+
+        <td>foo<br />
+         foo.html<br />
+         foo.html.gz</td>
+
+        <td>foo.gz</td>
+      </tr>
+    </table>
+
+    <p>上の表を見て、拡張子なしのリンク (<em>例えば</em> <code>foo</code>) 
+    がいつでも使えることに気が付くでしょう。
+    この利点は、ドキュメントとして応答するファイルの
+    実際のファイルタイプを隠蔽して、リンクの参照を変更することなく
+    後からファイルを変更できる、
+    <em>例えば</em> <code>html</code> から <code>shtml</code>
+    に、あるいは <code>cgi</code> に変更できる点です。</p>
+
+    <p>リンクに MIME タイプを使い続けたい (<em>例えば</em>
+    <code>foo.html</code>)時は、言語拡張子は
+    (エンコーディング拡張子もあればそれも含めて)
+    MIME タイプ拡張子の右側になければなりません
+    (<em>例えば</em> <code>foo.html.en</code>)。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="caching" id="caching">キャッシュに関する注意事項</a></h2>
+
+    <p>キャッシュが一つの表現を保存しているときは、
+    リクエスト URL と関連づけられています。
+    次にその URL がリクエストされた時に、キャッシュは
+    保存されている表現を使用できます。しかし、
+    リソースがサーバでネゴシエーション可能であれば、
+    最初のリクエストでキャッシュされて続くキャッシュヒットでは
+    間違った応答を返してしまうということになりかねません。
+    これを防ぐために、Apache はコンテントネゴシエーションの
+    後に返された応答全てに、HTTP/1.0 クライアントでは
+    キャッシュ不可能の印をつけます。
+    また、ネゴシエーションされた応答のキャッシュを可能にする
+    HTTP/1.1 プロトコルの機能も Apache はサポートします。</p>
+
+    <p>HTTP/1.0 準拠のクライアントからのリクエストに対しては、
+    (ブラウザであろうとキャッシュであろうと)
+    ネゴシエーションを受けた応答のキャッシュを許すために、
+    <code class="directive"><a href="./mod/mod_negotiation.html#cachenegotiateddocs">CacheNegotiatedDocs</a></code>
+    ディレクティブを使用できます。
+    このディレクティブは、サーバ設定ファイルやバーチャルホストに書くことができ、
+    引数をとりません。
+    HTTP/1.1 クライアントからのリクエストには効力を持ちません。</p>
+
+    <p>HTTP/1.1 クライアントに対しては、レスポンスのネゴシエーション次元
+    を示すために <code>Vary</code> HTTP レスポンスヘッダを送ります。
+    キャッシュは、これを使って後続のリクエストに対してローカルコピーで応答できるか
+    どうかを決定できます。
+    ネゴシエーション次元とは関係なしにローカルコピーの使用を優先するようにするには、
+    <code>force-no-vary</code> <a href="env.html#special">環境変数</a>を
+    設定します。</p>
+
+</div></div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="./en/content-negotiation.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/content-negotiation.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/content-negotiation.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/content-negotiation.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/content-negotiation.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/content-negotiation.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="./mod/">モジュール</a> | <a href="./mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">用語</a> | <a href="./sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

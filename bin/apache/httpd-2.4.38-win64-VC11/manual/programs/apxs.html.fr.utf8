@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>apxs - Utilitaire pour les extensions d'Apache - Serveur HTTP Apache Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p>
+<p class="apache">Serveur HTTP Apache Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">Serveur HTTP</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Programmes</a></div><div id="page-content"><div id="preamble"><h1>apxs - Utilitaire pour les extensions d'Apache</h1>
+<div class="toplang">
+<p><span>Langues Disponibles: </span><a href="../en/programs/apxs.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/programs/apxs.html" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ko/programs/apxs.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/programs/apxs.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+    <p><code>apxs</code> est un utilitaire permettant de compiler et
+    d'installer des modules en tant qu'extensions du serveur HTTP
+    Apache. A cet effet, un objet dynamique partagé (DSO) est compilé à
+    partir d'un ou plusieurs <var>fichiers</var> sources ou objets et
+    peut être chargé pendant l'exécution du serveur Apache via la
+    directive <code class="directive"><a href="../mod/mod_so.html#loadmodule">LoadModule</a></code> du
+    module <code class="module"><a href="../mod/mod_so.html">mod_so</a></code>.</p>
+
+    <p>Pour pouvoir utiliser ce mécanisme d'extensions, votre
+    plate-forme doit supporter la fonctionnalité DSO, et votre binaire
+    <code class="program"><a href="../programs/httpd.html">httpd</a></code> Apache doit être compilé avec le module
+    <code class="module"><a href="../mod/mod_so.html">mod_so</a></code>. Si ce n'est pas le cas, l'utilitaire
+    <code>apxs</code> vous le signalera. Vous pouvez aussi vérifier
+    vous-même ces prérequis en exécutant manuellement la commande :</p>
+
+    <div class="example"><p><code>
+      $ httpd -l
+    </code></p></div>
+
+    <p>Le module <code class="module"><a href="../mod/mod_so.html">mod_so</a></code> doit faire partie de la liste
+    des modules affichée. Si ces prérequis sont présents, vous pouvez
+    facilement étendre les fonctionnalités de votre serveur Apache en
+    installant vos propres modules à l'aide de l'utilitaire
+    <code>apxs</code>, via le mécanisme DSO :</p>
+
+    <div class="example"><p><code>
+      $ apxs -i -a -c mod_foo.c<br />
+      gcc -fpic -DSHARED_MODULE -I/chemin/vers/apache/include -c mod_foo.c<br />
+      ld -Bshareable -o mod_foo.so mod_foo.o<br />
+      cp mod_foo.so /chemin/vers/apache/modules/mod_foo.so<br />
+      chmod 755 /chemin/vers/apache/modules/mod_foo.so<br />
+      [activation du module `foo' dans /chemin/vers/apache/etc/httpd.conf]<br />
+      $ apachectl restart<br />
+      /chemin/vers/apache/sbin/apachectl restart: httpd not running, trying to start<br />
+      [Tue Mar 31 11:27:55 1998] [debug] mod_so.c(303): loaded module foo_module<br />
+      /chemin/vers/apache/sbin/apachectl restart: httpd started<br />
+      $ _
+    </code></p></div>
+
+    <p>Les arguments <var>fichiers</var> peuvent correspondre à un
+    fichier source C (.c), un fichier objet (.o) ou même une archive de
+    bibliothèques (.a). L'utilitaire <code>apxs</code> reconnaît
+    automatiquement ces extensions et utilise automatiquement les
+    fichiers source C pour la compilation, et les fichiers objets et
+    archives pour l'édition de liens. Cependant, si vous utilisez des
+    fichiers objets précompilés, assurez-vous que leur code soit
+    indépendant de la position (PIC), afin de pouvoir les utiliser avec
+    un objet partagé chargé dynamiquement. Avec GCC, par exemple, il
+    vous suffit de toujours utiliser l'option de compilation
+    <code>-fpic</code>. Pour les autres compilateurs C, consultez leur
+    page de manuel, ou vérifiez les drapeaux qu'<code>apxs</code>
+    utilise pour compiler les fichiers objets.</p>
+
+    <p>Pour plus de détails à propos du support DSO dans Apache, lire la
+    documentation du module <code class="module"><a href="../mod/mod_so.html">mod_so</a></code>, ou même, consultez
+    le fichier source <code>src/modules/standard/mod_so.c</code>.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#synopsis">Syntaxe</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#options">Options</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#examples">Exemples</a></li>
+</ul><h3>Voir aussi</h3><ul class="seealso"><li><code class="program"><a href="../programs/apachectl.html">apachectl</a></code></li><li><code class="program"><a href="../programs/httpd.html">httpd</a></code></li><li><a href="#comments_section">Commentaires</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="synopsis" id="synopsis">Syntaxe</a></h2>
+    <p><code><strong>apxs</strong> -<strong>g</strong>
+    [ -<strong>S</strong> <var>nom</var>=<var>valeur</var> ]
+    -<strong>n</strong> <var>nom-module</var></code></p>
+
+    <p><code><strong>apxs</strong> -<strong>q</strong>
+    [ -<strong>v</strong> ]
+    [ -<strong>S</strong> <var>nom</var>=<var>valeur</var> ]
+    <var>requête</var> ...</code></p>
+
+    <p><code><strong>apxs</strong> -<strong>c</strong>
+    [ -<strong>S</strong> <var>nom</var>=<var>valeur</var> ]
+    [ -<strong>o</strong> <var>fichier-dso</var> ]
+    [ -<strong>I</strong> <var>répertoire-inc</var> ]
+    [ -<strong>D</strong> <var>nom</var>=<var>valeur</var> ]
+    [ -<strong>L</strong> <var>répertoire-lib</var> ]
+    [ -<strong>l</strong> <var>nom-bibliothèque</var> ]
+    [ -<strong>Wc,</strong><var>options-compilation</var> ]
+    [ -<strong>Wl,</strong><var>options-edition-liens</var> ]
+    <var>fichiers</var> ...</code></p>
+
+    <p><code><strong>apxs</strong> -<strong>i</strong>
+    [ -<strong>S</strong> <var>nom</var>=<var>valeur</var> ]
+    [ -<strong>n</strong> <var>nom-module</var> ]
+    [ -<strong>a</strong> ]
+    [ -<strong>A</strong> ]
+    <var>fichier-dso</var> ...</code></p>
+
+    <p><code><strong>apxs</strong> -<strong>e</strong>
+    [ -<strong>S</strong> <var>nom</var>=<var>valeur</var> ]
+    [ -<strong>n</strong> <var>nom-module</var> ]
+    [ -<strong>a</strong> ]
+    [ -<strong>A</strong> ]
+    <var>fichier-dso</var> ...</code></p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="options" id="options">Options</a></h2>
+    <h3><a name="options.common" id="options.common">Options courantes</a></h3>
+      <dl>
+      <dt><code>-n <var>nom-module</var></code></dt>
+      <dd>Définit explicitement le nom du module pour les options
+      <code>-i</code> (install) et <code>-g</code> (génération de
+      modèles). Utilisez cette option pour spécifier de manière
+      explicite le nom du module. Pour l'option <code>-g</code>, cette
+      option est nécessaire ; pour l'option <code>-i</code>,
+      l'utilitaire <code>apxs</code> tente de déterminer le nom du
+      module à partir des sources, ou (à défaut) en le déduisant du nom
+      de fichier.</dd>
+      </dl>
+    
+
+    <h3><a name="options.query" id="options.query">Options de requête</a></h3>
+      <dl>
+      <dt><code>-q</code></dt>
+      <dd>Effectue une requête à propos des variables et de
+      l'environnement utilisés pour compiler <code>httpd</code>.
+      Lorsqu'elle est invoquée sans paramètre <var>requête</var>, cette
+      option affiche toutes les variables connues, ainsi que leurs
+      valeurs. Le paramètre optionnel <code>-v</code> formate la liste
+      affichée.
+
+      <p>Utilisez cette option pour déterminer manuellement les options
+      utilisées pour compiler le binaire <code>httpd</code> qui chargera
+      votre module. Ajoutez par exemple</p>
+      <div class="example"><p><code>
+        INC=-I`apxs -q INCLUDEDIR`
+      </code></p></div>
+
+      <p>dans vos propres Makefiles si vous devez accéder manuellement
+      aux fichiers d'en-têtes C d'Apache.</p></dd>
+      </dl>
+    
+
+    <h3><a name="options.conf" id="options.conf">Options de configuration</a></h3>
+      <dl>
+      <dt><code>-S <var>nom</var>=<var>valeur</var></code></dt>
+      <dd>Cette option permet de modifier la configuration d'apxs
+      décrite ci-dessus.</dd>
+      </dl>
+    
+
+    <h3><a name="options.template" id="options.template">Option de génération des
+    modèles</a></h3>
+      <dl>
+      <dt><code>-g</code></dt>
+      <dd>Cette option permet de générer un sous-répertoire
+      <var>nom</var> (voir option <code>-n</code>) contenant deux
+      fichiers : le premier fichier est un exemple de fichier source de
+      module nommé <code>mod_<var>nom</var>.c</code> que l'on peut
+      utiliser comme modèle pour créer ses propres modules, ou comme
+      point de départ pour se familiariser avec le mécanisme apxs ; le
+      second fichier est le <code>Makefile</code> correspondant
+      facilitant la compilation et l'installation de ce module.</dd>
+      </dl>
+    
+    <h3><a name="options.dso" id="options.dso">Options de compilation DSO</a></h3>
+      <dl>
+      <dt><code>-c</code></dt>
+      <dd>Cette option indique une opération de compilation. Tout
+      d'abord, les fichiers sources (.c) spécifiés par
+      <var>fichiers</var> sont compilés en fichiers objets
+      correspondants (.o), puis un objet dynamiquement partagé
+      <var>fichier-dso</var> est compilé via une édition de liens de ces
+      fichiers objets avec les autres fichiers objets (.o and .a)
+      spécifiés par <var>fichiers</var>. Si l'option <code>-o</code>
+      n'est pas spécifiée, le nom du fichier résultant est déduit du
+      premier nom de fichier spécifié par <var>fichiers</var>, et ainsi
+      prend en général pour valeur par défaut
+      <code>mod_<var>nom</var>.so</code>.</dd>
+
+      <dt><code>-o <var>fichier-dso</var></code></dt>
+      <dd>Spécifie de manière explicite le nom de fichier de l'objet
+      partagé dynamiquement créé. Sans cette option, et si le nom ne
+      peut pas être déduit de la liste <var>fichiers</var>, c'est le nom
+      par défaut <code>mod_unknown.so</code> qui sera utilisé.</dd>
+
+      <dt><code>-D <var>nom</var>=<var>valeur</var></code></dt>
+      <dd>Cette option est transmise directement à la commande de
+      compilation. Vous pouvez l'utiliser pour ajouter vos propres
+      définitions au processus de compilation. </dd>
+
+      <dt><code>-I <var>répertoire-inc</var></code></dt>
+      <dd>Cette option est transmise directement à la commande de
+      compilation. Vous pouvez l'utiliser pour ajouter vos propres
+      chemins de recherche des répertoires <code>include</code> au processus de
+      compilation.</dd>
+
+      <dt><code>-L <var>répertoire-lib</var></code></dt>
+      <dd>Cette option est transmise directement à la commande d'édition
+      de liens. Vous pouvez l'utiliser pour ajouter vos propres
+      chemins de recherche des répertoires de bibliothèques au processus
+      de compilation.</dd>
+
+      <dt><code>-l <var>nom-bibliothèque</var></code></dt>
+      <dd>Cette option est transmise directement à la commande d'édition
+      de liens. Vous pouvez l'utiliser pour ajouter vos propres
+      bibliothèques à rechercher au processus de compilation.</dd>
+
+      <dt><code>-Wc,<var>options-compilation</var></code></dt>
+      <dd>Cette option transmet les <var>options-compilation</var> en
+      tant qu'options supplémentaires à la commande <code>libtool
+      --mode=compile</code>. Vous pouvez l'utiliser pour ajouter des
+      options locales spécifiques au compilateur.</dd>
+
+      <dt><code>-Wl,<var>options-edition-liens</var></code></dt>
+      <dd>Cette option transmet les <var>options-edition-liens</var> en
+      tant qu'options supplémentaires à la commande <code>libtool
+      --mode=link</code>. Vous pouvez l'utiliser pour ajouter des
+      options locales spécifiques à l'éditeur de liens.</dd>
+      
+      <dt><code>-p</code></dt>
+      <dd>Avec cette option, apxs effectue l'édition de liens avec les
+      bibliothèques apr/apr-util. Elle permet de compiler les programmes
+      helper qui utilisent les bibliothèques apr/apr-util.</dd>
+      </dl>
+    
+
+    <h3><a name="options.dsoinstall" id="options.dsoinstall">Options d'installation et de configuration DSO</a></h3>
+    
+      <dl>
+      <dt><code>-i</code></dt>
+      <dd>Cette option indique une opération d'installation et installe
+      un ou plusieurs objets dynamiquement partagés dans le répertoire
+      <var>modules</var> du serveur.</dd>
+
+      <dt><code>-a</code></dt>
+      <dd>Cette option active le module en ajoutant automatiquement une
+      directive <code class="directive"><a href="../mod/mod_so.html#loadmodule">LoadModule</a></code>
+      correspondante au fichier de configuration d'Apache
+      <code>httpd.conf</code>, ou en l'activant s'il existe déjà.</dd>
+
+      <dt><code>-A</code></dt>
+      <dd>Identique à l'option <code>-a</code>, à la différence que la
+      directive <code class="directive"><a href="../mod/mod_so.html#loadmodule">LoadModule</a></code> créée
+      est préfixée par un caractère dièse (<code>#</code>) ; le module
+      est ainsi préparé pour une activation ultérieure, mais est
+      désactivé dans un premier temps.</dd>
+
+      <dt><code>-e</code></dt>
+      <dd>Cette option indique une opération d'édition de liens et peut
+      être utilisée avec les options <code>-a</code> et <code>-A</code>
+      de la même manière qu'au cours de l'opération d'installation pour
+      éditer le fichier de configuration d'Apache
+      <code>httpd.conf</code>, sans toutefois installer le module.</dd>
+      </dl>
+    
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="examples" id="examples">Exemples</a></h2>
+    <p>Supposons que vous disposiez d'un module Apache nommé
+    <code>mod_foo.c</code> et destiné à étendre les fonctionnalités du
+    serveur. Pour ce faire, vous devez tout d'abord compiler le fichier
+    source C en un objet partagé pouvant être chargé dans le serveur
+    Apache à l'exécution, via la commande suivante :</p>
+
+    <div class="example"><p><code>
+      $ apxs -c mod_foo.c<br />
+      /chemin/vers/libtool --mode=compile gcc ... -c mod_foo.c<br />
+      /chemin/vers/libtool --mode=link gcc ... -o mod_foo.la mod_foo.slo<br />
+      $ _
+    </code></p></div>
+
+    <p>Vous devez ensuite vérifier la configuration d'Apache en vous
+    assurant qu'une directive <code class="directive"><a href="../mod/mod_so.html#loadmodule">LoadModule</a></code> est bien présente pour
+    charger cet objet partagé. Pour simplifier cette étape,
+    <code>apxs</code> propose une méthode automatique d'installation de
+    l'objet partagé dans son répertoire "modules", et de mise à jour du
+    fichier <code>httpd.conf</code> en conséquence. Pour bénéficier de
+    cette automatisation, utilisez la commande suivante :</p>
+
+    <div class="example"><p><code>
+      $ apxs -i -a mod_foo.la<br />
+      /chemin/vers/instdso.sh mod_foo.la /chemin/vers/apache/modules<br />
+      /chemin/vers/libtool --mode=install cp mod_foo.la /chemin/vers/apache/modules
+      ...
+      chmod 755 /chemin/vers/apache/modules/mod_foo.so<br />
+      [activation du module `foo' dans /chemin/vers/apache/conf/httpd.conf]<br />
+      $ _
+    </code></p></div>
+
+    <p>Une ligne contenant</p>
+
+    <div class="example"><p><code>
+      LoadModule foo_module modules/mod_foo.so
+    </code></p></div>
+
+    <p>est alors ajoutée au fichier de configuration si ce n'est pas
+    déjà fait. Si vous voulez que le module soit désactivé par défaut,
+    utilisez l'option <code>-A</code> comme suit :</p>
+
+    <div class="example"><p><code>
+      $ apxs -i -A mod_foo.c
+    </code></p></div>
+
+    <p>Pour un test rapide du mécanisme apxs, vous pouvez créer un
+    exemple de modèle de module Apache, ainsi que le Makefile
+    correspondant via :</p>
+
+    <div class="example"><p><code>
+      $ apxs -g -n foo<br />
+      Creating [DIR]  foo<br />
+      Creating [FILE] foo/Makefile<br />
+      Creating [FILE] foo/modules.mk<br />
+      Creating [FILE] foo/mod_foo.c<br />
+      Creating [FILE] foo/.deps<br />
+      $ _
+    </code></p></div>
+
+    <p>Vous pouvez ensuite compiler immédiatement ce module exemple en
+    objet partagé et le charger dans le serveur Apache :</p>
+
+    <div class="example"><p><code>
+      $ cd foo<br />
+      $ make all reload<br />
+      apxs -c mod_foo.c<br />
+      /chemin/vers/libtool --mode=compile gcc ... -c mod_foo.c<br />
+      /chemin/vers/libtool --mode=link gcc ... -o mod_foo.la mod_foo.slo<br />
+      apxs -i -a -n "foo" mod_foo.la<br />
+      /chemin/vers/instdso.sh mod_foo.la /chemin/vers/apache/modules<br />
+      /chemin/vers/libtool --mode=install cp mod_foo.la /chemin/vers/apache/modules
+      ...
+      chmod 755 /chemin/vers/apache/modules/mod_foo.so<br />
+      [activation du module `foo' dans /chemin/vers/apache/conf/httpd.conf]<br />
+      apachectl restart<br />
+      /chemin/vers/apache/sbin/apachectl restart: httpd not running, trying to start<br />
+      [Tue Mar 31 11:27:55 1998] [debug] mod_so.c(303): loaded module foo_module<br />
+      /chemin/vers/apache/sbin/apachectl restart: httpd started<br />
+      $ _
+    </code></p></div>
+
+</div></div>
+<div class="bottomlang">
+<p><span>Langues Disponibles: </span><a href="../en/programs/apxs.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/programs/apxs.html" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ko/programs/apxs.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/programs/apxs.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Commentaires</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/programs/apxs.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Autorisé sous <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

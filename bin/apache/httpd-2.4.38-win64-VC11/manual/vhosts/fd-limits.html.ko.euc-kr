@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+<meta content="text/html; charset=EUC-KR" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>파일기술자(file descriptor) 한계 - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page" class="no-sidebar"><div id="page-header">
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">가상호스트</a></div><div id="page-content"><div id="preamble"><h1>파일기술자(file descriptor) 한계</h1>
+<div class="toplang">
+<p><span>가능한 언어: </span><a href="../en/vhosts/fd-limits.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/fd-limits.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ja/vhosts/fd-limits.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/vhosts/fd-limits.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/fd-limits.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">이 문서는 최신판 번역이 아닙니다.
+            최근에 변경된 내용은 영어 문서를 참고하세요.</div>
+
+
+    <p>가상호스트를 많이 사용하고 각 가상호스트에 서로 다른
+    로그파일을 지정하면, 아파치가 사용가능한 파일기술자(file
+    descriptor, 흔히 <cite>파일핸들(file handle)</cite>이라고
+    부름)를 다 써버릴 수 있다. 아파치가 사용하는 파일기술자의
+    총 개수는 오류 로그파일당 한개, 다른 로그파일 지시어당
+    한개, 추가로 내부용도로 10-20개를 더한 수다. 유닉스 운영체제는
+    프로세스가 사용할 수 있는 파일기술자 개수를 제한한다. 이 한계는
+    보통 64개로, 보통 이보다 큰 hard-limit까지 늘릴 수 있다.</p>
+
+    <p>아파치는 이 한계를 필요한만큼 늘리려고 하지만, 실패하는
+    경우가 있다:</p>
+
+    <ol>
+      <li>시스템이 <code>setrlimit()</code> 시스템호출을
+      제공하지 않는다.</li>
+
+      <li>(Solaris 2.3과 같이) 시스템에서
+      <code>setrlimit(RLIMIT_NOFILE)</code> 함수가 동작하지
+      않는다.</li>
+
+      <li>필요한 파일기술자 개수가 hard limit 보다 많다.</li>
+      
+      <li>(Solaris 2) 시스템이 stdio 스트림을 256이하의
+      파일기술자만을 사용하도록 제한하는 등 파일기술자에
+      제약을 가한다.</li>
+    </ol>
+
+    <p>이 경우 해결책은:</p>
+
+    <ul>
+      <li>로그파일 개수를 줄인다. <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> 섹션에서 로그파일을
+      지정하지 않고 주 로그파일을 사용한다. (더 자세한 방법은
+      아래 <a href="#splitlogs">로그파일 나누기</a>를 참고하라.)</li>
+
+      <li>
+        사용하는 시스템이 (위의) 1번째나 2번째 경우에 해당한다면,
+        다음과 같은 스크립트로 아파치를 시작하기 전에 파일기술자
+        한계를 늘린다.
+
+        <div class="example"><p><code>
+          <code>#!/bin/sh<br />
+           ulimit -S -n 100<br />
+           exec httpd</code>
+        </code></p></div>
+      </li>
+    </ul>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="splitlogs" id="splitlogs">로그파일 나누기</a></h2>
+
+<p>여러 가상호스트가 같은 로그파일을 사용한다면 나중에 각
+가상호스트의 통계분석을 위해 로그파일을 나누고 싶을 것이다.
+이 작업은 다음과 같이 할 수 있다.</p>
+
+<p>먼저 로그 항목에 가상호스트 정보를 추가한다. 이를 위해
+<code class="directive"><a href="../mod/mod_log_config.html#logformat">LogFormat</a></code>
+지시어와 <code>%v</code> 변수를 사용한다. 이 변수를 로그
+형식문자열 앞에 추가한다:</p>
+
+<div class="example"><p><code>
+LogFormat "%v %h %l %u %t \"%r\" %&gt;s %b" vhost<br />
+CustomLog logs/multiple_vhost_log vhost
+</code></p></div>
+
+<p>그러면 common 로그형식 앞에 (<code class="directive"><a href="../mod/core.html#servername">ServerName</a></code> 지시어에 나오는) 정규
+가상호스트를 포함하여 로그파일을 기록한다. (로그파일
+사용자정의에 관한 내용은 <code class="directive"><a href="../mod/mod_log_config.html#사용자정의 로그형식">사용자정의 로그형식</a></code>을
+참고하라.)</p>
+
+<p>로그파일을 (가상호스트당 한 파일씩) 나누고 싶다면 <code><a href="../programs/other.html">split-logfile</a></code> 프로그램을
+사용한다. 이 프로그램은 아파치 배포본의 <code>support</code>
+디렉토리에 있다.</p>
+
+<p>다음과 같이 프로그램을 실행한다:</p>
+
+<div class="example"><p><code>
+split-logfile &lt; /logs/multiple_vhost_log
+</code></p></div>
+
+<p>가상호스트 로그파일을 가지고 이 프로그램을 실행하면 로그파일에
+나오는 각 가상호스트당 파일을 하나씩 만든다. 각각의 파일명은
+<code>hostname.log</code>이다.</p>
+
+</div></div>
+<div class="bottomlang">
+<p><span>가능한 언어: </span><a href="../en/vhosts/fd-limits.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/fd-limits.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ja/vhosts/fd-limits.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/vhosts/fd-limits.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/fd-limits.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/vhosts/fd-limits.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

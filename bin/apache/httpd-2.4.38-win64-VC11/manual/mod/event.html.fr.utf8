@@ -1,0 +1,500 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>event - Serveur HTTP Apache Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p>
+<p class="apache">Serveur HTTP Apache Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">Serveur HTTP</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Modules</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache MPM event</h1>
+<div class="toplang">
+<p><span>Langues Disponibles: </span><a href="../en/mod/event.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/event.html" title="Français">&nbsp;fr&nbsp;</a></p>
+</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">Description:</a></th><td>Une variante du MPM <code class="module"><a href="../mod/worker.html">worker</a></code> conçue pour ne
+mobiliser des threads que pour les connexions en cours de traitement</td></tr>
+<tr><th><a href="module-dict.html#Status">Statut:</a></th><td>MPM</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">Identificateur de Module:</a></th><td>mpm_event_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">Fichier Source:</a></th><td>event.c</td></tr></table>
+<h3>Sommaire</h3>
+
+    <p>Le module multi-processus (MPM) <code class="module"><a href="../mod/event.html">event</a></code> est conçu
+    pour permettre le traitement d'un nombre accru de requêtes
+    simultanées en déléguant certaines tâches
+    aux threads d'écoute, libérant par là-même les
+    threads de travail et leur permettant de traiter les nouvelles requêtes.</p>
+
+    <p>Pour utiliser le MPM <code class="module"><a href="../mod/event.html">event</a></code>, ajoutez
+    <code>--with-mpm=event</code> aux arguments du script
+    <code class="program"><a href="../programs/configure.html">configure</a></code> lorsque vous compilez le programme
+    <code class="program"><a href="../programs/httpd.html">httpd</a></code>.</p>
+
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>Sujets</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#event-worker-relationship">Relations avec le MPM Worker</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#how-it-works">Comment tout cela fonctionne</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#requirements">Prérequis</a></li>
+</ul><h3 class="directives">Directives</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#asyncrequestworkerfactor">AsyncRequestWorkerFactor</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#coredumpdirectory">CoreDumpDirectory</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#enableexceptionhook">EnableExceptionHook</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mod_unixd.html#group">Group</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#listen">Listen</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#listenbacklog">ListenBacklog</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#maxconnectionsperchild">MaxConnectionsPerChild</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#maxmemfree">MaxMemFree</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#maxrequestworkers">MaxRequestWorkers</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#maxsparethreads">MaxSpareThreads</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#minsparethreads">MinSpareThreads</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#pidfile">PidFile</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#scoreboardfile">ScoreBoardFile</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#sendbuffersize">SendBufferSize</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#serverlimit">ServerLimit</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#startservers">StartServers</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#threadlimit">ThreadLimit</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#threadsperchild">ThreadsPerChild</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#threadstacksize">ThreadStackSize</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mod_unixd.html#user">User</a></li>
+</ul>
+<h3>Traitement des bugs</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">Journal des modifications de httpd</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mpm_event">Problèmes connus</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mpm_event">Signaler un bug</a></li></ul><h3>Voir aussi</h3>
+<ul class="seealso">
+<li><a href="worker.html">Le MPM worker</a></li>
+<li><a href="#comments_section">Commentaires</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="event-worker-relationship" id="event-worker-relationship">Relations avec le MPM Worker</a></h2>
+<p>Le MPM <code class="module"><a href="../mod/event.html">event</a></code> s'inspire du MPM <code class="module"><a href="../mod/worker.html">worker</a></code> qui
+implémente un serveur hybride multi-processus et multi-threads. Un processus de
+contrôle unique (le parent) est chargé de lancer des processus enfants. Chaque
+processus enfant crée un nombre de threads serveurs défini via la directive
+<code class="directive"><a href="../mod/mpm_common.html#threadsperchild">ThreadsPerChild</a></code>, ainsi qu'un thread
+d'écoute qui surveille les requêtes entrantes et les distribue aux threads de
+travail pour traitement au fur et à mesure de leur arrivée.</p>
+
+<p>Les directives de configuration à l'exécution sont identiques à celles que
+propose le MPM <code class="module"><a href="../mod/worker.html">worker</a></code>, avec l'unique addition de la directive
+<code class="directive">AsyncRequestWorkerFactor</code>.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="how-it-works" id="how-it-works">Comment tout cela fonctionne</a></h2>
+    
+    <p>Ce module MPM tente de résoudre le "problème keep
+    alive" de HTTP. Lorsqu'un client a effectué une première requête, il peut
+    garder la connexion ouverte et envoyer les requêtes suivante en utilisant le
+    même socket, ce qui diminue considérablement la charge qui aurait été
+    induite par la création de nouvelles connexions TCP. Cependant, le
+    fonctionnement du serveur HTTP Apache impose de réserver un couple processus
+    enfant/thread pour attendre les données en provenance du client, ce qui
+    présente certains inconvénients.     
+    Pour résoudre ce problème, le MPM Event utilise un thread d'écoute dédié
+    pour chaque processus pour gérer les sockets d'écoute, tous les sockets qui
+    sont dans un état de connexion persistante, les sockets où les
+    filtres de gestionnaire et de protocole ont fait leur travail, et ceux pour
+    lesquels la seule chose restant à faire est l'envoi des données au client.
+    </p>
+
+    <p>Cette nouvelle architecture, en exploitant les sockets non blocants et
+    les fonctionnalités des noyaux modernes mis en valeur par
+    <a class="glossarylink" href="../glossary.html#apr" title="voir glossaire">APR</a> (comme epoll de Linux), n'a plus besoin du
+    <code class="directive"><a href="../mod/core.html#mutex">Mutex</a></code> <code>mpm-accept</code> pour
+    éviter le problème de "thundering herd".</p>
+
+    <p>La directive <code class="directive">AsyncRequestWorkerFactor</code> permet de
+    définir le nombre total de connexions qu'un bloc processus/thread peut
+    gérer.</p>
+
+    <h3><a name="async-connections" id="async-connections">Connexions asynchrones</a></h3>
+        <p>Avec les MPM précédents, les connexions asynchrones nécessitaient
+	un thread de travail dédié, mais ce n'est plus le cas avec le MPM Event.
+	La page d'état de <code class="module"><a href="../mod/mod_status.html">mod_status</a></code> montre de nouvelles
+	colonnes dans la section "Async connections" :</p>
+        <dl>
+            <dt>Writing</dt>
+            <dd>Lors de l'envoi de la réponse au client, il peut arriver que le
+	    tampon d'écriture TCP soit plein si la connexion est trop lente. Si
+	    cela se produit, une instruction <code>write()</code> vers le socket
+	    renvoie en général <code>EWOULDBLOCK</code> ou <code>EAGAIN</code>
+	    pour que l'on puisse y écrire à nouveau après un certain temps
+	    d'inactivité. Le thread de travail qui utilise le socket doit alors
+	    être en mesure de récupérer la tâche en attente et la restituer au
+	    thread d'écoute qui, à son tour, la réattribuera au premier thread
+	    de travail disponible, lorsqu'un évènement sera généré pour le socket
+	    (par exemple, "il est maintenant possible d'écrire dans le socket").
+	    Veuillez vous reporter à la section à propos des limitations pour
+	    plus de détails.
+            </dd>
+
+            <dt>Keep-alive</dt>
+            <dd>La gestion des connexions persistantes constitue la principale
+	    amélioration par rapport au MPM Worker. Lorsqu'un thread de travail
+	    a terminé l'envoi d'une réponse à un client, il peut restituer la
+	    gestion du socket au thread d'écoute, qui à son tour va attendre un
+	    évènement en provenance du système d'exploitation comme "le socket
+	    est lisible". Si une nouvelle requête arrive en provenance du
+	    client, le thread d'écoute l'attribuera au premier thread de travail
+	    disponible. Inversement, si le délai <code class="directive"><a href="../mod/core.html#keepalivetimeout">KeepAliveTimeout</a></code> est atteint, le socket
+	    sera fermé par le thread d'écoute. Les threads de travail n'ont
+	    donc plus à s'occuper des sockets inactifs et ils peuvent être
+	    réutilisés pour traiter d'autres requêtes.</dd>
+
+            <dt>Closing</dt>
+            <dd>Parfois, le MPM doit effectuer une fermeture progressive, c'est
+	    à dire envoyer au client une erreur survenue précédemment alors que
+	    ce dernier est en train de transmettre des données à httpd. Envoyer la réponse et
+	    fermer immédiatement la connexion n'est pas une bonne solution car
+	    le client (qui est encore en train d'envoyer le reste de la requête)
+	    verrait sa connexion réinitialisée et ne pourrait pas lire la
+	    réponse de httpd. La fermeture progressive est limitée dans le temps,
+	    mais elle peut tout de même être assez longue, si bien qu'elle est
+	    confiée à un thread de travail (y compris les procédures d'arrêt et
+	    la fermeture effective du socket). A partir de la version 2.4.28,
+	    c'est aussi le cas lorsque des connexions finissent par dépasser
+	    leur délai d'attente (le thread d'écoute ne gère jamais les
+	    connexions, si ce n'est attendre et dispatcher les évènements
+	    qu'elles génèrent).</dd>
+        </dl>
+
+        <p>Ces améliorations sont disponible pour les connexions HTTP ou HTTPS.</p> 
+
+    
+
+    <h3><a name="graceful-close" id="graceful-close">Arrêt de processus en douceur et
+    utilisation du scoreboard</a></h3>
+        <p>Ce MPM présentait dans le passé des limitations de montée en
+	puissance qui
+	provoquaient l'erreur suivante : "<strong>scoreboard is full, not at
+	MaxRequestWorkers</strong>". La directive <code class="directive"><a href="../mod/mpm_common.html#maxrequestworkers">MaxRequestWorkers</a></code> permet de limiter le
+	nombre de requêtes pouvant être servies simultanément à un moment donné
+	ainsi que le nombre de processus autorisés (<code class="directive"><a href="../mod/mpm_common.html#maxrequestworkers">MaxRequestWorkers</a></code> / <code class="directive"><a href="../mod/mpm_common.html#threadsperchild">ThreadsPerChild</a></code>), alors que le
+	scoreboard représente l'ensemble des processus en cours d'exécution et
+	l'état de leurs threads de travail. Si le scoreboard est plein
+	(autrement dit si aucun des threads n'est dans un état inactif) et si le
+	nombre de requêtes actives servies est inférieur à <code class="directive"><a href="../mod/mpm_common.html#maxrequestworkers">MaxRequestWorkers</a></code>, cela signifie que
+	certains d'entre eux bloquent les nouvelles requêtes qui pourraient être
+	servies et sont en l'occurrence mises en attente (dans la limite de la
+	valeur imposée par la directive <code class="directive"><a href="../mod/mpm_common.html#listenbacklog">ListenBacklog</a></code>). La plupart du temps, ces
+	threads sont bloqués dans un état d'arrêt en douceur car ils attendent
+	de terminer leur travail sur une connexion TCP pour s'arrêter et ainsi libérer
+	une entrée dans le scoreboard (par exemple dans le cas du traitement des
+	requêtes de longue durée, des clients lents ou des connexions en
+	keep-alive). Voici deux scénarios courants :</p>
+        <ul>
+            <li>Pendant un <a href="../stopping.html#graceful">graceful
+	    restart</a>. Le processus parent demande à tous ses processus
+	    enfants de terminer leur travail et de s'arrêter pendant qu'il
+	    recharge la configuration et lance de nouveaux processus. Si les
+	    processus existants continuent de s'exécuter pendant un certain
+	    temps avant de s'arrêter, le scoreboard sera partiellement occupé
+	    jusqu'à ce que les entrées correspondantes soient libérées.
+            </li>
+            <li>Lorsque la charge du serveur diminue suffisamment pour que httpd
+	    commence à stopper certains processus (par exemple pour respecter la
+	    valeur de la directive <code class="directive"><a href="../mod/mpm_common.html#maxsparethreads">MaxSpareThreads</a></code>). Cette situation
+	    est problèmatique car lorsque la charge augmente à nouveau, httpd va
+	    essayer de lancer de nouveaux processus. Si cette situation se
+	    répète, le nombre de processus peut augmenter sensiblement,
+	    aboutissant à un mélange d'anciens processus tentant de s'arrêter et
+	    de nouveaux processus tentant d'effectuer un travail quelconque.
+            </li>
+        </ul>
+        <p>A partir de la version 2.4.24, mpm-event est plus intelligent et peut
+	traiter les arrêts graceful de manière plus efficace. Voici certaines de
+	ces améliorations :</p>
+        <ul>
+            <li>Utilisation de toutes les entrées du scoreboard dans la limite
+	    de la valeur définie par <code class="directive"><a href="../mod/mpm_common.html#serverlimit">ServerLimit</a></code>. Les directives
+	    <code class="directive"><a href="../mod/mpm_common.html#maxrequestworkers">MaxRequestWorkers</a></code> et
+	    <code class="directive"><a href="../mod/mpm_common.html#threadsperchild">ThreadsPerChild</a></code>
+	    permettent de limiter le nombre de processus actifs, alors que la
+	    directive <code class="directive"><a href="../mod/mpm_common.html#serverlimit">ServerLimit</a></code>
+	    prend aussi en compte les proccessus en arrêt graceful pour
+	    permettre l'utilisation d'entrées supplémentaires du scoreboard en
+	    cas de besoin. L'idée consiste à utiliser <code class="directive"><a href="../mod/mpm_common.html#serverlimit">ServerLimit</a></code> pour indiquer à httpd
+	    conbien de processus supplémentaires seront tolérés avant
+	    d'atteindre les limites imposées par les ressources du système.
+            </li>
+            <li>Les processus en arrêt graceful doivent fermer leurs connexions
+	    en keep-alive.</li>
+            <li>Lors d'un arrêt graceful, s'il y a plus de threads de travail en
+	    cours d'exécution que de connexions ouvertes pour un processus
+	    donné, ces threads sont arrêtés afin de libérer les ressources plus
+	    vite (ce qui peut s'avérer nécessaire pour lancer de nouveaux
+	    processus).</li>
+            <li>Si le scoreboard est plein, empêche d'arrêter d'autres processus
+	    en mode graceful afin de réduire la charge jusqu'à ce que tous les
+	    anciens processus soient arrêtés (sinon la situation empirerait lors
+	    d'une remontée en charge).</li>
+        </ul>
+        <p>Le comportement décrit dans le dernier point est bien visible via
+	<code class="module"><a href="../mod/mod_status.html">mod_status</a></code> dans la table des connexions avec les deux
+	nouvelles colonnes "Slot" et "Stopping". La première indique le PID et
+	la seconde si le processus est en cours d'arrêt ou non ; l'état
+	supplémentaire "Yes (old gen)" indique un processus encore en exécution
+	après un redémarrage graceful.</p>
+    
+
+    <h3><a name="limitations" id="limitations">Limitations</a></h3>
+        <p>La gestion améliorée des connexions peut ne pas fonctionner pour
+	certains filtres de connexion qui se sont déclarés eux-mêmes
+	incompatibles avec le MPM Event. Dans ce cas, le MPM Event réadoptera le
+	comportement du MPM <code class="module"><a href="../mod/worker.html">worker</a></code> et réservera un thread de
+	travail par connexion. Notez que tous les modules inclus dans la
+	distribution du serveur httpd sont compatibles avec le MPM Event.</p>
+
+        <p>Une restriction similaire apparaît lorsqu'une requête utilise un
+	filtre en sortie qui doit pouvoir lire et/ou modifier la totalité du
+	corps de la réponse. Si la connexion avec le client se bloque pendant
+	que le filtre traite les données, et si la quantité de données produites
+	par le filtre est trop importante pour être stockée en mémoire, le
+	thread utilisé pour la requête n'est pas libéré pendant que httpd attend
+	que les données soient transmises au client.<br /> 
+        Pour illustrer ce cas de figure, nous pouvons envisager les deux
+	situations suivantes : servir une ressource statique (comme un fichier
+	CSS) ou servir un contenu issu d'un programme FCGI/CGI ou d'un serveur
+	mandaté. La première situation est prévisible ; en effet, le MPM Event a
+	une parfaite visibilité sur la fin du contenu, et il peut utiliser les
+	évènements : le thread de travail qui sert la réponse peut envoyer les
+	premiers octets jusqu'à ce que <code>EWOULDBLOCK</code> ou
+	<code>EAGAIN</code> soit renvoyé, et déléguer le reste de la réponse au thread
+	d'écoute. Ce dernier en retour attend un évènement sur le socket, et
+	délègue le reste de la réponse au premier
+	thread de travail disponible. Dans la deuxième situation par contre
+	(FCGI/CGI/contenu mandaté), le MPM n'a pas de visibilité sur la fin de
+	la réponse, et le thread de travail doit terminer sa tâche avant de
+	rendre le contrôle au thread d'écoute. La seule solution consisterait
+	alors à stocker la réponse en mémoire, mais ce ne serait pas l'option la
+	plus sure en matière de stabilité du serveur et d'empreinte mémoire.
+        </p>
+
+    
+
+    <h3><a name="background" id="background">Matériel d'arrière-plan</a></h3>
+        <p>Le modèle event a été rendu possible par l'introduction de nouvelles
+	APIs dans les systèmes d'exploitation supportés :</p>
+        <ul>
+            <li>epoll (Linux) </li>
+            <li>kqueue (BSD) </li>
+            <li>event ports (Solaris) </li>
+        </ul>
+        <p>Avant que ces APIs soient mises à disposition, les APIs
+	traditionnelles <code>select</code> et <code>poll</code> devaient être
+	utilisées. Ces APIs deviennent lentes si on les utilise pour gérer de
+	nombreuses connexions ou si le jeu de connexions possède un taux de
+	renouvellement élevé. Les nouvelles APIs permettent de gérer beaucoup
+	plus de connexions et leur performances sont meilleures lorsque le jeu
+	de connexions à gérer change fréquemment. Ces APIs ont donc rendu
+	possible l'écriture le MPM Event qui est mieux adapté à la situation
+	HTTP typique où de nombreuses connexions sont inactives.</p>
+
+        <p>Le MPM Event suppose que l'implémentation de <code>apr_pollset</code>
+	sous-jacente est raisonnablement sure avec l'utilisation des threads
+	(threadsafe). Ceci évite au MPM de devoir effectuer trop verrouillages
+	de haut niveau, ou d'avoir à réveiller le thread d'écoute pour lui
+	envoyer un socket keep-alive. Ceci n'est possible qu'avec KQueue et
+	EPoll.</p>
+
+    
+        
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="requirements" id="requirements">Prérequis</a></h2>
+    <p>Ce MPM dépend des opérations atomiques compare-and-swap
+    d'<a class="glossarylink" href="../glossary.html#apr" title="voir glossaire">APR</a> pour la synchronisation des threads. Si
+    vous compilez pour une plate-forme x86 et n'avez pas besoin du
+    support 386, ou si vous compilez pour une plate-forme SPARC et
+    n'avez pas besoin du support pre-UltraSPARC, ajoutez
+    <code>--enable-nonportable-atomics=yes</code> aux arguments du
+    script <code class="program"><a href="../programs/configure.html">configure</a></code>. Ceci permettra à APR
+    d'implémenter les opérations atomiques en utilisant des instructions
+    performantes indisponibles avec les processeurs plus
+    anciens.</p>
+
+    <p>Ce MPM ne fonctionne pas de manière optimale sur les
+    plates-formes plus anciennes qui ne gèrent pas correctement les
+    threads, mais ce problème est sans objet du fait du prérequis
+    concernant EPoll ou KQueue.</p>
+
+    <ul>
+
+      <li>Pour utiliser ce MPM sous FreeBSD, la version 5.3 ou
+      supérieure de ce système est recommandée. Il est cependant
+      possible d'exécuter ce MPM sous FreeBSD 5.2.1 si vous utilisez
+      <code>libkse</code> (voir <code>man libmap.conf</code>).</li>
+
+      <li>Pour NetBSD, il est recommander d'utiliser la version 2.0 ou
+      supérieure.</li>
+
+      <li>Pour Linux, un noyau 2.6 est recommandé. Il faut aussi
+      s'assurer que votre version de <code>glibc</code> a été compilée
+      avec le support pour EPoll.</li>
+
+    </ul>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="asyncrequestworkerfactor" id="asyncrequestworkerfactor">Directive</a> <a name="AsyncRequestWorkerFactor" id="AsyncRequestWorkerFactor">AsyncRequestWorkerFactor</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Limite le nombre de connexions simultanées par thread</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntaxe:</a></th><td><code>AsyncRequestWorkerFactor <var>facteur</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Défaut:</a></th><td><code>2</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Contexte:</a></th><td>configuration globale</td></tr>
+<tr><th><a href="directive-dict.html#Status">Statut:</a></th><td>MPM</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>event</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibilité:</a></th><td>Disponible depuis la version 2.3.13</td></tr>
+</table>
+    <p>Le MPM event gère certaines connexions de manière asynchrone ;
+    dans ce cas, les threads traitant la requête sont alloués selon les
+    besoins et pour de courtes périodes. Dans les autres cas, un
+    thread est réservé par
+    connexion. Ceci peut conduire à des situations où tous les threads
+    sont saturés et où aucun thread n'est capable d'effectuer de
+    nouvelles tâches pour les connexions asynchrones établies.</p>
+
+    <p>Pour minimiser les effets de ce problème, le MPM event utilise
+    deux méthodes :</p>
+    <ul>
+    	<li>il limite le nombre de connexions
+	    simultanées par thread en fonction du nombre de processus
+	    inactifs;</li>
+	<li>si tous les processus sont occupés, il ferme des connexions
+	permanentes, même si la limite de durée de la connexion n'a
+	pas été atteinte. Ceci autorise les clients
+	concernés à se reconnecter à un autre processus
+	possèdant encore des threads disponibles.</li>
+    </ul>
+
+    <p>Cette directive permet de personnaliser finement la limite du
+    nombre de connexions par thread. Un <strong>processus</strong> n'acceptera de
+    nouvelles connexions que si le nombre actuel de connexions (sans
+    compter les connexions à l'état "closing") est
+    inférieur à :</p>
+
+    <p class="indent"><strong>
+        <code class="directive"><a href="../mod/mpm_common.html#threadsperchild">ThreadsPerChild</a></code> +
+        (<code class="directive">AsyncRequestWorkerFactor</code> *
+        <var>nombre de threads inactifs</var>)
+    </strong></p>
+
+    <p>Il est possible d'effectuer une estimation du nombre maximum de
+    connexions simultanées pour tous les processus et pour un nombre donné moyen
+    de threads de travail inactifs comme suit :
+    </p>
+
+
+    <p class="indent"><strong>
+        (<code class="directive"><a href="../mod/mpm_common.html#threadsperchild">ThreadsPerChild</a></code> +
+        (<code class="directive">AsyncRequestWorkerFactor</code> *
+        <var>number of idle workers</var>)) * 
+        <code class="directive"><a href="../mod/mpm_common.html#serverlimit">ServerLimit</a></code>
+    </strong></p>
+
+    <div class="note"><h3>Exemple</h3>
+    <pre class="prettyprint lang-config">ThreadsPerChild = 10
+ServerLimit = 4
+AsyncRequestWorkerFactor = 2
+MaxRequestWorkers = 40
+
+idle_workers = 4 (moyenne pour tous les processus pour faire simple)
+
+max_connections = (ThreadsPerChild + (AsyncRequestWorkerFactor * idle_workers)) * ServerLimit 
+                = (10 + (2 * 4)) * 4 = 72</pre>
+
+    </div>
+
+    <p>Lorsque tous les threads de travail sont inactifs, le nombre maximum
+    absolu de connexions simultanées peut être calculé de manière plus simple :</p>
+
+    <p class="indent"><strong>
+        (<code class="directive">AsyncRequestWorkerFactor</code> + 1) *
+        <code class="directive"><a href="../mod/mpm_common.html#maxrequestworkers">MaxRequestWorkers</a></code>
+    </strong></p>
+
+    <div class="note"><h3>Exemple</h3>
+    <pre class="prettyprint lang-config">ThreadsPerChild = 10 
+ServerLimit = 4
+MaxRequestWorkers = 40
+AsyncRequestWorkerFactor = 2</pre>
+
+
+    <p>Si tous les threads de tous les processus sont inactifs, alors :</p>
+
+    <pre class="prettyprint lang-config">idle_workers = 10</pre>
+
+
+    <p>Nous pouvons calculer le nombre maximum absolu de connexions simultanées
+    de deux manières :</p>
+    
+    <pre class="prettyprint lang-config">max_connections = (ThreadsPerChild + (AsyncRequestWorkerFactor * idle_workers)) * ServerLimit 
+                = (10 + (2 * 10)) * 4 = 120
+    
+max_connections = (AsyncRequestWorkerFactor + 1) * MaxRequestWorkers 
+                = (2 + 1) * 40 = 120</pre>
+
+    </div>
+
+    <p>Le réglage de la directive
+    <code class="directive">AsyncRequestWorkerFactor</code> nécessite de connaître le
+    trafic géré par httpd pour chaque style d'utilisation spécifique ; si vous
+    modifiez la valeur par défaut, vous devrez par conséquent effectuer des
+    tests approfondis en vous appuyant étroitement sur les données fournies par
+    <code class="module"><a href="../mod/mod_status.html">mod_status</a></code>.</p>
+
+    <p>La directive <code class="directive"><a href="../mod/mpm_common.html#maxrequestworkers">MaxRequestWorkers</a></code> se nommait
+    <code class="directive">MaxClients</code> avant la version 2.3.13. La valeur
+    ci-dessus montre que cet ancien nom ne correspondait pas à sa
+    signification exacte pour le MPM event.</p>
+
+    <p>La directive <code class="directive">AsyncRequestWorkerFactor</code>
+    accepte des valeurs d'argument de type non entier, comme "1.5".</p>
+
+
+</div>
+</div>
+<div class="bottomlang">
+<p><span>Langues Disponibles: </span><a href="../en/mod/event.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/event.html" title="Français">&nbsp;fr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Commentaires</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/event.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Autorisé sous <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

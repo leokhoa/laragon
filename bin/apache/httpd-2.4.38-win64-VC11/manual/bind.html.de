@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="de" xml:lang="de"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>An Adressen und Ports binden - Apache HTTP Server Version 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">Module</a> | <a href="./mod/directives.html">Direktiven</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">Glossar</a> | <a href="./sitemap.html">Seitenindex</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP-Server</a> &gt; <a href="http://httpd.apache.org/docs/">Dokumentation</a> &gt; <a href="./">Version 2.4</a></div><div id="page-content"><div id="preamble"><h1>An Adressen und Ports binden</h1>
+<div class="toplang">
+<p><span>Verfügbare Sprachen: </span><a href="./de/bind.html" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="./en/bind.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/bind.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/bind.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/bind.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/bind.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">Diese Übersetzung ist möglicherweise
+            nicht mehr aktuell. Bitte prüfen Sie die englische Version auf
+            die neuesten Änderungen.</div>
+
+    <p>Konfiguration der vom Apache HTTP Server verwendeten Adressen und
+    Ports.</p>
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#overview">Überblick</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#ipv6">Betrachtung von IPv6-Besonderheiten</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#protocol">Angabe des Protokolls bei Listen</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#virtualhost">Das Zusammenspiel mit virtuellen Hosts</a></li>
+</ul><h3>Siehe auch</h3><ul class="seealso"><li><a href="vhosts/">Virtuelle Hosts</a></li><li><a href="dns-caveats.html">Probleme bezüglich DNS und
+    Apache</a></li><li><a href="#comments_section">Kommentare</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="overview" id="overview">Überblick</a></h2>
+    
+
+    <table class="related"><tr><th>Referenzierte Module</th><th>Referenzierte Direktiven</th></tr><tr><td><ul><li><code class="module"><a href="./mod/core.html">core</a></code></li><li><code class="module"><a href="./mod/mpm_common.html">mpm_common</a></code></li></ul></td><td><ul><li><code class="directive"><a href="./mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code></li><li><code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code></li></ul></td></tr></table>
+
+    <p>Beim Start bindet sich der httpd an bestimmte Adressen und Ports
+    der lokalen Maschine und wartet auf eingehende Anfragen.
+    Standardmäßig lauscht er an allen Adressen des Systems.
+    Es kann jeodch notwendig sein, ihm mit zuteilen, nur an bestimmten
+    Ports zu lauschen oder nur an ausgewählten Adressen, bzw. einer
+    Kombination aus beidem. Dies wird oft mit der Funktionalität <a href="vhosts/">virtueller Hosts</a> kombiniert, die bestimmt, wie
+    der <code>httpd</code> auf verschiedene IP-Adressen, Hostnamen und
+    Ports reagiert.</p>
+
+    <p>Die Direktive <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code>
+    weist den Server an, eingehende Anfragen nur an bestimmten Port(s)
+    oder Adress/Port-Kombinationen zu akzeptieren. Wenn bei der
+    <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code>-Direktive nur eine
+    Portnummer angegeben wird, dann lauscht der Server auf allen
+    Netzwerkinterfaces an dem angegebenen Port. Ist auch eine IP-Adresse
+    angegeben, dann lauscht der Server an der angegebenen Schnittstelle
+    auf dem angegebenen Port.  Es können mehrere <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code>-Anweisungen verwendet werden,
+    um eine Reihe von Adressen und Ports anzugeben, an denen gelauscht
+    werden soll. Der Server wird dann auf Anfragen an jeder der
+    abgehörten Adressen und Ports antworten.</p>
+
+    <p>Um beispielsweise den Server zu veranlassen, auf allen
+    Netzwerkinterfaces sowohl an Port 80, als auch an Port 8000
+    Verbindungen zu akzeptieren, geben Sie an:</p>
+
+    <div class="example"><pre class="prettyprint lang-config">Listen 80
+Listen 8000</pre>
+</div>
+
+    <p>Um den Server Verbindungen an Port 80 auf einem Netzwerkinterface
+    akzeptieren zu lassen und an Port 8080 auf einem anderen Interface, geben
+    Sie an:</p>
+      
+    <div class="example"><pre class="prettyprint lang-config">Listen 192.0.2.1:80
+Listen 192.0.2.5:8000</pre>
+</div>
+
+    <p>IPv6-Adressen müssen wie im folgenden Beispiel in eckigen
+      Klammern angegeben werden:</p>
+
+    <div class="example"><pre class="prettyprint lang-config">Listen [2001:db8::a00:20ff:fea7:ccea]:80</pre>
+</div>
+
+    <div class="warning"><p>Sich überlappende <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code>-Direktiven generieren einen
+    fatalen Fehler, der verhindert, dass der Server hochfährt.</p>
+
+    <div class="example"><p><code>
+      (48)Address already in use: make_sock: could not bind to address [::]:80
+    </code></p></div>
+
+    <p><a href="http://wiki.apache.org/httpd/CouldNotBindToAddress">Diese
+    Diskussion im Wiki</a> gibt weitere Tipps zur Fehlerbehebung.</p>
+    </div>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="ipv6" id="ipv6">Betrachtung von IPv6-Besonderheiten</a></h2>
+    
+
+    <p>Eine wachsende Anzahl von Plattformen implementiert IPv6. Die
+    <a class="glossarylink" href="./glossary.html#apr" title="siehe Glossar">APR</a> unterstützt IPv6 auf den meisten
+    dieser Plattformen und ermöglicht dem httpd, IPv6-Sockets zu
+    verwenden und über IPv6 gesendete Anfragen zu behandeln.</p>
+
+    <p>Für httpd-Administratoren kommt erschwerend die Frage hinzu,
+    ob IPv6-Sockets sowohl IPv4- als auch IPv6-Verbindungen handhaben
+    können. Zum Betrieb von IPv4-Verbindungen an IPv6-Sockets
+    werden auf IPv6 abgebildete IPv4-Adressen <span class="transnote">(<em>Anm.d.Ü.:</em> so genannete
+    IPv4-gemappte IPv6-Adressen)</span> verwendet, welche
+    standardmäßig auf den meisten Plattformen erlaubt sind.
+    Unter FreeBSD, NetBSD und OpenBSD jedoch sind sie
+    standardmäßig deaktiviert, um den Systemgrundsätzen
+    dieser Plattformen zu entsprechen. Auf Systemen, wo dies
+    standardmäßig dekativiert ist, kann dieses Verhalten mit
+    einem speziellen <code class="program"><a href="./programs/configure.html">configure</a></code>-Parameter für den
+    httpd geändert werden.</p>
+
+    <p>Auf der anderen Seite ist die Verwendung von gemappten Adressen
+    bei einigen Plattformen wie Linux und True64 der
+    <strong>einzige</strong> Weg, sowohl IPv4 wie auch IPv6 zu
+    verwenden. Wenn Sie möchten, dass der <code>httpd</code> IPv4-
+    und IPv6-Verbindungen mit einem Minimum an Sockets behandelt, was
+    die Verwendung von IPv4-gemappten IPv6-Adressen erfordert, dann
+    müssen Sie die <code class="program"><a href="./programs/configure.html">configure</a></code>-Option
+    <code>--enable-v4-mapped</code> angeben.</p>
+
+    <p><code>--enable-v4-mapped</code> ist die Voreinstellung auf allen
+    Plattformen außer FreeBSD, NetBSD und OpenBSD, so dass Ihr
+    httpd wahrscheinlich so übersetzt wurde.</p>
+
+    <p>Geben Sie wie in dem folgenden Beispiel bei allen <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code>-Anweisungen eine IPv4-Adresse
+    an, wenn Sie möchten, dass Ihr httpd lediglich IPv4-Adressen
+    behandelt, unabhängig davon, was Ihre Plattform und die APR
+    unterstützen:</p>
+
+    <div class="example"><pre class="prettyprint lang-config">Listen 0.0.0.0:80
+Listen 192.0.2.1:80</pre>
+</div>
+
+    <p>Wenn Sie möchten, dass der httpd IPv4- und IPv6-Verbindungen
+    an separaten Sockets behandelt (d.h. IPv4-gemappte Adressen
+    deaktiviert werden sollen) und Ihre Plattform es unterstützt,
+    dann müssen Sie die <code class="program"><a href="./programs/configure.html">configure</a></code>-Option
+    <code>--disable-v4-mapped</code> angeben.  Unter FreeBSD, NetBSD und
+    OpenBSD ist <code>--disable-v4-mapped</code> voreingestellt.</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="protocol" id="protocol">Angabe des Protokolls bei Listen</a></h2>
+    
+    <p>Das optionale zweite <var>Protokoll</var>-Argument von <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code> ist für die meisten
+    Konfigurationen gar nicht erforderlich. Wenn nicht angegeben, sind
+    <code>https</code> für Port 443 und <code>http</code> für
+    alle anderen Ports die Voreinstellungen. Die Protokollangabe wird
+    sowohl dazu verwendet, herauszufinden, welches Modul Anfragen
+    verarbeiten soll, als auch, um protokollspezifische Optimierungen
+    bei der <code class="directive"><a href="./mod/core.html#acceptfilter">AcceptFilter</a></code>-Direktive
+    zu aktivieren.</p>
+
+    <p>Sie müssen das Protokoll nur angeben, wenn Sie
+    ungewöhnliche Ports benutzen, beispielsweise <code>https</code>
+    auf Port 8443:</p>
+
+    <div class="example"><pre class="prettyprint lang-config">Listen 192.170.2.1:8443 https</pre>
+</div>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="virtualhost" id="virtualhost">Das Zusammenspiel mit virtuellen Hosts</a></h2>
+    
+
+    <p>Die Direktive <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code>
+    implementiert keine virtuellen Hosts - sie teilt dem Hauptserver
+    lediglich mit, an welchen Adressen und Ports er zu lauschen hat.
+    Werden keine <code class="directive"><a href="./mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code>-Container verwendet, dann
+    verhält sich der Server bei allen angenommenen Anfragen gleich.
+    <code class="directive"><a href="./mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code>-Abschnitte können jedoch
+    dazu verwendet werden, ein unterschiedliches Verhalten für eine
+    oder mehrere Adressen und Ports festzulegen. Um einen virtuellen
+    Host einzurichten, muss dem Server zunächst mitgeteilt werden,
+    an den betreffenden Adressen oder Ports zu lauschen. Dann sollte ein
+    <code class="directive"><a href="./mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code>-Abschnitt für die
+    angebene Adresse und den angegebenen Port erstellt werden, um das
+    Verhalten dieses virtuellen Hosts festzulegen. Beachten Sie bitte,
+    dass auf einen <code class="directive"><a href="./mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> nicht zugegriffen werden
+    kann, wenn er für eine Adresse und einen Port eingerichtet
+    wurde, an dem der Server nicht lauscht.</p>
+  </div></div>
+<div class="bottomlang">
+<p><span>Verfügbare Sprachen: </span><a href="./de/bind.html" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="./en/bind.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/bind.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/bind.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/bind.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/bind.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Kommentare</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/bind.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Lizenziert unter der <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="./mod/">Module</a> | <a href="./mod/directives.html">Direktiven</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">Glossar</a> | <a href="./sitemap.html">Seitenindex</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

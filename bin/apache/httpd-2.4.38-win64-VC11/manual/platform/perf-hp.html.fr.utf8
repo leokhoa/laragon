@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Mise en oeuvre d'un serveur Web hautes performances sous
+  HPUX - Serveur HTTP Apache Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page" class="no-sidebar"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p>
+<p class="apache">Serveur HTTP Apache Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">Serveur HTTP</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Notes spécifiques aux
+  plates-formes</a></div><div id="page-content"><div id="preamble"><h1>Mise en oeuvre d'un serveur Web hautes performances sous
+  HPUX</h1>
+<div class="toplang">
+<p><span>Langues Disponibles: </span><a href="../en/platform/perf-hp.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/platform/perf-hp.html" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ko/platform/perf-hp.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div>
+
+
+<pre>Date: Wed, 05 Nov 1997 16:59:34 -0800
+From: Rick Jones &lt;<a href="mailto:raj@cup.hp.com">raj@cup.hp.com</a>&gt;
+Reply-To: <a href="mailto:raj@cup.hp.com">raj@cup.hp.com</a>
+Organization: Network Performance
+Subject: HP-UX tuning tips</pre>
+
+    <p>Traduction du corps du message cité ci-dessus :</p>
+
+    <p>Voici quelques conseils de personnalisation pour HPUX à ajouter à
+    la page de personnalisation.</p>
+
+    <p>Pour HP-UX 9.X: mettre à jour vers la version 10.20<br />
+    Pour HP-UX 10.[00|01|10]: mettre à jour vers la version 10.20</p>
+
+    <p>Pour HP-UX 10.20:</p>
+
+    <p>Installez le dernier patch cumulatif à propos du transport ARPA.
+    Ceci va vous permettre de configurer la taille de la table de
+    hashage de recherche de connexion TCP. La valeur par défaut est 256
+    conteneurs et doit être une puissance de deux. À cet effet, utilisez
+    adb pour modifier l'image *disque* du noyau. Le nom de la variable
+    est <code>tcp_hash_size</code>. Notez qu'il est impératif d'utiliser
+    "<code>W</code>" pour spécifier une quantité sur 32 bits, et non
+    "<code>w</code>" qui indique une valeur sur 16 bits, lors de la
+    modification de l'image disque car la variable
+    <code>tcp_hash_size</code> est une quantité sur 32 bits.</p>
+
+    <p>Comment déterminer cette valeur ? Examinez la sortie de <a href="ftp://ftp.cup.hp.com/dist/networking/tools/connhist">ftp://ftp.cup.hp.com/dist/networking/tools/connhist</a>, et
+    comptez le nombre total de connexions TCP existant sur le système.
+    Il est en général souhaitable que ce nombre divisé par la taille de
+    la table de hashage soit raisonnablement petit, disons inférieur à
+    10. Les administrateurs peuvent consulter le document SPECweb96 de
+    HP pour quelques réglages courants. On peut les trouver à <a href="http://www.specbench.org/">http://www.specbench.org/</a>. Si
+    un système HP-UX traite 1000 connexions SPECweb96 par seconde, une
+    valeur de temps <code>TIME_WAIT</code> de 60 secondes permettrait le
+    suivi de 60000 connexions TCP.</p>
+
+    <p>Les administrateurs peuvent tester la profondeur de leur file
+    d'attente d'écoute avec <a href="ftp://ftp.cup.hp.com/dist/networking/misc/listenq">ftp://ftp.cup.hp.com/dist/networking/misc/listenq</a>.</p>
+
+    <p>Si Apache s'exécute sur un système à base de PA-8000, il est
+    conseillé de modifier l'exécutable Apache avec la commande chatr
+    afin d'utiliser une page de grande taille. La commande sera du style
+    "<code>chatr +pi L &lt;BINARY&gt;</code>". Le GID de l'exécutable en
+    cours de fonctionnement doit posséder le privilège
+    <code>MLOCK</code>. Pour assigner ce privilège <code>MLOCK</code>,
+    consultez <code>Setprivgrp(1m)</code>. La modification peut être
+    validée en exécutant Glance et en examinant les portions de mémoire
+    du/des serveur(s) afin de s'assurer qu'elles montrent une fraction
+    non triviale du segment de texte verrouillé.</p>
+
+    <p>Si Apache s'exécute sur un système MP (multi-processeurs), il est
+    conseillé d'écrire un petit programme qui utilise
+    <code>mpctl()</code> et permettant d'associer les processus aux
+    processeurs. Un simple algorithme <code>pid % numcpu</code> suffira
+    probablement. Cette modification peut aussi être ajoutée dans le
+    code source.</p>
+
+    <p>Si l'administrateur s'intéresse au nombre de connexions
+    <code>FIN_WAIT_2</code>, il peut utiliser nettune pour diminuer la
+    valeur de <code>tcp_keepstart</code>. Il devra cependant être
+    prudent - surtout ne pas diminuer cette valeur en dessous de, disons
+    deux à quatre minutes. Si <code>tcp_hash_size</code> a été défini,
+    il est probablement approprié de laisser les connexions
+    <code>FIN_WAIT_2</code> prendre plus de temps à expirer (peut-être
+    même la valeur par défaut de deux heures) - elles n'auront en
+    général pas un grand impact sur les performances.</p>
+
+    <p>On peut ajouter d'autres choses au code de base, mais elles
+    feront peut-être l'objet d'un autre email. N'hésitez pas à m'envoyer
+    un message si vous êtes intéressé.</p>
+
+    <p>sincèrement ,</p>
+
+    <p>rick jones</p>
+
+    <p><a href="http://www.netperf.org/netperf/">http://www.netperf.org/netperf/</a></p>
+
+  </div>
+</div>
+<div class="bottomlang">
+<p><span>Langues Disponibles: </span><a href="../en/platform/perf-hp.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/platform/perf-hp.html" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ko/platform/perf-hp.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Commentaires</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/platform/perf-hp.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Autorisé sous <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

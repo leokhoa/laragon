@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+<meta content="text/html; charset=EUC-KR" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>아파치 IP기반 가상호스트 지원 - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">가상호스트</a></div><div id="page-content"><div id="preamble"><h1>아파치 IP기반 가상호스트 지원</h1>
+<div class="toplang">
+<p><span>가능한 언어: </span><a href="../en/vhosts/ip-based.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/ip-based.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ja/vhosts/ip-based.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/vhosts/ip-based.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/ip-based.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">이 문서는 최신판 번역이 아닙니다.
+            최근에 변경된 내용은 영어 문서를 참고하세요.</div>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#requirements">시스템 요구사항</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#howto">아파치 설정방법</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#multiple">여러 서버를 실행하기</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#single">서버 하나로 가상호스트 실행하기</a></li>
+</ul><h3>참고</h3><ul class="seealso"><li>
+<a href="name-based.html">이름기반 가상호스트 지원</a>
+</li><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="requirements" id="requirements">시스템 요구사항</a></h2>
+
+    <p><cite>IP기반</cite>이란 말이 의미하듯이 서버는
+    <strong>IP기반 가상호스트 각각에 대해 다른 IP 주소를
+    가져야한다</strong>. 이는 컴퓨터를 물리적으로 여러 네트웍에
+    연결하거나, 최근 운영체제에서 지원하는 가상 인터페이스를
+    (자세한 내용은 시스템 문서를 참고하라. 흔히 "ip aliases"라고
+    하며, 보통 "ifconfig" 명령어로 만든다) 사용하여 가능하다.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="howto" id="howto">아파치 설정방법</a></h2>
+
+    <p>여러 호스트를 지원하도록 아파치를 설정하는 방법은 두가지다.
+    하나는 각 호스트마다 별도의 웹서버를 실행하는
+    법이고, 다른 하나는 모든 가상호스트를 지원하는 서버 한개를
+    실행하는 방법이다.</p>
+
+    <p>언제 여러 서버를 사용하나:</p>
+
+    <ul>
+      <li>회사2의 사용자가 웹이외의 방법으로 회사1의 자료를 읽을
+      수 없게 하는 등 보안상 구분이 필요한 경우. 이 경우
+      두 서버를 각각 다른 <code class="directive"><a href="../mod/mpm_common.html#user">User</a></code>, <code class="directive"><a href="../mod/mpm_common.html#group">Group</a></code>, <code class="directive"><a href="../mod/mpm_common.html#listen">Listen</a></code>, <code class="directive"><a href="../mod/core.html#serverroot">ServerRoot</a></code> 설정으로 실행해야 한다.</li>
+
+      <li>충분한 메모리가 있고, 컴퓨터의 모든 IP를 기다리기위한
+      파일기술자(file descriptor) 요구사항도 만족한다. "와일드카드"나
+      특정 주소를 <code class="directive"><a href="../mod/mpm_common.html#listen">Listen</a></code>할 수만 있다. 그래서
+      어떤 이유에서건 특정 주소를 기다릴 필요가 있다면, (한
+      웹서버가 한 주소를 제외한 모든 주소를 기다리고 다른 한
+      웹서버가 제외한 주소를 기다릴 수 있지만) 지정한 주소
+      모두를 기다려야 한다.</li>
+    </ul>
+
+    <p>언제 서버 한개를 사용하나:</p>
+
+    <ul>
+      <li>가상호스트들의 웹서버 설정을 공유할 수 있는 경우.</li>
+
+      <li>컴퓨터가 매우 많은 요청을 서비스한다면 여러 서버를
+      실행하기에 속도 손실이 클 수 있다.</li>
+    </ul>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="multiple" id="multiple">여러 서버를 실행하기</a></h2>
+
+    <p>각 가상호스트별로 웹서버를 설치한다. 설정파일의
+    <code class="directive"><a href="../mod/mpm_common.html#listen">Listen</a></code> 지시어에
+    서버가 서비스할 IP 주소(혹은 가상호스트)를 적어준다. 예를
+    들면,</p>
+
+    <div class="example"><p><code>
+    Listen www.smallco.com:80
+    </code></p></div>
+
+    <p>호스트명 보다는 IP 주소를 사용하길 바란다.
+    (<a href="../dns-caveats.html">DNS 문제</a> 참고)</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="single" id="single">서버 하나로 가상호스트 실행하기</a></h2>
+
+    <p>이 경우 웹서버 한개로 주서버와 모든 가상호스트에 대한
+    요청을 서비스한다. 설정파일의 <code class="directive"><a href="../mod/core.html#virtualhost">VirtualHost</a></code> 지시어에 가상호스트마다
+    다른 <code class="directive"><a href="../mod/core.html#serveradmin">ServerAdmin</a></code>,
+    <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code>, <code class="directive"><a href="../mod/core.html#documentroot">DocumentRoot</a></code>, <code class="directive"><a href="../mod/core.html#errorlog">ErrorLog</a></code>, <code class="directive"><a href="../mod/mod_log_config.html#transferlog">TransferLog</a></code>,
+    <code class="directive"><a href="../mod/mod_log_config.html#customlog">CustomLog</a></code>
+    지시어 값을 설정한다. 예를 들면,</p>
+
+    <div class="example"><p><code>
+    &lt;VirtualHost www.smallco.com&gt;<br />
+    ServerAdmin webmaster@mail.smallco.com<br />
+    DocumentRoot /groups/smallco/www<br />
+    ServerName www.smallco.com<br />
+    ErrorLog /groups/smallco/logs/error_log<br />
+    TransferLog /groups/smallco/logs/access_log<br />
+    &lt;/VirtualHost&gt;<br />
+		<br />
+    &lt;VirtualHost www.baygroup.org&gt;<br />
+    ServerAdmin webmaster@mail.baygroup.org<br />
+    DocumentRoot /groups/baygroup/www<br />
+    ServerName www.baygroup.org<br />
+    ErrorLog /groups/baygroup/logs/error_log<br />
+    TransferLog /groups/baygroup/logs/access_log<br />
+    &lt;/VirtualHost&gt;
+		</code></p></div>
+
+    <p>호스트명 보다는 IP 주소를 사용하길 바란다.
+    (<a href="../dns-caveats.html">DNS 문제</a> 참고)</p>
+
+    <p>VirtualHost 지시어 안에서는 프로세스 생성과 기타 몇몇 지시어를
+    제외하고 거의 <strong>모든</strong> 설정지시어를 사용할
+    수 있다. VirtualHost 지시어 안에서 지시어를 사용할 수 있는지
+    알려면 <a href="../mod/directives.html">지시어 목록</a>에서
+    <a href="../mod/directive-dict.html#Context">사용장소</a>를
+    확인하라.</p>
+
+    <p><a href="../suexec.html">suEXEC 프로그램</a>을
+    사용한다면 VirtualHost 지시어 안에 <code class="directive"><a href="../mod/mpm_common.html#user">User</a></code>와 <code class="directive"><a href="../mod/mpm_common.html#group">Group</a></code>을 사용할 수 있다.</p>
+
+    <p><em>보안:</em> 서버를 실행하는 사용자외에 다른 사람에게
+    로그파일이 있는 디렉토리의 쓰기권한이 있다면 보안
+    문제를 조심하라. 자세한 내용은 <a href="../misc/security_tips.html">보안 팁</a>을 참고하라.</p>
+
+</div></div>
+<div class="bottomlang">
+<p><span>가능한 언어: </span><a href="../en/vhosts/ip-based.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/ip-based.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ja/vhosts/ip-based.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/vhosts/ip-based.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/ip-based.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/vhosts/ip-based.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

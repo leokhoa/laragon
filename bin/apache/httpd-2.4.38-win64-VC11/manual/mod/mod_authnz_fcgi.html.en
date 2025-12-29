@@ -1,0 +1,566 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_authnz_fcgi - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Modules</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache Module mod_authnz_fcgi</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_authnz_fcgi.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_authnz_fcgi.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a></p>
+</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">Description:</a></th><td>Allows a FastCGI authorizer application to handle Apache
+httpd authentication and authorization</td></tr>
+<tr><th><a href="module-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">Module Identifier:</a></th><td>authnz_fcgi_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">Source File:</a></th><td>mod_authnz_fcgi.c</td></tr>
+<tr><th><a href="module-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.4.10 and later</td></tr></table>
+<h3>Summary</h3>
+
+    <p>This module allows FastCGI authorizer applications to
+    authenticate users and authorize access to resources.  It supports
+    generic FastCGI authorizers which participate in a single phase
+    for authentication and authorization as well as Apache httpd-specific
+    authenticators and authorizors which participate in one or both
+    phases.</p>
+
+    <p>FastCGI authorizers can authenticate using user id and password, 
+    such as for Basic authentication, or can authenticate using arbitrary
+    mechanisms.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>Topics</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#invocations">Invocation modes</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#examples">Additional examples</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#limitations">Limitations</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#logging">Logging</a></li>
+</ul><h3 class="directives">Directives</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#authnzfcgicheckauthnprovider">AuthnzFcgiCheckAuthnProvider</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#authnzfcgidefineprovider">AuthnzFcgiDefineProvider</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_authnz_fcgi">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_authnz_fcgi">Report a bug</a></li></ul><h3>See also</h3>
+<ul class="seealso">
+<li><a href="../howto/auth.html">Authentication, Authorization,
+and Access Control</a></li>
+<li><code class="module"><a href="../mod/mod_auth_basic.html">mod_auth_basic</a></code></li>
+<li><code class="program"><a href="../programs/fcgistarter.html">fcgistarter</a></code></li>
+<li><code class="module"><a href="../mod/mod_proxy_fcgi.html">mod_proxy_fcgi</a></code></li>
+<li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="invocations" id="invocations">Invocation modes</a></h2>
+
+    <p>The invocation modes for FastCGI authorizers supported by this 
+    module are distinguished by two characteristics, <em>type</em> and
+    auth <em>mechanism</em>.</p>
+
+    <p><em>Type</em> is simply <code>authn</code> for authentication,
+    <code>authz</code> for authorization, or <code>authnz</code> for
+    combined authentication and authorization.</p>
+
+    <p>Auth <em>mechanism</em> refers to the Apache httpd configuration
+    mechanisms and processing phases, and can be <code>
+    AuthBasicProvider</code>, <code>Require</code>, or <code>
+    check_user_id</code>.  The first two of these
+    correspond to the directives used to enable participation in the
+    appropriate processing phase.</p>
+
+    <p>Descriptions of each mode:</p>
+
+    <dl>
+      <dt><em>Type</em> <code>authn</code>, <em>mechanism</em>
+      <code>AuthBasicProvider</code></dt>
+
+      <dd>In this mode, 
+      <code>FCGI_ROLE</code> is set to <code>AUTHORIZER</code> and
+      <code>FCGI_APACHE_ROLE</code> is set to <code>AUTHENTICATOR</code>.
+      The application must be defined as provider type <em>authn</em>
+      using <code class="directive"><a href="#authnzfcgidefineprovider">
+      AuthnzFcgiDefineProvider</a></code> and enabled with
+      <code class="directive"><a href="../mod/mod_auth_basic.html#authbasicprovider">AuthBasicProvider</a></code>.
+      When invoked, the application is
+      expected to authenticate the client using the provided user id and
+      password.  Example application:
+
+<pre class="prettyprint lang-perl">#!/usr/bin/perl
+use FCGI;
+my $request = FCGI::Request();
+while ($request-&gt;Accept() &gt;= 0) {
+    die if $ENV{'FCGI_APACHE_ROLE'} ne "AUTHENTICATOR";
+    die if $ENV{'FCGI_ROLE'}        ne "AUTHORIZER";
+    die if !$ENV{'REMOTE_PASSWD'};
+    die if !$ENV{'REMOTE_USER'};
+
+    print STDERR "This text is written to the web server error log.\n";
+
+    if ( ($ENV{'REMOTE_USER' } eq "foo" || $ENV{'REMOTE_USER'} eq "foo1") &amp;&amp;
+        $ENV{'REMOTE_PASSWD'} eq "bar" ) {
+        print "Status: 200\n";
+        print "Variable-AUTHN_1: authn_01\n";
+        print "Variable-AUTHN_2: authn_02\n";
+        print "\n";
+    }
+    else {
+        print "Status: 401\n\n";
+    }
+}</pre>
+
+
+      Example configuration:
+<pre class="prettyprint lang-config">AuthnzFcgiDefineProvider authn FooAuthn fcgi://localhost:10102/
+&lt;Location "/protected/"&gt;
+  AuthType Basic
+  AuthName "Restricted"
+  AuthBasicProvider FooAuthn
+  Require ...
+&lt;/Location&gt;</pre>
+
+      </dd>
+
+      <dt><em>Type</em> <code>authz</code>, <em>mechanism</em>
+      <code>Require</code></dt>
+      <dd>In this mode, <code>FCGI_ROLE</code> is set to <code>
+      AUTHORIZER</code> and <code>FCGI_APACHE_ROLE</code> is set to
+      <code>AUTHORIZER</code>.  The application must be defined as
+      provider type <em>authz</em> using <code class="directive"><a href="#authnzfcgidefineprovider">
+      AuthnzFcgiDefineProvider</a></code>.  When invoked, the application 
+      is expected to authorize the client using the provided user id and other
+      request data.  Example application:
+<pre class="prettyprint lang-perl">#!/usr/bin/perl
+use FCGI;
+my $request = FCGI::Request();
+while ($request-&gt;Accept() &gt;= 0) {
+    die if $ENV{'FCGI_APACHE_ROLE'} ne "AUTHORIZER";
+    die if $ENV{'FCGI_ROLE'}        ne "AUTHORIZER";
+    die if $ENV{'REMOTE_PASSWD'};
+
+    print STDERR "This text is written to the web server error log.\n";
+
+    if ($ENV{'REMOTE_USER'} eq "foo1") {
+        print "Status: 200\n";
+        print "Variable-AUTHZ_1: authz_01\n";
+        print "Variable-AUTHZ_2: authz_02\n";
+        print "\n";
+    }
+    else {
+        print "Status: 403\n\n";
+    }
+}</pre>
+
+
+      Example configuration:
+<pre class="prettyprint lang-config">AuthnzFcgiDefineProvider authz FooAuthz fcgi://localhost:10103/
+&lt;Location "/protected/"&gt;
+  AuthType ...
+  AuthName ...
+  AuthBasicProvider ...
+  Require FooAuthz
+&lt;/Location&gt;</pre>
+
+      </dd>
+
+      <dt><em>Type</em> <code>authnz</code>, <em>mechanism</em>
+      <code>AuthBasicProvider</code> <em>+</em> <code>Require</code></dt>
+
+      <dd>In this mode, which supports the web server-agnostic FastCGI
+      <code>AUTHORIZER</code> protocol, <code>FCGI_ROLE</code> is set to
+      <code>AUTHORIZER</code> and <code>FCGI_APACHE_ROLE</code> is not set.
+      The application must be defined as provider type <em>authnz</em>
+      using <code class="directive"><a href="#authnzfcgidefineprovider">
+      AuthnzFcgiDefineProvider</a></code>.  The application is expected to
+      handle both authentication and authorization in the same invocation
+      using the user id, password, and other request data.  The invocation 
+      occurs during the Apache httpd API authentication phase.  If the 
+      application returns 200 and the same provider is invoked during the
+      authorization phase (via <code class="directive">Require</code>), mod_authnz_fcgi
+      will return success for the authorization phase without invoking the
+      application.  Example application:
+<pre class="prettyprint lang-perl">#!/usr/bin/perl
+use FCGI;
+my $request = FCGI::Request();
+while ($request-&gt;Accept() &gt;= 0) {
+    die if $ENV{'FCGI_APACHE_ROLE'};
+    die if $ENV{'FCGI_ROLE'} ne "AUTHORIZER";
+    die if !$ENV{'REMOTE_PASSWD'};
+    die if !$ENV{'REMOTE_USER'};
+
+    print STDERR "This text is written to the web server error log.\n";
+
+    if ( ($ENV{'REMOTE_USER' } eq "foo" || $ENV{'REMOTE_USER'} eq "foo1") &amp;&amp;
+        $ENV{'REMOTE_PASSWD'} eq "bar" &amp;&amp;
+        $ENV{'REQUEST_URI'} =~ m%/bar/.*%) {
+        print "Status: 200\n";
+        print "Variable-AUTHNZ_1: authnz_01\n";
+        print "Variable-AUTHNZ_2: authnz_02\n";
+        print "\n";
+    }
+    else {
+        print "Status: 401\n\n";
+    }
+}</pre>
+
+
+      Example configuration:
+<pre class="prettyprint lang-config">AuthnzFcgiDefineProvider authnz FooAuthnz fcgi://localhost:10103/
+&lt;Location "/protected/"&gt;
+  AuthType Basic
+  AuthName "Restricted"
+  AuthBasicProvider FooAuthnz
+  Require FooAuthnz
+&lt;/Location&gt;</pre>
+
+      </dd>
+
+      <dt><em>Type</em> <code>authn</code>, <em>mechanism</em>
+      <code>check_user_id</code></dt>
+
+      <dd>In this mode, <code>FCGI_ROLE</code> is set to <code>
+      AUTHORIZER</code> and <code>FCGI_APACHE_ROLE</code> is set to
+      <code>AUTHENTICATOR</code>.  The application must be defined as
+      provider type <em>authn</em> using <code class="directive"><a href="#authnzfcgidefineprovider">
+      AuthnzFcgiDefineProvider</a></code>.  <code class="directive"><a href="#authnzfcgicheckauthnprovider">AuthnzFcgiCheckAuthnProvider</a></code>
+      specifies when it is called.  Example application:
+<pre class="prettyprint lang-perl">#!/usr/bin/perl
+use FCGI;
+my $request = FCGI::Request();
+while ($request-&gt;Accept() &gt;= 0) {
+    die if $ENV{'FCGI_APACHE_ROLE'} ne "AUTHENTICATOR";
+    die if $ENV{'FCGI_ROLE'} ne "AUTHORIZER";
+
+    # This authorizer assumes that the RequireBasicAuth option of 
+    # AuthnzFcgiCheckAuthnProvider is On:
+    die if !$ENV{'REMOTE_PASSWD'};
+    die if !$ENV{'REMOTE_USER'};
+
+    print STDERR "This text is written to the web server error log.\n";
+
+    if ( ($ENV{'REMOTE_USER' } eq "foo" || $ENV{'REMOTE_USER'} eq "foo1") &amp;&amp;
+        $ENV{'REMOTE_PASSWD'} eq "bar" ) {
+        print "Status: 200\n";
+        print "Variable-AUTHNZ_1: authnz_01\n";
+        print "Variable-AUTHNZ_2: authnz_02\n";
+        print "\n";
+    }
+    else {
+        print "Status: 401\n\n";
+        # If a response body is written here, it will be returned to
+        # the client.
+    }
+}</pre>
+
+
+      Example configuration:
+<pre class="prettyprint lang-config">AuthnzFcgiDefineProvider authn FooAuthn fcgi://localhost:10103/
+&lt;Location "/protected/"&gt;
+  AuthType ...
+  AuthName ...
+  AuthnzFcgiCheckAuthnProvider FooAuthn \
+                               Authoritative On \
+                               RequireBasicAuth Off \
+                               UserExpr "%{reqenv:REMOTE_USER}"
+  Require ...
+&lt;/Location&gt;</pre>
+
+      </dd>
+
+    </dl>
+    
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="examples" id="examples">Additional examples</a></h2>
+
+  <ol>
+    <li>If your application supports the separate authentication and
+    authorization roles (<code>AUTHENTICATOR</code> and <code>AUTHORIZER</code>), define 
+    separate providers as follows, even if they map to the same
+    application:
+
+<pre class="prettyprint lang-config">AuthnzFcgiDefineProvider authn  FooAuthn  fcgi://localhost:10102/
+AuthnzFcgiDefineProvider authz  FooAuthz  fcgi://localhost:10102/</pre>
+
+
+    Specify the authn provider on 
+    <code class="directive"><a href="../mod/mod_auth_basic.html#authbasicprovider">AuthBasicProvider</a></code>
+    and the authz provider on
+    <code class="directive"><a href="../mod/mod_authz_core.html#require">Require</a></code>:
+
+<pre class="prettyprint lang-config">AuthType Basic
+AuthName "Restricted"
+AuthBasicProvider FooAuthn
+Require FooAuthz</pre>
+
+    </li>
+
+    <li>If your application supports the generic <code>AUTHORIZER</code> role 
+    (authentication and authorizer in one invocation), define a
+    single provider as follows:
+
+<pre class="prettyprint lang-config">AuthnzFcgiDefineProvider authnz FooAuthnz fcgi://localhost:10103/</pre>
+
+
+    Specify the authnz provider on both <code class="directive">AuthBasicProvider</code>
+    and <code class="directive">Require</code>:
+
+<pre class="prettyprint lang-config">AuthType Basic
+AuthName "Restricted"
+AuthBasicProvider FooAuthnz
+Require FooAuthnz</pre>
+
+    </li>
+</ol>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="limitations" id="limitations">Limitations</a></h2>
+
+    <p>The following are potential features which are not currently
+    implemented:</p>
+
+    <dl>
+      <dt>Apache httpd access checker</dt>
+      <dd>The Apache httpd API <em>access check</em> phase is a separate
+      phase from authentication and authorization.  Some other FastCGI
+      implementations implement this phase, which is denoted by the 
+      setting of <code>FCGI_APACHE_ROLE</code> to <code>ACCESS_CHECKER</code>.</dd>
+
+      <dt>Local (Unix) sockets or pipes</dt>
+      <dd>Only TCP sockets are currently supported.</dd>
+
+      <dt>Support for mod_authn_socache</dt>
+      <dd>mod_authn_socache interaction should be implemented for
+      applications which participate in Apache httpd-style
+      authentication.</dd>
+
+      <dt>Support for digest authentication using AuthDigestProvider</dt>
+      <dd>This is expected to be a permanent limitation as there is
+      no authorizer flow for retrieving a hash.</dd>
+
+      <dt>Application process management</dt>
+      <dd>This is expected to be permanently out of scope for
+      this module.  Application processes must be controlled by
+      other means.  For example, <code class="program"><a href="../programs/fcgistarter.html">fcgistarter</a></code> can be used to
+      start them.</dd>
+
+      <dt>AP_AUTH_INTERNAL_PER_URI</dt>
+      <dd>All providers are currently registered as 
+      AP_AUTH_INTERNAL_PER_CONF, which means that checks are not
+      performed again for internal subrequests with the same
+      access control configuration as the initial request.</dd>
+
+      <dt>Protocol data charset conversion</dt>
+      <dd>If mod_authnz_fcgi runs in an EBCDIC compilation
+      environment, all FastCGI protocol data is written in EBCDIC
+      and expected to be received in EBCDIC.</dd>
+
+      <dt>Multiple requests per connection</dt>
+      <dd>Currently the connection to the FastCGI authorizer is
+      closed after every phase of processing.  For example, if the
+      authorizer handles separate <em>authn</em> and <em>authz</em>
+      phases then two connections will be used.</dd>
+
+      <dt>URI Mapping</dt>
+      <dd>URIs from clients can't be mapped, such as with the <code class="directive">
+      ProxyPass</code> used with FastCGI responders.</dd>
+
+    </dl>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="logging" id="logging">Logging</a></h2>
+
+    <ol>
+        <li>Processing errors are logged at log level <code>error</code>
+        and higher.</li>
+        <li>Messages written by the application are logged at log
+        level <code>warn</code>.</li>
+        <li>General messages for debugging are logged at log level
+        <code>debug</code>.</li>
+        <li>Environment variables passed to the application are
+        logged at log level <code>trace2</code>. The value of the 
+        <code>REMOTE_PASSWD</code> variable will be obscured,
+        but <strong>any other sensitive data will be visible in the 
+        log</strong>.</li>
+        <li>All I/O between the module and the FastCGI application,
+        including all environment variables, will be logged in printable
+        and hex format at log level <code>trace5</code>.  <strong>All
+        sensitive data will be visible in the log.</strong></li>
+    </ol>
+
+    <p><code class="directive"><a href="../mod/core.html#loglevel">LogLevel</a></code> can be used
+    to configure a log level specific to mod_authnz_fcgi.  For
+    example:</p>
+
+<pre class="prettyprint lang-config">LogLevel info authnz_fcgi:trace8</pre>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="AuthnzFcgiCheckAuthnProvider" id="AuthnzFcgiCheckAuthnProvider">AuthnzFcgiCheckAuthnProvider</a> <a name="authnzfcgicheckauthnprovider" id="authnzfcgicheckauthnprovider">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Enables a FastCGI application to handle the check_authn
+authentication hook.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>AuthnzFcgiCheckAuthnProvider <em>provider-name</em>|<code>None</code>
+<em>option</em> ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>none</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_authnz_fcgi</td></tr>
+</table>
+    <p>This directive is used to enable a FastCGI authorizer to
+    handle a specific processing phase of authentication or
+    authorization.</p>
+
+    <p>Some capabilities of FastCGI authorizers require enablement
+    using this directive instead of
+    <code class="directive">AuthBasicProvider</code>:</p>
+
+    <ul>
+      <li>Non-Basic authentication; generally, determining the user
+      id of the client and returning it from the authorizer; see the
+      <code>UserExpr</code> option below</li>
+      <li>Selecting a custom response code; for a non-200 response
+      from the authorizer, the code from the authorizer will be the
+      status of the response</li>
+      <li>Setting the body of a non-200 response; if the authorizer
+      provides a response body with a non-200 response, that body
+      will be returned to the client; up to 8192 bytes of text are
+      supported</li>
+    </ul>
+
+    <dl>
+      <dt><em>provider-name</em></dt>
+      <dd>This is the name of a provider defined with <code class="directive">
+      AuthnzFcgiDefineProvider</code>.</dd>
+
+      <dt><code>None</code></dt>
+      <dd>Specify <code>None</code> to disable a provider enabled
+      with this directive in an outer scope, such as in a parent
+      directory.</dd>
+
+      <dt><em>option</em></dt>
+      <dd>The following options are supported:
+      
+      <dl>
+         <dt>Authoritative On|Off (default On)</dt>
+         <dd>This controls whether or not other modules are allowed
+         to run when this module has a FastCGI authorizer configured
+         and it fails the request.</dd>
+
+         <dt>DefaultUser <em>userid</em></dt>
+         <dd>When the authorizer returns success and <code>UserExpr</code>
+         is configured and evaluates to an empty string (e.g., authorizer
+         didn't return a variable), this value will be used as the user
+         id.  This is typically used when the authorizer has a concept of
+         guest, or unauthenticated, users and guest users are mapped to
+         some specific user id for logging and other purposes.</dd>
+
+         <dt>RequireBasicAuth On|Off (default Off)</dt>
+         <dd>This controls whether or not Basic auth is required
+         before passing the request to the authorizer.  If required,
+         the authorizer won't be invoked without a user id and
+         password; 401 will be returned for a request without that.</dd>
+
+         <dt>UserExpr <em>expr</em> (no default)</dt>
+         <dd>When Basic authentication isn't provided by the client
+         and the authorizer determines the user, this expression,
+         evaluated after calling the authorizer, determines the
+         user.  The expression follows <a href="../expr.html">
+         ap_expr syntax</a> and must resolve to a string.  A typical
+         use is to reference a <code>Variable-<em>XXX</em></code> 
+         setting returned by the authorizer using an option like
+         <code>UserExpr "%{reqenv:<em>XXX</em>}"</code>.  If
+         this option is specified and the user id can't be retrieved
+         using the expression after a successful authentication, the
+         request will be rejected with a 500 error.</dd>
+
+       </dl>
+      </dd>
+     </dl>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="AuthnzFcgiDefineProvider" id="AuthnzFcgiDefineProvider">AuthnzFcgiDefineProvider</a> <a name="authnzfcgidefineprovider" id="authnzfcgidefineprovider">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Defines a FastCGI application as a provider for
+authentication and/or authorization</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>AuthnzFcgiDefineProvider <em>type</em> <em>provider-name</em>
+<em>backend-address</em></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>none</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_authnz_fcgi</td></tr>
+</table>
+    <p>This directive is used to define a FastCGI application as
+    a provider for a particular phase of authentication or
+    authorization.</p>
+
+    <dl>
+      <dt><em>type</em></dt>
+      <dd>This must be set to <em>authn</em> for authentication,
+      <em>authz</em> for authorization, or <em>authnz</em> for
+      a generic FastCGI authorizer which performs both checks.</dd>
+
+      <dt><em>provider-name</em></dt>
+      <dd>This is used to assign a name to the provider which is
+      used in other directives such as 
+      <code class="directive"><a href="../mod/mod_auth_basic.html#authbasicprovider">AuthBasicProvider</a></code>
+      and 
+      <code class="directive"><a href="../mod/mod_authz_core.html#require">Require</a></code>.</dd>
+
+      <dt><em>backend-address</em></dt>
+      <dd>This specifies the address of the application, in the form
+      <em>fcgi://hostname:port/</em>.  The application process(es)
+      must be managed independently, such as with
+      <code class="program"><a href="../programs/fcgistarter.html">fcgistarter</a></code>.</dd>
+    </dl>
+
+</div>
+</div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_authnz_fcgi.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_authnz_fcgi.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_authnz_fcgi.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

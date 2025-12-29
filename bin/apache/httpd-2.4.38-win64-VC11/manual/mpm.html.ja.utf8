@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>マルチプロセッシングモジュール (MPM) - Apache HTTP サーバ バージョン 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">モジュール</a> | <a href="./mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">用語</a> | <a href="./sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="./">バージョン 2.4</a></div><div id="page-content"><div id="preamble"><h1>マルチプロセッシングモジュール (MPM)</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="./de/mpm.html" hreflang="de" rel="alternate" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="./en/mpm.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./es/mpm.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="./fr/mpm.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/mpm.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/mpm.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/mpm.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a> |
+<a href="./zh-cn/mpm.html" hreflang="zh-cn" rel="alternate" title="Simplified Chinese">&nbsp;zh-cn&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+
+<p>この文書ではマルチプロセッシングモジュールがどのようなもので、
+Apache HTTP サーバでどのように使用されるかについて解説しています。</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#introduction">はじめに</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#choosing">MPM を選ぶ</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#defaults">MPM デフォルト値</a></li>
+</ul><h3>参照</h3><ul class="seealso"><li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="introduction" id="introduction">はじめに</a></h2>
+
+    <p>Apache HTTP サーバは異なる幅広い環境、多種多様なプラットホームで
+    動作するように、パワフルで柔軟性に富んだ設計になっています。
+    異なるプラットホーム・異なる環境ではしばしば、
+    異なる機能が必要になったり、
+    同じ機能でも効率のために異なる実装が必要になったりします。
+    Apache ではモジュール化された設計により幅広い環境に適応してきました。
+    この設計のおかげで、管理者は
+    コンパイル時または実行時にどのモジュールをロードするか選ぶことによって、
+    どの機能をサーバに取り込むか選択することができます。</p>
+
+    <p>Apache 2.0 では、
+    このモジュール化された設計をサーバの基本機能にまで拡張しました。
+    サーバには精選されたマルチプロセッシングモジュール (MPM) 
+    が付いてきて、これらはマシンのネットワークポートをバインドしたり、
+    リクエストを受け付けたり、リクエストを扱うよう子プロセスに割り当てたり、
+    といった役割を持ちます。</p>
+
+    <p>モジュール化された設計をサーバのこのレベルまで拡張することで
+    二つの重要な利点が生まれます:</p>
+
+    <ul>
+      <li>Apache は幅広いオペレーティングシステムを
+      より美しく効率的にサポートできます。
+      特に Windows 版の Apache は随分効率的になりました。
+      なぜなら <code class="module"><a href="./mod/mpm_winnt.html">mpm_winnt</a></code>
+      によって、Apache 1.3 で用いられていた POSIX 
+      レイヤの代わりにネイティブのネットワーク機能を
+      利用できるからです。
+      特別化された MPM 
+      を実装した他のオペレーティングシステムでも、
+      同様にこの利点は生まれます。</li>
+
+      <li>サーバは特定のサイト向けに、より上手にカスタマイズできます。
+      例えば、非常に大きなスケーラビリティを必要とするサイトでは、
+      <code class="module"><a href="./mod/worker.html">worker</a></code> や <code class="module"><a href="./mod/event.html">event</a></code> といったスレッド化された
+      MPM を利用できる一方で、安定性や古いソフトウェアとの互換性を
+      必要とするサイトでは <code class="module"><a href="./mod/prefork.html">prefork</a></code>
+      が利用できます。</li>
+    </ul>
+
+    <p>ユーザレベルでは、MPM は他の Apache 
+    モジュールと同等に見えます。
+    主な違いは、いつでも唯一の MPM 
+    がロードされなければならないという点です。
+    利用可能な MPM は 
+    <a href="mod/">module インデックス</a>にあります。</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="choosing" id="choosing">MPM を選ぶ</a></h2>
+
+    <p>MPM は設定中に選択して、サーバ内部にコンパイルされなければ
+    なりません。
+    コンパイラは、スレッドが使用されている場合に様々な機能を最適化できますが、
+    そのためにはそもそもスレッドが使われているということを知る必要があります。</p>
+
+    <p>望みの MPM を実際に選ぶためには、<code class="program"><a href="./programs/configure.html">configure</a></code> スクリプトで
+    <code>--with-mpm=<em>NAME</em></code> 引数を用いてください。
+    <em>NAME</em> は望みの MPM の名前です。</p>
+
+    <p>サーバコンパイル後は、どの MPM が選択されたかを
+    <code>./httpd -l</code> で確かめることができます。
+    このコマンドは、MPM
+    を含め、サーバにコンパイルで組み込まれたモジュール全てを
+    列挙します。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="defaults" id="defaults">MPM デフォルト値</a></h2>
+
+<p>次表に様々な OS 向けのデフォルトの MPM 一覧を掲載しています。
+コンパイル時に意図的に他を選択しなければ、自動的にこれらの MPM
+が選択されます。</p>
+
+<table>
+
+<tr><td>BeOS</td><td><code class="module"><a href="./mod/beos.html">beos</a></code></td></tr>
+<tr><td>Netware</td><td><code class="module"><a href="./mod/mpm_netware.html">mpm_netware</a></code></td></tr>
+<tr><td>OS/2</td><td><code class="module"><a href="./mod/mpmt_os2.html">mpmt_os2</a></code></td></tr>
+<tr><td>Unix</td><td><code class="module"><a href="./mod/prefork.html">prefork</a></code></td></tr>
+<tr><td>Windows</td><td><code class="module"><a href="./mod/mpm_winnt.html">mpm_winnt</a></code></td></tr>
+</table>
+</div></div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="./de/mpm.html" hreflang="de" rel="alternate" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="./en/mpm.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./es/mpm.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="./fr/mpm.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/mpm.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/mpm.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/mpm.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a> |
+<a href="./zh-cn/mpm.html" hreflang="zh-cn" rel="alternate" title="Simplified Chinese">&nbsp;zh-cn&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mpm.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="./mod/">モジュール</a> | <a href="./mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">用語</a> | <a href="./sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

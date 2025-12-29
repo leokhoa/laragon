@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_proxy_hcheck - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Modules</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache Module mod_proxy_hcheck</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_proxy_hcheck.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_proxy_hcheck.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a></p>
+</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">Description:</a></th><td>Dynamic health check of Balancer members (workers) for
+<code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code></td></tr>
+<tr><th><a href="module-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">Module Identifier:</a></th><td>proxy_hcheck_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">Source File:</a></th><td>mod_proxy_hcheck.c</td></tr>
+<tr><th><a href="module-dict.html#Compatibility">Compatibility:</a></th><td>Available in Apache 2.4.21 and later</td></tr></table>
+<h3>Summary</h3>
+
+    <p>This module provides for dynamic health checking of balancer
+    	members (workers). This can be enabled on a worker-by-worker
+    	basis. The health check is done independently of the
+    	actual reverse proxy requests.</p>
+
+    <p>This module <em>requires</em> the service of <code class="module"><a href="../mod/mod_watchdog.html">mod_watchdog</a></code>.</p>
+
+<div class="note"><h3>Parameters</h3>
+  <p>The health check mechanism is enabled via the use of additional
+     <code class="directive"><a href="../mod/mod_proxy.html#balancermember">BalancerMember</a></code> parameters, which are configured
+     in the standard way via <code class="directive"><a href="../mod/mod_proxy.html#proxypass">ProxyPass</a></code>:</p>
+
+  <p>A new BalancerMember <a href="mod_proxy.html#status_table">status</a> state (flag)
+     is defined via this module: "<code>C</code>".
+     When the worker is taken offline due to failures as determined by the health
+     check module, this flag is set, and can be seen (and modified) via the
+     <code>balancer-manager</code>.</p>
+
+    <table>
+    <tr><th>Parameter</th>
+        <th>Default</th>
+        <th>Description</th></tr>
+    <tr><td>hcmethod</td>
+        <td>None</td>
+        <td>No dynamic health check performed. Choices are:
+        	<table>
+        		<tr><th>Method</th><th>Description</th><th>Note</th></tr>
+        		<tr><td>None</td><td>No dynamic health checking done</td><td /></tr>
+        		<tr><td>TCP</td><td>Check that a socket to the backend can be created: e.g. "are you up"</td><td /></tr>
+        		<tr><td>OPTIONS</td><td>Send an <code>HTTP OPTIONS</code> request to the backend</td><td>*</td></tr>
+        		<tr><td>HEAD</td><td>Send an <code>HTTP HEAD</code> request to the backend</td><td>*</td></tr>
+        		<tr><td>GET</td><td>Send an <code>HTTP GET</code> request to the backend</td><td>*</td></tr>
+
+				<tr><td colspan="3" /></tr>
+				<tr><td colspan="3">*: Unless <code>hcexpr</code> is used, a 2xx or 3xx HTTP status will be interpreted as <em>passing</em> the health check</td></tr>
+        	</table>
+        </td></tr>
+    <tr><td>hcpasses</td>
+        <td>1</td>
+        <td>Number of successful health check tests before worker is re-enabled</td></tr>
+    <tr><td>hcfails</td>
+        <td>1</td>
+        <td>Number of failed health check tests before worker is disabled</td></tr>
+    <tr><td>hcinterval</td>
+        <td>30</td>
+        <td>Period of health checks in seconds (e.g. performed every 30 seconds)</td></tr>
+    <tr><td>hcuri</td>
+        <td>&nbsp;</td>
+        <td>Additional URI to be appended to the worker URL for the health check.</td></tr>
+    <tr><td>hctemplate</td>
+        <td>&nbsp;</td>
+        <td>Name of template, created via <code class="directive"><a href="#proxyhctemplate">ProxyHCTemplate</a></code>,
+            to use for setting health check parameters for this worker</td></tr>
+    <tr><td>hcexpr</td>
+        <td>&nbsp;</td>
+        <td>Name of expression, created via <code class="directive"><a href="#proxyhcexpr">ProxyHCExpr</a></code>,
+            used to check response headers for health.<br />
+            <em>If not used, 2xx thru 3xx status codes imply success</em></td></tr>
+    </table>
+</div>
+
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>Topics</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#examples">Usage examples</a></li>
+</ul><h3 class="directives">Directives</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyhcexpr">ProxyHCExpr</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyhctemplate">ProxyHCTemplate</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyhctpsize">ProxyHCTPsize</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_proxy_hcheck">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_proxy_hcheck">Report a bug</a></li></ul><h3>See also</h3>
+<ul class="seealso">
+<li><code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code></li>
+<li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="examples" id="examples">Usage examples</a></h2>
+
+	
+    <p>The following example shows how one might configured health checking
+    	for various backend servers:</p>
+
+	
+	<pre class="prettyprint lang-config">ProxyHCExpr ok234 {%{REQUEST_STATUS} =~ /^[234]/}
+ProxyHCExpr gdown {%{REQUEST_STATUS} =~ /^[5]/}
+ProxyHCExpr in_maint {hc('body') !~ /Under maintenance/}
+
+&lt;Proxy balancer://foo&gt;
+  BalancerMember http://www.example.com/  hcmethod=GET hcexpr=in_maint hcuri=/status.php
+  BalancerMember http://www2.example.com/ hcmethod=HEAD hcexpr=ok234 hcinterval=10
+  BalancerMember http://www3.example.com/ hcmethod=TCP hcinterval=5 hcpasses=2 hcfails=3
+  BalancerMember http://www4.example.com/
+&lt;/Proxy&gt;
+
+ProxyPass "/" "balancer://foo"
+ProxyPassReverse "/" "balancer://foo"</pre>
+
+
+<p>In this scenario, <code>http://www.example.com/</code> is health checked by sending a <code>GET /status.php</code>
+request to that server and seeing that the returned page does not include the string <em>Under maintenance</em>. If
+it does, that server is put in health-check fail mode, and disabled. This dynamic check is performed
+every 30 seconds, which is the default.</p>
+
+<p><code>http://www2.example.com/</code> is checked by sending a simple <code>HEAD</code> request every
+10 seconds and making sure that the response status is 2xx, 3xx or 4xx. <code>http://www3.example.com/</code> is checked
+every 5 seconds by simply ensuring that the socket to that server is up. If the backend is marked as
+"down" and it passes 2 health check, it will be re-enabled and added back into the load balancer.
+It takes 3 back-to-back health check failures to disable the server and move it out
+of rotation. Finally, <code>http://www4.example.com/</code> is
+not dynamically checked at all.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyHCExpr" id="ProxyHCExpr">ProxyHCExpr</a> <a name="proxyhcexpr" id="proxyhcexpr">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Creates a named condition expression to use to determine health of the backend based on its response</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyHCExpr <em>name</em> {<em>ap_expr expression</em>}</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy_hcheck</td></tr>
+</table>
+    <p>The <code class="directive">ProxyHCExpr</code> directive allows
+       for creating a named condition expression that checks the response
+       headers of the backend server to determine its health. This named
+       condition can then be assigned to balancer members via the <code>hcexpr</code>
+       parameter.</p>
+
+    <div class="example"><h3>ProxyHCExpr: Allow for 2xx/3xx/4xx as passing</h3><pre class="prettyprint lang-config">ProxyHCExpr ok234 {%{REQUEST_STATUS} =~ /^[234]/}
+ProxyPass "/apps"     "balancer://foo"
+
+&lt;Proxy balancer://foo&gt;
+  BalancerMember http://www2.example.com/  hcmethod=HEAD hcexpr=ok234 hcinterval=10
+&lt;/Proxy&gt;</pre>
+</div>
+
+    <div class="note">
+    The <a href="../expr.html">expression</a> can use curly-parens ("{}") as
+    quoting deliminators in addition to normal quotes.
+    </div>
+
+    <p>If using a health check method (eg: <code>GET</code>) which results in a response
+    body, that body itself can be checked via <code>ap_expr</code> using the <code>hc()</code>
+    expression function, which is unique to this module.</p>
+
+    <p>In the following example, we send the backend a <code>GET</code> request
+    and if the response body contains the phrase <em>Under maintenance</em>,
+    we want to disable the backend.</p>
+
+    <div class="example"><h3>ProxyHCExpr: Checking response body</h3><pre class="prettyprint lang-config">ProxyHCExpr in_maint {hc('body') !~ /Under maintenance/}
+ProxyPass "/apps"     "balancer://foo"
+
+&lt;Proxy balancer://foo&gt;
+  BalancerMember http://www.example.com/ hcexpr=in_maint hcmethod=get hcuri=/status.php
+&lt;/Proxy&gt;</pre>
+</div>
+
+    <p><em>NOTE:</em> Since response body can quite large, it is best if used against specific status pages.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyHCTemplate" id="ProxyHCTemplate">ProxyHCTemplate</a> <a name="proxyhctemplate" id="proxyhctemplate">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Creates a named template for setting various health check parameters</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyHCTemplate <em>name</em> <em>parameter</em>=<em>setting</em> [...]</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy_hcheck</td></tr>
+</table>
+    <p>The <code class="directive">ProxyHCTemplate</code> directive allows
+       for creating a named set (template) of health check parameters
+       that can then be assigned to balancer members via the <code>hctemplate</code>
+       parameter.</p>
+
+    <div class="example"><h3>ProxyHCTemplate</h3><pre class="prettyprint lang-config">ProxyHCTemplate tcp5 hcmethod=tcp hcinterval=5
+ProxyPass "/apps"     "balancer://foo"
+
+&lt;Proxy balancer://foo&gt;
+  BalancerMember http://www2.example.com/ hctemplate=tcp5
+&lt;/Proxy&gt;</pre>
+</div>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyHCTPsize" id="ProxyHCTPsize">ProxyHCTPsize</a> <a name="proxyhctpsize" id="proxyhctpsize">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Sets the total server-wide size of the threadpool used for the health check workers</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyHCTPsize <em>size</em></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyHCTPsize 16</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy_hcheck</td></tr>
+</table>
+    <p>If Apache httpd and APR are built with thread support, the health check
+       module will offload the work of the actual checking to a threadpool
+       associated with the Watchdog process, allowing for parallel checks.
+       The <code class="directive">ProxyHCTPsize</code> directive
+       determines the size of this threadpool. If set to <code>0</code>, no threadpool
+       is used at all, resulting in serialized health checks.</p>
+
+    <div class="example"><h3>ProxyHCTPsize</h3><pre class="prettyprint lang-config">ProxyHCTPsize 32</pre>
+</div>
+
+
+</div>
+</div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_proxy_hcheck.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_proxy_hcheck.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_proxy_hcheck.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

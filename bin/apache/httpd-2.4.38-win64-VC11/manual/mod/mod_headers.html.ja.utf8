@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_headers - Apache HTTP サーバ バージョン 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="../">バージョン 2.4</a> &gt; <a href="./">モジュール</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache モジュール mod_headers</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="../en/mod/mod_headers.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_headers.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_headers.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_headers.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+<table class="module"><tr><th><a href="module-dict.html#Description">説明:</a></th><td>HTTP リクエストのヘッダと応答のヘッダのカスタマイズ</td></tr>
+<tr><th><a href="module-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">モジュール識別子:</a></th><td>headers_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">ソースファイル:</a></th><td>mod_headers.c</td></tr>
+<tr><th><a href="module-dict.html#Compatibility">互換性:</a></th><td><code class="directive"><a href="#requestheader">RequestHeader</a></code> 
+は Apache 2.0 以降のみで使用可能</td></tr></table>
+<h3>概要</h3>
+
+    <p>このモジュールは HTTP のリクエストヘッダと応答ヘッダを制御し、
+    変更するためのディレクティブを提供します。ヘッダを追加したり、
+    置き換えたり、削除したりすることができます。</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>トピック</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#order">処理の順番</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#early">早期処理、後期処理</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#examples">例</a></li>
+</ul><h3 class="directives">ディレクティブ</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#header">Header</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#requestheader">RequestHeader</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_headers">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_headers">Report a bug</a></li></ul><h3>参照</h3>
+<ul class="seealso">
+<li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="order" id="order">処理の順番</a></h2>
+
+    <p><code class="module"><a href="../mod/mod_headers.html">mod_headers</a></code> のディレクティブはサーバ設定のほぼどこにでも
+    書くことができ、影響する範囲を<a href="../sections.html">設定用セクション</a>で囲むことで限定する
+    ことができます。</p>
+
+    <p>処理の順番は重要で、設定ファイル中の順番と、<a href="../sections.html">設定用セクション</a>内の位置との両方に
+    影響されます。以下の二つのヘッダは順番が逆になると
+    違う結果になります:</p>
+
+    <div class="example"><p><code>
+      RequestHeader append MirrorID "mirror 12"<br />
+      RequestHeader unset MirrorID
+    </code></p></div>
+
+    <p>この順番の場合は、<code>MirrorID</code> ヘッダは設定されません。
+    逆になっていると、MirrorID ヘッダは "mirror 12" に設定されます。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="early" id="early">早期処理、後期処理</a></h2>
+    <p><code class="module"><a href="../mod/mod_headers.html">mod_headers</a></code> では、リクエストの早期か後期かの
+    どちらで適用するかを選べます。通常は後期モードで、
+    コンテンツ生成が実行される直前にリクエストヘッダがセットされ、
+    レスポンスとして送出される直前にレスポンスヘッダがセットされます。
+    運用中のサーバでは必ず後期モードを使ってください。</p>
+
+    <p>早期モードは開発者向けのテスト/デバッグ用に設計されています。
+    <code>early</code> キーワード指定されたディレクティブによって、
+    リクエスト処理の開始地点になります。
+    つまり、異なるリクエストを試したりテストケースをセットアップするのに
+    活用できる一方で、レスポンスを生成する前に他のモジュールによって
+    ヘッダが書き換えられてしまうかもしれないということを意味します。</p>
+
+    <p>early ディレクティブではリクエストパスの設定が解決される前に
+    処理されるので、メインサーバかバーチャルホストコンテキストでのみ、
+    早期ヘッダをセットできます。early ディレクティブはリクエストパスに
+    依存することはできませんので、<code>&lt;Directory&gt;</code> や
+    <code>&lt;Location&gt;</code> といったコンテキスト内では使用
+    できません。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="examples" id="examples">例</a></h2>
+
+    <ol>
+      <li>リクエストヘッダ中の "TS" で始まるフィールドをすべて応答ヘッダに
+        コピーします:
+        <div class="example"><p><code>
+          Header echo ^TS
+        </code></p></div>
+      </li>
+
+      <li>
+        リクエストを受け付けた時刻とリクエストを処理した時間を入れたヘッダ、
+        <code>MyHeader</code> を応答に追加します。このヘッダはクライアントが
+        サーバの負荷を直観的に知るためや、クライアント-サーバ間の
+        ボトルネックを調べるために使うことができます。
+
+        <div class="example"><p><code>
+           Header add MyHeader "%D %t"
+        </code></p></div>
+
+        <p>上記の設定では、以下のようなヘッダが応答に追加されることになります:</p>
+
+        <div class="example"><p><code>
+           MyHeader: D=3775428 t=991424704447256
+        </code></p></div>
+      </li>
+
+      <li>
+        Joe にあいさつをします:
+
+        <div class="example"><p><code>
+           Header add MyHeader "Hello Joe. It took %D microseconds for Apache to serve this request."
+        </code></p></div>
+
+        <p>以下のようなヘッダが応答に追加されることになります</p>
+
+        <div class="example"><p><code>
+           MyHeader: Hello Joe. It took D=3775428 microseconds for Apache to serve this request.
+        </code></p></div>
+      </li>
+
+      <li>リクエストに "MyRequestHeader" があるときに限り <code>MyHeader</code> を応答に
+      付けます。これは、クライアントの要求に応えてヘッダを作成するときに
+      役に立ちます。この例では <code class="module"><a href="../mod/mod_setenvif.html">mod_setenvif</a></code> モジュールが必要なことに
+      注意してください。
+
+        <div class="example"><p><code>
+           SetEnvIf MyRequestHeader value HAVE_MyRequestHeader<br />
+           Header add MyHeader "%D %t mytext" env=HAVE_MyRequestHeader
+        </code></p></div>
+
+        <p>もし HTTP リクエストに <code>MyRequestHeader: value</code> ヘッダが
+        あると、応答には以下のようなヘッダが付加されます。</p>
+
+        <div class="example"><p><code>
+           MyHeader: D=3775428 t=991424704447256 mytext
+        </code></p></div>
+      </li>
+    </ol>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="Header" id="Header">Header</a> <a name="header" id="header">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>HTTP 応答ヘッダの設定</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>Header [<var>condition</var>] set|append|add|unset|echo
+<var>header</var> [<var>value</var>] [early|env=[!]<var>variable</var>]</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>FileInfo</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_headers</td></tr>
+</table>
+    <p>このディレクティブは HTTP 応答ヘッダを置換、追加、削除できます。
+    ヘッダはコンテントハンドラや出力フィルタが実行された直後に実行され、
+    出て行くヘッダを変更できるようになっています。</p>
+
+    <p>オプションの <var>condition</var> は <code>onsuccess</code> か
+    <code>always</code> のどちらかを指定できます。これは内部ヘッダテーブルのどれを
+    操作するかを決定します。<code>onsuccess</code> は <code>2<var>xx</var></code>
+    ステータスコードの、<code>always</code> は全てのステータスコード
+    (<code>2<var>xx</var></code> を含む) の意味になります。
+    あるモジュールでセットされるヘッダをアンセットしたい場合は特に、
+    どのテーブルが影響を受けるかを実際に試したほうがよいでしょう。</p>
+
+    <p>行なう処理は二番目のの引数で決まります。
+    この引数には次の値を指定できます:</p>
+
+    <dl>
+    <dt><code>set</code></dt>
+    <dd>応答ヘッダを設定します。同じ名前のヘッダが存在する場合はそれを
+    置き換えます。<em>value</em> にはフォーマット文字列を
+    指定することもできます。</dd>
+
+    <dt><code>append</code></dt>
+    <dd>応答ヘッダを既に存在する同じ名前のヘッダに追加します。
+    新しい値が既存のヘッダに追加されるときには、既存のヘッダの
+    後にコンマで区切られて追加されます。これはヘッダに複数の値を
+    指定するときの HTTP の標準の方法です。</dd>
+
+    <dt><code>add</code></dt>
+    <dd>ヘッダが既に存在しているときでさえも、応答ヘッダを
+    既存のヘッダに追加します。これにより、二つ (かそれ以上) の
+    ヘッダの名前が同じになることがあります。その結果、想定できない
+    ことが起こる可能性がありますので、一般的には <code>append</code> の方を
+    使う方が良いでしょう。</dd>
+
+    <dt><code>unset</code></dt>
+    <dd>もし指定された名前の応答ヘッダが存在していれば、削除されます。
+    同じ名前のヘッダが複数あるときは、すべて削除されます。
+    <var>value</var> をつけてはいけません。</dd>
+
+    <dt><code>echo</code></dt>
+    <dd>指定されたものと同じ名前のリクエストヘッダを応答ヘッダで
+    そのまま返します。<var>header</var> には正規表現も指定できます。
+    <var>value</var> をつけてはいけません。</dd>
+    </dl>
+
+    <p>この引数の後にはヘッダ名 (<var>header</var>) が続きます。
+    ヘッダ名には最後にコロンを含めることもできますが、無くても構いません。
+    <code>set</code>, <code>append</code>, <code>add</code>,
+    <code>unset</code> では大文字小文字は
+    区別されません。echo の <em>header</em> 名は大文字小文字を区別し、
+    正規表現を指定することもできます。</p>
+
+    <p><code>add</code>, <code>append</code>,
+    <code>set</code> では <var>value</var> を三つ目の
+    引数として指定します。<var>value</var> に空白がある場合は二重引用符で
+    囲む必要があります。<var>value</var> は文字のみからなる文字列、
+    フォーマット指示子を含む文字列、もしくは両方からなる文字列を指定できます。
+    <var>value</var> は以下のフォーマット指示子をサポートします:</p>
+
+    <table class="bordered"><tr class="header"><th>フォーマット</th><th>解説</th></tr>
+<tr><td><code>%%</code></td>
+        <td>パーセント記号</td></tr>
+<tr class="odd"><td><code>%t</code></td>
+        <td>リクエストを受け取った時刻を、
+        Universal Coordinated Time での始まりの時刻 (Jan. 1, 1970) から経過した
+        時間をマイクロ秒として現したもの。値の最初には 
+        <code>t=</code> が付加されます。</td></tr>
+<tr><td><code>%D</code></td>
+        <td>リクエストを受け取った時刻と、ヘッダを送り出した
+        時間との差。これは、リクエストが存在していた期間を現します。
+        値の最初には <code>D=</code> が付加されます。</td></tr>
+<tr class="odd"><td><code>%{FOOBAR}e</code></td>
+        <td><a href="../env.html">環境変数</a>
+        <code>FOOBAR</code> の値です。</td></tr>
+<tr><td><code>%{FOOBAR}s</code></td>
+        <td><code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> が有効な場合、
+        <a href="mod_ssl.html#envvars">SSL 環境変数</a> <code>FOOBAR</code>
+        の内容</td></tr>
+</table>
+
+    <div class="note"><h3>注</h3>
+      <p><code>%s</code> フォーマット指定子は 2.1 以降でのみ利用できます。
+      <code>SSLOptions +StdEnvVars</code> を有効にすることによるオーバーヘッドを
+      避けるため、<code>%e</code> の代わりとして使えます。
+      他の理由などがあって、どうしても <code>SSLOptions +StdEnvVars</code> 
+      を有効にしなければならない場合は、<code>%e</code> のほうが
+      <code>%s</code> よりも処理効率は良いです。</p>
+    </div> 
+
+    <p><code class="directive">Header</code> ディレクティブには追加の引数を持たせることが
+    できて、どういったアクションが行われたかの条件を指定したり、
+    <a href="#early">早期処理</a> を指定する <code>early</code> キーワードを
+    指定できます。
+    <code>env=...</code> 引数で指定された <a href="../env.html">環境変数</a> が存在する (もしくは <code>env=!...</code>
+    が指定されていて環境変数が存在しない) 場合は、<code class="directive">Header</code>
+    ディレクティブで指定された動作が行なわれます。そうでない場合は、
+    ディレクティブはそのリクエストには何もしません。</p>
+
+    <p><a href="#early">早期処理</a>モードの場合以外では、
+    <code class="directive">Header</code>
+    ディレクティブは応答がネットワークに送られる直前に
+    処理されます。これは、ヘッダフィルタにより追加されるヘッダを
+    除き、ほとんどのヘッダを設定したり上書きしたりすることが
+    可能、ということです。</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="RequestHeader" id="RequestHeader">RequestHeader</a> <a name="requestheader" id="requestheader">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>HTTP リクエストヘッダの設定</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>RequestHeader set|append|add|unset <var>header</var>
+[<var>value</var>] [early|env=[!]<var>variable</var>]</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>FileInfo</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_headers</td></tr>
+</table>
+    <p>このディレクティブは HTTP リクエストヘッダを置換、追加、削除できます。
+    ヘッダはコンテントハンドラが実行される直前に実行され、
+    入って来るヘッダを変更することが可能になっています。
+    行なう処理は第 1 引数により決まります。これには以下の値を指定
+    することができます:</p>
+
+    <dl>
+    <dt><code>set</code></dt>
+    <dd>リクエストヘッダを設定します。同じ名前のヘッダが存在していると、
+    それを置き換えます。</dd>
+
+    <dt><code>append</code></dt>
+    <dd>リクエストヘッダは、既に存在する同じ名前のヘッダに追加されます。
+    新しい値が既存のヘッダに追加されるときには、既存のヘッダの
+    後にコンマで区切られて追加されます。これはヘッダに複数の値を
+    指定するときの HTTP の標準の方法です。</dd>
+
+    <dt><code>add</code></dt>
+    <dd>ヘッダが既に存在しているときでさえも、リクエストヘッダを
+    既存のヘッダに追加します。これにより、二つ (かそれ以上) の
+    ヘッダの名前が同じになることがあります。その結果、想定できない
+    ことが起こる可能性がありますので、一般的には <code>append</code> の方を
+    使う方が良いでしょう。</dd>
+
+    <dt><code>unset</code></dt>
+    <dd>もし指定された名前のリクエストヘッダが存在していれば、削除されます。
+    同じ名前の複数のヘッダがあるときは、すべて削除されます。
+    <var>value</var> をつけてはいけません。</dd>
+    </dl>
+
+    <p>この引数の後にはヘッダ名 (<em>header</em>) が続きます。
+    ヘッダ名には最後にコロンを含めることもできますが、無くても構いません。
+    大文字小文字は区別されません。<code>add</code>,
+    <code>append</code>, <code>set</code> の場合は、<em>value</em> が三つ目の
+    引数として指定されます。<em>value</em> に空白がある場合は二重引用符で
+    囲む必要があります。unset の場合は、<em>value</em> は指定しません。
+    <var>value</var> は文字列、フォーマット指定子、あるいは、その混合です。
+    使うことのできるフォーマット指定子は、<code class="directive"><a href="#header">Header</a></code> と同じですので、
+    詳細はそちらをご覧ください。</p>
+
+    <p><code class="directive">RequestHeader</code> ディレクティブは、
+    どういった条件下でアクションを行うかを指定する追加引数
+    あるいは、<a href="#early">早期処理</a> を指定する <code>early</code> 
+    キーワードを設定することができます。
+    <code>env=<var>...</var></code> の引数で設定されている
+    <a href="../env.html">環境変数</a> が存在している
+    (あるいは <code>env=!<var>...</var></code> で指定された環境変数が
+    存在しない) 場合、<code class="directive">RequestHeader</code> ディレクティブは
+    有効になります。それ以外の場合、ディレクティブは効力を持ちません。</p>
+
+    <p><a href="#early">early</a> モードでない場合に限り、
+    <code class="directive">RequestHeader</code> ディレクティブは
+    fixup フェーズでリクエストがハンドラに扱われる直前に
+    処理されます。これにより、ブラウザや Apache の入力フィルタにより
+    生成されたヘッダを上書きしたり修正したりできるようになっています。</p>
+
+</div>
+</div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="../en/mod/mod_headers.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_headers.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_headers.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_headers.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_headers.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

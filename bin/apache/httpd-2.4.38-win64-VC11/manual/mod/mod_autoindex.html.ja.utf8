@@ -1,0 +1,1081 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_autoindex - Apache HTTP サーバ バージョン 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="../">バージョン 2.4</a> &gt; <a href="./">モジュール</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache モジュール mod_autoindex</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="../en/mod/mod_autoindex.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_autoindex.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_autoindex.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_autoindex.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/mod/mod_autoindex.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+<table class="module"><tr><th><a href="module-dict.html#Description">説明:</a></th><td>Unix の <code>ls</code> コマンドや
+    Win32 の <code>dir</code> シェルコマンドに似た
+    ディレクトリインデックスを生成する</td></tr>
+<tr><th><a href="module-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">モジュール識別子:</a></th><td>autoindex_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">ソースファイル:</a></th><td>mod_autoindex.c</td></tr></table>
+<h3>概要</h3>
+
+      <p>ディレクトリのインデックスは二つの情報源のうちの
+      一つから生成できます:</p>
+
+    <ul>
+      <li>普通は <code>index.html</code> と呼ばれる
+      ユーザによって書かれたファイル。
+      <code class="directive"><a href="../mod/mod_dir.html#directoryindex">DirectoryIndex</a></code>
+      ディレクティブでこのファイル名を設定します。
+      これは <code class="module"><a href="../mod/mod_dir.html">mod_dir</a></code> で制御されます。</li>
+
+      <li>もしくは、サーバによって生成された一覧。
+      その他のディレクティブでこの一覧の書式を制御します。
+      <code class="directive"><a href="#addicon">AddIcon</a></code>, <code class="directive"><a href="#addiconbyencoding">AddIconByEncoding</a></code> と
+      <code class="directive"><a href="#addiconbytype">AddIconByType</a></code>
+      を使うことで、様々なファイルタイプに対してアイコン一覧を
+      セットします。つまり、リストされたファイル毎に、
+      ファイルにマッチした一番最初のアイコンが表示されます。
+      これらは <code class="module"><a href="../mod/mod_autoindex.html">mod_autoindex</a></code> で制御されます。</li>
+    </ul>
+    <p>望むならば、自動インデックス生成を完全に除去 (あるいは置換)
+    できるように、この二つの機能は分離されています。</p>
+
+    <p>自動インデックス生成は <code>Options +Indexes</code>
+    を使うことで有効になります。詳細については、
+    <code class="directive"><a href="../mod/core.html#options">Options</a></code>
+    ディレクティブをご覧下さい。</p>
+
+    <p>もし <code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>オプションが
+    <code class="directive"><a href="../mod/autoindex.html#indexoptions">IndexOptions</a></code>
+    ディレクティブに与えられているならば、
+    列の先頭は表示の順番を制御するリンクになります。
+    先頭のリンクを選択すると、一覧は再生成されて
+    その列の値でソートされます。
+    同じ先頭を続けて選択すると、交互に昇順と降順とになります。
+    これらの列の先頭のリンクは、
+    <code class="directive"><a href="#indexoptions">IndexOptions</a></code>
+    ディレクティブの
+    <code>SuppressColumnSorting</code>
+    オプションで消すことができます。</p>
+
+    <p>"Size" でソートした場合は、用いられるのは
+    <em>実際の</em>ファイルのサイズであって、
+    表示の値ではないことに注意してください -
+    たとえ両方ともが "1K" と表示されていたとしても、
+    1010 バイトのファイルは必ず 1011
+    バイトのファイルよりも前 (昇順の場合) に表示されます。</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>トピック</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#query">Autoindex リクエストクエリー引数</a></li>
+</ul><h3 class="directives">ディレクティブ</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#addalt">AddAlt</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#addaltbyencoding">AddAltByEncoding</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#addaltbytype">AddAltByType</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#adddescription">AddDescription</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#addicon">AddIcon</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#addiconbyencoding">AddIconByEncoding</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#addiconbytype">AddIconByType</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#defaulticon">DefaultIcon</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#headername">HeaderName</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#indexheadinsert">IndexHeadInsert</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#indexignore">IndexIgnore</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#indexignorereset">IndexIgnoreReset</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#indexoptions">IndexOptions</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#indexorderdefault">IndexOrderDefault</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#indexstylesheet">IndexStyleSheet</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#readmename">ReadmeName</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_autoindex">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_autoindex">Report a bug</a></li></ul><h3>参照</h3>
+<ul class="seealso">
+<li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="query" id="query">Autoindex リクエストクエリー引数</a></h2>
+    
+
+    <p>Apache 2.0.23 で、
+    コラムソートのためにクエリー引数を再編成して、
+    新しいクエリーオプションのグループを導入しました。
+    出力に対するクライアントのすべての制御を効率的に抹消
+    できるように、
+    <code><a href="#indexoptions.ignoreclient">IndexOptions
+    IgnoreClient</a></code> が導入されました。</p>
+
+    <p>コラムソートのヘッダそれ自体が、
+    下記のソートクエリーオプションを付加する
+    自分自身を参照するリンクです。
+    下記のオプションのどれでも、
+    ディレクトリリソースへのリクエストに加えることができます。</p>
+
+    <ul>
+      <li><code>C=N</code> は、ファイル名でソートします。</li>
+
+      <li><code>C=M</code> は、更新日時、
+      ディレクトリ、ファイル名の順でソートします。</li>
+
+      <li><code>C=S</code> は、サイズ、
+      ディレクトリ、ファイル名の順でソートします。</li>
+
+      <li class="separate"><code>C=D</code> は、説明、
+      ディレクトリ、ファイル名の順でソートします。</li>
+
+      <li><code>O=A</code> は、昇順で表をソートします。</li>
+
+      <li class="separate"><code>O=D</code> は、降順で表をソートします。</li>
+
+      <li><code>F=0</code> は、単純な表の書式にします。
+      (FancyIndex ではありません。)</li>
+
+      <li><code>F=1</code> は、FancyIndex 
+      表示の表の書式にします。</li>
+
+      <li><code>F=2</code> は、表を HTML 
+      のテーブルを使った FancyIndex の書式にします。</li>
+
+      <li><code>V=0</code> 
+      は、バージョンによるソートを無効にします。</li>
+
+      <li class="separate"><code>V=1</code> 
+      は、バージョンによるソートを有効にします。</li>
+
+      <li><code>P=<var>pattern</var></code> 
+      は、与えられた <var>pattern</var>
+      に適合したファイルのみを表示します。</li>
+    </ul>
+
+    <p>"P (パターンの P)" クエリー引数は、
+    通常の <code class="directive"><a href="#indexignore">IndexIgnore</a></code>
+    ディレクティブが処理された<em>後</em>に検査され、
+    ファイル名全てが、他の autoindex
+    リスト処理と同様の判定基準下に置かれ続ける
+    ことに注意してください。
+    <code class="module"><a href="../mod/mod_autoindex.html">mod_autoindex</a></code> のクエリー引数パーサ (解析) は、
+    認識不能なオプションにぶつかると即座に停止します。
+    クエリー引数は上の表に従って
+    正しい形式になっていなければなりません。</p>
+
+    <p>下の単純な例は、これらのクエリーオプションを
+    表します。これをそのまま切り取って HEADER.html 
+    ファイルに保存することもできます。
+    mod_autoindex が X=Go 入力にぶつかる前に
+    引数が全て解釈されるように、
+    未知の引数 "X" はリストの最後に置かれています。</p>
+
+    <div class="example"><p><code>
+      &lt;form action="" method="get"&gt;<br />
+      <span class="indent">
+        Show me a &lt;select name="F"&gt;<br />
+        <span class="indent">
+          &lt;option value="0"&gt; Plain list&lt;/option&gt;<br />
+          &lt;option value="1" selected="selected"&gt; Fancy list&lt;/option&gt;<br />
+          &lt;option value="2"&gt; Table list&lt;/option&gt;<br />
+        </span>
+        &lt;/select&gt;<br />
+        Sorted by &lt;select name="C"&gt;<br />
+        <span class="indent">
+          &lt;option value="N" selected="selected"&gt; Name&lt;/option&gt;<br />
+          &lt;option value="M"&gt; Date Modified&lt;/option&gt;<br />
+          &lt;option value="S"&gt; Size&lt;/option&gt;<br />
+          &lt;option value="D"&gt; Description&lt;/option&gt;<br />
+        </span>
+        &lt;/select&gt;<br />
+        &lt;select name="O"&gt;<br />
+        <span class="indent">
+          &lt;option value="A" selected="selected"&gt; Ascending&lt;/option&gt;<br />
+          &lt;option value="D"&gt; Descending&lt;/option&gt;<br />
+        </span>
+        &lt;/select&gt;<br />
+        &lt;select name="V"&gt;<br />
+        <span class="indent">
+          &lt;option value="0" selected="selected"&gt; in Normal order&lt;/option&gt;<br />
+          &lt;option value="1"&gt; in Version order&lt;/option&gt;<br />
+        </span>
+        &lt;/select&gt;<br />
+        Matching &lt;input type="text" name="P" value="*" /&gt;<br />
+        &lt;input type="submit" name="X" value="Go" /&gt;<br />
+      </span>
+      &lt;/form&gt;
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="AddAlt" id="AddAlt">AddAlt</a> <a name="addalt" id="addalt">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>アイコンの代わりに
+表示される、ファイル名で選択された代替テキスト</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>AddAlt <var>string</var> <var>file</var> [<var>file</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">AddAlt</code> は、<code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>
+    において、アイコンの代わりに表示する代替テキストを提供します。
+    <var>file</var> は、説明するファイルのファイル拡張子、
+    ファイル名の一部、ワイルドカード表現、完全なファイル名の
+    どれかになります。
+    <var>string</var> に空白がある場合は引用符  (<code>"</code>
+    か <code>'</code>) で囲む必要があります。
+    この文字列は、クライアントが画像を表示できない場合や
+    画像のロードを無効にしている場合や
+    アイコンの取得に失敗したときに表示されます。</p>
+
+    <div class="example"><h3>例</h3><p><code>
+      AddAlt "PDF file" *.pdf<br />
+      AddAlt Compressed *.gz *.zip *.Z
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="AddAltByEncoding" id="AddAltByEncoding">AddAltByEncoding</a> <a name="addaltbyencoding" id="addaltbyencoding">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>アイコンの代わりに表示される、MIME 符号化方法で選択された
+代替テキスト</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>AddAltByEncoding <var>string</var> <var>MIME-encoding</var>
+[<var>MIME-encoding</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">AddAltByEncoding</code> は、
+    <code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>
+    において、アイコンの代わりに表示する代替文字列を提供します。
+    <var>MIME-encoding</var> は有効な符号化、例えば
+    <code>x-compress</code>
+    です。 
+    <var>string</var> に空白があるときは、引用符 (<code>"</code> か
+    <code>'</code>) で囲む必要があります。
+    この文字列は、クライアントが画像を表示できない場合や
+    画像のロードを無効にしている場合や
+    アイコンの取得に失敗したときに表示されます。</p>
+
+    <div class="example"><h3>例</h3><p><code>
+      AddAltByEncoding gzip x-gzip
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="AddAltByType" id="AddAltByType">AddAltByType</a> <a name="addaltbytype" id="addaltbytype">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>アイコンの代わりに
+表示される、MIME タイプで選択された代替テキスト</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>AddAltByType <var>string</var> <var>MIME-type</var>
+[<var>MIME-type</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">AddAltByType</code> は、
+    <code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>
+    において、アイコンの代わりに表示する代替文字列を設定します。
+    <var>MIME-type</var> は有効なタイプ、例えば
+    <code>text/html</code>
+    です。
+    <var>string</var> に空白があるときは、引用符 (<code>"</code> か
+    <code>'</code>) で囲む必要があります。
+    この文字列は、クライアントが画像を表示できない場合や
+    画像のロードを無効にしている場合や
+    アイコンの取得に失敗したときに表示されます。</p>
+
+    <div class="example"><h3>例</h3><p><code>
+      AddAltByType 'plain text' text/plain
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="AddDescription" id="AddDescription">AddDescription</a> <a name="adddescription" id="adddescription">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>ファイルに対して表示する説明</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>AddDescription <var>string</var> <var>file</var> [<var>file</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>
+    において、ファイルに対して表示する説明を設定します。
+    <var>file</var> は説明するファイルのファイル拡張子、
+    ファイル名の一部、ワイルドカード表現、完全なファイル名の
+    どれかになります。
+    <var>string</var> は二重引用符 (<code>"</code>) で囲まれます。</p>
+
+    <div class="example"><h3>例</h3><p><code>
+      AddDescription "The planet Mars" /web/pics/mars.gif
+    </code></p></div>
+
+    <p>通常のデフォルトの説明領域は 23 バイトの幅です。
+    <code><a href="#indexoptions.suppressicon">IndexOptions SuppressIcon</a></code>
+    オプションで 6 バイト追加、
+    <code><a href="#indexoptions.suppresssize">IndexOptions SuppressSize</a></code>
+    オプションで 7 バイト追加、
+    <code><a href="#indexoptions.suppresslastmodified">IndexOptions SuppressLastModified</a></code>
+    オプションで 19 バイト追加されます。
+    ですから、デフォルトの説明コラムの最大幅は
+    55 バイトになります。</p>
+
+    <p>このコラムの大きさを上書きしたり、
+    説明が無制限長でもよいようにするための詳細に関しては、
+    <a href="#indexoptions.descriptionwidth">DescriptionWidth</a>
+    という
+    <code class="directive"><a href="#indexoptions">IndexOptions</a></code> 
+    のキーワードをご覧下さい。</p>
+
+    <div class="note"><h3>警告</h3>
+      <p><code class="directive">AddDescription</code> 
+      で定義された説明テキストは、タグや文字列といった
+      HTML マークアップを含むことができます。
+      もし、説明コラムの幅によってタグ付けされた要素が丸め込まれた
+       (太字の語句の最後が切れるといった) 場合、
+      出力結果は、ディレクトリ一覧の残りの部分に影響を与えるでしょう。</p>
+    </div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="AddIcon" id="AddIcon">AddIcon</a> <a name="addicon" id="addicon">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>ファイルに表示するアイコンを名前で選択</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>AddIcon <var>icon</var> <var>name</var>
+[<var>name</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>
+    において、
+    <var>name</var> で終わるファイルの隣に表示するアイコンを設定します。
+    <var>icon</var> は、(% でエスケープされた) アイコンへの相対 URL
+    か、他の書式 (<var>alttext</var>, <var>url</var>) です。
+    ここで <var>alttext</var>
+    は、非グラフィカルブラウザ向けにアイコンに付けられたテキストタグです。
+    </p>
+
+    <p><var>name</var> は、ディレクトリに対応する <code>^^DIRECTORY^^</code>
+    か、空白行に対応する <code>^^BLANKICON^^</code>  (一覧が正しく表示されるために) か、
+    ファイル拡張子か、ワイルドカード表現か、ファイル名の一部か
+    完全なファイル名です。</p>
+
+    <div class="example"><h3>例</h3><p><code>
+      AddIcon (IMG,/icons/image.xbm) .gif .jpg .xbm<br />
+      AddIcon /icons/dir.xbm ^^DIRECTORY^^<br />
+      AddIcon /icons/backup.xbm *~
+    </code></p></div>
+
+    <p>もし可能なら、
+    <code class="directive">AddIcon</code>
+    より
+    <code class="directive"><a href="#addiconbytype">AddIconByType</a></code>
+    を優先的に使うべきでしょう。</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="AddIconByEncoding" id="AddIconByEncoding">AddIconByEncoding</a> <a name="addiconbyencoding" id="addiconbyencoding">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>ファイルに表示するアイコンを MIME
+符号化方法で選択</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>AddIconByEncoding <var>icon</var> <var>MIME-encoding</var>
+[<var>MIME-encoding</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>
+    において、ファイルの隣に表示するアイコンを設定します。
+    <var>icon</var> は、(% でエスケープされた) アイコンへの相対 URL
+    か、他の書式 <code>(<var>alttext</var>, <var>url</var>)</code> です。
+    ここで <var>alttext</var>
+    は、非グラフィカルブラウザ向けにアイコンに付けられたテキストタグです。
+    </p>
+
+    <p><var>MIME-encoding</var> は、有効なコンテントエンコーディング、
+    例えば <code>x-compress</code>です。</p>
+
+    <div class="example"><h3>例</h3><p><code>
+      AddIconByEncoding /icons/compress.xbm x-compress
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="AddIconByType" id="AddIconByType">AddIconByType</a> <a name="addiconbytype" id="addiconbytype">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>ファイルの隣に表示するアイコンを
+MIME タイプによって選択</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>AddIconByType <var>icon</var> <var>MIME-type</var>
+[<var>MIME-type</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>
+    において、ファイルの隣に表示するアイコンを設定します。
+    <var>icon</var> は、(% でエスケープされた) アイコンへの相対 URL
+    か、他の書式 <code>(<var>alttext</var>, <var>url</var>)</code> です。
+    ここで <var>alttext</var>
+    は、非グラフィカルブラウザ向けにアイコンに付けられたテキストタグです。
+    </p>
+
+    <p><var>MIME-type</var> は、要求されたタイプに該当する
+    ワイルドカード表現です。</p>
+
+    <div class="example"><h3>例</h3><p><code>
+      AddIconByType (IMG,/icons/image.xbm) image/*
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="DefaultIcon" id="DefaultIcon">DefaultIcon</a> <a name="defaulticon" id="defaulticon">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>特定のアイコンが何も設定されていない時に
+ファイルに表示するアイコン</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>DefaultIcon <var>url-path</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>
+    において、
+    特定のアイコンがない場合にファイルに表示するアイコンを設定します。
+    <var>url-path</var> は、(% でエスケープされた) アイコンへの相対 URL
+    です。</p>
+
+    <div class="example"><h3>例</h3><p><code>
+      DefaultIcon /icon/unknown.xbm
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="HeaderName" id="HeaderName">HeaderName</a> <a name="headername" id="headername">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>
+インデックス一覧の先頭に挿入されるファイルの名前</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>HeaderName <var>filename</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">HeaderName</code> 
+    ディレクティブは、
+    インデックス一覧の先頭に挿入するファイルの名前を設定します。
+    <var>Filename</var> は取り込むファイルの名前です。</p>
+
+    <div class="example"><h3>例</h3><p><code>
+      HeaderName HEADER.html
+    </code></p></div>
+
+    <div class="note">
+      <p>HeaderName も <code class="directive"><a href="#readmename">ReadmeName</a></code> 
+      も両方とも現在は、<var>filename</var> 
+      をインデックスされているディレクトリに用いられた URI
+      に対する相対 URI パスとして扱います。
+      <var>filename</var> がスラッシュで始まる場合は、
+      <code class="directive"><a href="../mod/core.html#documentroot">DocumentRoot</a></code>
+      からの相対パスとなります。</p>
+
+      <div class="example"><h3>例</h3><p><code>
+        HeaderName /include/HEADER.html
+      </code></p></div>
+
+      <p><var>filename</var> は
+      メジャーコンテントタイプが "<code>text/*</code>" 
+       (<em>例えば</em>、<code>text/html</code>, 
+      <code>text/plain</code> 等です。) 
+      のドキュメントとして解決
+      されなければなりません。これはつまり、
+      もし CGI スクリプトの実際のファイルタイプが
+      次のディレクティブのようにして実際の出力とは異なって
+      <code>text/html</code> としてマークされている場合、
+      <var>filename</var>
+      は CGI スクリプトを参照するかも知れない、
+      ということを意味します:</p>
+
+      <div class="example"><p><code>
+        AddType text/html .cgi
+      </code></p></div>
+
+      <p><code class="directive"><a href="../mod/core.html#options">Options</a></code> <code>MultiViews</code> が
+      有効になっている場合は、
+      <a href="../content-negotiation.html">コンテントネゴシエーション</a>
+      が行なわれます。
+      もし <var>filename</var> が (CGI スクリプトでない) 静的な 
+      <code>text/html</code> ドキュメントで解決され、
+      <code class="directive"><a href="../mod/core.html#options">options</a></code>
+      <code>Includes</code> か <code>IncludesNOEXEC</code>
+      が有効になっている場合は、
+      ファイルはサーバーサイドインクルードで処理されます
+      (<code class="module"><a href="../mod/mod_include.html">mod_include</a></code> ドキュメントを参照して下さい)。</p>
+    </div>
+
+    <p>もし <code class="directive">HeaderName</code> で指定されたファイルが
+    HTML ドキュメントの開始部分 (&lt;html&gt;, &lt;head&gt;, 
+    等) を含んでいたら、
+    <a href="#indexoptions.suppresshtmlpreamble"><code>IndexOptions
+    +SuppressHTMLPreamble</code></a>
+    を設定して、これらのタグが繰り返されないようにしたいと思うでしょう。</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="IndexHeadInsert" id="IndexHeadInsert">IndexHeadInsert</a> <a name="indexheadinsert" id="indexheadinsert">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>インデックスページの HEAD セクションにテキストを挿入する</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>IndexHeadInsert <var>"markup ..."</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">IndexHeadInsert</code> ディレクティブを使って
+    インデックスとして生成されたHTMLの <var>&lt;head&gt;</var> セクションに
+    挿入する文字列を指定します。</p>
+    <div class="example"><h3>Example</h3><p><code>
+      
+      IndexHeadInsert "&lt;link rel=\"sitemap\" href=\"/sitemap.html\"&gt;"
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="IndexIgnore" id="IndexIgnore">IndexIgnore</a> <a name="indexignore" id="indexignore">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>ディレクトリ一覧を行なう際に無視すべき
+ファイルリストに追加</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>IndexIgnore <var>file</var> [<var>file</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">IndexIgnore</code> ディレクティブは、
+    ディレクトリの一覧を行う際に無視すべきファイルリストに追加します。
+    <var>file</var> は、
+    シェル形式のワイルドカード表現か完全なファイル名です。
+    IndexIgnore が複数ある場合は、無視するリストに追加が行われ、
+    置換は行われません。デフォルトではリストには <code>.</code>
+    (カレントディレクトリ) が含まれています。</p>
+
+    <div class="example"><p><code>
+      IndexIgnore README .htaccess *.bak *~
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="IndexIgnoreReset" id="IndexIgnoreReset">IndexIgnoreReset</a> <a name="indexignorereset" id="indexignorereset">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>Empties the list of files to hide when listing
+a directory</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>IndexIgnoreReset ON|OFF</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_autoindex</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">互換性:</a></th><td>2.3.10 and later</td></tr>
+</table><p>このディレクティブの解説文書は
+            まだ翻訳されていません。英語版をご覧ください。
+            </p></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="IndexOptions" id="IndexOptions">IndexOptions</a> <a name="indexoptions" id="indexoptions">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>ディレクトリインデックスの様々な設定項目
+</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>IndexOptions  [+|-]<var>option</var> [[+|-]<var>option</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">IndexOptions</code> 
+    は、ディレクトリインデックスの挙動を指定します。
+    <var>option</var> は次のどれかです:</p>
+
+    <dl>
+      <dt><a name="indexoptions.charset" id="indexoptions.charset">Charset=<var>character-set</var></a> (<em>Apache 2.0.61
+      以降</em>)</dt>
+
+      <dd><code>Charset</code> キーワードで、
+      生成されるページの文字セットを指定できます。
+      下位のファイルシステムが Unicode ベースかどうかに依存しますが、
+      デフォルト値は <var>ISO-8859-1</var> か <var>UTF-8</var>
+      になります。
+
+      <div class="example"><h3>Example:</h3><p><code>
+        IndexOptions Charset=UTF-8
+      </code></p></div>
+      </dd>
+
+      <dt><a name="indexoptions.type" id="indexoptions.type">Type=<var>MIME content-type</var></a> (<em>Apache 2.0.61
+      以降</em>)</dt>
+
+      <dd><code>Type</code> キーワードで、
+      生成されるページの MIME コンテントタイプを指定できます。
+      デフォルト値は <var>text/html</var> になります。
+
+      <div class="example"><h3>Example:</h3><p><code>
+        IndexOptions Type=text/plain
+      </code></p></div>
+      </dd>
+
+      <dt><a name="indexoptions.descriptionwidth" id="indexoptions.descriptionwidth">DescriptionWidth=[<var>n</var> | *]</a>
+      (<em>2.0.23 以降</em>)</dt>
+
+      <dd><code>DescriptionWidth</code> 
+      キーワードは説明コラムの幅を文字数で指定することができます。</dd>
+
+      <dd><code>-DescriptionWidth</code> (または非設定) で、
+      <code class="module"><a href="../mod/mod_autoindex.html">mod_autoindex</a></code> が最適な幅を計算するようにできます。</dd>
+
+      <dd><code>DescriptionWidth=<var>n</var></code> 
+      で、コラム幅を <var>n</var> バイトに固定します。</dd>
+
+      <dd><code>DescriptionWidth=*</code> 
+      は、最長の説明に合わせて必要な長さまでコラムを延ばします。</dd>
+
+      <dd><strong>説明を丸め込んだ場合特有の危険については
+      <code class="directive"><a href="#adddescription">AddDescription</a></code>
+      セクションをお読み下さい。</strong></dd>
+
+      <dt><a name="indexoptions.fancyindexing" id="indexoptions.fancyindexing">FancyIndexing</a></dt>
+
+      <dd>飾り付きインデックスをオンにします。</dd>
+
+      <dt><a name="indexoptions.foldersfirst" id="indexoptions.foldersfirst">FoldersFirst</a>
+      (<em>2.0.23 以降</em>)</dt>
+
+      <dd>このオプションが有効になった場合、サブディレクトリの一覧は
+      <em>必ず</em>最初に現われて、通常のファイルはその後に続きます。
+      一覧は基本的には、ファイルとディレクトリの二つの部分に分けられて、
+      それぞれは別々にソートされ、その後サブディレクトリを先にして
+      表示が行なわれます。例えばソート順が名前の降順になっていて、
+      <code>FoldersFirst</code> が有効になっている場合は、
+      サブディレクトリ <code>Zed</code> はサブディレクトリ
+      <code>Beta</code> よりも前にリストされ、通常のファイル
+      <code>Gamma</code> や <code>Alpha</code>
+      よりも前にリストされます。<strong>このオプションは
+      <a href="#indexoptions.fancyindexing"><code>FancyIndexing</code></a>
+      も有効になっているときにのみ有効です。</strong></dd>
+
+      <dt><a name="indexoptions.htmltable" id="indexoptions.htmltable">HTMLTable</a> <em>(実験的、
+      Apache 2.0.23 以降)</em></dt>
+
+      <dd>この実験的なオプションは <code>FancyIndexing</code> とともに指定することで、
+      飾りの付いたディレクトリ一覧のためにテーブルを使った単純な表を作ります。
+      これは古いブラウザを混乱させるかもしれないことに注意してください。
+      WinNT やその他 utf-8 
+      が有効なプラットホームのように、ファイル名や説明テキストが
+      右読みになったり左読みになりえる場合は特に必要です。</dd>
+
+      <dt><a name="indexoptions.iconsarelinks" id="indexoptions.iconsarelinks">IconsAreLinks</a></dt>
+
+      <dd>これは、FancyIndexing において、
+      アイコンもファイル名へのリンクの一部にします。</dd>
+
+      <dt><a name="indexoptions.iconheight" id="indexoptions.iconheight">IconHeight[=<var>pixels</var>]</a></dt>
+
+      <dd>このオプションが、<code>IconWidth</code> とともに
+      使われている場合は、サーバはファイルアイコンのための
+      <code>img</code> タグに <code>height</code> と <code>width</code>
+      属性を取り込むようになります。
+      これによって、イメージ全てをロードし終わるまで待たなくても、
+      ブラウザはページレイアウトをあらかじめ計算することができます。
+      このオプションに何も値が与えられなければ、Apache
+      ソフトウェアで提供されているアイコンの標準の高さが
+      デフォルトなります。</dd>
+
+      <dt><a name="indexoptions.iconwidth" id="indexoptions.iconwidth">IconWidth[=<var>pixels</var>]</a></dt>
+
+      <dd>このオプションが、<code>IconHeight</code> とともに使われている場合は、
+      サーバはファイルアイコンのための <code>img</code>
+      タグに <code>height</code> と <code>width</code>
+      属性を取り込むようになります。
+      これによって、イメージ全てをロードし終わるまで待たなくても、
+      ブラウザはページレイアウトをあらかじめ計算することができます。
+      このオプションに何も値が与えられなければ、Apache
+      ソフトウェアで提供されているアイコンの標準の高さが
+      デフォルトなります。</dd>
+
+      <dt><a name="indexoptions.ignorecase" id="indexoptions.ignorecase">IgnoreCase</a></dt>
+
+      <dd>このオプションが有効であると、ファイル名は大文字小文字を区別せずにソートされます。
+      例えばファイル名が昇順でソートされ、<code>IgnoreCase</code> が有効であれば、
+      Zeta は alfa の後にリストされます
+      (注意: GAMMA は常に gamma の前になります)。</dd>
+
+      <dt><a name="indexoptions.ignoreclient" id="indexoptions.ignoreclient">IgnoreClient</a></dt>
+
+      <dd>このオプションで <code class="module"><a href="../mod/mod_autoindex.html">mod_autoindex</a></code> は、
+      クライアントからの全てのクエリー変数を無視するようになります。
+      これはソート順も含みます。
+      (つまり <code><a href="#indexoptions.suppresscolumnsorting">SuppressColumnSorting</a></code>
+      も有効になります。)</dd>
+
+      <dt><a name="indexoptions.namewidth" id="indexoptions.namewidth">NameWidth=[<var>n</var> 
+	       | *]</a></dt>
+
+      <dd><code>NameWidth</code> キーワードでファイル名コラムの幅をバイト数で
+      指定できます。</dd>
+
+      <dd><code>-NameWidth</code> (または非設定) で、
+      <code class="module"><a href="../mod/mod_autoindex.html">mod_autoindex</a></code> が最適な幅を計算するようにできます。</dd>
+
+      <dd><code>NameWidth=<var>n</var></code> 
+      で、コラム幅を <var>n</var> バイトに固定します。</dd>
+
+      <dd><code>NameWidth=*</code>
+      は、必要な長さまでコラムを延ばします。</dd>
+
+      <dt><a name="indexoptions.scanhtmltitles" id="indexoptions.scanhtmltitles">ScanHTMLTitles</a></dt>
+
+      <dd>FancyIndexing のために、
+       HTML ドキュメントからタイトルを取り出すことを可能にします。
+      もしファイルに
+      <code class="directive"><a href="#adddescription">AddDescription</a></code>
+      で説明が与えられていなければ、
+      httpd は <code>title</code> タグの値を読むためにドキュメントを読み始めます。
+      これは CPU や disk に負荷をかけます。</dd>
+
+      <dt><a name="indexoptions.showforbidden" id="indexoptions.showforbidden">ShowForbidden</a></dt>
+
+      <dd>通常 Apache はサブリクエストの結果が<code>HTTP_UNAUTHORIZED</code> や
+      <code>HTTP_FORBIDDEN</code> のファイルは一覧に表示しません。
+      このオプションを指定すると、そのようなファイルも一覧に表示します。</dd>
+
+      <dt><a name="indexoptions.suppresscolumnsorting" id="indexoptions.suppresscolumnsorting">SuppressColumnSorting</a></dt>
+
+      <dd>もし指定されていれば、Apache は
+      FancyIndexing で表示されているディレクトリ一覧での
+      コラムの先頭を、ソートのためのリンクにしなくなります。
+      デフォルトの挙動は、リンクとします。
+      コラムの先頭を選ぶとコラムの値に従ってディレクトリリストを
+      ソートします。
+      <strong>Apache 2.0.23 以前では、これは同時に
+      ソート文字列のためのクエリー引数の解析も無効にします。
+      </strong>
+      この挙動は Apache 2.0.23 では
+      <a href="#indexoptions.ignoreclient"><code>IndexOptions
+      IgnoreClient</code></a> で制御されるようになっています。</dd>
+
+      <dt><a name="indexoptions.suppressdescription" id="indexoptions.suppressdescription">SuppressDescription</a></dt>
+
+      <dd>これは FancyIndexing におけるファイルの説明を消去します。
+      デフォルトでは、説明は定義されておらず、
+      このオプションを使うと他のために 23
+      文字の空白を稼ぐことができます。 ファイルの説明に関する情報は、
+      <code class="directive"><a href="#adddescription">AddDescription</a></code> 
+      をご覧下さい。また、説明のコラムサイズを制限する
+      <code><a href="#indexoptions.descriptionwidth">DescriptionWidth</a></code>
+      インデックスオプションもご覧下さい。</dd>
+
+      <dt><a name="indexoptions.suppresshtmlpreamble" id="indexoptions.suppresshtmlpreamble">SuppressHTMLPreamble</a></dt>
+
+      <dd>通常、
+      <code class="directive"><a href="#headername">HeaderName</a></code>
+      ディレクティブで指定したファイルを
+      ディレクトリが実際に含んでいれば、標準的な HTML プリアンブル
+      (<code>&lt;html&gt;</code>, <code>&lt;head&gt;</code>, <em>等</em>) の後に、
+      モジュールはファイルの中身をインクルードします。
+      <code>SuppressHTMLPreamble</code> オプションは、
+      この挙動を無効にできて、
+      モジュールがヘッダーファイルの中身から表示を始めます。
+      この場合、ヘッダーファイルは正しい HTML
+      命令を含んでいなければなりません。
+      ヘッダーファイルが存在しない場合は、プリアンブルは通常通り
+      生成されます。</dd>
+
+      <dt><a name="indexoptions.suppressicon" id="indexoptions.suppressicon">SuppressIcon</a> (<em>Apache
+      2.0.23 以降</em>)</dt>
+
+      <dd>
+      これは FancyIndexing の一覧からアイコンを消去します。
+      <code>SuppressIcon</code> と <code>SuppressRules</code>
+      と組合わせることによって正しい HTML 3.2 の出力が得られます。
+      HTML 3.2 の最終規格は、 <code>img</code> と <code>hr</code>
+      が <code>pre</code> ブロックに入る (FancyIndexing 一覧で書式に使われています) 
+      ことを禁止しています。</dd>
+
+      <dt><a name="indexoptions.suppresslastmodified" id="indexoptions.suppresslastmodified">SuppressLastModified</a></dt>
+
+      <dd>FancyIndexing 一覧において最終更新日時の表示を消去します。</dd>
+
+      <dt><a name="indexoptions.suppressrules" id="indexoptions.suppressrules">SuppressRules</a>
+       (<em>Apache 2.0.23 以降</em>) </dt>
+
+      <dd>ディレクトリ一覧において水平区切り線 (<code>hr</code> タグ) を消去します。
+      <code>SuppressIcon</code> と <code>SuppressRules</code>
+      と組合わせることによって正しい HTML 3.2 の出力が得られます。
+      HTML 3.2 の最終規格は、 <code>img</code> と <code>hr</code>
+      が <code>pre</code> ブロックに入る (FancyIndexing 一覧で書式に使われています) 
+      ことを禁止しています。</dd>
+
+      <dt><a name="indexoptions.suppresssize" id="indexoptions.suppresssize">SuppressSize</a></dt>
+
+      <dd>FancyIndexing 一覧においてファイルサイズの表示を消去します。</dd>
+
+      <dt><a name="indexoptions.trackmodified" id="indexoptions.trackmodified">TrackModified</a>
+	       (<em>Apache 2.0.23 以降</em>)</dt>
+
+      <dd>これは HTTP ヘッダ中に、
+      ディレクトリの <code>Last-Modified</code> や 
+      <code>ETag</code> を含めます。
+      これは、オペレーティングシステムやファイルシステムが
+      適切な stat() の返り値を返す場合にのみ有効です。
+      いくつかの UNIX システム、OS2 の JFS や Win32 の NTFS
+      ボリュームはそうなっています。
+      例えば、OS2 と Win32 FAT ボリュームはそうではありません。
+      この機能が有効になると、クライアントやプロキシは
+      <code>HEAD</code> リクエストを行うことによって、
+      ファイル一覧の変化を追跡することができるようになります。
+      オペレーティングシステムによっては、新規ファイルや
+      移動ファイルは正しく追跡するけれども、
+      ディレクトリ中のファイルのサイズや日付は追跡しないということに
+      注意してください。
+      <strong>既に存在するファイルのサイズや日付のスタンプが変化しても、
+      全ての Unix プラットホームでは、
+      <code>Last-Modified</code> ヘッダーを更新しません。</strong>
+      もしこれが重要であれば、
+      このオプションを無効のままにしてください。</dd>
+
+      <dt><a name="indexoptions.versionsort" id="indexoptions.versionsort">VersionSort</a>
+      (<em>Apache 2.0a3 以降</em>)</dt>
+
+      <dd><code>VersionSort</code> キーワードはバージョン番号を含んだファイルが
+      自然な方法でソートされるようにします。
+      文字列は通常通りソートされ、
+      それ以外の、説明や名前中の数となる部分文字列は
+      その数値で比較されます。
+
+      <div class="example"><h3>例:</h3><p><code>
+        foo-1.7<br />
+        foo-1.7.2<br />
+        foo-1.7.12<br />
+        foo-1.8.2<br />
+        foo-1.8.2a<br />
+        foo-1.12
+      </code></p></div>
+
+      <p>番号が 0 から始まる場合は、端数と考えられます</p>
+
+      <div class="example"><p><code>
+        foo-1.001<br />
+        foo-1.002<br />
+        foo-1.030<br />
+        foo-1.04
+      </code></p></div>
+      </dd>
+
+      <dt><a name="indexoptions.xhtml" id="indexoptions.xhtml">XHTML</a>
+      (<em>Apache 2.0.49 以降</em>)</dt>
+
+      <dd><code>XHTML</code> キーワードを指定すると、<code class="module"><a href="../mod/mod_autoindex.html">mod_autoindex</a></code>
+      は HTML 3.2 の代わりに XHTML 1.0 のコードを出力するようになります。</dd>
+    </dl>
+
+   
+   <dl><dt>増減指定できる IndexOptions</dt>
+   <dd>
+     <p>Apache 1.3.3 では、
+     <code class="directive">IndexOptions</code> 
+     ディレクティブの扱いで幾つかの大きな変化が導入されました。
+     特に、</p>
+
+     <ul>
+     <li>一つのディレクトリに対する複数の
+     <code class="directive">IndexOptions</code> 
+     ディレクティブは、現在では一つにマージされます。
+
+     <div class="example"><p><code>
+       &lt;Directory /foo&gt;
+       <span class="indent">
+         IndexOptions HTMLTable<br />
+         IndexOptions SuppressColumnsorting
+       </span>
+       &lt;/Directory&gt;
+     </code></p></div>
+
+     <p>の結果は、次の指定と同一の結果になります。</p>
+
+     <div class="example"><p><code>
+       IndexOptions HTMLTable SuppressColumnsorting
+     </code></p></div>
+     </li>
+
+     <li>増減構文
+     (<em>すなわち</em>、'+' や '-'
+     の接頭辞が付くキーワード) の追加。</li>
+     </ul>
+
+     <p>'+' や '-' 接頭辞の付いたキーワードに出会うとそれは、
+     その時点での <code class="directive">IndexOptions</code>
+     の設定 (これは上流のディレクトリを受け継ぎます) 
+     に対して適応されます。
+     しかしながら、接頭辞の付かないキーワードが処理された場合は、
+     受け継いだオプション全てとそれまで出会った増減設定全てが
+     消去されます。次の例を考えてみてください:</p>
+
+     <div class="example"><p><code>
+       IndexOptions +ScanHTMLTitles -IconsAreLinks FancyIndexing<br />
+       IndexOptions +SuppressSize
+     </code></p></div>
+
+     <p>最終的な効果は
+     <code>IndexOptions&nbsp;FancyIndexing&nbsp;+SuppressSize</code>
+     と同一です。
+     接頭辞の付かない <code>FancyIndexing</code>
+     でそれ以前の増減キーワードは無効になり、
+     その後の累積が始まるからです。</p>
+
+     <p>あるディレクトリにおいて上位のディレクトリに指定された設定に影響されることなく
+     <code class="directive">IndexOptions</code> を設定したい場合、
+     <code>+</code> や <code>-</code>
+     接頭辞の付かないキーワードで設定してください。</p>
+   </dd>
+   </dl>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="IndexOrderDefault" id="IndexOrderDefault">IndexOrderDefault</a> <a name="indexorderdefault" id="indexorderdefault">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>
+ディレクトリインデックスの標準の順番付けを設定</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>IndexOrderDefault Ascending|Descending
+Name|Date|Size|Description</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>IndexOrderDefault Ascending Name</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">IndexOrderDefault</code> ディレクティブは
+    <code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>
+    インデックスオプションと併せて用いられます。
+    デフォルトでは、FancyIndexing 
+    のディレクトリ一覧はファイル名の昇順で表示されます。
+    <code class="directive">IndexOrderDefault</code>
+    で、初期状態の表示順番を変えることができます。</p>
+
+    <p><code class="directive">IndexOrderDefault</code>
+    は二つの引数をとります。一つ目はソートの方向を指示する
+    <code>Ascending</code> か <code>Descending</code> のいずれかです。
+    二つ目の引数は <code>Name</code>, <code>Date</code>,
+    <code>Size</code> か <code>Description</code> 
+    のいずれか一つのキーワードであって、1つ目のソートキーを指定します。
+    2つ目のソートキーは<em>常に</em>ファイル名の昇順になります。</p>
+
+    <p>このディレクティブと <code><a href="#indexoptions.suppresscolumnsorting">SuppressColumnSorting</a></code>
+    インデックスオプションとを組み合わせることで、
+    ディレクトリ一覧をある特定の順番でのみ表示するようにできます。
+    これは、
+    クライアントが別の順番でディレクトリ一覧をリクエストすることを防ぎます。</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="IndexStyleSheet" id="IndexStyleSheet">IndexStyleSheet</a> <a name="indexstylesheet" id="indexstylesheet">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>ディレクトリインデックスに CSS スタイルシートを追加する</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>IndexStyleSheet <var>url-path</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">IndexStyleSheet</code> ディレクティブは
+    インデックス表示に使用される CSS のファイル名を設定します。
+    </p>
+    <div class="example"><h3>例</h3><p><code>
+      
+      IndexStyleSheet "/css/style.css"
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ReadmeName" id="ReadmeName">ReadmeName</a> <a name="readmename" id="readmename">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>インデックス一覧の最後に挿入されるファイルの名前</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>ReadmeName <var>filename</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">ReadmeName</code> ディレクティブは、
+    インデックスの終わりに付け加えられるファイルの名前を設定します。
+    <var>filename</var> は挿入するファイルの名前で、
+    一覧の行われている位置から相対的なものとして解釈されます。
+    <var>filename</var> がスラッシュで始まる場合は、
+    <code class="directive"><a href="../mod/core.html#documentroot">DocumentRoot</a></code>
+    からの相対パスとなります。</p>
+
+    <div class="example"><h3>例</h3><p><code>
+      ReadmeName FOOTER.html
+    </code></p></div>
+
+    <div class="example"><h3>例 2</h3><p><code>
+    ReadmeName /include/FOOTER.html
+    </code></p></div>
+
+    <p>より詳細にまでこの挙動について記述している <code class="directive"><a href="#headername">HeaderName</a></code>
+    もご覧下さい。</p>
+
+</div>
+</div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="../en/mod/mod_autoindex.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_autoindex.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_autoindex.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_autoindex.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/mod/mod_autoindex.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_autoindex.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

@@ -1,0 +1,1738 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Developing modules for the Apache HTTP Server 2.4 - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Developer</a></div><div id="page-content"><div id="preamble"><h1>Developing modules for the Apache HTTP Server 2.4</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/developer/modguide.html" title="English">&nbsp;en&nbsp;</a></p>
+</div>
+
+<p>This document explains how you can develop modules for the Apache HTTP 
+Server 2.4</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#introduction">Introduction</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#basics">Defining a module</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#hooking">Getting started: Hooking into the server</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#handling">Building a handler</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#configuration">Adding configuration options</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#context">Context aware configurations</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#summary">Summing up</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#snippets">Some useful snippets of code</a></li>
+</ul><h3>See also</h3><ul class="seealso"><li><a href="request.html">Request Processing in Apache 2.4</a></li><li><a href="hooks.html">Apache 2.x Hook Functions</a></li><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="introduction" id="introduction">Introduction</a></h2>
+<h3><a name="what" id="what">What we will be discussing in this document</a></h3>
+<p>
+This document will discuss how you can create modules for the Apache 
+HTTP Server 2.4, by exploring an example module called 
+<code>mod_example</code>. In the first part of this document, the purpose 
+of this module will be to calculate and print out various digest values for 
+existing files on your web server, whenever we access the URL <code>
+http://hostname/filename.sum</code>. For instance, if we want to know the 
+MD5 digest value of the file located at <code>
+http://www.example.com/index.html</code>, we would visit <code>
+http://www.example.com/index.html.sum</code>. 
+</p>
+
+<p>
+In the second part of this document, which deals with configuration 
+directive and context awareness, we will be looking at a module that simply 
+writes out its own configuration to the client.
+</p>
+
+
+<h3><a name="prerequisites" id="prerequisites">Prerequisites</a></h3>
+<p>
+First and foremost, you are expected to have a basic knowledge of how the C 
+programming language works. In most cases, we will try to be as pedagogical 
+as possible and link to documents describing the functions used in the 
+examples, but there are also many cases where it is necessary to either 
+just assume that "it works" or do some digging yourself into what the hows 
+and whys of various function calls. 
+</p>
+<p>
+Lastly, you will need to have a basic understanding of how modules are 
+loaded and configured in the Apache HTTP Server, as well as how to get the headers for 
+Apache if you do not have them already, as these are needed for compiling 
+new modules.
+</p>
+
+<h3><a name="compiling" id="compiling">Compiling your module</a></h3>
+<p>
+To compile the source code we are building in this document, we will be 
+using <a href="../programs/apxs.html">APXS</a>. Assuming your source file 
+is called mod_example.c, compiling, installing and activating the module is 
+as simple as: 
+</p>
+<div class="example"><pre>apxs -i -a -c mod_example.c</pre></div>
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="basics" id="basics">Defining a module</a></h2>
+<p>
+<img src="../images/build_a_mod_3.png" alt="Module name tags" /><br />
+Every module starts with the same declaration, or name tag if you will, 
+that defines a module as <em>a separate entity within Apache</em>:</p>
+
+
+
+<pre class="prettyprint lang-c">module AP_MODULE_DECLARE_DATA   example_module =
+{ 
+    STANDARD20_MODULE_STUFF,
+    create_dir_conf, /* Per-directory configuration handler */
+    merge_dir_conf,  /* Merge handler for per-directory configurations */
+    create_svr_conf, /* Per-server configuration handler */
+    merge_svr_conf,  /* Merge handler for per-server configurations */
+    directives,      /* Any directives we may have for httpd */
+    register_hooks   /* Our hook registering function */
+};</pre>
+
+
+
+<p>
+This bit of code lets the server know that we have now registered a new module 
+in the system, and that its name is <code>example_module</code>. The name 
+of the module is used primarily for two things:<br />
+</p>
+<ul>
+<li>Letting the server know how to load the module using the LoadModule</li>
+<li>Setting up a namespace for the module to use in configurations</li>
+</ul>
+<p>
+For now, we're only concerned with the first purpose of the module name, 
+which comes into play when we need to load the module:
+</p>
+<pre class="prettyprint lang-config">LoadModule example_module modules/mod_example.so</pre>
+
+<p>
+In essence, this tells the server to open up <code>mod_example.so</code> and look for a module 
+called <code>example_module</code>.
+</p>
+<p>
+Within this name tag of ours is also a bunch of references to how we would 
+like to handle things: Which directives do we respond to in a configuration 
+file or .htaccess, how do we operate within specific contexts, and what 
+handlers are we interested in registering with the Apache HTTP service. We'll 
+return to all these elements later in this document.
+</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="hooking" id="hooking">Getting started: Hooking into the server</a></h2>
+<h3><a name="hook_intro" id="hook_intro">An introduction to hooks</a></h3>
+<p>
+When handling requests in Apache HTTP Server 2.4, the first thing you will need to do is 
+create a hook into the request handling process. A hook is essentially a 
+message telling the server that you are willing to either serve or at least 
+take a glance at certain requests given by clients. All handlers, whether 
+it's mod_rewrite, mod_authn_*, mod_proxy and so on, are hooked into 
+specific parts of the request process. As you are probably aware, modules 
+serve different purposes; Some are authentication/authorization handlers, 
+others are file or script handlers while some third modules rewrite URIs or 
+proxies content. Furthermore, in the end, it is up to the user of the server 
+how and when each module will come into place. Thus, the server itself does not 
+presume to know which module is responsible for handling a specific 
+request, and will ask each module whether they have an interest in a given 
+request or not. It is then up to each module to either gently decline 
+serving a request, accept serving it or flat out deny the request from 
+being served, as authentication/authorization modules do: <br />
+<img src="../images/build_a_mod_2.png" alt="Hook handling in httpd" /><br />
+To make it a bit easier for handlers such as our mod_example to know 
+whether the client is requesting content we should handle or not, the server 
+has directives for hinting to modules whether their assistance is needed or 
+not. Two of these are <code class="directive"><a href="../mod/mod_mime.html#addhandler">AddHandler</a></code> 
+and <code class="directive"><a href="../mod/core.html#sethandler">SetHandler</a></code>. Let's take a look at 
+an example using <code class="directive"><a href="../mod/mod_mime.html#addhandler">AddHandler</a></code>. In 
+our example case, we want every request ending with .sum to be served by 
+<code>mod_example</code>, so we'll add a configuration directive that tells 
+the server to do just that:
+</p>
+<pre class="prettyprint lang-config">AddHandler example-handler .sum</pre>
+
+<p>
+What this tells the server is the following: <em>Whenever we receive a request 
+for a URI ending in .sum, we are to let all modules know that we are 
+looking for whoever goes by the name of "example-handler" </em>. 
+Thus, when a request is being served that ends in .sum, the server will let all 
+modules know, that this request should be served by "example-handler
+". As you will see later, when we start building mod_example, we will 
+check for this handler tag relayed by <code>AddHandler</code> and reply to 
+the server based on the value of this tag.
+</p>
+
+<h3><a name="hook_declaration" id="hook_declaration">Hooking into httpd</a></h3>
+<p>
+To begin with, we only want to create a simple handler, that replies to the 
+client browser when a specific URL is requested, so we won't bother setting 
+up configuration handlers and directives just yet. Our initial module 
+definition will look like this:</p>
+
+
+
+<pre class="prettyprint lang-c">module AP_MODULE_DECLARE_DATA   example_module =
+{
+    STANDARD20_MODULE_STUFF,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    register_hooks   /* Our hook registering function */
+};</pre>
+
+
+
+
+<p>This lets the server know that we are not interested in anything fancy, we 
+just want to hook onto the requests and possibly handle some of them. </p> 
+
+<p> The reference in our example declaration, <code>register_hooks</code> 
+is the name of a function we will create to manage how we hook onto the 
+request process. In this example module, the function has just one purpose; 
+To create a simple hook that gets called after all the rewrites, access 
+control etc has been handled. Thus, we will let the server know, that we want 
+to hook into its process as one of the last modules: 
+</p>
+
+
+<pre class="prettyprint lang-c">static void register_hooks(apr_pool_t *pool)
+{
+    /* Create a hook in the request handler, so we get called when a request arrives */
+    ap_hook_handler(example_handler, NULL, NULL, APR_HOOK_LAST);
+}</pre>
+
+
+
+<p>
+The <code>example_handler</code> reference is the function that will handle 
+the request. We will discuss how to create a handler in the next chapter.
+</p>
+
+<h3><a name="hook_others" id="hook_others">Other useful hooks</a></h3>
+<p>
+Hooking into the request handling phase is but one of many hooks that you 
+can create. Some other ways of hooking are:
+</p>
+<ul>
+<li><code>ap_hook_child_init</code>: Place a hook that executes when a child process is spawned (commonly used for initializing modules after the server has forked)</li>
+<li><code>ap_hook_pre_config</code>: Place a hook that executes before any configuration data has been read (very early hook)</li>
+<li><code>ap_hook_post_config</code>: Place a hook that executes after configuration has been parsed, but before the server has forked</li>
+<li><code>ap_hook_translate_name</code>: Place a hook that executes when a URI needs to be translated into a filename on the server (think <code>mod_rewrite</code>)</li>
+<li><code>ap_hook_quick_handler</code>: Similar to <code>ap_hook_handler</code>, except it is run before any other request hooks (translation, auth, fixups etc)</li>
+<li><code>ap_hook_log_transaction</code>: Place a hook that executes when the server is about to add a log entry of the current request</li>
+</ul>
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="handling" id="handling">Building a handler</a></h2>
+<p>
+A handler is essentially a function that receives a callback when a request 
+to the server is made. It is passed a record of the current request (how it was 
+made, which headers and requests were passed along, who's giving the 
+request and so on), and is put in charge of either telling the server that it's 
+not interested in the request or handle the request with the tools provided.
+</p>
+<h3><a name="simple_handler" id="simple_handler">A simple "Hello, world!" 
+handler</a></h3> 
+<p>Let's start off by making a very simple request handler 
+that does the following:
+</p>
+<ol>
+<li>Check that this is a request that should be served by "example-handler"</li>
+<li>Set the content type of our output to <code>text/html</code></li>
+<li>Write "Hello, world!" back to the client browser</li>
+<li>Let the server know that we took care of this request and everything went fine</li>
+</ol>
+<p>
+In C code, our example handler will now look like this:
+</p>
+
+
+<pre class="prettyprint lang-c">static int example_handler(request_rec *r)
+{
+    /* First off, we need to check if this is a call for the "example-handler" handler.
+     * If it is, we accept it and do our things, if not, we simply return DECLINED,
+     * and the server will try somewhere else.
+     */
+    if (!r-&gt;handler || strcmp(r-&gt;handler, "example-handler")) return (DECLINED);
+    
+    /* Now that we are handling this request, we'll write out "Hello, world!" to the client.
+     * To do so, we must first set the appropriate content type, followed by our output.
+     */
+    ap_set_content_type(r, "text/html");
+    ap_rprintf(r, "Hello, world!");
+    
+    /* Lastly, we must tell the server that we took care of this request and everything went fine.
+     * We do so by simply returning the value OK to the server.
+     */
+    return OK;
+}</pre>
+
+
+
+<p>
+Now, we put all we have learned together and end up with a program that 
+looks like 
+<a href="http://people.apache.org/~humbedooh/mods/examples/mod_example_1.c">mod_example_1.c</a>
+. The functions used in this example will be explained later in the section 
+<a href="#functions">"Some useful functions you should know"</a>. 
+</p>
+ 
+<h3><a name="request_rec" id="request_rec">The request_rec structure</a></h3> 
+<p>The most essential part of any request is the <em>request record
+</em>. In a call to a handler function, this is represented by the <code>
+request_rec* </code> structure passed along with every call that is made. 
+This struct, typically just referred to as <code>r</code> in modules, 
+contains all the information you need for your module to fully process any 
+HTTP request and respond accordingly.</p> <p>Some key elements of the <code>
+request_rec </code> structure are:
+</p>
+<ul>
+<li><code>r-&gt;handler (char*):</code> Contains the name of the handler the server is currently asking to do the handling of this request</li>
+<li><code>r-&gt;method (char*):</code> Contains the HTTP method being used, f.x. GET or POST</li>
+<li><code>r-&gt;filename (char*):</code> Contains the translated filename the client is requesting</li>
+<li><code>r-&gt;args (char*):</code> Contains the query string of the request, if any</li>
+<li><code>r-&gt;headers_in (apr_table_t*):</code> Contains all the headers sent by the client</li>
+<li><code>r-&gt;connection (conn_rec*):</code> A record containing information about the current connection</li>
+<li><code>r-&gt;user (char*):</code> If the URI requires authentication, this is set to the username provided</li>
+<li><code>r-&gt;useragent_ip (char*):</code> The IP address of the client connecting to us</li>
+<li><code>r-&gt;pool (apr_pool_t*)</code>: The memory pool of this request. We'll discuss this in the 
+"<a href="#memory">Memory management</a>" chapter.</li>
+</ul>
+<p>
+A complete list of all the values contained within the <code>request_rec</code> structure can be found in 
+the <a href="http://svn.apache.org/repos/asf/httpd/httpd/trunk/include/httpd.h"><code>httpd.h</code></a> header 
+file or at <a href="http://ci.apache.org/projects/httpd/trunk/doxygen/structrequest__rec.html">http://ci.apache.org/projects/httpd/trunk/doxygen/structrequest__rec.html</a>.
+</p>
+
+
+<p>
+Let's try out some of these variables in another example handler:<br />
+</p>
+
+
+<pre class="prettyprint lang-c">static int example_handler(request_rec *r)
+{
+    /* Set the appropriate content type */
+    ap_set_content_type(r, "text/html");
+
+    /* Print out the IP address of the client connecting to us: */
+    ap_rprintf(r, "&lt;h2&gt;Hello, %s!&lt;/h2&gt;", r-&gt;useragent_ip);
+    
+    /* If we were reached through a GET or a POST request, be happy, else sad. */
+    if ( !strcmp(r-&gt;method, "POST") || !strcmp(r-&gt;method, "GET") ) {
+        ap_rputs("You used a GET or a POST method, that makes us happy!&lt;br/&gt;", r);
+    }
+    else {
+        ap_rputs("You did not use POST or GET, that makes us sad :(&lt;br/&gt;", r);
+    }
+
+    /* Lastly, if there was a query string, let's print that too! */
+    if (r-&gt;args) {
+        ap_rprintf(r, "Your query string was: %s", r-&gt;args);
+    }
+    return OK;
+}</pre>
+
+
+
+
+
+<h3><a name="return_value" id="return_value">Return values</a></h3>
+<p>
+Apache relies on return values from handlers to signify whether a request 
+was handled or not, and if so, whether the request went well or not. If a 
+module is not interested in handling a specific request, it should always 
+return the value <code>DECLINED</code>. If it is handling a request, it 
+should either return the generic value <code>OK</code>, or a specific HTTP 
+status code, for example:
+</p>
+
+
+<pre class="prettyprint lang-c">static int example_handler(request_rec *r)
+{
+    /* Return 404: Not found */
+    return HTTP_NOT_FOUND;
+}</pre>
+
+
+
+<p>
+Returning <code>OK</code> or a HTTP status code does not necessarily mean 
+that the request will end. The server may still have other handlers that are 
+interested in this request, for instance the logging modules which, upon a 
+successful request, will write down a summary of what was requested and how 
+it went. To do a full stop and prevent any further processing after your 
+module is done, you can return the value <code>DONE</code> to let the server 
+know that it should cease all activity on this request and carry on with 
+the next, without informing other handlers.
+<br />
+<strong>General response codes:</strong>
+</p>
+<ul>
+<li><code>DECLINED</code>: We are not handling this request</li>
+<li><code>OK</code>: We handled this request and it went well</li>
+<li><code>DONE</code>: We handled this request and the server should just close this thread without further processing</li>
+</ul>
+<p>
+<strong>HTTP specific return codes (excerpt):</strong>
+</p>
+<ul>
+<li><code>HTTP_OK (200)</code>: Request was okay</li>
+<li><code>HTTP_MOVED_PERMANENTLY (301)</code>: The resource has moved to a new URL</li>
+<li><code>HTTP_UNAUTHORIZED (401)</code>: Client is not authorized to visit this page</li>
+<li><code>HTTP_FORBIDDEN (403)</code>: Permission denied</li>
+<li><code>HTTP_NOT_FOUND (404)</code>: File not found</li>
+<li><code>HTTP_INTERNAL_SERVER_ERROR (500)</code>: Internal server error (self explanatory)</li>
+</ul>
+
+
+<h3><a name="functions" id="functions">Some useful functions you should know</a></h3>
+
+<ul>
+<li>
+    <code>ap_rputs(const char *string, request_rec *r)</code>: <br />
+    Sends a string of text to the client. This is a shorthand version of <a href="http://ci.apache.org/projects/httpd/trunk/doxygen/group__APACHE__CORE__PROTO.html#gac827cd0537d2b6213a7c06d7c26cc36e">
+    ap_rwrite</a>.
+    
+
+
+<pre class="prettyprint lang-c">ap_rputs("Hello, world!", r);</pre>
+
+
+
+
+</li>
+<li>
+    <code>
+    <a href="http://ci.apache.org/projects/httpd/trunk/doxygen/group__APACHE__CORE__PROTO.html#ga5e91eb6ca777c9a427b2e82bf1eeb81d">ap_rprintf</a></code>: <br />
+    This function works just like <code>printf</code>, except it sends the result to the client. 
+    
+
+
+<pre class="prettyprint lang-c">ap_rprintf(r, "Hello, %s!", r-&gt;useragent_ip);</pre>
+
+
+
+</li>
+<li>
+    <code>
+    <a href="http://ci.apache.org/projects/httpd/trunk/doxygen/group__APACHE__CORE__PROTO.html#gaa2f8412c400197338ec509f4a45e4579">ap_set_content_type</a>(request_rec *r, const char *type)</code>: <br />
+    Sets the content type of the output you are sending.
+    
+
+
+<pre class="prettyprint lang-c">ap_set_content_type(r, "text/plain"); /* force a raw text output */</pre>
+
+
+
+</li>
+
+
+</ul>
+
+
+<h3><a name="memory" id="memory">Memory management</a></h3>
+<p>
+Managing your resources in Apache HTTP Server 2.4 is quite easy, thanks to the memory pool 
+system. In essence, each server, connection and request have their own 
+memory pool that gets cleaned up when its scope ends, e.g. when a request 
+is done or when a server process shuts down. All your module needs to do is 
+latch onto this memory pool, and you won't have to worry about having to 
+clean up after yourself - pretty neat, huh?
+</p>
+
+<p>
+In our module, we will primarily be allocating memory for each request, so 
+it's appropriate to use the <code>r-&gt;pool</code> 
+reference when creating new objects. A few of the functions for allocating 
+memory within a pool are:
+</p>
+<ul>
+<li><code>void* <a href="http://apr.apache.org/docs/apr/1.4/group__apr__pools.html#ga85f1e193c31d109affda72f9a92c6915">apr_palloc</a>(
+apr_pool_t *p, apr_size_t size)</code>: Allocates <code>size</code> number of bytes in the pool for you</li>
+<li><code>void* <a href="http://apr.apache.org/docs/apr/1.4/group__apr__pools.html#gaf61c098ad258069d64cdf8c0a9369f9e">apr_pcalloc</a>(
+apr_pool_t *p, apr_size_t size)</code>: Allocates <code>size</code> number of bytes in the pool for you and sets all bytes to 0</li>
+<li><code>char* <a href="http://apr.apache.org/docs/apr/1.4/group__apr__strings.html#gabc79e99ff19abbd7cfd18308c5f85d47">apr_pstrdup</a>(
+apr_pool_t *p, const char *s)</code>: Creates a duplicate of the string <code>s</code>. This is useful for copying constant values so you can edit them</li>
+<li><code>char* <a href="http://apr.apache.org/docs/apr/1.4/group__apr__strings.html#ga3eca76b8d293c5c3f8021e45eda813d8">apr_psprintf</a>(
+apr_pool_t *p, const char *fmt, ...)</code>: Similar to <code>sprintf</code>, except the server supplies you with an appropriately allocated target variable</li>
+</ul>
+
+<p>Let's put these functions into an example handler:</p>
+
+
+
+<pre class="prettyprint lang-c">static int example_handler(request_rec *r)
+{
+    const char *original = "You can't edit this!";
+    char *copy;
+    int *integers;
+    
+    /* Allocate space for 10 integer values and set them all to zero. */
+    integers = apr_pcalloc(r-&gt;pool, sizeof(int)*10); 
+    
+    /* Create a copy of the 'original' variable that we can edit. */
+    copy = apr_pstrdup(r-&gt;pool, original);
+    return OK;
+}</pre>
+
+
+
+<p>
+This is all well and good for our module, which won't need any 
+pre-initialized variables or structures. However, if we wanted to 
+initialize something early on, before the requests come rolling in, we 
+could simply add a call to a function in our <code>register_hooks</code> 
+function to sort it out:
+</p>
+
+
+<pre class="prettyprint lang-c">static void register_hooks(apr_pool_t *pool)
+{
+    /* Call a function that initializes some stuff */
+    example_init_function(pool);
+    /* Create a hook in the request handler, so we get called when a request arrives */
+    ap_hook_handler(example_handler, NULL, NULL, APR_HOOK_LAST);
+}</pre>
+
+
+
+<p>
+In this pre-request initialization function we would not be using the 
+same pool as we did when allocating resources for request-based functions. 
+Instead, we would use the pool given to us by the server for allocating memory 
+on a per-process based level.
+</p>
+
+
+<h3><a name="parsing" id="parsing">Parsing request data</a></h3>
+<p>
+In our example module, we would like to add a feature, that checks which 
+type of digest, MD5 or SHA1 the client would like to see. This could be 
+solved by adding a query string to the request. A query string is typically 
+comprised of several keys and values put together in a string, for instance 
+<code>valueA=yes&amp;valueB=no&amp;valueC=maybe</code>. It is up to the 
+module itself to parse these and get the data it requires. In our example, 
+we'll be looking for a key called <code>digest</code>, and if set to <code>
+md5</code>, we'll produce an MD5 digest, otherwise we'll produce a SHA1 
+digest.
+</p>
+<p>
+Since the introduction of Apache HTTP Server 2.4, parsing request data from GET and 
+POST requests have never been easier. All we require to parse both GET and 
+POST data is four simple lines:
+</p> 
+
+
+
+<pre class="prettyprint lang-c">
+<a href="http://ci.apache.org/projects/httpd/trunk/doxygen/group__apr__tables.html#gad7ea82d6608a4a633fc3775694ab71e4">apr_table_t</a> *GET; <em>
+</em><a href="http://ci.apache.org/projects/httpd/trunk/doxygen/structapr__array__header__t.html">apr_array_header_t</a>*POST; 
+<em>
+</em>
+<a href="http://ci.apache.org/projects/httpd/trunk/doxygen/group__APACHE__CORE__SCRIPT.html#gaed25877b529623a4d8f99f819ba1b7bd">
+ap_args_to_table</a>(r, &amp;GET); <em>
+</em><a href="http://ci.apache.org/projects/httpd/trunk/doxygen/group__APACHE__CORE__DAEMON.html#ga9d426b6382b49754d4f87c55f65af202">
+ap_parse_form_data</a>(r, NULL, &amp;POST, -1, 8192);</pre>
+
+
+
+<p>
+In our specific example module, we're looking for the <code>digest</code> 
+value from the query string, which now resides inside a table called <code>
+GET</code>. To extract this value, we need only perform a simple operation:
+</p>
+
+
+
+<pre class="prettyprint lang-c">/* Get the "digest" key from the query string, if any. */
+const char *digestType = apr_table_get(GET, "digest");
+
+/* If no key was returned, we will set a default value instead. */
+if (!digestType) digestType = "sha1";</pre>
+
+
+
+<p>
+The structures used for the POST and GET data are not exactly the same, so 
+if we were to fetch a value from POST data instead of the query string, we 
+would have to resort to a few more lines, as outlined in <a href="#get_post">this example</a> in the last chapter of this document.
+</p>
+
+
+<h3><a name="advanced_handler" id="advanced_handler">Making an advanced handler</a></h3>
+<p>
+Now that we have learned how to parse form data and manage our resources, 
+we can move on to creating an advanced version of our module, that spits 
+out the MD5 or SHA1 digest of files:
+</p>
+
+
+
+<pre class="prettyprint lang-c">static int example_handler(request_rec *r)
+{
+    int rc, exists;
+    apr_finfo_t finfo;
+    apr_file_t *file;
+    char *filename;
+    char buffer[256];
+    apr_size_t readBytes;
+    int n;
+    apr_table_t *GET;
+    apr_array_header_t *POST;
+    const char *digestType;
+    
+    
+    /* Check that the "example-handler" handler is being called. */
+    if (!r-&gt;handler || strcmp(r-&gt;handler, "example-handler")) return (DECLINED);
+    
+    /* Figure out which file is being requested by removing the .sum from it */
+    filename = apr_pstrdup(r-&gt;pool, r-&gt;filename);
+    filename[strlen(filename)-4] = 0; /* Cut off the last 4 characters. */
+    
+    /* Figure out if the file we request a sum on exists and isn't a directory */
+    rc = apr_stat(&amp;finfo, filename, APR_FINFO_MIN, r-&gt;pool);
+    if (rc == APR_SUCCESS) {
+        exists =
+        (
+            (finfo.filetype != APR_NOFILE)
+        &amp;&amp;  !(finfo.filetype &amp; APR_DIR)
+        );
+        if (!exists) return HTTP_NOT_FOUND; /* Return a 404 if not found. */
+    }
+    /* If apr_stat failed, we're probably not allowed to check this file. */
+    else return HTTP_FORBIDDEN;
+    
+    /* Parse the GET and, optionally, the POST data sent to us */
+    
+    ap_args_to_table(r, &amp;GET);
+    ap_parse_form_data(r, NULL, &amp;POST, -1, 8192);
+    
+    /* Set the appropriate content type */
+    ap_set_content_type(r, "text/html");
+    
+    /* Print a title and some general information */
+    ap_rprintf(r, "&lt;h2&gt;Information on %s:&lt;/h2&gt;", filename);
+    ap_rprintf(r, "&lt;b&gt;Size:&lt;/b&gt; %u bytes&lt;br/&gt;", finfo.size);
+    
+    /* Get the digest type the client wants to see */
+    digestType = apr_table_get(GET, "digest");
+    if (!digestType) digestType = "MD5";
+    
+    
+    rc = apr_file_open(&amp;file, filename, APR_READ, APR_OS_DEFAULT, r-&gt;pool);
+    if (rc == APR_SUCCESS) {
+        
+        /* Are we trying to calculate the MD5 or the SHA1 digest? */
+        if (!strcasecmp(digestType, "md5")) {
+            /* Calculate the MD5 sum of the file */
+            union {
+                char      chr[16];
+                uint32_t  num[4];
+            } digest;
+            apr_md5_ctx_t md5;
+            apr_md5_init(&amp;md5);
+            readBytes = 256;
+            while ( apr_file_read(file, buffer, &amp;readBytes) == APR_SUCCESS ) {
+                apr_md5_update(&amp;md5, buffer, readBytes);
+            }
+            apr_md5_final(digest.chr, &amp;md5);
+            
+            /* Print out the MD5 digest */
+            ap_rputs("&lt;b&gt;MD5: &lt;/b&gt;&lt;code&gt;", r);
+            for (n = 0; n &lt; APR_MD5_DIGESTSIZE/4; n++) {
+                ap_rprintf(r, "%08x", digest.num[n]);
+            }
+            ap_rputs("&lt;/code&gt;", r);
+            /* Print a link to the SHA1 version */
+            ap_rputs("&lt;br/&gt;&lt;a href='?digest=sha1'&gt;View the SHA1 hash instead&lt;/a&gt;", r);
+        }
+        else {
+            /* Calculate the SHA1 sum of the file */
+            union {
+                char      chr[20];
+                uint32_t  num[5];
+            } digest;
+            apr_sha1_ctx_t sha1;
+            apr_sha1_init(&amp;sha1);
+            readBytes = 256;
+            while ( apr_file_read(file, buffer, &amp;readBytes) == APR_SUCCESS ) {
+                apr_sha1_update(&amp;sha1, buffer, readBytes);
+            }
+            apr_sha1_final(digest.chr, &amp;sha1);
+            
+            /* Print out the SHA1 digest */
+            ap_rputs("&lt;b&gt;SHA1: &lt;/b&gt;&lt;code&gt;", r);
+            for (n = 0; n &lt; APR_SHA1_DIGESTSIZE/4; n++) {
+                ap_rprintf(r, "%08x", digest.num[n]);
+            }
+            ap_rputs("&lt;/code&gt;", r);
+            
+            /* Print a link to the MD5 version */
+            ap_rputs("&lt;br/&gt;&lt;a href='?digest=md5'&gt;View the MD5 hash instead&lt;/a&gt;", r);
+        }
+        apr_file_close(file);
+        
+    }    
+    /* Let the server know that we responded to this request. */
+    return OK;
+}</pre>
+
+
+
+<p>
+This version in its entirety can be found here: 
+<a href="http://people.apache.org/~humbedooh/mods/examples/mod_example_2.c">mod_example_2.c</a>.
+</p>
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="configuration" id="configuration">Adding configuration options</a></h2>
+<p>
+In this next segment of this document, we will turn our eyes away from the 
+digest module and create a new example module, whose only function is to 
+write out its own configuration. The purpose of this is to examine how 
+the server works with configuration, and what happens when you start writing 
+advanced configurations 
+for your modules.
+</p>
+<h3><a name="config_intro" id="config_intro">An introduction to configuration 
+directives</a></h3>
+<p>
+If you are reading this, then you probably already know 
+what a configuration directive is. Simply put, a directive is a way of 
+telling an individual module (or a set of modules) how to behave, such as 
+these directives control how <code>mod_rewrite</code> works:
+</p>
+<pre class="prettyprint lang-config">RewriteEngine On
+RewriteCond "%{REQUEST_URI}" "^/foo/bar"
+RewriteRule "^/foo/bar/(.*)$" "/foobar?page=$1"</pre>
+
+<p>
+Each of these configuration directives are handled by a separate function, 
+that parses the parameters given and sets up a configuration accordingly.
+</p>
+
+<h3><a name="config_simple" id="config_simple">Making an example configuration</a></h3>
+<p>To begin with, we'll create a basic configuration in C-space:</p>
+
+
+
+<pre class="prettyprint lang-c">typedef struct {
+    int         enabled;      /* Enable or disable our module */
+    const char *path;         /* Some path to...something */
+    int         typeOfAction; /* 1 means action A, 2 means action B and so on */
+} example_config;</pre>
+
+
+
+<p>
+Now, let's put this into perspective by creating a very small module that 
+just prints out a hard-coded configuration. You'll notice that we use the 
+<code>register_hooks</code> function for initializing the configuration 
+values to their defaults:
+</p>
+
+
+<pre class="prettyprint lang-c">typedef struct {
+    int         enabled;      /* Enable or disable our module */
+    const char *path;         /* Some path to...something */
+    int         typeOfAction; /* 1 means action A, 2 means action B and so on */
+} example_config;
+
+static example_config config;
+
+static int example_handler(request_rec *r)
+{
+    if (!r-&gt;handler || strcmp(r-&gt;handler, "example-handler")) return(DECLINED);
+    ap_set_content_type(r, "text/plain");
+    ap_rprintf(r, "Enabled: %u\n", config.enabled);
+    ap_rprintf(r, "Path: %s\n", config.path);
+    ap_rprintf(r, "TypeOfAction: %x\n", config.typeOfAction);
+    return OK;
+}
+
+static void register_hooks(apr_pool_t *pool) 
+{
+    config.enabled = 1;
+    config.path = "/foo/bar";
+    config.typeOfAction = 0x00;
+    ap_hook_handler(example_handler, NULL, NULL, APR_HOOK_LAST);
+}
+
+/* Define our module as an entity and assign a function for registering hooks  */
+
+module AP_MODULE_DECLARE_DATA   example_module =
+{
+    STANDARD20_MODULE_STUFF,
+    NULL,            /* Per-directory configuration handler */
+    NULL,            /* Merge handler for per-directory configurations */
+    NULL,            /* Per-server configuration handler */
+    NULL,            /* Merge handler for per-server configurations */
+    NULL,            /* Any directives we may have for httpd */
+    register_hooks   /* Our hook registering function */
+};</pre>
+
+
+
+<p>
+So far so good. To access our new handler, we could add the following to 
+our configuration:
+</p>
+<pre class="prettyprint lang-config">&lt;Location "/example"&gt;
+    SetHandler example-handler
+&lt;/Location&gt;</pre>
+
+<p>
+When we visit, we'll see our current configuration being spit out by our 
+module. 
+</p>
+
+
+<h3><a name="register_directive" id="register_directive">Registering directives with the server</a></h3>
+<p>
+What if we want to change our configuration, not by hard-coding new values 
+into the module, but by using either the httpd.conf file or possibly a 
+.htaccess file? It's time to let the server know that we want this to be 
+possible. To do so, we must first change our <em>name tag</em> to include a 
+reference to the configuration directives we want to register with the server:
+</p>
+
+
+<pre class="prettyprint lang-c">module AP_MODULE_DECLARE_DATA   example_module =
+{
+    STANDARD20_MODULE_STUFF,
+    NULL,               /* Per-directory configuration handler */
+    NULL,               /* Merge handler for per-directory configurations */
+    NULL,               /* Per-server configuration handler */
+    NULL,               /* Merge handler for per-server configurations */
+    example_directives, /* Any directives we may have for httpd */
+    register_hooks      /* Our hook registering function */
+};</pre>
+
+
+
+<p>
+This will tell the server that we are now accepting directives from the 
+configuration files, and that the structure called <code>example_directives
+</code> holds information on what our directives are and how they work. 
+Since we have three different variables in our module configuration, we 
+will add a structure with three directives and a NULL at the end:
+</p>
+
+
+<pre class="prettyprint lang-c">static const command_rec        example_directives[] =
+{
+    AP_INIT_TAKE1("exampleEnabled", example_set_enabled, NULL, RSRC_CONF, "Enable or disable mod_example"),
+    AP_INIT_TAKE1("examplePath", example_set_path, NULL, RSRC_CONF, "The path to whatever"),
+    AP_INIT_TAKE2("exampleAction", example_set_action, NULL, RSRC_CONF, "Special action value!"),
+    { NULL }
+};</pre>
+
+
+
+<p>
+<img src="../images/build_a_mod_4.png" alt="Directives structure" /><br />
+As you can see, each directive needs at least 5 parameters set:
+</p>
+<ol>
+<li><code><a href="http://ci.apache.org/projects/httpd/trunk/doxygen/group__APACHE__CORE__CONFIG.html#ga07c7d22ae17805e61204463326cf9c34">AP_INIT_TAKE1</a></code>: This is a macro that tells the server that this directive takes one and only one argument. 
+If we required two arguments, we could use the macro <code><a href="http://ci.apache.org/projects/httpd/trunk/doxygen/group__APACHE__CORE__CONFIG.html#gafaec43534fcf200f37d9fecbf9247c21">AP_INIT_TAKE2</a></code> and so on (refer to httpd_conf.h 
+for more macros).</li>
+<li><code>exampleEnabled</code>: This is the name of our directive. More precisely, it is what the user must put in his/her 
+configuration in order to invoke a configuration change in our module.</li>
+<li><code>example_set_enabled</code>: This is a reference to a C function that parses the directive and sets the configuration 
+accordingly. We will discuss how to make this in the following paragraph.</li>
+<li><code>RSRC_CONF</code>: This tells the server where the directive is permitted. We'll go into details on this value in the 
+later chapters, but for now, <code>RSRC_CONF</code> means that the server will only accept these directives in a server context.</li>
+<li><code>"Enable or disable...."</code>: This is simply a brief description of what the directive does.</li>
+</ol>
+<p>
+(<em>The "missing" parameter in our definition, which is usually set to 
+<code>NULL</code>, is an optional function that can be run after the 
+initial function to parse the arguments have been run. This is usually 
+omitted, as the function for verifying arguments might as well be used to 
+set them.</em>)
+</p>
+
+<h3><a name="directive_handler" id="directive_handler">The directive handler function</a></h3>
+<p>
+Now that we have told the server to expect some directives for our module, it's 
+time to make a few functions for handling these. What the server reads in the 
+configuration file(s) is text, and so naturally, what it passes along to 
+our directive handler is one or more strings, that we ourselves need to 
+recognize and act upon. You'll notice, that since we set our <code>
+exampleAction</code> directive to accept two arguments, its C function also 
+has an additional parameter defined:</p> 
+
+
+<pre class="prettyprint lang-c">/* Handler for the "exampleEnabled" directive */
+const char *example_set_enabled(cmd_parms *cmd, void *cfg, const char *arg)
+{
+    if(!strcasecmp(arg, "on")) config.enabled = 1;
+    else config.enabled = 0;
+    return NULL;
+}
+
+/* Handler for the "examplePath" directive */
+const char *example_set_path(cmd_parms *cmd, void *cfg, const char *arg)
+{
+    config.path = arg;
+    return NULL;
+}
+
+/* Handler for the "exampleAction" directive */
+/* Let's pretend this one takes one argument (file or db), and a second (deny or allow), */
+/* and we store it in a bit-wise manner. */
+const char *example_set_action(cmd_parms *cmd, void *cfg, const char *arg1, const char *arg2)
+{
+    if(!strcasecmp(arg1, "file")) config.typeOfAction = 0x01;
+    else config.typeOfAction = 0x02;
+    
+    if(!strcasecmp(arg2, "deny")) config.typeOfAction += 0x10;
+    else config.typeOfAction += 0x20;
+    return NULL;
+}</pre>
+
+
+
+
+
+<h3><a name="directive_complete" id="directive_complete">Putting it all together</a></h3>
+<p>
+Now that we have our directives set up, and handlers configured for them, 
+we can assemble our module into one big file:
+</p>
+
+
+<pre class="prettyprint lang-c">/* mod_example_config_simple.c: */
+#include &lt;stdio.h&gt;
+#include "apr_hash.h"
+#include "ap_config.h"
+#include "ap_provider.h"
+#include "httpd.h"
+#include "http_core.h"
+#include "http_config.h"
+#include "http_log.h"
+#include "http_protocol.h"
+#include "http_request.h"
+
+/*
+ ==============================================================================
+ Our configuration prototype and declaration:
+ ==============================================================================
+ */
+typedef struct {
+    int         enabled;      /* Enable or disable our module */
+    const char *path;         /* Some path to...something */
+    int         typeOfAction; /* 1 means action A, 2 means action B and so on */
+} example_config;
+
+static example_config config;
+
+/*
+ ==============================================================================
+ Our directive handlers:
+ ==============================================================================
+ */
+/* Handler for the "exampleEnabled" directive */
+const char *example_set_enabled(cmd_parms *cmd, void *cfg, const char *arg)
+{
+    if(!strcasecmp(arg, "on")) config.enabled = 1;
+    else config.enabled = 0;
+    return NULL;
+}
+
+/* Handler for the "examplePath" directive */
+const char *example_set_path(cmd_parms *cmd, void *cfg, const char *arg)
+{
+    config.path = arg;
+    return NULL;
+}
+
+/* Handler for the "exampleAction" directive */
+/* Let's pretend this one takes one argument (file or db), and a second (deny or allow), */
+/* and we store it in a bit-wise manner. */
+const char *example_set_action(cmd_parms *cmd, void *cfg, const char *arg1, const char *arg2)
+{
+    if(!strcasecmp(arg1, "file")) config.typeOfAction = 0x01;
+    else config.typeOfAction = 0x02;
+    
+    if(!strcasecmp(arg2, "deny")) config.typeOfAction += 0x10;
+    else config.typeOfAction += 0x20;
+    return NULL;
+}
+
+/*
+ ==============================================================================
+ The directive structure for our name tag:
+ ==============================================================================
+ */
+static const command_rec        example_directives[] =
+{
+    AP_INIT_TAKE1("exampleEnabled", example_set_enabled, NULL, RSRC_CONF, "Enable or disable mod_example"),
+    AP_INIT_TAKE1("examplePath", example_set_path, NULL, RSRC_CONF, "The path to whatever"),
+    AP_INIT_TAKE2("exampleAction", example_set_action, NULL, RSRC_CONF, "Special action value!"),
+    { NULL }
+};
+/*
+ ==============================================================================
+ Our module handler:
+ ==============================================================================
+ */
+static int example_handler(request_rec *r)
+{
+    if(!r-&gt;handler || strcmp(r-&gt;handler, "example-handler")) return(DECLINED);
+    ap_set_content_type(r, "text/plain");
+    ap_rprintf(r, "Enabled: %u\n", config.enabled);
+    ap_rprintf(r, "Path: %s\n", config.path);
+    ap_rprintf(r, "TypeOfAction: %x\n", config.typeOfAction);
+    return OK;
+}
+
+/*
+ ==============================================================================
+ The hook registration function (also initializes the default config values):
+ ==============================================================================
+ */
+static void register_hooks(apr_pool_t *pool) 
+{
+    config.enabled = 1;
+    config.path = "/foo/bar";
+    config.typeOfAction = 3;
+    ap_hook_handler(example_handler, NULL, NULL, APR_HOOK_LAST);
+}
+/*
+ ==============================================================================
+ Our module name tag:
+ ==============================================================================
+ */
+module AP_MODULE_DECLARE_DATA   example_module =
+{
+    STANDARD20_MODULE_STUFF,
+    NULL,               /* Per-directory configuration handler */
+    NULL,               /* Merge handler for per-directory configurations */
+    NULL,               /* Per-server configuration handler */
+    NULL,               /* Merge handler for per-server configurations */
+    example_directives, /* Any directives we may have for httpd */
+    register_hooks      /* Our hook registering function */
+};</pre>
+
+
+
+
+<p>
+In our httpd.conf file, we can now change the hard-coded configuration by 
+adding a few lines:
+</p>
+<pre class="prettyprint lang-config">ExampleEnabled On
+ExamplePath "/usr/bin/foo"
+ExampleAction file allow</pre>
+
+<p>
+And thus we apply the configuration, visit <code>/example</code> on our 
+web site, and we see the configuration has adapted to what we wrote in our 
+configuration file.
+</p>
+
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="context" id="context">Context aware configurations</a></h2>
+<h3><a name="context_intro" id="context_intro">Introduction to context aware configurations</a></h3>
+<p>
+In Apache HTTP Server 2.4, different URLs, virtual hosts, directories etc can have very 
+different meanings to the user of the server, and thus different contexts 
+within which modules must operate. For example, let's assume you have this 
+configuration set up for mod_rewrite:
+</p>
+<pre class="prettyprint lang-config">&lt;Directory "/var/www"&gt;
+    RewriteCond "%{HTTP_HOST}" "^example.com$"
+    RewriteRule "(.*)" "http://www.example.com/$1"
+&lt;/Directory&gt;
+&lt;Directory "/var/www/sub"&gt;
+    RewriteRule "^foobar$" "index.php?foobar=true"
+&lt;/Directory&gt;</pre>
+
+<p>
+In this example, you will have set up two different contexts for 
+mod_rewrite:</p>
+<ol>
+<li>Inside <code>/var/www</code>, all requests for <code>http://example.com</code> must go to <code>http://www.example.com</code></li>
+<li>Inside <code>/var/www/sub</code>, all requests for <code>foobar</code> must go to <code>index.php?foobar=true</code></li>
+</ol>
+<p>
+If mod_rewrite (or the entire server for that matter) wasn't context aware, then 
+these rewrite rules would just apply to every and any request made, 
+regardless of where and how they were made, but since the module can pull 
+the context specific configuration straight from the server, it does not need 
+to know itself, which of the directives are valid in this context, since 
+the server takes care of this.</p>
+
+<p>
+So how does a module get the specific configuration for the server, 
+directory or location in question? It does so by making one simple call:
+</p>
+
+
+<pre class="prettyprint lang-c">example_config *config = (example_config*) <a href="http://ci.apache.org/projects/httpd/trunk/doxygen/group__APACHE__CORE__CONFIG.html#ga1093a5908a384eacc929b028c79f2a02">ap_get_module_config</a>(r-&gt;per_dir_config, &amp;example_module);</pre>
+
+
+
+<p>
+That's it! Of course, a whole lot goes on behind the scenes, which we will 
+discuss in this chapter, starting with how the server came to know what our 
+configuration looks like, and how it came to be set up as it is in the 
+specific context.
+</p>
+
+
+<h3><a name="context_base" id="context_base">Our basic configuration setup</a></h3>
+<p>In this chapter, we will be working with a slightly modified version of 
+our previous context structure. We will set a <code>context</code> 
+variable that we can use to track which context configuration is being 
+used by the server in various places:
+</p>
+
+<pre class="prettyprint lang-c">typedef struct {
+    char        context[256];
+    char        path[256];
+    int         typeOfAction;
+    int         enabled;
+} example_config;</pre>
+
+
+
+<p>Our handler for requests will also be modified, yet still very simple:</p>
+
+
+
+<pre class="prettyprint lang-c">static int example_handler(request_rec *r)
+{
+    if(!r-&gt;handler || strcmp(r-&gt;handler, "example-handler")) return(DECLINED);
+    example_config *config = (example_config*) ap_get_module_config(r-&gt;per_dir_config, &amp;example_module);
+    ap_set_content_type(r, "text/plain");
+    ap_rprintf("Enabled: %u\n", config-&gt;enabled);
+    ap_rprintf("Path: %s\n", config-&gt;path);
+    ap_rprintf("TypeOfAction: %x\n", config-&gt;typeOfAction);
+    ap_rprintf("Context: %s\n", config-&gt;context);
+    return OK;
+}</pre>
+
+
+
+
+
+<h3><a name="context_which" id="context_which">Choosing a context</a></h3>
+<p>
+Before we can start making our module context aware, we must first define, 
+which contexts we will accept. As we saw in the previous chapter, defining 
+a directive required five elements be set:</p>
+
+
+
+<pre class="prettyprint lang-c">AP_INIT_TAKE1("exampleEnabled", example_set_enabled, NULL, RSRC_CONF, "Enable or disable mod_example"),</pre>
+
+
+
+
+<p>The <code>RSRC_CONF</code> definition told the server that we would only allow 
+this directive in a global server context, but since we are now trying out 
+a context aware version of our module, we should set this to something 
+more lenient, namely the value <code>ACCESS_CONF</code>, which lets us use 
+the directive inside &lt;Directory&gt; and &lt;Location&gt; blocks. For more 
+control over the placement of your directives, you can combine the following 
+restrictions together to form a specific rule:
+</p>
+<ul>
+<li><code>RSRC_CONF</code>: Allow in .conf files (not .htaccess) outside &lt;Directory&gt; or &lt;Location&gt;</li>
+<li><code>ACCESS_CONF</code>: Allow in .conf files (not .htaccess) inside &lt;Directory&gt; or &lt;Location&gt;</li>
+<li><code>OR_OPTIONS</code>: Allow in .conf files and .htaccess when <code>AllowOverride Options</code> is set</li>
+<li><code>OR_FILEINFO</code>: Allow in .conf files and .htaccess when <code>AllowOverride FileInfo</code> is set</li>
+<li><code>OR_AUTHCFG</code>: Allow in .conf files and .htaccess when <code>AllowOverride AuthConfig</code> is set</li>
+<li><code>OR_INDEXES</code>: Allow in .conf files and .htaccess when <code>AllowOverride Indexes</code> is set</li>
+<li><code>OR_ALL</code>: Allow anywhere in .conf files and .htaccess</li>
+</ul>
+
+
+<h3><a name="context_pool" id="context_pool">Using the server to allocate configuration slots</a></h3>
+<p> A much smarter way to manage your configurations is by letting the server 
+help you create them. To do so, we must first start off by changing our 
+<em>name tag</em> to let the server know, that it should assist us in creating 
+and managing our configurations. Since we have chosen the per-directory 
+(or per-location) context for our module configurations, we'll add a 
+per-directory creator and merger function reference in our tag:</p>
+
+
+<pre class="prettyprint lang-c">module AP_MODULE_DECLARE_DATA   example_module =
+{
+    STANDARD20_MODULE_STUFF,
+    create_dir_conf, /* Per-directory configuration handler */
+    merge_dir_conf,  /* Merge handler for per-directory configurations */
+    NULL,            /* Per-server configuration handler */
+    NULL,            /* Merge handler for per-server configurations */
+    directives,      /* Any directives we may have for httpd */
+    register_hooks   /* Our hook registering function */
+};</pre>
+
+
+
+
+
+
+
+<h3><a name="context_new" id="context_new">Creating new context configurations</a></h3>
+<p>
+Now that we have told the server to help us create and manage configurations, 
+our first step is to make a function for creating new, blank 
+configurations. We do so by creating the function we just referenced in 
+our name tag as the Per-directory configuration handler:</p>
+
+<pre class="prettyprint lang-c">void *create_dir_conf(apr_pool_t *pool, char *context) {
+    context = context ? context : "(undefined context)";
+    example_config *cfg = apr_pcalloc(pool, sizeof(example_config));
+    if(cfg) {
+        /* Set some default values */
+        strcpy(cfg-&gt;context, context);
+        cfg-&gt;enabled = 0;
+        cfg-&gt;path = "/foo/bar";
+        cfg-&gt;typeOfAction = 0x11;
+    }
+    return cfg;
+}</pre>
+
+
+
+
+
+
+<h3><a name="context_merge" id="context_merge">Merging configurations</a></h3>
+<p>
+Our next step in creating a context aware configuration is merging 
+configurations. This part of the process particularly applies to scenarios 
+where you have a parent configuration and a child, such as the following: 
+</p>
+<pre class="prettyprint lang-config">&lt;Directory "/var/www"&gt;
+    ExampleEnabled On
+    ExamplePath "/foo/bar"
+    ExampleAction file allow
+&lt;/Directory&gt;
+&lt;Directory "/var/www/subdir"&gt;
+    ExampleAction file deny
+&lt;/Directory&gt;</pre>
+
+<p>
+In this example, it is natural to assume that the directory <code>
+/var/www/subdir</code> should inherit the values set for the <code>/var/www
+</code> directory, as we did not specify an <code>ExampleEnabled</code> nor 
+an <code>ExamplePath</code> for this directory. The server does not presume to 
+know if this is true, but cleverly does the following:
+</p>
+<ol>
+<li>Creates a new configuration for <code>/var/www</code></li>
+<li>Sets the configuration values according to the directives given for <code>/var/www</code></li>
+<li>Creates a new configuration for <code>/var/www/subdir</code></li>
+<li>Sets the configuration values according to the directives given for <code>/var/www/subdir</code></li>
+<li><strong>Proposes a merge</strong> of the two configurations into a new configuration for <code>/var/www/subdir</code></li>
+</ol>
+<p>
+This proposal is handled by the <code>merge_dir_conf</code> function we 
+referenced in our name tag. The purpose of this function is to assess the 
+two configurations and decide how they are to be merged:</p>
+
+
+
+<pre class="prettyprint lang-c">void *merge_dir_conf(apr_pool_t *pool, void *BASE, void *ADD) {
+    example_config *base = (example_config *) BASE ; /* This is what was set in the parent context */
+    example_config *add = (example_config *) ADD ;   /* This is what is set in the new context */
+    example_config *conf = (example_config *) create_dir_conf(pool, "Merged configuration"); /* This will be the merged configuration */
+    
+    /* Merge configurations */
+    conf-&gt;enabled = ( add-&gt;enabled == 0 ) ? base-&gt;enabled : add-&gt;enabled ;
+    conf-&gt;typeOfAction = add-&gt;typeOfAction ? add-&gt;typeOfAction : base-&gt;typeOfAction;
+    strcpy(conf-&gt;path, strlen(add-&gt;path) ? add-&gt;path : base-&gt;path);
+    
+    return conf ;
+}</pre>
+
+
+
+
+
+
+<h3><a name="context_example" id="context_example">Trying out our new context aware configurations</a></h3>
+<p>
+Now, let's try putting it all together to create a new module that is 
+context aware. First off, we'll create a configuration that lets us test 
+how the module works:
+</p>
+<pre class="prettyprint lang-config">&lt;Location "/a"&gt;
+    SetHandler example-handler
+    ExampleEnabled on
+    ExamplePath "/foo/bar"
+    ExampleAction file allow
+&lt;/Location&gt;
+
+&lt;Location "/a/b"&gt;
+    ExampleAction file deny
+    ExampleEnabled off
+&lt;/Location&gt;
+
+&lt;Location "/a/b/c"&gt;
+    ExampleAction db deny
+    ExamplePath "/foo/bar/baz"
+    ExampleEnabled on
+&lt;/Location&gt;</pre>
+
+<p>
+Then we'll assemble our module code. Note, that since we are now using our 
+name tag as reference when fetching configurations in our handler, I have 
+added some prototypes to keep the compiler happy:
+</p>
+
+
+<pre class="prettyprint lang-c">/*$6
+ +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * mod_example_config.c
+ +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
+
+
+#include &lt;stdio.h&gt;
+#include "apr_hash.h"
+#include "ap_config.h"
+#include "ap_provider.h"
+#include "httpd.h"
+#include "http_core.h"
+#include "http_config.h"
+#include "http_log.h"
+#include "http_protocol.h"
+#include "http_request.h"
+
+/*$1
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Configuration structure
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ */
+
+typedef struct
+{
+    char    context[256];
+    char    path[256];
+    int     typeOfAction;
+    int     enabled;
+} example_config;
+
+/*$1
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Prototypes
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ */
+
+static int    example_handler(request_rec *r);
+const char    *example_set_enabled(cmd_parms *cmd, void *cfg, const char *arg);
+const char    *example_set_path(cmd_parms *cmd, void *cfg, const char *arg);
+const char    *example_set_action(cmd_parms *cmd, void *cfg, const char *arg1, const char *arg2);
+void          *create_dir_conf(apr_pool_t *pool, char *context);
+void          *merge_dir_conf(apr_pool_t *pool, void *BASE, void *ADD);
+static void   register_hooks(apr_pool_t *pool);
+
+/*$1
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Configuration directives
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ */
+
+static const command_rec    directives[] =
+{
+    AP_INIT_TAKE1("exampleEnabled", example_set_enabled, NULL, ACCESS_CONF, "Enable or disable mod_example"),
+    AP_INIT_TAKE1("examplePath", example_set_path, NULL, ACCESS_CONF, "The path to whatever"),
+    AP_INIT_TAKE2("exampleAction", example_set_action, NULL, ACCESS_CONF, "Special action value!"),
+    { NULL }
+};
+
+/*$1
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Our name tag
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ */
+
+module AP_MODULE_DECLARE_DATA    example_module =
+{
+    STANDARD20_MODULE_STUFF,
+    create_dir_conf,    /* Per-directory configuration handler */
+    merge_dir_conf,     /* Merge handler for per-directory configurations */
+    NULL,               /* Per-server configuration handler */
+    NULL,               /* Merge handler for per-server configurations */
+    directives,         /* Any directives we may have for httpd */
+    register_hooks      /* Our hook registering function */
+};
+
+/*
+ =======================================================================================================================
+    Hook registration function
+ =======================================================================================================================
+ */
+static void register_hooks(apr_pool_t *pool)
+{
+    ap_hook_handler(example_handler, NULL, NULL, APR_HOOK_LAST);
+}
+
+/*
+ =======================================================================================================================
+    Our example web service handler
+ =======================================================================================================================
+ */
+static int example_handler(request_rec *r)
+{
+    if(!r-&gt;handler || strcmp(r-&gt;handler, "example-handler")) return(DECLINED);
+
+    /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+    example_config    *config = (example_config *) ap_get_module_config(r-&gt;per_dir_config, &amp;example_module);
+    /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+    ap_set_content_type(r, "text/plain");
+    ap_rprintf(r, "Enabled: %u\n", config-&gt;enabled);
+    ap_rprintf(r, "Path: %s\n", config-&gt;path);
+    ap_rprintf(r, "TypeOfAction: %x\n", config-&gt;typeOfAction);
+    ap_rprintf(r, "Context: %s\n", config-&gt;context);
+    return OK;
+}
+
+/*
+ =======================================================================================================================
+    Handler for the "exampleEnabled" directive
+ =======================================================================================================================
+ */
+const char *example_set_enabled(cmd_parms *cmd, void *cfg, const char *arg)
+{
+    /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+    example_config    *conf = (example_config *) cfg;
+    /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+    if(conf)
+    {
+        if(!strcasecmp(arg, "on"))
+            conf-&gt;enabled = 1;
+        else
+            conf-&gt;enabled = 0;
+    }
+
+    return NULL;
+}
+
+/*
+ =======================================================================================================================
+    Handler for the "examplePath" directive
+ =======================================================================================================================
+ */
+const char *example_set_path(cmd_parms *cmd, void *cfg, const char *arg)
+{
+    /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+    example_config    *conf = (example_config *) cfg;
+    /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+    if(conf)
+    {
+        strcpy(conf-&gt;path, arg);
+    }
+
+    return NULL;
+}
+
+/*
+ =======================================================================================================================
+    Handler for the "exampleAction" directive ;
+    Let's pretend this one takes one argument (file or db), and a second (deny or allow), ;
+    and we store it in a bit-wise manner.
+ =======================================================================================================================
+ */
+const char *example_set_action(cmd_parms *cmd, void *cfg, const char *arg1, const char *arg2)
+{
+    /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+    example_config    *conf = (example_config *) cfg;
+    /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+    if(conf)
+    {
+        {
+            if(!strcasecmp(arg1, "file"))
+                conf-&gt;typeOfAction = 0x01;
+            else
+                conf-&gt;typeOfAction = 0x02;
+            if(!strcasecmp(arg2, "deny"))
+                conf-&gt;typeOfAction += 0x10;
+            else
+                conf-&gt;typeOfAction += 0x20;
+        }
+    }
+
+    return NULL;
+}
+
+/*
+ =======================================================================================================================
+    Function for creating new configurations for per-directory contexts
+ =======================================================================================================================
+ */
+void *create_dir_conf(apr_pool_t *pool, char *context)
+{
+    context = context ? context : "Newly created configuration";
+
+    /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+    example_config    *cfg = apr_pcalloc(pool, sizeof(example_config));
+    /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+    if(cfg)
+    {
+        {
+            /* Set some default values */
+            strcpy(cfg-&gt;context, context);
+            cfg-&gt;enabled = 0;
+            memset(cfg-&gt;path, 0, 256);
+            cfg-&gt;typeOfAction = 0x00;
+        }
+    }
+
+    return cfg;
+}
+
+/*
+ =======================================================================================================================
+    Merging function for configurations
+ =======================================================================================================================
+ */
+void *merge_dir_conf(apr_pool_t *pool, void *BASE, void *ADD)
+{
+    /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+    example_config    *base = (example_config *) BASE;
+    example_config    *add = (example_config *) ADD;
+    example_config    *conf = (example_config *) create_dir_conf(pool, "Merged configuration");
+    /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+    conf-&gt;enabled = (add-&gt;enabled == 0) ? base-&gt;enabled : add-&gt;enabled;
+    conf-&gt;typeOfAction = add-&gt;typeOfAction ? add-&gt;typeOfAction : base-&gt;typeOfAction;
+    strcpy(conf-&gt;path, strlen(add-&gt;path) ? add-&gt;path : base-&gt;path);
+    return conf;
+}</pre>
+
+
+
+
+
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="summary" id="summary">Summing up</a></h2>
+<p>
+We have now looked at how to create simple modules for Apache HTTP Server 2.4 and 
+configuring them. What you do next is entirely up to you, but it is my 
+hope that something valuable has come out of reading this documentation. 
+If you have questions on how to further develop modules, you are welcome 
+to join our <a href="http://httpd.apache.org/lists.html">mailing lists</a> 
+or check out the rest of our documentation for further tips.
+</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="snippets" id="snippets">Some useful snippets of code</a></h2>
+
+<h3><a name="get_post" id="get_post">Retrieve variables from POST form data</a></h3>
+
+
+
+<pre class="prettyprint lang-c">typedef struct {
+    const char *key;
+    const char *value;
+} keyValuePair;
+
+keyValuePair *readPost(request_rec *r) {
+    apr_array_header_t *pairs = NULL;
+    apr_off_t len;
+    apr_size_t size;
+    int res;
+    int i = 0;
+    char *buffer;
+    keyValuePair *kvp;
+
+    res = ap_parse_form_data(r, NULL, &amp;pairs, -1, HUGE_STRING_LEN);
+    if (res != OK || !pairs) return NULL; /* Return NULL if we failed or if there are is no POST data */
+    kvp = apr_pcalloc(r-&gt;pool, sizeof(keyValuePair) * (pairs-&gt;nelts + 1));
+    while (pairs &amp;&amp; !apr_is_empty_array(pairs)) {
+        ap_form_pair_t *pair = (ap_form_pair_t *) apr_array_pop(pairs);
+        apr_brigade_length(pair-&gt;value, 1, &amp;len);
+        size = (apr_size_t) len;
+        buffer = apr_palloc(r-&gt;pool, size + 1);
+        apr_brigade_flatten(pair-&gt;value, buffer, &amp;size);
+        buffer[len] = 0;
+        kvp[i].key = apr_pstrdup(r-&gt;pool, pair-&gt;name);
+        kvp[i].value = buffer;
+        i++;
+    }
+    return kvp;
+}
+
+static int example_handler(request_rec *r)
+{
+    /*~~~~~~~~~~~~~~~~~~~~~~*/
+    keyValuePair *formData;
+    /*~~~~~~~~~~~~~~~~~~~~~~*/
+
+    formData = readPost(r);
+    if (formData) {
+        int i;
+        for (i = 0; &amp;formData[i]; i++) {
+            if (formData[i].key &amp;&amp; formData[i].value) {
+                ap_rprintf(r, "%s = %s\n", formData[i].key, formData[i].value);
+            } else if (formData[i].key) {
+                ap_rprintf(r, "%s\n", formData[i].key);
+            } else if (formData[i].value) {
+                ap_rprintf(r, "= %s\n", formData[i].value);
+            } else {
+                break;
+            }
+        }
+    }
+    return OK;
+}</pre>
+
+
+
+
+    
+
+    <h3><a name="headers_out" id="headers_out">Printing out every HTTP header received</a></h3>
+
+
+
+<pre class="prettyprint lang-c">static int example_handler(request_rec *r)
+{
+    /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+    const apr_array_header_t    *fields;
+    int                         i;
+    apr_table_entry_t           *e = 0;
+    /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+    fields = apr_table_elts(r-&gt;headers_in);
+    e = (apr_table_entry_t *) fields-&gt;elts;
+    for(i = 0; i &lt; fields-&gt;nelts; i++) {
+        ap_rprintf(r, "%s: %s\n", e[i].key, e[i].val);
+    }
+    return OK;
+}</pre>
+
+
+
+
+    
+
+    <h3><a name="request_body" id="request_body">Reading the request body into memory</a></h3>
+
+
+
+<pre class="prettyprint lang-c">static int util_read(request_rec *r, const char **rbuf, apr_off_t *size)
+{
+    /*~~~~~~~~*/
+    int rc = OK;
+    /*~~~~~~~~*/
+
+    if((rc = ap_setup_client_block(r, REQUEST_CHUNKED_ERROR))) {
+        return(rc);
+    }
+
+    if(ap_should_client_block(r)) {
+
+        /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+        char         argsbuffer[HUGE_STRING_LEN];
+        apr_off_t    rsize, len_read, rpos = 0;
+        apr_off_t length = r-&gt;remaining;
+        /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+        *rbuf = (const char *) apr_pcalloc(r-&gt;pool, (apr_size_t) (length + 1));
+        *size = length;
+        while((len_read = ap_get_client_block(r, argsbuffer, sizeof(argsbuffer))) &gt; 0) {
+            if((rpos + len_read) &gt; length) {
+                rsize = length - rpos;
+            }
+            else {
+                rsize = len_read;
+            }
+
+            memcpy((char *) *rbuf + rpos, argsbuffer, (size_t) rsize);
+            rpos += rsize;
+        }
+    }
+    return(rc);
+}
+
+static int example_handler(request_rec *r) 
+{
+    /*~~~~~~~~~~~~~~~~*/
+    apr_off_t   size;
+    const char  *buffer;
+    /*~~~~~~~~~~~~~~~~*/
+
+    if(util_read(r, &amp;buffer, &amp;size) == OK) {
+        ap_rprintf(r, "We read a request body that was %" APR_OFF_T_FMT " bytes long", size);
+    }
+    return OK;
+}</pre>
+
+
+
+
+
+    
+
+</div></div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/developer/modguide.html" title="English">&nbsp;en&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/developer/modguide.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

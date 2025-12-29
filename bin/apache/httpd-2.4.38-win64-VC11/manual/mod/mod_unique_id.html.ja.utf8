@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_unique_id - Apache HTTP サーバ バージョン 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="../">バージョン 2.4</a> &gt; <a href="./">モジュール</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache モジュール mod_unique_id</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="../en/mod/mod_unique_id.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_unique_id.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_unique_id.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_unique_id.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+<table class="module"><tr><th><a href="module-dict.html#Description">説明:</a></th><td>それぞれのリクエストに対する一意な識別子の入った環境変数を
+提供する</td></tr>
+<tr><th><a href="module-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">モジュール識別子:</a></th><td>unique_id_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">ソースファイル:</a></th><td>mod_unique_id.c</td></tr></table>
+<h3>概要</h3>
+
+
+    <p>このモジュールは非常に制限された条件下で、
+    それぞれのリクエストに「すべて」のリクエストに対して
+    一意に決まることが保証されている魔法のトークンを提供します。
+    この一意な識別子は、適切に設定されたクラスタでは複数の
+    マシンの間でさえも一意になります。それぞれのリクエストに対して環境変数
+    <code>UNIQUE_ID</code> に識別子が設定されます。
+    一意な識別子が便利な理由はいろいろありますが、
+    このドキュメントの目的からは外れるため、ここでは説明しません。</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>トピック</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#theory">理論</a></li>
+</ul><h3 class="directives">ディレクティブ</h3>
+<p>このモジュールにディレクティブはありません。</p>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_unique_id">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_unique_id">Report a bug</a></li></ul><h3>参照</h3>
+<ul class="seealso">
+<li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="theory" id="theory">理論</a></h2>
+    
+
+    <p>まずはじめに、Apache サーバが Unix
+    マシンでどのように動作をするかを簡単に説明します。
+    この機能は現時点では Windows NT ではサポートされていません。
+    Unix マシンでは Apache はいくつかの子プロセスを作成し、
+    その子プロセスが一つずつリクエストを処理します。それぞれの子プロセスは、
+    生存期間中に複数のリクエストを扱うことができます。
+    この議論では子プロセス間では一切データを共有しないことにします。
+    以後、この子プロセスのことを <dfn>httpd プロセス</dfn> と呼びます。</p>
+
+    <p>あなたのウェブサイトにはあなたが管理するいくつかのマシンがあるとします。
+    それらをまとめてクラスタと呼ぶことにします。それぞれのマシンは複数の
+    Apache を実行することもできます。
+    これらすべてをまとめたものが「宇宙」であると考えられます。
+    いくつかの仮定の下で、クラスタのマシン間がたくさん通信をすることなく、
+    この宇宙の中でそれぞれのリクエストに一意な識別子を生成できることを示します。
+    </p>
+
+    <p>クラスタにあるマシンは以下の要求を見たさなければなりません。
+    (マシンが一つだけだとしても、NTP で時計を合わせる方が良いです。)</p>
+
+    <ul>
+      <li>NTP や他のネットワーク上で時間を合わせるプロトコルによって
+      各マシンの時間の同期が取られていること。</li>
+
+      <li>モジュールがホスト名を引いて違う IP
+      アドレスを受け取ることができるように、
+      クラスタのそれぞれのマシンのホスト名が違うこと。</li>
+    </ul>
+
+    <p>オペレーティングシステムにおいては、pid (プロセス ID) が
+    32 ビットの範囲内であることを仮定します。オペレーティングシステムの
+    pid が 32 ビットを超える場合は、簡単な修正ではありますが、
+    コードを変更する必要があります。</p>
+
+    <p>これらの仮定が満たされていると、ある時点において、
+    クラスタ内のどのマシンのどの httpd
+    プロセスでも、一意に同定することができます。これはマシンの IP
+    アドレスと httpd プロセスの pid で十分に行なうことができます。
+    ですから、リクエストに一意な識別子を生成するためには、
+    時刻を区別する必要があるだけです。</p>
+
+    <p>時刻を区別するために、Unix のタイムスタンプ (UTC の 1970 年
+    1 月 1 日からの秒数) と、16 ビットのカウンタを使います。
+    タイムスタンプの粒度は一秒ですので、一秒間の 65536
+    までの値を表現するためにカウンタを使用します。四つの値
+    <em>( ip_addr, pid, time_stamp, counter )</em> で各 httpd
+    プロセスで一秒の間に 65536 リクエストを数えあげることができます。
+    時間が経つと pid が再利用されるという問題がありますが、
+    この問題を解決するためにカウンタが使用されます。</p>
+
+    <p>httpd の子プロセスが作成されると、カウンタは
+    (その時点のマイクロ秒 ÷ 10) modulo 65536 で初期化されます
+    (この式はいくつかのシステムにある、マイクロ秒の
+    タイマの下位ビットが異なるという問題を解決するために選ばれました)。
+    一意な識別子が生成されたとき、使用されるタイムスタンプは
+    ウェブサーバにリクエストが到着した時刻になります。
+    カウンタは識別子が生成されるたびに増加します 
+    (あふれた場合は 0 に戻ります)。</p>
+
+    <p>カーネルはプロセスをフォークすると、それぞれのプロセスのために
+    pid を生成します。pid は繰り返されることが許可されています
+    (pid の値は多くの Unix では 16 ビットですが、新しいシステムでは
+    32 ビットに拡張されています)。
+    ですから、ある程度の時間が経過すると同じ pid が再び使用されます。
+    しかし、一秒内に再使用されなければ、
+    四つの値の一意性は保たれます。つまり、我々はシステムが一秒間
+    に 65536 個のプロセスを起動しないと仮定しています (いくつかの Unix
+    では 32768 プロセスですが、それですらほとんどあり得ないでしょう)。</p>
+
+    <p>何らかの理由で、同じ時刻が繰り返されたとしましょう。
+    つまり、システムの時計が狂っていて、もう一度過去の時刻になってしまった
+    (もしくは進みすぎていたときに、
+    正しい時刻に戻したために再び将来の時刻になってしまった) とします。
+    この場合、pid とタイムスタンプが再使用されることが簡単に示されます。
+    カウンタ初期化用の関数は、この問題の回避を手助けしようと選択されています。
+    本当はカウンタの初期化をするためにランダムな数字を使いたいのですが、
+    ほとんどのシステムでは簡単に使用できる数は無いことに注意してください
+    (<em>すなわち</em>、rand ()は使えません。rand () には seed
+    を与える必要があり、seed には時刻を使えません。一秒単位では、
+    その時刻はすでに繰り返されているからです)。
+    これは、完璧な対策ではありません。</p>
+
+    <p>この対策はどのくらい効果があるでしょうか?
+    ここでは、マシン群の中の一つは最大で一秒に 500
+    リクエストを扱うと仮定します (これを書いている時点では妥当な上限です。
+    通常システムがすることは静的なファイルを取りだすだけではありませんから)。
+    それを行なうために、そのマシンは並行して来るクライアントの数に
+    応じた数の子プロセスを要求します。
+    しかしながら、悲観的に考えて、一つの子プロセスが一秒に 500
+    リクエストを扱えるとします。そうすると、(一秒の精度において)
+    時刻が同じ時を繰り返すと、この子プロセスがカウンタの値を再び使い、
+    一意性が壊れる可能性が 1.5% あります。
+    これは非常に悲観的な例で、実世界の値では、ほとんど起こりそうにありません。
+    それでもこれが起こる可能性のあるようなシステムなら、
+    (プログラムコードを編集して) 
+    カウンタを 32 ビットにするのが良いでしょう。
+    </p>
+
+    <p>サマータイムにより時計が「戻される」ことを気にしている人が
+    いるかもしれません。ここで使用される時間は UTC であり、
+    それは「常に」進むのでここでは問題になりません。x86 上の Unix
+    はこの条件を満たすために適切な設定が必要かもしれないことに
+    注意してください。マザーボードの時計は UTC になっていて、
+    他の時間はそこから適切に補正されることを仮定できるように
+    設定されなければなりません。そのような場合でさえ、NTP
+    を使っているならばリブート後にすぐ正しい UTC の時間になるでしょう。</p>
+
+    <p><code>UNIQUE_ID</code> 環境変数は 112 ビット (32 ビット IP
+    アドレス、32 ビット pid, 32 ビットタイムスタンプ、16
+    ビットカウンタの四つの組) をアルファベット <code>[A-Za-z0-9@-]</code>
+    を用いて MIME の base64 符号化と同様の方法により符号化し、19
+    の文字を生成することにより作成されます。MIME の base64
+    のアルファベットは実際は <code>[A-Za-z0-9+/]</code> ですが、
+    <code>+</code> と <code>/</code> とは URL
+    では特別な符号化が必要なので、あまり望ましくありません。
+    全ての値はネットワークバイトオーダで符号化されますので、
+    符号は違ったバイトオーダのアーキテクチャ間で比較可能です。
+    実際の符号化の順番は: タイムスタンプ、IP アドレス、pid,
+    カウンタです。この順には目的がありますが、
+    アプリケーションは符号を解析するべきではないことを強調しておきます。
+    アプリケーションは符号化された <code>UNIQUE_ID</code>
+    全体を透過的なトークンとして扱うべきです。
+    <code>UNIQUE_ID</code> は他の <code>UNIQUE_ID</code>
+    との等価性を調べるためだけにのみ使用できます。</p>
+
+    <p>この順番は将来、既存の <code>UNIQUE_ID</code>
+    のデータベースとの衝突を心配することなく符号を変更することが
+    可能になるように選択しています。
+    新しい符号はタイムスタンプを最初の要素として残すのが望ましく、
+    それ以外は同じアルファベットとビット長を使うことができます。
+    タイムスタンプは本質的に増加系列ですので、
+    クラスタの全てのマシンがリクエストとサーバ機能を停止して、
+    古い符号化方式を使用するのをやめる<em>フラグ秒</em>があれば十分です。
+    その後は、リクエストを再開し、
+    新しい符号を発行することができるようになります。</p>
+
+    <p>我々はこれが、
+    この問題に対する比較的移植性の高い解決法だと考えています。
+    Windows NT のようなマルチスレッドのシステムに拡張することができますし、
+    将来必要になればさらに増やすこともできます。
+    ID は必要に応じて長くすることができますので、生成された ID
+    は実質上、無限に有効です。また、クラスタのマシン間の通信も事実上必要なく
+    (NTP による同期のみが必要で、これはオーバヘッドはあまりありません)、httpd
+    プロセス間の通信も必要ありません (通信はカーネルにより割り当てられた
+    pid の値により暗黙の内に行なわています)。
+    さらに限られた状況下では、ID はさらに短くすることができますが、
+    より多くの情報を仮定する必要がでてきます (例えば、32 ビット
+    IP アドレスはどのサイトにおいても過剰な情報ですが、
+    それの代わりになる移植性のあるものはありません)。</p>
+</div>
+</div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="../en/mod/mod_unique_id.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_unique_id.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_unique_id.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_unique_id.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_unique_id.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

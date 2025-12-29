@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+<meta content="text/html; charset=EUC-KR" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>인증(Authentication), 권한부여(Authorization),
+접근제어(Access Control) - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">How-To / Tutorials</a></div><div id="page-content"><div id="preamble"><h1>인증(Authentication), 권한부여(Authorization),
+접근제어(Access Control)</h1>
+<div class="toplang">
+<p><span>가능한 언어: </span><a href="../en/howto/auth.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../es/howto/auth.html" hreflang="es" rel="alternate" title="Espa&#241;ol">&nbsp;es&nbsp;</a> |
+<a href="../fr/howto/auth.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ja/howto/auth.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/howto/auth.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/howto/auth.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">이 문서는 최신판 번역이 아닙니다.
+            최근에 변경된 내용은 영어 문서를 참고하세요.</div>
+
+    <p>인증(authentication)은 자신이 누구라고 주장하는 사람을
+    확인하는 절차이다. 권한부여(authorization)는 가고 싶은 곳으로
+    가도록 혹은 원하는 정보를 얻도록 허용하는 과정이다.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#related">관련 모듈과 지시어</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#introduction">소개</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#theprerequisites">기본 지식</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#gettingitworking">기본적인 설정하기</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#lettingmorethanonepersonin">여러명을 들여보내기</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#possibleproblems">발생할 수 있는 문제점</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#whatotherneatstuffcanido">다른 방법도 가능한가?</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#moreinformation">더 많은 정보</a></li>
+</ul><h3>참고</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="related" id="related">관련 모듈과 지시어</a></h2>
+    <table class="related"><tr><th>관련된 모듈</th><th>관련된 지시어</th></tr><tr><td><ul><li><code class="module"><a href="../mod/mod_auth_basic.html">mod_auth_basic</a></code></li><li><code class="module"><a href="../mod/mod_authn_file.html">mod_authn_file</a></code></li><li><code class="module"><a href="../mod/mod_authz_groupfile.html">mod_authz_groupfile</a></code></li><li><code class="module"><a href="../mod/mod_authz_host.html">mod_authz_host</a></code></li></ul></td><td><ul><li><code class="directive"><a href="../mod/mod_authz_host.html#allow">Allow</a></code></li><li><code class="directive"><a href="../mod/mod_authz_groupfile.html#authgroupfile">AuthGroupFile</a></code></li><li><code class="directive"><a href="../mod/core.html#authname">AuthName</a></code></li><li><code class="directive"><a href="../mod/core.html#authtype">AuthType</a></code></li><li><code class="directive"><a href="../mod/mod_authn_file.html#authuserfile">AuthUserFile</a></code></li><li><code class="directive"><a href="../mod/mod_authz_host.html#deny">Deny</a></code></li><li><code class="directive"><a href="../mod/core.html#options">Options</a></code></li><li><code class="directive"><a href="../mod/core.html#require">Require</a></code></li></ul></td></tr></table>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="introduction" id="introduction">소개</a></h2>
+    <p>당신의 웹사이트에 있는 정보가 소수의 사람들만의 비밀이거나
+    이들만을 위한 정보라면, 이 글에서 설명하는 기법을 사용하여
+    당신이 보길 원하는 사람만 페이지를 보도록 할 수 있다.</p>
+
+    <p>이 글은 웹사이트의 일부를 보호하기위해 많은 사람들이
+    사용하는 "표준적인" 방법을 다룬다.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="theprerequisites" id="theprerequisites">기본 지식</a></h2>
+    <p>이 글에서 다루는 지시어는 서버의 주설정파일(일반적으로
+    <code class="directive"><a href="../mod/core.html#directory">&lt;Directory&gt;</a></code>
+    섹션)이나 디렉토리별 설정파일(<code>.htaccess</code> 파일)에서
+    사용한다.</p>
+
+    <p><code>.htaccess</code> 파일을 사용하려면 이 파일에 있는
+    인증 지시어를 허용하도록 서버를 설정해야 한다. 이를 위해
+    디렉토리별 설정파일에 어떤 지시어를 사용할 수 있는지를 결정하는
+    <code class="directive"><a href="../mod/core.html#allowoverride">AllowOverride</a></code> 지시어를
+    사용한다.</p>
+
+    <p>여기서는 인증을 다루기 때문에, 다음과 같은
+    <code>AllowOverride</code> 지시어가 필요하다.</p>
+
+    <div class="example"><p><code>
+      AllowOverride AuthConfig
+    </code></p></div>
+
+    <p>혹은 지시어를 직접 서버 주설정파일에 적는다면, 그 파일에
+    쓰기 권한이 물론 있어야 한다.</p>
+
+    <p>그리고 보호할 파일이 어디있는지 알기위해 서버의 디렉토리
+    구조에 대해 조금 알아야한다. 이 일은 어렵지않고, 적당한
+    때에 자세히 설명할 것이다.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="gettingitworking" id="gettingitworking">기본적인 설정하기</a></h2>
+    <p>이제 서버의 디렉토리를 암호로 보호하는 기본적인 방법을
+    설명한다.</p>
+
+    <p>먼저 암호파일을 만들어야 한다. 이 파일은 웹에서 접근할
+    수 없는 곳에 있어야 한다. 다른사람이 암호파일을 다운로드하지
+    못하게하기 위해서다. 예를 들어, 문서들이
+    <code>/usr/local/apache/htdocs</code>에 있다면 암호파일(들)은
+    <code>/usr/local/apache/passwd</code>에 둔다.</p>
+
+    <p>아파치에 포함된 <a href="../programs/htpasswd.html">htpasswd</a> 도구를 사용하여
+    암호파일을 만든다. 이 프로그램은 아파치를 설치한 곳의
+    <code>bin</code> 디렉토리에 있다. 파일을 만들려면 다음과
+    같이 입력한다.</p>
+
+    <div class="example"><p><code>
+      htpasswd -c /usr/local/apache/passwd/passwords rbowen
+    </code></p></div>
+
+    <p><code>htpasswd</code>는 암호를 물어보고, 확인을 위해
+    암호를 다시 입력하라고 요청한다.</p>
+
+    <div class="example"><p><code>
+      # htpasswd -c /usr/local/apache/passwd/passwords rbowen<br />
+      New password: mypassword<br />
+      Re-type new password: mypassword<br />
+      Adding password for user rbowen
+    </code></p></div>
+
+    <p>물론 <code>htpasswd</code>이 실행파일 경로에 없다면
+    실행파일의 전체 경로를 입력해야 한다. 내가 사용하는 서버에서는
+    <code>/usr/local/apache/bin/htpasswd</code>에 실행파일이
+    있다.</p>
+
+    <p>다음으로 서버가 암호를 요청하도록 설정하고, 서버에게
+    어떤 사용자의 접근을 허용할지 알려줘야 한다.
+    <code>httpd.conf</code>를 편집하거나 <code>.htaccess</code>
+    파일을 사용하여 설정한다. 예를 들어,
+    <code>/usr/local/apache/htdocs/secret</code> 디렉토리를
+    보호하려면, 아래 지시어를
+    <code>/usr/local/apache/htdocs/secret/.htaccess</code> 파일이나
+    <code>httpd.conf</code>의 &lt;Directory
+    /usr/local/apache/apache/htdocs/secret&gt; 섹션에 적어야
+    한다.</p>
+
+    <div class="example"><p><code>
+      AuthType Basic<br />
+      AuthName "Restricted Files"<br />
+      AuthUserFile /usr/local/apache/passwd/passwords<br />
+      Require user rbowen
+    </code></p></div>
+
+    <p>지시어를 하나씩 살펴보자. <code class="directive"><a href="../mod/core.html#authtype">AuthType</a></code> 지시어는 사용자를 인증할
+    방법을 선택한다. 가장 일반적인 방법은 <code>Basic</code>으로,
+    <code class="module"><a href="../mod/mod_auth_basic.html">mod_auth_basic</a></code>이 구현한다. 그러나 Basic
+    인증은 브라우저가 서버로 암호를 암호화하지 않고 보낸다.
+    그러므로 기밀 자료를 보호하기위해 이 방법을 사용하면 안된다.
+    아파치는 <code>AuthType Digest</code>라는 인증 방법도 지원한다.
+    이 방법은 <code class="module"><a href="../mod/mod_auth_digest.html">mod_auth_digest</a></code>가 구현하며, 매우
+    안전하다. 가장 최근 클라이언트들만이 Digest 인증을 지원한다고
+    한다.</p>
+
+    <p><code class="directive"><a href="../mod/core.html#authname">AuthName</a></code> 지시어는
+    인증에 사용할 <dfn>영역(realm)</dfn>을 지정한다. 영역은
+    두가지 역할을 한다. 첫번째는 클라이언트가 보통 이 정보를
+    암호 대화창에 보여준다. 두번째는 영역 정보를 사용하여
+    클라이언트가 특정 인증구역에 어떤 암호를 보낼지 결정한다.</p>
+
+    <p>예를 들어, 일단 클라이언트가 <code>"Restricted Files"</code>
+    영역에 인증이 성공하였다면, 클라이언트는 자동으로 같은 서버에서
+    <code>"Restricted Files"</code> 영역으로 표시된 구역에 대해
+    동일한 암호를 시도한다. 그래서 여러 제한 구역이 같은 영역을
+    공유하면 사용자가 여러번 암호를 입력하지 않아도 된다. 물론
+    보안상 이유로 클라이언트는 서버의 호스트명이 다르면 항상
+    새로 암호를 물어본다.</p>
+
+    <p><code class="directive"><a href="../mod/mod_authn_file.html#authuserfile">AuthUserFile</a></code>
+    지시어는 우리가 방금 <code>htpasswd</code>로 만든 암호파일의
+    경로를 설정한다. 사용자가 많다면 요청마다 매번 사용자를
+    인증하기위해 일반 문서파일을 검색하는데 시간이 상당히 많이
+    걸릴 수 있다. 아파치는 빠른 데이타베이스 파일에 사용자 정보를
+    저장할 수 있다. <code class="module"><a href="../mod/mod_authn_dbm.html">mod_authn_dbm</a></code> 모듈은 <code class="directive"><a href="../mod/mod_authn_dbm.html#authdbmuserfile">AuthDBMUserFile</a></code> 지시어를
+    제공한다. <a href="../programs/dbmmanage.html">dbmmanage</a>
+    프로그램을 사용하여 암호파일을 만들고 다룬다. <a href="http://modules.apache.org/">아파치 모듈
+    데이타베이스</a>에는 여러 다른 인증 방식을 제공하는 제삼자가
+    만든 모듈들이 있다.</p>
+
+    <p>마지막으로 <code class="directive"><a href="../mod/core.html#require">Require</a></code>
+    지시어는 서버의 특정 영역에 접근할 수 있는 사용자를 지정하여
+    권한부여를 한다. 다음 절은 <code>require</code> 지시어를
+    사용하는 다양한 방법을 설명한다.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="lettingmorethanonepersonin" id="lettingmorethanonepersonin">여러명을 들여보내기</a></h2>
+    <p>위의 지시어는 디렉토리로 (사용자명이 <code>rbowen</code>인)
+    한 사람만을 들여보낸다. 대부분의 경우 여러 사람을 들여보내고
+    싶을 것이다. 이제 <code class="directive"><a href="../mod/mod_authz_groupfile.html#authgroupfile">AuthGroupFile</a></code>을
+    사용할 때다.</p>
+
+    <p>여러 사람을 들여보내고 싶다면 그룹명과 그 그룹에 어떤
+    사용자들이 있는지 알려주는 그룹파일이 필요하다. 이 파일의
+    형식은 매우 간단하여, 아무 편집기로나 만들 수 있다. 파일내용은
+    다음과 같다.</p>
+
+   <div class="example"><p><code>
+     GroupName: rbowen dpitts sungo rshersey
+   </code></p></div>
+
+    <p>그냥 공백으로 구분한 긴 그룹 구성원 목록일 뿐이다.</p>
+
+    <p>기존의 암호파일에 사용자를 추가하려면 다음과 같이 입력한다</p>
+
+    <div class="example"><p><code>
+      htpasswd /usr/local/apache/passwd/passwords dpitts
+    </code></p></div>
+
+    <p>전과 같지만, 새로 파일을 만들지 않고 기존 파일에 사용자를
+    추가한다. (<code>-c</code> 옵션은 새로 암호파일을 만든다).</p>
+
+    <p>이제 <code>.htaccess</code> 파일을 다음과 같이 수정한다.</p>
+
+    <div class="example"><p><code>
+      AuthType Basic<br />
+      AuthName "By Invitation Only"<br />
+      AuthUserFile /usr/local/apache/passwd/passwords<br />
+      AuthGroupFile /usr/local/apache/passwd/groups<br />
+      Require group GroupName
+    </code></p></div>
+
+    <p>그러면 <code>GroupName</code> 그룹에 속하며
+    <code>password</code> 파일에 항목이 있는 사용자가 올바른
+    암호를 입력하면 접근을 허용한다.</p>
+
+    <p>여러 일반 사용자를 들여보내는 다른 방법이 있다. 그룹파일을
+    만들 필요없이 다음 지시어를 사용하기만 하면 된다.</p>
+
+    <div class="example"><p><code>
+      Require valid-user
+    </code></p></div>
+
+    <p><code>Require user rbowen</code> 대신 이 지시어를 사용하면
+    암호파일에 있는 누구라도 올바른 암호를 입력하기만 하면 접근을
+    허용한다. 그룹별로 다른 암호파일을 사용하여 그룹과 비슷한
+    효과를 얻을 수도 있다. 이 경우 아파치가 파일 두개(암호파일과
+    그룹파일)가 아닌 파일 한개(암호파일)만 검사하면 된다는 것이
+    장점이다. 그러나 여러 암호파일을 관리해야 하고, <code class="directive"><a href="../mod/mod_authn_file.html#authuserfile">AuthUserFile</a></code> 지시어에
+    정확한 암호파일을 지정해야 하는 것은 단점이다.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="possibleproblems" id="possibleproblems">발생할 수 있는 문제점</a></h2>
+    <p>Basic 인증 방식은 서버에서 문서를 요청할 때마다 사용자명과
+    암호를 확인한다. 심지어 같은 페이지를 새로 고침할 때도 페이지와
+    (그림이 암호로 보호하는 디렉토리에 있는 경우) 페이지에 있는
+    모든 그림에 대해 다시 확인한다. 짐작하듯이 속도가 조금 느려진다.
+    암호파일을 열어서 사용자명을 찾을 때까지 사용자 목록을 살펴봐야
+    하기때문에 암호파일 크기가 커질 수록 더 느려진다. 그리고
+    이 작업을 페이지를 요청할 때마다 진행한다.</p>
+
+    <p>그래서 현실적으로 한 암호파일에 저장할 수 있는 사용자수에는
+    한계가 있다. 이 한계는 사용하는 서버의 성능에 따라 다르지만,
+    항목이 수백개가 넘는다면 느려진다고 생각하고 다른 인증 방법을
+    고려해야 한다.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="whatotherneatstuffcanido" id="whatotherneatstuffcanido">다른 방법도 가능한가?</a></h2>
+    <p>사용자명과 암호를 사용한 인증이 다가 아니다. 종종 접속한
+    장소와 같은 다른 정보를 가지고 사용자를 들여보내고 싶을
+    때가 있다.</p>
+
+    <p><code class="directive"><a href="../mod/mod_authz_host.html#allow">Allow</a></code>와
+    <code class="directive"><a href="../mod/mod_authz_host.html#deny">Deny</a></code> 지시어는
+    문서를 요청한 컴퓨터의 호스트명 혹은 호스트 주소를 가지고
+    접근을 허용하거나 거부한다. <code class="directive"><a href="../mod/mod_authz_host.html#order">Order</a></code> 지시어는 이 두
+    지시어와 같이 사용하여, 아파치에게 어떤 순서로 규칙을 적용할지
+    알린다.</p>
+
+    <p>이들 지시어 사용법은 다음과 같다.</p>
+
+    <div class="example"><p><code>
+      Allow from <var>address</var>
+    </code></p></div>
+
+    <p>여기서 <var>address</var>는 IP 주소(혹은 IP 주소 일부)나
+    완전한 도메인명(혹은 도메인명 일부)이다. 원한다면 여러 주소나
+    도메인명을 사용할 수 있다.</p>
+
+    <p>예를 들어, 누군가가 게시판에 광고를 올리고 있다면 다음과
+    같이 접근을 막을 수 있다.</p>
+
+    <div class="example"><p><code>
+      Deny from 205.252.46.165
+    </code></p></div>
+
+    <p>그 주소에서 들어오는 방문자는 이 지시어가 보호하는 페이지를
+    볼 수 없다. IP 주소 대신 다음과 같이 컴퓨터명을 사용할 수도
+    있다.</p>
+
+    <div class="example"><p><code>
+      Deny from <var>host.example.com</var>
+    </code></p></div>
+
+    <p>또, 전체 도메인의 접근을 막으려면 주소나 도메인명의 일부를
+    사용한다.</p>
+
+    <div class="example"><p><code>
+      Deny from <var>192.101.205</var><br />
+      Deny from <var>cyberthugs.com</var> <var>moreidiots.com</var><br />
+      Deny from ke
+    </code></p></div>
+
+    <p><code class="directive"><a href="../mod/mod_authz_host.html#order">Order</a></code>를
+    <code class="directive"><a href="../mod/mod_authz_host.html#deny">Deny</a></code>와 <code class="directive"><a href="../mod/mod_authz_host.html#allow">Allow</a></code> 지시어와 같이
+    사용하여 실제로 원하는 대상을 막을 수 있다.</p>
+
+    <div class="example"><p><code>
+      Order deny,allow<br />
+      Deny from all<br />
+      Allow from <var>dev.example.com</var>
+    </code></p></div>
+
+    <p><code class="directive"><a href="../mod/mod_authz_host.html#allow">Allow</a></code>
+    지시어만 사용하면, 해당 호스트의 사용자를 허용하고 거기에
+    추가로 모든 사람을 허용하므로 원하는 결과를 얻지 못한다.
+    당신은 특정 사람<em>만</em> 허용하길 원한다.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="moreinformation" id="moreinformation">더 많은 정보</a></h2>
+    <p><code class="module"><a href="../mod/mod_auth_basic.html">mod_auth_basic</a></code>과
+    <code class="module"><a href="../mod/mod_authz_host.html">mod_authz_host</a></code> 문서에 접근제어가 동작하는
+    방법에 대한 더 많은 정보가 있다.</p>
+</div></div>
+<div class="bottomlang">
+<p><span>가능한 언어: </span><a href="../en/howto/auth.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../es/howto/auth.html" hreflang="es" rel="alternate" title="Espa&#241;ol">&nbsp;es&nbsp;</a> |
+<a href="../fr/howto/auth.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ja/howto/auth.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/howto/auth.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/howto/auth.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/howto/auth.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>DNS と Apache にまつわる注意事項 - Apache HTTP サーバ バージョン 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">モジュール</a> | <a href="./mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">用語</a> | <a href="./sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="./">バージョン 2.4</a></div><div id="page-content"><div id="preamble"><h1>DNS と Apache にまつわる注意事項</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="./en/dns-caveats.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/dns-caveats.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/dns-caveats.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/dns-caveats.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/dns-caveats.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+
+    <p>本文書の内容は次の一言に尽きます。「Apache が設定ファイルを読み込むときに
+    DNS を使用する必要がないようにして下さい」。Apache が設定ファイルを
+    読み込むときに DNS を使用する必要がある場合、信頼性の問題
+    (起動しないかもしれません) やサービス拒否や盗用アタック
+    (他のユーザからヒットを盗むことを含みます)
+    の問題に直面するかもしれません。</p>
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#example">簡単な例</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#denial">サービス拒否</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#main">「主サーバ」アドレス</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#tips">以上の問題を解決する方法</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#appendix">付録: 将来的な方向性</a></li>
+</ul><h3>参照</h3><ul class="seealso"><li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="example" id="example">簡単な例</a></h2>
+    
+
+    <div class="example"><p><code>
+      &lt;VirtualHost www.abc.dom&gt; <br />
+      ServerAdmin webgirl@abc.dom <br />
+      DocumentRoot /www/abc <br />
+      &lt;/VirtualHost&gt;
+    </code></p></div>
+
+    <p>Apache が正常に機能するには、バーチャルホスト毎に必ず二つの
+    情報が必要になります。それは、
+    <code class="directive"><a href="./mod/core.html#servername">ServerName</a></code>
+    と、そのサーバが応答するための IP (最低一つ) です。
+    上記例では IP アドレスを含んでいませんので、Apache は DNS
+    を使用して <code>www.abc.dom</code> を見つけなければなりません。
+    何らかの理由で設定ファイルを読み込んでいるときに DNS 
+    が利用できなかった場合、
+    バーチャルホストは<strong>設定されません</strong>。
+    そして、そのバーチャルホストに対するヒットには応答がなされません
+    (Apache 1.2 以前では起動すらしません)。</p>
+
+    <p><code>www.abc.dom</code> のアドレスが 192.0.2.1
+    だとします。では、次の設定について考えてみましょう。</p>
+
+    <div class="example"><p><code>
+      &lt;VirtualHost 192.0.2.1&gt; <br />
+      ServerAdmin webgirl@abc.dom <br />
+      DocumentRoot /www/abc <br />
+      &lt;/VirtualHost&gt;
+    </code></p></div>
+
+    <p>現在のリリースでは Apache は DNS 逆引きを使用して
+    このバーチャルホストの <code class="directive"><a href="./mod/core.html#servername">ServerName</a></code>
+    を見つけます。
+    その逆引きが失敗した場合は部分的にバーチャルホストを無効にします
+    (Apache 1.2 より前では起動すらしません)。
+    バーチャルホストが名前ベースであれば完全に無効になりますが、
+    IP ベースであれば概ね動作します。しかしながら、サーバ名を
+    含む完全な URL を生成しなければならない場合は、正しい URL
+    の生成ができません。</p>
+
+    <p>次の例は上記の問題を解決しています。</p>
+
+    <div class="example"><p><code>
+      &lt;VirtualHost 192.0.2.1&gt; <br />
+      ServerName www.abc.dom <br />
+      ServerAdmin webgirl@abc.dom <br />
+      DocumentRoot /www/abc <br />
+      &lt;/VirtualHost&gt;
+    </code></p></div>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="denial" id="denial">サービス拒否</a></h2>
+    
+
+    <p>サービス拒否が起こる場合、(少なくとも) 二つのケースがあります。
+    Apache 1.2 より前を実行している場合、バーチャルホストのための
+    上記の二つの DNS 検索のうち一つ失敗すれば起動すらしません。
+    そしてこの DNS 検索が自分の制御下にすらない場合もありえます。
+    例えば、<code>abc.dom</code> が顧客のサーバの一つで、
+    DNS は顧客自身で管理している場合、単に
+    <code>www.abc.dom</code> レコードを削除するだけで、
+    (1.2 より前の) サーバを起動不能にすることができます。</p>
+
+    <p>もう一つのケースは、より気付きにくいものです。
+    次の設定について考えてみましょう。</p>
+
+    <div class="example"><p><code>
+      &lt;VirtualHost www.abc.dom&gt; <br />
+      <span class="indent">
+        ServerAdmin webgirl@abc.dom <br />
+        DocumentRoot /www/abc <br />
+      </span>
+      &lt;/VirtualHost&gt; <br />
+      <br />
+      &lt;VirtualHost www.def.dom&gt; <br />
+      <span class="indent">
+        ServerAdmin webguy@def.dom <br />
+        DocumentRoot /www/def <br />
+      </span>
+      &lt;/VirtualHost&gt;
+    </code></p></div>
+
+    <p>192.0.2.1 を <code>www.abc.dom</code> に、
+    192.0.2.2 を <code>www.def.dom</code> に割り当てているとします。
+    また、<code>def.dom</code> は顧客自身の DNS
+    の制御下にあるとします。この設定で、<code>abc.dom</code>
+    に向けられたトラフィック全てを奪うことができる位置に
+    <code>def.dom</code> を設置できています。後は単に 
+    <code>www.def.dom</code> が 192.0.2.1 を参照するように
+    設定するだけです。DNS は顧客側の DNS でコントロールされているので、
+    <code>www.def.dom</code> レコードが好きな場所を指すように
+    設定できてしまうのを止めさせることができません。</p>
+
+    <p>192.0.2.1 に対するリクエスト
+    (<code>http://www.abc.dom/whatever</code> 形式の URL 
+    を入力したユーザからのもの全てを含みます) 
+    は、<code>def.dom</code> バーチャルホストで応答されます。
+    このようなことが何故起こるかもっと良く知るためには、
+    応答の必要なバーチャルホストへのリクエストに対して、
+    Apache がどのように整合性を確保するかについて、
+    深い議論が必要になります。おおざっぱな説明は<a href="vhosts/details.html">こちら</a>に記述されています。</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="main" id="main">「主サーバ」アドレス</a></h2>
+    
+
+    <p>Apache 1.1 での <a href="vhost/name-based.html">名前ベースのバーチャルホストのサポート</a> 追加の際に、
+    Apache は <code class="program"><a href="./programs/httpd.html">httpd</a></code> の実行されているホストの IP
+    アドレスを知る必要が出てきました。このアドレスを得るために、
+    (もしあれば) グローバルな
+    <code class="directive"><a href="./mod/core.html#servername">ServerName</a></code> を使用するか、
+    C 言語の関数 <code>gethostname</code> (コマンドプロンプトで
+    <code>hostname</code> とタイプしたときと同じものを返します)
+    を呼び出すかをします。
+    その後、得られたアドレスで DNS 検索を行ないます。
+    現在のところ、この DNS 検索を回避する方法はありません。</p>
+
+    <p>DNS サーバがダウンして、この検索ができない事態が起こることを
+    恐れているのであれば、<code>/etc/hosts</code>
+    にホスト名を記述しておくことができます
+    (マシンが正常に起動するように既に設定されているかもしれません)。
+    その場合、DNS 参照が失敗した場合にマシンが <code>/etc/hosts</code>
+    を使用するように設定していることを確認してください。
+    その方法は、どの OS を使用しているかに依存しますが、
+    <code>/etc/resolv.conf</code> か <code>/etc/nsswitch.conf</code>
+    を編集することで設定できます。</p>
+
+    <p>もし他の理由で DNS を利用する必要がない場合は、
+    <code>HOSTRESORDER</code> 環境変数を「 <code>local</code>
+    」に設定することでそのようにできます。以上これらの事柄は、どんな
+    OS 、レゾルバライブラリを使用しているかに依存します。また、
+    <code class="module"><a href="./mod/mod_env.html">mod_env</a></code> を使用して環境変数を制御しない限り、
+    CGI にも影響を与えます。man ページや使用している OS
+    の FAQ で調べると良いでしょう。</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="tips" id="tips">以上の問題を解決する方法</a></h2>
+    
+
+    <ul>
+      <li>
+        <code class="directive"><a href="./mod/core.html#virtualhost">VirtualHost</a></code>
+        で IP アドレスを使用する。
+      </li>
+
+      <li>
+        <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code>
+        で IP アドレスを使用する。
+      </li>
+
+      <li>
+        全てのバーチャルホストが明示的に
+        <code class="directive"><a href="./mod/core.html#servername">ServerName</a></code>
+        を持つようにする。
+      </li>
+
+      <li>何も応答しない
+      <code>&lt;VirtualHost _default_:*&gt;</code>
+      サーバを作る。</li>
+    </ul>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="appendix" id="appendix">付録: 将来的な方向性</a></h2>
+    
+
+    <p>DNS に関して、現状は全く宜しくありません。Apache 1.2 で、
+    DNS のイベントが失敗しても少なくとも起動プロセスが続くようにしましたが、
+    これが最高の解決方法ではないでしょう。アドレスの再割り当てが必要不可避
+    となっている今日のインターネットにおいては、
+    設定ファイルの中で明示的な IP アドレスを要求する仕様は、
+    全く宜しくありません。</p>
+
+    <p>盗用のサービスアタックに関して行なうべき事は、
+    DNS 順引きを行なって得られたアドレスに対する DNS 
+    逆引きを行なって、二つの名前を比較することです。
+    この二つが一致しなければバーチャルホストは無効になるようにします。
+    こうするためには逆引き DNS が適切に設定されている必要があります
+    (FTP サーバや TCP ラッパーのおかげで「二重逆引き」DNS は一般的に
+    なっていますので、管理者にはお馴染みものでしょう)。</p>
+
+    <p>IP アドレスが使用されていなくて DNS が失敗した場合は、
+    どうしてもバーチャルホストウェブサーバを信頼性を確保して
+    起動させることは不可能のようです。
+    設定の一部を無効にするというような部分的な解決では、
+    サーバが何をするようにするかにもよりますが、
+    そのサーバが起動しないより確実に悪い状況になるでしょう。</p>
+
+    <p>HTTP/1.1 が開発され、ブラウザやプロキシが <code>Host</code>
+    ヘッダを発行するようになったので、IP ベースのバーチャルホストを
+    全く使用しなくても済むようになるかもしれません。
+    この場合、ウェブサーバは設定中に DNS 参照をしなくても済みます。
+    しかし 1997 年 3 月時点の状況では、
+    商用レベルのウェブサーバで使用できるほどには、
+    これらの機能は広く開発が進んでいません。</p>
+  </div></div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="./en/dns-caveats.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/dns-caveats.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/dns-caveats.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/dns-caveats.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/dns-caveats.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/dns-caveats.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="./mod/">モジュール</a> | <a href="./mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">用語</a> | <a href="./sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

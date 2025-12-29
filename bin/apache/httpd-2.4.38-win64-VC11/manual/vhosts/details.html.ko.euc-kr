@@ -1,0 +1,412 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+<meta content="text/html; charset=EUC-KR" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>가상호스트 찾기에 대한 자세한 설명 - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">가상호스트</a></div><div id="page-content"><div id="preamble"><h1>가상호스트 찾기에 대한 자세한 설명</h1>
+<div class="toplang">
+<p><span>가능한 언어: </span><a href="../en/vhosts/details.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/details.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ko/vhosts/details.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/details.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">이 문서는 최신판 번역이 아닙니다.
+            최근에 변경된 내용은 영어 문서를 참고하세요.</div>
+
+
+    <p>가상호스트 코드는 <strong>아파치 1.3</strong>에서 거의 다시
+    작성되었다. 이 문서는 아파치가 요청을 받으면 어떤 가상호스트가
+    서비스할지 결정하는 방법을 설명한다. 새로운 <code class="directive"><a href="../mod/core.html#namevirtualhost">NameVirtualHost</a></code> 지시어를 사용하여
+    가상호스트 설정이 1.3 버전 이전보다 더 쉽고 안전해졌다.</p>
+
+    <p>어떻게 동작하는지 이해하지않고 단지 <cite>동작하게만</cite>
+    하고 싶다면, <a href="examples.html">예제들</a>을 참고하라.</p>
+
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#configparsing">설정파일 읽기</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#hostmatching">가상호스트 찾기</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#tips">팁</a></li>
+</ul><h3>참고</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="configparsing" id="configparsing">설정파일 읽기</a></h2>
+
+    <p><code>&lt;VirtualHost&gt;</code> 설정을 제외한 설정이
+    <em>주서버</em>를 만든다. <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> 섹션으로 정의한
+    부분을 가상호스트라고 부른다.</p>
+
+    <p><code class="directive"><a href="../mod/mpm_common.html#listen">Listen</a></code>,
+    <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code>,
+    <code class="directive"><a href="../mod/core.html#serverpath">ServerPath</a></code>,
+    <code class="directive"><a href="../mod/core.html#serveralias">ServerAlias</a></code> 지시어는
+    서버 정의 어느곳에서도 사용할 수 있다. 그러나 같은 지시어가
+    여러번 나오면 (그 서버에서) 마지막 지시어만이 유효하다.</p>
+
+    <p>주서버 <code>Listen</code>의 기본값은 80이다. 주서버의
+    <code>ServerPath</code>나 <code>ServerAlias</code>에는
+    기본값은 없다. <code>ServerName</code>의 기본값은 서버의
+    IP 주소이다.</p>
+
+    <p>주서버의 Listen 지시어는 두가지 기능을 한다. 첫째는
+    아파치가 연결할 기본 네트웍 포트를 지정하는 일이다. 둘째는
+    리다이렉션할 절대 URI에 사용할 포트 번호를 지정하는 일이다.</p>
+
+    <p>주서버와 달리 가상호스트의 포트는 아파치가 연결을 기다리는
+    포트에 영향을 주지 <em>않는다</em>.</p>
+
+    <p><code>VirtualHost</code> 지시어에 포트를 지정할 수 있다.
+    포트를 지정하지않으면 주서버의 가장 최근 <code>Listen</code>
+    값을 사용한다. 특별한 포트 <code>*</code>는 어떤 포트라도
+    지칭하는 와일드카드이다. (DNS 검색 결과의 여러 <code>A</code>
+    레코드를 포함하여) 가상호스트의 주소를 모두 총칭하여 가상호스트의
+    <em>주소집합(address set)</em>이라고 부른다.</p>
+
+    <p>특정 IP 주소에 대한 <code class="directive"><a href="../mod/core.html#namevirtualhost">NameVirtualHost</a></code> 지시어가 없다면
+    그 주소를 포함하는 첫번째 가상호스트를 IP기반 가상호스트로 취급한다.
+    IP 주소에 와일드카드 <code>*</code>를 사용할 수도 있다.</p>
+
+    <p>이름기반 가상호스트를 사용한다면 이름기반 가상호스트에
+    사용할 IP 주소를 <code>NameVirtualHost</code> 지시어에
+    사용해야 <em>한다</em>. 즉, 설정파일의 <code>NameVirtualHost</code>
+    지시어에 이름기반 가상호스트의 호스트별명(CNAME)에 해당하는
+    IP 주소를 지정해야 한다.</p>
+
+    <p>특정 IP:포트 쌍에 대해 오직 한 <code>NameVirtualHost</code>
+    지시어만을 사용한다면, 여러 <code>NameVirtualHost</code> 지시어와
+    <code>VirtualHost</code> 지시어를 섞어서 사용할 수 있다.</p>
+
+    <p><code>NameVirtualHost</code>와 <code>VirtualHost</code>
+    지시어의 순서는 중요하지 않기때문에 다음 두 예는 같다 (오직
+    <em>한</em> 주소집합에 대한 <code>VirtualHost</code>의
+    순서가 중요하다. 아래 참고):</p>
+
+<table><tr>
+<td><div class="example"><p><code>
+  NameVirtualHost 111.22.33.44<br />
+  &lt;VirtualHost 111.22.33.44&gt;<br />
+  # 서버 A<br />
+  ...<br />
+  &lt;/VirtualHost&gt;<br />
+  &lt;VirtualHost 111.22.33.44&gt;<br />
+  # 서버 B<br />
+  ...<br />
+  &lt;/VirtualHost&gt;<br />
+  <br />
+  NameVirtualHost 111.22.33.55<br />
+  &lt;VirtualHost 111.22.33.55&gt;<br />
+  # 서버 C<br />
+  ...<br />
+  &lt;/VirtualHost&gt;<br />
+  &lt;VirtualHost 111.22.33.55&gt;<br />
+  # 서버 D<br />
+  ...<br />
+  &lt;/VirtualHost&gt;
+</code></p></div></td>
+<td><div class="example"><p><code>
+  &lt;VirtualHost 111.22.33.44&gt;<br />
+  # 서버 A<br />
+  &lt;/VirtualHost&gt;<br />
+  &lt;VirtualHost 111.22.33.55&gt;<br />
+  # 서버 C<br />
+  ...<br />
+  &lt;/VirtualHost&gt;<br />
+  &lt;VirtualHost 111.22.33.44&gt;<br />
+  # 서버 B<br />
+  ...<br />
+  &lt;/VirtualHost&gt;<br />
+  &lt;VirtualHost 111.22.33.55&gt;<br />
+  # 서버 D<br />
+  ...<br />
+  &lt;/VirtualHost&gt;<br />
+  <br />
+  NameVirtualHost 111.22.33.44<br />
+  NameVirtualHost 111.22.33.55<br />
+  <br />
+</code></p></div></td>
+</tr></table>
+
+
+    <p>(왼쪽 설정이 더 읽기 편하다.)</p>
+
+    <p><code>VirtualHost</code> 지시어를 읽을 다음, 가상호스트
+    서버는 <code>VirtualHost</code> 지시어에 지정한 포트를 기본
+    <code>Listen</code>으로 한다.</p>
+
+    <p><code>VirtualHost</code> 지시어의 이름이 모두 같은
+    주소집합에 속한다면 <code>ServerAlias</code>와 같이 취급한다
+    (그러나 다른 <code>ServerAlias</code>의 영향을 받지 않는다).
+    가상호스트에 추가로 사용한 <code>Listen</code>은 주소집합이
+    지정한 포트에 영향을 주지 않음을 주의하라.</p>
+
+    <p>시작할때 IP 주소 목록을 만들어 해쉬테이블에 추가한다.
+    <code>NameVirtualHost</code> 지시어에 IP 주소를 사용하면
+    목록은 그 IP 주소에 대한 모든 이름기반 가상호스트를 포함한다.
+    그 주소에 대한 가상호스트가 없다면 <code>NameVirtualHost</code>
+    지시어를 무시하고 로그에 오류를 기록한다. IP기반 가상호스트는
+    해쉬테이블에 목록을 추가하지 않는다.</p>
+
+    <p>빠른 해쉬함수를 사용하기때문에 요청시 IP 주소를 해싱하는
+    부담은 거의 없다. 또 해쉬테이블은 IP 주소의 마지막 부분의
+    차이에 최적화되있다.</p>
+
+    <p>가상호스트에 여러 기본값이 설정된다. 특히:</p>
+
+    <ol>
+      <li>가상호스트에 <code class="directive"><a href="../mod/core.html#serveradmin">ServerAdmin</a></code>,
+      <code class="directive"><a href="../mod/core.html#resourceconfig">ResourceConfig</a></code>,
+      <code class="directive"><a href="../mod/core.html#accessconfig">AccessConfig</a></code>,
+      <code class="directive"><a href="../mod/core.html#timeout">Timeout</a></code>,
+      <code class="directive"><a href="../mod/core.html#keepalivetimeout">KeepAliveTimeout</a></code>,
+      <code class="directive"><a href="../mod/core.html#keepalive">KeepAlive</a></code>,
+      <code class="directive"><a href="../mod/core.html#maxkeepaliverequests">MaxKeepAliveRequests</a></code>,
+      <code class="directive"><a href="../mod/core.html#sendbuffersize">SendBufferSize</a></code>
+      지시어가 없다면 주서버에서 해당 값을 가져온다. (즉,
+      주서버의 설정값을 사용한다.)</li>
+
+      <li>가상호스트의 디렉토리 기본권한을 정의하는 "참조
+      기본값(lookup defaults)"은 주서버의 설정과 합쳐진다.
+      모듈의 디렉토리당 설정(per-directory configuration)도
+      여기에 해당된다.</li>
+
+      <li>각 모듈의 서버당 설정(per-server config)은 주서버의
+      설정과 가상호스트의 설정을 합친다.</li>
+    </ol>
+
+    <p>기본적으로 주서버는 가상호스트를 만드는 "기본" 혹은 "기반"이
+    된다. 그러나 설정파일에서 주서버를 정의하는 위치는 관계없다.
+    마지막으로 설정을 합치기 전에 주서버의 모든 설정을 읽어들인다.
+    그래서 주서버 정의가 가상호스트 정의 뒤에 나와도 가상호스트
+    정의에 영향을 준다.</p>
+
+    <p>주서버에 <code>ServerName</code>이 없다면 웹서버를 실행하는
+    컴퓨터의 호스트명을 대신 사용한다. 주서버의
+    <code>ServerName</code>을 DNS 겁색하여 얻은 IP 주소들을
+    <em>주서버 주소집합</em>이라고 부른다.</p>
+
+    <p>이름기반 가상호스트의 <code>ServerName</code>을 정의하지
+    않으면 가상호스트를 정의하는 <code>VirtualHost</code>에서
+    처음으로 나온 주소를 기본값으로 사용한다.</p>
+
+    <p>특별한 <code>_default_</code> 와일트카드를 포함하는
+    가상호스트는 주서버와 같은 <code>ServerName</code>을 가진다.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="hostmatching" id="hostmatching">가상호스트 찾기</a></h2>
+
+    <p>서버는 아래와 같은 방법으로 어떤 가상호스트가 요청을
+    처리할지 결정한다:</p>
+
+    <h3><a name="hashtable" id="hashtable">해쉬테이블 찾기</a></h3>
+
+    <p>클라이언트가 처음 연결하면 연결한 IP 주소를 내부 IP
+    해쉬테이블에서 찾는다.</p>
+
+    <p>IP 주소를 찾을 수 없고 클라이언트가 요청을 보낸 포트에
+    해당하는 가상호스트가 있다면, <code>_default_</code> 가상호스트가
+    요청을 서비스한다. <code>_default_</code> 가상호스트가
+    없다면 주서버가 요청을 서비스한다.</p>
+
+    <p>해쉬테이블에 IP 주소가 없지만 포트 번호가
+    <code>NameVirtualHost *</code>에 해당할 수 있다. 이 경우
+    이름기반 가상호스트처럼 처리한다.</p>
+
+    <p>찾았다면 (목록에서 IP 주소에 해당하는 항목을 찾으면),
+    IP기반 가상호스트인지 이름기반 가상호스트인지 결정한다.</p>
+
+    
+
+    <h3><a name="ipbased" id="ipbased">IP기반 가상호스트</a></h3>
+
+    <p>찾은 항목에 이름 목록이 없다면 IP기반 가상호스트이다.
+    더 이상 작업이 필요없고, 그 가상호스트가 요청을 처리한다.</p>
+
+    
+
+    <h3><a name="namebased" id="namebased">이름기반 가상호스트</a></h3>
+
+    <p>이름 목록에 한개 이상의 가상호스트 구조가 포함되면
+    이름기반 가상호스트이다. 이 목록에서 가상호스트들은 설정파일의
+    <code>VirtualHost</code> 순서대로 위치한다.</p>
+
+    <p>목록에서 첫번째 가상호스트(설정파일에서 해당 IP 주소를
+    포함하는 첫번째 가상호스트)는 가장 높은 우선순위를 가지며,
+    서버명을 알 수 없거나 <code>Host:</code> 헤더가 없는 요청을
+    처리한다.</p>
+
+    <p>클라이언트가 <code>Host:</code> 헤더를 주면, 목록에서
+    첫번째로 <code>ServerName</code>이나
+    <code>ServerAlias</code>가 대응하는 가상호스트가 요청을
+    서비스한다. <code>Host:</code> 헤더에 포트 번호가 나올 수
+    있지만, 아파치는 항상 클라이언트가 요청을 보낸 실제 포트를
+    찾는다.</p>
+
+    <p>클라이언트가 <code>Host:</code> 헤더없이 HTTP/1.0 요청을
+    하면 클라이언트가 어떤 서버에 연결하려는지 알 수 없기때문에
+    요청의 URI에 해당하는 <code>ServerPath</code>가 있는지 찾는다.
+    목록에서 제일 먼저 찾은 경로를 사용하고, 그 가상호스트가
+    요청을 서비스한다.</p>
+
+    <p>대응하는 가상호스트를 찾을 수 없다면, (이미 앞에 말했듯이)
+    클라이언트가 연결한 IP에 대한 목록에서 일치하는 포트 번호를
+    포함하는 첫번째 가상호스트가 요청을 서비스한다.</p>
+
+    
+
+    <h3><a name="persistent" id="persistent">지속 연결</a></h3>
+
+    <p>IP는 위에서 설명한데로 특정 TCP/IP 세션당 <em>한번만</em>
+    찾지만, 이름은 KeepAlive/지속 연결동안 <em>매</em> 요청때마다
+    찾는다. 즉, 클라이언트는 지속 연결동안 여러 이름기반
+    가상호스트의 페이지를 요청할 수 있다.</p>
+
+    
+
+    <h3><a name="absoluteURI" id="absoluteURI">절대 URI</a></h3>
+
+    <p>요청의 URI가 절대 URI이고 클라이언트가 보낸 요청의
+    호스트명과 포트가 주서버나 특정 가상호스트에 해당하면,
+    그 주서버 혹은 가상호스트는 URI 앞의 스킴/호스트명/포트
+    부분을 제외한 나머지 상대 URI를 서비스한다. 해당하는
+    주서버나 가상호스트가 없다면 URI를 그대로 두고 요청을
+    프록시 요청으로 처리한다.</p>
+
+
+<h3><a name="observations" id="observations">주의</a></h3>
+
+    <ul>
+      <li>이름기반 가상호스트와 IP기반 가상호스트는 서로에게
+     영향을 주지 않는다. IP기반 가상호스트를 자신의 이름집합
+     IP 주소외에 어떤 주소로도 접근할 수 없다. 이름기반
+     가상호스트도 마찬가지다. 이름기반 가상호스트는
+     <code>NameVirtualHost</code> 지시어로 정의한 주소집합의
+     IP 주소를 통해서만 접근할 수 있다.</li>
+
+      <li>IP기반 가상호스트는 <code>ServerAlias</code>와
+      <code>ServerPath</code>를 절대로 검사하지 않는다.</li>
+
+      <li>설정파일에서 이름기반 가상호스트, IP기반 가상호스트,
+      <code>_default_</code> 가상호스트, <code>NameVirtualHost</code>
+      지시어의 순서는 중요하지 않다. 특정 주소집합에 대한
+      이름기반 가상호스트들의 순서만이 중요하다. 설정파일에서
+      앞에 나오는 이름기반 가상호스트는 자신이 속한 주소집합에서
+      가장 높은 우선순위를 가진다.</li>
+
+      <li>보안을 위해 <code>Host:</code> 헤더에 포함된 포트
+      번호는 절대로 사용하지 않는다. 아파치는 항상 클라이언트가
+      요청을 보낸 실제 포트를 사용한다.</li>
+
+      <li>(둘 사이를 구별할 <code>Host:</code> 헤더가 없다고
+      가정하면,) <code>ServerPath</code> 지시어가 설정파일에서
+      뒤에 나오는 다른 <code>ServerPath</code> 지시어의 앞부분을
+      지칭하는 경우 항상 앞에 나온 지시어를 사용한다.</li>
+
+      <li>두 IP기반 가상호스트가 같은 주소를 가지면, 항상
+      설정파일에서 앞에 나오는 가상호스트를 사용한다. 이런 일은
+      아무도 모르게 일어날 수 있다. 서버가 이런 상황을 발견하면
+      오류 로그파일에 경고를 기록한다.</li>
+
+      <li><code>_default_</code> 가상호스트는 요청의 IP 주소<em>와</em>
+      포트 번호에 해당하는 가상호스트가 없을때만 요청을 처리한다.
+      클라이언트가 요청을 보낸 포트 번호가 <code>_default_</code>
+      가상호스트의 포트 번호(기본값은 <code>Listen</code>)와
+      같을때만 요청을 처리한다. 어떤 포트의 요청이라도 잡기위해
+      (<em>예를 들어</em>, <code>_default_:*</code>) 와일드카드
+      포트를 사용할 수 있다. <code>NameVirtualHost *</code>
+      가상호스트도 마찬가지다.</li>
+
+      <li>주서버는 클라이언트가 연결한 IP 주소와 포트 번호에
+      해당하는 (<code>_default_</code> 가상호스트를 포함하여)
+      가상호스트가 없을때만 요청을 서비스한다. 즉, 주서버는
+      (그 포트에 해당하는 <code>_default_</code> 가상호스트가
+      없다면) 지정하지않은 주소/포트 쌍에 대한 요청만을 처리한다.</li>
+
+      <li>클라이언트가 (<em>예를 들어</em>, <code>NameVirtualHost</code>
+      지시어에서) 이름기반 가상호스트 주소(와 포트)에 연결한
+      경우 <code>Host:</code> 헤더를 알 수 없거나 헤더가 없는
+      요청을 보내면 요청은 <em>절대로</em> <code>_default_</code>
+      가상호스트나 주서버에서 처리하지 않는다.</li>
+
+      <li>시작할때 서버가 DNS를 의존하지 않으려면 절대로
+      <code>VirtualHost</code> 지시어에 DNS 이름을 사용하지마라.
+      게다가 열거한 모든 도메인의 DNS를 통제하지 않는다면
+      보안상 위험도 있다. 이에 대한 <a href="../dns-caveats.html">정보</a>가 있다.</li>
+
+      <li>각 가상호스트마다 <code>ServerName</code>를 항상
+      정의해야 한다. 안그러면 가상호스트마다 DNS를 찾게 된다.</li>
+      </ul>
+      
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="tips" id="tips">팁</a></h2>
+
+    <p><a href="../dns-caveats.html#tips">DNS 문제</a> 페이지의
+    팁에 추가로 아래에 팁이 있다:</p>
+
+    <ul>
+      <li>모든 주서버 정의를 <code>VirtualHost</code> 정의 앞에
+      두어라. (그러면 설정을 읽기 편하다. 안그러면 나중에 설정이
+      합쳐질때 가상호스트들 사이에 섞인 정의가 모든 가상호스트에
+      영향을 줄 수 있기때문에 혼란스럽다.)</li>
+
+      <li>읽기 편하도록 설정에서 해당하는 <code>NameVirtualHost</code>과
+      <code>VirtualHost</code> 정의들을 묶어라.</li>
+
+      <li><code>ServerPath</code>가 다른 <code>ServerPath</code>의
+      앞부분을 지칭하는 경우를 피하라. 피할 수 없다면 설정파일에서
+      앞부분이 더 긴 (더 자세한) 가상호스트를 짧은 (덜 자세한)
+      가상호스트보다 앞에 두어라. (<em>예를 들어</em>,
+      "ServerPath /abc"는 "ServerPath /abc/def" 다음에 두어야
+      한다.</li>
+    </ul>
+
+</div></div>
+<div class="bottomlang">
+<p><span>가능한 언어: </span><a href="../en/vhosts/details.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/details.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ko/vhosts/details.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/details.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/vhosts/details.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

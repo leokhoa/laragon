@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Apache の起動 - Apache HTTP サーバ バージョン 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">モジュール</a> | <a href="./mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">用語</a> | <a href="./sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="./">バージョン 2.4</a></div><div id="page-content"><div id="preamble"><h1>Apache の起動</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="./de/invoking.html" hreflang="de" rel="alternate" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="./en/invoking.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./es/invoking.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="./fr/invoking.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/invoking.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/invoking.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/invoking.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+    <p>Windows 上では、Apache は通常はサービスとして実行されます。
+    詳細に関しては、「<a href="platform/windows.html#winsvc">
+    サービスとして実行する</a>」をご覧下さい。</p>
+
+    <p>Unixでは、<code class="program"><a href="./programs/httpd.html">httpd</a></code> 
+    プログラムが、バックグラウンドで常にリクエスト処理を行う
+    デーモンとして実行されます。この文書ではどのように
+    <code class="program"><a href="./programs/httpd.html">httpd</a></code> を起動するかについて記述しています。</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#startup">Apache の起動方法</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#errors">起動時のエラー</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#boot">ブート時の起動</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#info">追加情報</a></li>
+</ul><h3>参照</h3><ul class="seealso"><li><a href="stopping.html">停止と再起動</a></li><li><code class="program"><a href="./programs/httpd.html">httpd</a></code></li><li><code class="program"><a href="./programs/apachectl.html">apachectl</a></code></li><li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="startup" id="startup">Apache の起動方法</a></h2>
+
+    <p>もし、設定ファイル中で指定されている
+    <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code>
+    がデフォルトの 80 (もしくは 1024 以下の他のポート)
+    である場合は、Apache を起動するためには root
+    権限が必要になりますが、
+    これはこの特権ポートにバインドするためです。
+    起動して、一度ログファイルを開くといった準備のための
+    動作を幾つか実行した後は、クライアントからのリクエストに対する
+    listen と応答を実際に行う<em>子</em>プロセスを起動します。
+    メインの <code class="program"><a href="./programs/httpd.html">httpd</a></code> プロセスは root 権限で走り続けますが、
+    子プロセスはもっと低い権限で走ります。
+    これは選択した<a href="mpm.html">マルチプロセッシングモジュール</a>で制御されます。</p>
+
+    <p>推奨の <code class="program"><a href="./programs/httpd.html">httpd</a></code> 実行プログラムの起動方法は、
+    <code class="program"><a href="./programs/apachectl.html">apachectl</a></code>
+    制御スクリプトを使用する方法です。このスクリプトは、<code class="program"><a href="./programs/httpd.html">httpd</a></code> 
+    がオペレーティングシステム上で正常に動作するように必要な環境変数を
+    適切に設定して、<code class="program"><a href="./programs/httpd.html">httpd</a></code> バイナリを起動します。
+    <code class="program"><a href="./programs/apachectl.html">apachectl</a></code> はどんなコマンドライン引数も通過させますので、
+    <code class="program"><a href="./programs/httpd.html">httpd</a></code> のどのコマンドラインオプションも
+    <code class="program"><a href="./programs/apachectl.html">apachectl</a></code> のオプションとして使用できます。
+    また、<code class="program"><a href="./programs/apachectl.html">apachectl</a></code> スクリプトを直接編集し、
+    スクリプト先頭付近の <code>HTTPD</code> 変数を変更することで、
+    <code class="program"><a href="./programs/httpd.html">httpd</a></code> バイナリの正しい位置を指定したり、<em>常に</em>
+    付加させるコマンドライン引数を指定したりすることができます。</p>
+
+    <p><code class="program"><a href="./programs/httpd.html">httpd</a></code> が起動されてまず最初にすることは、
+    <a href="configuring.html">設定ファイル</a>
+    <code>httpd.conf</code> の位置を特定して読み込むことです。
+    このファイルの位置はコンパイル時に設定されますが、実行時に
+    <code>-f</code> コマンドラインオプションを使って
+    位置を指定することもできます。例えば次のようにです。</p>
+
+<div class="example"><p><code>/usr/local/apache2/bin/apachectl -f
+      /usr/local/apache2/conf/httpd.conf</code></p></div>
+
+    <p>スタートアップが万事上手くいったら、サーバはターミナルから
+    切り離されて、コマンドプロンプトが即座に戻ってくるでしょう。
+    これはサーバが起動している状態を示しています。
+    その後はブラウザでサーバに接続して、
+    <code class="directive"><a href="./mod/core.html#documentroot">DocumentRoot</a></code>
+    ディレクトリのテストページを見ることができるでしょう。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="errors" id="errors">起動時のエラー</a></h2>
+
+    <p>Apache は、起動時に致命的な問題に遭遇すると、
+    終了する前に、コンソールか
+    <code class="directive"><a href="./mod/core.html#errorlog">ErrorLog</a></code>
+    のどちらかに問題を記述したメッセージを出力します。
+    最もよくあるエラーメッセージは
+    「<code>Unable to bind to Port ...</code>」
+    です。このメッセージは普通は次のどちらかが原因です。</p>
+
+    <ul>
+      <li>root でログインしていない時に、
+      特権ポートでサーバを起動しようとした。</li>
+
+      <li>同じポートに既にバインドされている Apache
+      がもう一つあるときや他のウェブサーバが存在している時に、
+      サーバを開始しようとした。</li>
+    </ul>
+
+    <p>より多くの問題解決の方策の説明は、
+	Apache <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> をご覧下さい。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="boot" id="boot">ブート時の起動</a></h2>
+
+    <p>システムがリブートした後でも
+    サーバが実行され続けるようにしたい場合は、
+    <code class="program"><a href="./programs/apachectl.html">apachectl</a></code>
+    を呼び出すものをシステムスタートアップファイル
+    (通常 <code>rc.local</code> や <code>rc.N</code>
+    内のファイル) に追加しなければなりません。
+    この方法では Apache を root 権限で起動します。
+    これをする前に、セキュリティやアクセス制限が
+    適切に設定されていていることを確認してください。</p>
+
+    <p><code class="program"><a href="./programs/apachectl.html">apachectl</a></code> スクリプトは通常は、標準的な SysV init 
+    スクリプトとして動作するように設計されています。
+    <code>start</code>, <code>restart</code>, <code>stop</code>
+    といった引数をとって、<code class="program"><a href="./programs/httpd.html">httpd</a></code> 
+    への適切なシグナルに変換します。
+    ですから、通常は単に適切な init ディレクトリ内から
+    <code class="program"><a href="./programs/apachectl.html">apachectl</a></code> へリンクすることができます。しかし、
+    念のためシステムの要求に合致していることを確認してください。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="info" id="info">追加情報</a></h2>
+
+    <p><code class="program"><a href="./programs/httpd.html">httpd</a></code> や
+    <code class="program"><a href="./programs/apachectl.html">apachectl</a></code>、サーバに含まれていたその他補助プログラムの、
+    コマンドラインオプションに関する追加情報は、
+    <a href="programs/">サーバと補助プログラム</a>ページに
+    記載されています。
+    Apache 配布に含まれている全<a href="mod/">モジュール</a>、
+    それによって提供される<a href="mod/directives.html">ディレクティブ</a>
+    のドキュメントもあります。</p>
+</div></div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="./de/invoking.html" hreflang="de" rel="alternate" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="./en/invoking.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./es/invoking.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="./fr/invoking.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/invoking.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/invoking.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/invoking.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/invoking.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="./mod/">モジュール</a> | <a href="./mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">用語</a> | <a href="./sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

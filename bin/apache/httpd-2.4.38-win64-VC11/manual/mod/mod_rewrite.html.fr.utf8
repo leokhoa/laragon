@@ -1,0 +1,1673 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_rewrite - Serveur HTTP Apache Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p>
+<p class="apache">Serveur HTTP Apache Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">Serveur HTTP</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Modules</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Module Apache mod_rewrite</h1>
+<div class="toplang">
+<p><span>Langues Disponibles: </span><a href="../en/mod/mod_rewrite.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_rewrite.html" title="Français">&nbsp;fr&nbsp;</a></p>
+</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">Description:</a></th><td>Ce module fournit un moteur de réécriture à base de
+règles permettant de réécrire les URLs des requêtes
+à la volée</td></tr>
+<tr><th><a href="module-dict.html#Status">Statut:</a></th><td>Extension</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">Identificateur de Module:</a></th><td>rewrite_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">Fichier Source:</a></th><td>mod_rewrite.c</td></tr></table>
+<h3>Sommaire</h3>
+
+      <p>Le module <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> utilise un moteur de
+      réécriture à base de règles, basé sur un interpréteur
+      d'expressions rationnelles PCRE, pour réécrire les URLs à la volée. Par
+      défaut, <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> met en correspondance une URL
+      avec le système de fichiers. Cependant, on peut aussi l'utiliser
+      pour rediriger une URL vers une autre URL, ou pour invoquer une
+      requête interne à destination du mandataire.</p>
+      <p><code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> fournit une méthode souple et
+      puissante pour manipuler les URLs en utilisant un nombre illimité
+      de règles. Chaque règle peut être associée à un nombre illimité de
+      conditions, afin de vous permettre de réécrire les URLs en
+      fonction de variables du serveur, de variables d'environnement,
+      d'en-têtes HTTP, ou de repères temporels.</p>
+      <p><code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> agit sur la totalité de l'URL, y
+      compris la partie chemin. Une règle de réécriture peut être
+      invoquée dans <code>httpd.conf</code> ou dans un fichier
+      <code>.htaccess</code>. Le chemin généré par une règle de
+      réécriture peut inclure une chaîne de paramètres, ou peut renvoyer
+      vers un traitement secondaire interne, une redirection vers une
+      requête externe ou vers le mandataire interne.</p>
+
+      <p>Vous trouverez d'avantage de détails, discussions et exemples
+      dans la
+      <a href="../rewrite/">documentation détaillée
+      sur mod_rewrite</a>.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>Sujets</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#logging">Journalisation</a></li>
+</ul><h3 class="directives">Directives</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#rewritebase">RewriteBase</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#rewritecond">RewriteCond</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#rewriteengine">RewriteEngine</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#rewritemap">RewriteMap</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#rewriteoptions">RewriteOptions</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#rewriterule">RewriteRule</a></li>
+</ul>
+<h3>Traitement des bugs</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">Journal des modifications de httpd</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_rewrite">Problèmes connus</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_rewrite">Signaler un bug</a></li></ul><h3>Voir aussi</h3>
+<ul class="seealso">
+<li><a href="#comments_section">Commentaires</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="logging" id="logging">Journalisation</a></h2>
+
+    <p><code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> offre une journalisation détaillée
+    de ses actions aux niveaux de journalisation <code>trace1</code> à
+    <code>trace8</code>. Le niveau de journalisation peut être défini de
+    manière spécifique à <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> via la directive
+    <code class="directive"><a href="../mod/core.html#loglevel">LogLevel</a></code> : jusqu'au niveau
+    <code>debug</code> aucune action n'est journalisée, alors qu'elles
+    le sont pratiquement toutes au niveau <code>trace8</code>.</p>
+
+    <div class="note">
+      L'utilisation d'un niveau de journalisation élevé pour
+      <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> va ralentir votre serveur HTTP Apache
+      de manière dramatique ! N'utilisez un niveau de journalisation
+      supérieur à <code>trace2</code> qu'à des fins de débogage !
+    </div>
+
+    <div class="example"><h3>Exemple</h3><pre class="prettyprint lang-config">LogLevel alert rewrite:trace3</pre>
+</div>
+
+    <div class="note"><h3>RewriteLog</h3>
+      <p>Ceux qui sont familiers avec les versions précédentes de
+      <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> vont probablement rechercher en vain les
+      directives <code>RewriteLog</code> et
+      <code>RewriteLogLevel</code>. Elles ont été en effet remplacées
+      par une configuration de la journalisation par module, comme
+      mentionné plus haut.
+      </p>
+
+      <p>Pour extraire les traces spécifiques à
+      <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>, affichez le fichier journal en
+      redirigeant la sortie vers grep :</p>
+    <div class="example"><p><code>
+    tail -f error_log|fgrep '[rewrite:'
+    </code></p></div>
+    </div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="rewritebase" id="rewritebase">Directive</a> <a name="RewriteBase" id="RewriteBase">RewriteBase</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Définit l'URL de base pour les réécritures au niveau
+répertoire</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntaxe:</a></th><td><code>RewriteBase <em>chemin_URL</em></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Défaut:</a></th><td><code>Pas de valeur par défaut</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Contexte:</a></th><td>répertoire, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Surcharges autorisées:</a></th><td>FileInfo</td></tr>
+<tr><th><a href="directive-dict.html#Status">Statut:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_rewrite</td></tr>
+</table>
+      <p>La directive <code class="directive">RewriteBase</code> permet de
+      spécifier le préfixe d'URL à utiliser dans un contexte de
+      répertoire (htaccess) pour les directives
+      <code class="directive"><a href="#rewriterule">RewriteRule</a></code> qui réécrivent vers un chemin
+      relatif.</p>
+      <p>Cette directive est <em>obligatoire</em> si vous utilisez un
+      chemin relatif dans une substitution, et dans un contexte de
+      répertoire (htaccess), sauf si au moins une de ces conditions est
+      vérifiée :</p>
+      <ul>
+          <li>La requête initiale, ainsi que la substitution, se
+	  situent par raport à la valeur de la directive
+	  <code class="directive"><a href="../mod/core.html#documentroot">DocumentRoot</a></code> (c'est à
+	  dire que pour y accéder, il n'est pas nécessaire d'utiliser
+	  une directive telle qu'<code class="directive"><a href="../mod/mod_alias.html#alias">Alias</a></code>).</li>
+          <li>Le chemin du système de fichiers vers le répertoire
+	  contenant la <code class="directive"><a href="#rewriterule">RewriteRule</a></code>, suffixé par
+	  la substitution relative est aussi valide en tant qu'URL sur
+	  le serveur (ce qui est rare).</li>
+	  <li>A partir de la version 2.4.16 du serveur HTTP Apache,
+	  cette directive peut être omise lorsque la requête est mise en
+	  correspondance avec le système de fichiers via la directive
+	  <code class="directive"><a href="../mod/mod_alias.html#alias">Alias</a></code> ou le module
+	  <code class="module"><a href="../mod/mod_userdir.html">mod_userdir</a></code>.</li>
+      </ul>
+
+<p>Dans l'exemple ci-dessous, la directive
+<code class="directive">RewriteBase</code> est nécessaire afin d'éviter une
+réécriture en http://example.com/opt/myapp-1.2.3/welcome.html car la
+ressource n'était pas relative à la racine des documents. Cette erreur
+de configuration aurait conduit le serveur à rechercher un répertoire
+"opt" à la racine des documents.</p>
+
+<pre class="prettyprint lang-config">DocumentRoot "/var/www/example.com"
+AliasMatch "^/myapp" "/opt/myapp-1.2.3"
+&lt;Directory "/opt/myapp-1.2.3"&gt;
+ RewriteEngine On
+    RewriteBase "/myapp/"
+    RewriteRule "^index\.html$"  "welcome.html"
+&lt;/Directory&gt;</pre>
+
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="rewritecond" id="rewritecond">Directive</a> <a name="RewriteCond" id="RewriteCond">RewriteCond</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Définit une condition qui devra être satisfaite pour que
+la réécriture soit effectuée
+</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntaxe:</a></th><td><code> RewriteCond
+      <em>chaîne_de_test</em> <em>expression_de_comparaison</em> [<em>drapeaux</em>]</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Contexte:</a></th><td>configuration globale, serveur virtuel, répertoire, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Surcharges autorisées:</a></th><td>FileInfo</td></tr>
+<tr><th><a href="directive-dict.html#Status">Statut:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_rewrite</td></tr>
+</table>
+      <p>La directive <code class="directive">RewriteCond</code> permet de définir une
+      condition d'exécution d'une règle. Une ou plusieurs conditions
+      <code class="directive">RewriteCond</code> peuvent précéder une
+      directive <code class="directive"><a href="#rewriterule">RewriteRule</a></code>. La règle de réécriture correspondante n'est
+      ainsi exécutée que si ces conditions sont satisfaites,
+      <strong>et</strong> si l'URI correspond au modèle spécifié dans la
+      règle.</p>
+
+      <p><em>TestString</em> est une chaîne qui peut contenir les
+      extensions suivantes en plus du texte simple :</p>
+
+      <ul>
+        <li>
+          <strong>références arrières de règle de réécriture</strong> :
+	  ce sont des références arrières de la forme
+	  <strong><code>$N</code></strong> (0 &lt;= N &lt;= 9). $1 à $9
+	  permettent d'accéder aux parties regroupées (entre
+	  parenthèses) du modèle, issues de la <code>RewriteRule</code>
+	  concernée par le jeu de conditions <code>RewriteCond</code>
+	  courant. $0 donne accès à l'ensemble de la chaîne
+	  correspondant au modèle.</li>
+        <li>
+          <strong>Références arrières de condition de réécriture
+	  </strong> : ce sont des références arrières de la forme
+	  <strong><code>%N</code></strong> (0 &lt;= N &lt;= 9). %1 à %9
+	  permettent d'accéder aux parties regroupées (entre
+	  parenthèses) du modèle, issues de la dernière
+	  condition <code>RewriteCond</code> satisfaite du jeu de conditions <code>RewriteCond</code>
+	  courant. %0 donne accès à l'ensemble de la chaîne
+	  correspondant au modèle.</li>
+        <li>
+          <strong>extensions de table de réécriture</strong> :
+	  ce sont des extensions de la forme <strong><code>${nomTable:clé|défaut}</code></strong>. Voir la <a>href="#mapfunc"&gt;documentation sur RewriteMap</a>
+	   pour plus de détails.
+        </li>
+        <li>
+          <strong>Variables du serveur</strong> :
+	  ce sont des variables de la forme
+	  <strong><code>%{</code> <em>NAME_OF_VARIABLE</em> <code>}</code></strong>,
+            où <em>NOM_DE_VARIABLE</em> peut contenir une chaîne issue
+	    de la liste suivante :
+
+          <table>
+          
+            <tr>
+              <th>En-têtes HTTP :</th> <th>connexion &amp; requête:</th> <th />
+	    </tr>
+
+            <tr>
+	      <td>
+		 HTTP_ACCEPT<br />
+                 HTTP_COOKIE<br />
+                 HTTP_FORWARDED<br />
+                 HTTP_HOST<br />
+                 HTTP_PROXY_CONNECTION<br />
+                 HTTP_REFERER<br />
+                 HTTP_USER_AGENT<br />
+              </td>
+
+              <td>
+                 AUTH_TYPE<br />
+		 CONN_REMOTE_ADDR<br />
+		 CONTEXT_PREFIX<br />
+                 CONTEXT_DOCUMENT_ROOT<br />
+                 IPV6<br />
+                 PATH_INFO<br />
+                 QUERY_STRING<br />
+                 REMOTE_ADDR<br />
+                 REMOTE_HOST<br />
+		 REMOTE_IDENT<br />
+                 REMOTE_PORT<br />
+                 REMOTE_USER<br />
+                 REQUEST_METHOD<br />
+                 SCRIPT_FILENAME<br />
+              </td>
+
+	      <td />
+            </tr>
+
+            <tr>
+              <th>variables internes au serveur :</th> <th>date et heure :</th> <th>spéciaux :</th>
+	    </tr>
+
+            <tr>
+	      <td>
+	         DOCUMENT_ROOT<br />
+		 SCRIPT_GROUP<br />
+                 SCRIPT_USER<br />
+                 SERVER_ADDR<br />
+                 SERVER_ADMIN<br />
+                 SERVER_NAME<br />
+                 SERVER_PORT<br />
+                 SERVER_PROTOCOL<br />
+                 SERVER_SOFTWARE<br />
+              </td>
+
+              <td>
+                 TIME_YEAR<br />
+                 TIME_MON<br />
+                 TIME_DAY<br />
+                 TIME_HOUR<br />
+                 TIME_MIN<br />
+                 TIME_SEC<br />
+                 TIME_WDAY<br />
+                 TIME<br />
+              </td>
+
+              <td>
+                 API_VERSION<br />
+		 CONN_REMOTE_ADDR<br />
+                 HTTPS<br />
+		 IS_SUBREQ<br />
+		 REMOTE_ADDR<br />
+                 REQUEST_FILENAME<br />
+                 REQUEST_SCHEME<br />
+                 REQUEST_URI<br />
+                 THE_REQUEST<br />
+              </td>
+            </tr>
+          </table>
+
+                <p>Ces variables correspondent toutes aux en-têtes MIME
+		HTTP de mêmes noms, au variables C du serveur HTTP Apache, ou
+		aux champs <code>struct tm</code> du système Unix. La
+		plupart d'entre elles sont documentées <a href="../expr.html#vars">ici</a>, dans la
+		spécification CGI ou ailleurs dans le
+		manuel.</p>
+
+		<p>SERVER_NAME et SERVER_PORT dépendent respectivement
+		des valeurs des directives <code class="directive"><a href="../mod/core.html#usecanonicalname">UseCanonicalName</a></code> et <code class="directive"><a href="../mod/core.html#usecanonicalphysicalport">UseCanonicalPhysicalPort</a></code>.</p>
+
+		<p>Parmi les variables
+		spécifiques à <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>, ou trouve les suivantes :</p>
+        
+                <dl>
+                  <dt><code>API_VERSION</code></dt>
+
+                  <dd>C'est la version de l'API des modules Apache httpd
+		  (l'interface interne entre le serveur et les modules)
+		  pour la construction courante de httpd, telle qu'elle
+		  est définie dans include/ap_mmn.h. La version de l'API
+		  des modules correspond à la version du serveur Apache
+		  httpd
+		  utilisé (par exemple, pour la version 1.3.14 d'Apache
+		  httpd,
+		  il s'agit de la version 19990320:10), mais intéresse
+		  principalement les auteurs de modules.</dd>
+
+                  <dt><code>CONN_REMOTE_ADDR</code></dt>
+
+		  <dd>A partir de la version 2.4.8 : l'adresse IP distante de
+		  la connexion (voir le module
+		  <code class="module"><a href="../mod/mod_remoteip.html">mod_remoteip</a></code>).</dd>
+
+		  <dt><code>HTTPS</code></dt>
+
+                  <dd>Contient le texte "on" si la connexion
+		  utilise SSL/TLS, "off" dans le cas contraire
+		  (Cette variable peut être utilisée sans problème, que
+		  <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> soit chargé ou non).</dd>
+
+		  <dt><code>IS_SUBREQ</code></dt>
+
+                  <dd>Contient le texte "true" si la requête en cours
+		  de traitement est une sous-requête, "false" dans le
+		  cas contraire. Une sous-requête est générée quand un
+		  module a besoin de se référer à des fichiers ou URIs
+		  addidionnels pour pouvoir mener à bien sa tâche.</dd>
+
+		  <dt><code>REMOTE_ADDR</code></dt>
+                  <dd>L'adresse IP de l'hôte distant (se référer au
+		  module <code class="module"><a href="../mod/mod_remoteip.html">mod_remoteip</a></code>).</dd>
+
+                  <dt><code>REQUEST_FILENAME</code></dt>
+
+                  <dd>Le chemin complet local au système de fichiers
+		  du fichier ou du script correspondant
+		  à la requête, s'il a déjà été déterminé par le serveur
+		  au moment où on y fait référence. Dans le cas
+		  contraire, et en particulier dans le cas d'un serveur
+		  virtuel, <code>REQUEST_FILENAME</code> contient la
+		  valeur de <code>REQUEST_URI</code>. En fonction de la
+		  valeur de la directive <code class="directive"><a href="../mod/core.html#acceptpathinfo">AcceptPathInfo</a></code>, le serveur
+		  peut n'utiliser que certains éléments de tête du
+		  <code>REQUEST_URI</code> pour déterminer à quel
+		  fichier correspond la requête.</dd>
+
+		  <dt><code>REQUEST_SCHEME</code></dt>
+
+                  <dd>Contient le protocole de la requête (en général
+		  "http" ou "https"). La valeur peut être modifiée par
+		  la directive <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code>.</dd>
+
+		  <dt><code>REQUEST_URI</code></dt>
+
+		  <dd>La partie chemin de l'URI de la requête, comme
+		  "/index.html". Ceci exclut en particulier la chaîne de
+		  paramètres de la requête qui est contenue dans la
+		  variable <code>QUERY_STRING</code>.</dd>
+
+                  <dt><code>THE_REQUEST</code></dt>
+
+                  <dd>La ligne de requête HTTP complète envoyée par le
+		  navigateur au serveur (par exemple, "<code>GET
+                  /index.html HTTP/1.1</code>"), à l'exclusion de tout
+		  en-tête ajouté par le navigateur. Cette
+		  valeur n'a pas été déséchappée (décodée), à la
+		  différence de la plupart des variables suivantes.</dd>
+                </dl>
+
+        </li>
+      </ul>
+
+      <p>Si la <em>chaîne_de_test</em> contient la valeur spéciale
+      <code>expr</code>, <em>expression_de_comparaison</em> sera traité
+      en tant qu'expression rationnelle de type <a href="../expr.html">ap_expr</a>. Si des en-têtes HTTP sont
+      référencés dans l'expression rationnelle, et si le drapeau
+      <code>novary</code> n'est pas activé, ils seront ajoutés à
+      l'en-tête Vary.</p>
+
+      <p>Autres points à connaître ::</p>
+      <ol>
+        <li>
+        <p>Les variables <code>SCRIPT_FILENAME</code> et
+	<code>REQUEST_FILENAME</code> contiennent toutes deux la valeur
+	du champ <code>filename</code> de la
+	structure interne <code>request_rec</code>du serveur HTTP Apache.
+	Le premier nom correspond au nom de variable bien connu CGI,
+	alors que le second est l'équivalent de REQUEST_URI (qui
+	contient la valeur du champ <code>uri</code> de
+	<code>request_rec</code>).</p>
+        <p>Si une substitution intervient et si la réécriture se
+	poursuit, la valeur des deux variables sera mise à jour en
+	conséquence.</p>
+        <p>Dans le contexte du serveur principal (c'est à dire avant que
+	la requête ne soit mise en correspondance avec le système de
+	fichiers), SCRIPT_FILENAME et REQUEST_FILENAME  ne peuvent pas
+	contenir le chemin entier dans le système de fichiers local car
+	ce chemin b'est pas connu à ce stade du traitement. Dans ce cas,
+	les deux variables contiendront la valeur de REQUEST_URI. Pour
+	obtenir le chemin complet de la requête dans le système de
+	fichiers local dans le contexte du serveur principal, utilisez une
+	référence avant à base d'URL
+	<code>%{LA-U:REQUEST_FILENAME}</code> pour déterminer la valeur
+	finale de REQUEST_FILENAME.</p></li>
+
+
+        <li>
+	<code>%{ENV:<em>variable</em>}</code>, où <em>variable</em> peut
+	correspondre à une variable d'environnement quelconque.</li>
+	<li>
+        <code>%{ENV:variable}</code> est aussi disponible, où
+	<em>variable</em> peut correspondre à toute variable
+	d'environnement. Peut être consulté via des structures internes
+	d'Apache httpd et (si on ne les trouve pas ici) via la fonction
+	<code>getenv()</code> à partir du processus du serveur Apache
+	httpd.</li>
+
+        <li>Que <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> soit chargé ou non, on peut
+	utiliser <code>%{SSL:variable}</code>, où <em>variable</em>
+	peut être remplacé par le nom d'une
+	<a href="mod_ssl.html#envvars">variable
+	d'environnement SSL</a> . Si <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> n'est pas
+	chargé, cette variable contiendra toujours une chaîne vide.
+	Exemple : <code>%{SSL:SSL_CIPHER_USEKEYSIZE}</code> pourra
+	contenir la valeur <code>128</code>. Ces variables sont
+	disponibles même si l'option <code>StdEnvVars</code> de la
+	directive <code class="directive"><a href="../mod/mod_ssl.html#ssloptions">SSLOptions</a></code> n'a
+	pas été définie.</li>
+
+	<li>
+        On peut utiliser <code>%{HTTP:en-tête}</code>, où
+	<em>en-tête</em> peut correspondre à tout nom d'en-tête MIME
+	HTTP, pour extraire la valeur d'un en-tête envoyé dans la
+	requête HTTP. Par exemple, <code>%{HTTP:Proxy-Connection}</code>
+	contiendra la valeur de l'en-tête HTTP
+	"<code>Proxy-Connection:</code>".
+	Si on utilise un en-tête HTTP
+	dans une condition, et si cette condition est évaluée à
+	<code>vrai</code> pour la requête, cet en-tête sera ajouté à l'en-tête Vary de
+	la réponse. Il ne le sera pas si la condition est évaluée à
+	<code>faux</code>. L'ajout de l'en-tête HTTP à l'en-tête Vary
+	est nécessaire à une mise en cache appropriée.
+	<p>Il faut garder à l'esprit que les conditions suivent une
+	logique de cout-circuit si le drapeau
+	'<strong><code>ornext|OR</code></strong>' est utilisé, et que de
+	ce fait, certaines d'entre elles ne seront pas évaluées.</p>
+	</li>
+
+        <li>A des fins de référence avant, on peut utiliser,
+	<a id="LA-U" name="LA-U"><code>%{LA-U:variable}</code></a>, qui
+	permet d'effectuer une sous-requête interne à base d'URL, afin
+	de déterminer la valeur finale de <em>variable</em>. Ceci permet
+	d'accéder à la valeur d'une variable pour la réécriture inconnue
+	à ce stade du traitement, mais qui sera définie au
+	cours d'une phase ultérieure.
+	<p>Par exemple, pour effectuer une réécriture dépendant de la
+	variable <code>REMOTE_USER</code> dans le contexte du serveur
+	principal (fichier <code>httpd.conf</code>), vous devez utiliser
+	<code>%{LA-U:REMOTE_USER}</code> - cette variable est définie
+	par la phase d'autorisation qui intervient <em>après</em> la
+	phase de traduction d'URL (pendant laquelle <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>
+	opère).</p>
+        <p>Par contre, comme <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> implémente son contexte de
+	répertoire (fichier <code>.htaccess</code>) via la phase Fixup
+	de l'API, et comme la phase d'autorisation intervient
+	<em>avant</em> cette dernière, vous pouvez vous contenter
+	d'utiliser <code>%{REMOTE_USER}</code> dans ce contexte.</p></li>
+
+        <li>
+        <code>%{LA-F:variable}</code> peut être utilisée pour effectuer
+	une sous-requête interne (basée sur le nom de fichier), afin de
+	déterminer la valeur finale de <em>variable</em>. La plupart du
+	temps, elle est identique à LA-U (voir ci-dessus).</li>
+      </ol>
+
+
+      <p><em>expression_de_comparaison</em> est une expression
+      rationnelle qui est appliquée à l'instance actuelle de
+      <em>chaîne_de_test</em>. <em>chaîne_de_test</em> est d'abord
+      évaluée, puis comparée à
+      l'<em>expression_de_comparaison</em>.</p>
+
+      <p><em>expression_de_comparaison</em> est en général une
+      <em>expression rationnelle compatible perl</em>, mais vous
+      disposez des syntaxes supplémentaires suivantes pour effectuer
+      d'autres tests utiles sur <em>chaîne_de_test</em> :
+      </p>
+
+      <ol>
+        <li>Vous pouvez préfixer l'expression avec un caractère
+	'<code>!</code>' (point d'exclamation) pour inverser le résultat
+	de la condition, quelle que soit l'<em>expression de
+	comparaison</em> utilisée.</li>
+
+        <li>Vous pouvez effectuer des comparaisons lexicographiques de
+	chaînes	:
+
+         <dl>
+            <dt><strong>&lt;expression</strong></dt>
+	    <dd>inférieur au sens lexicographique<br />
+	    Traite l'<em>expression</em> comme une chaîne de
+	    caractères et la compare lexicographiquement à
+	    <em>chaîne_de_test</em>. La condition est satisfaite si
+	    <em>chaîne_de_test</em> est inférieure au sens
+	    lexicographique à l'<em>expression</em>.</dd>
+
+            <dt><strong>&gt;expression</strong></dt>
+	    <dd>supérieur au sens lexicographique<br />
+	    Traite l'<em>expression</em> comme une chaîne de
+	    caractères et la compare lexicographiquement à
+	    <em>chaîne_de_test</em>. La condition est satisfaite si
+	    <em>chaîne_de_test</em> est supérieure au sens
+	    lexicographique à l'<em>expression</em>.</dd>
+
+            <dt><strong>=expression</strong></dt>
+	    <dd>égal au sens lexicographique<br />
+	    Traite l'<em>expression</em> comme une chaîne de
+	    caractères et la compare lexicographiquement à
+	    <em>chaîne_de_test</em>. La condition est satisfaite si
+	    <em>chaîne_de_test</em> est égale au sens
+	    lexicographique à l'<em>expression</em> (les deux chaînes
+	    sont exactement identiques, caractère pour caractère). Si
+	    <em>expression</em> est <code>""</code> (deux guillemets),
+	    <em>chaîne_de_test</em> est comparée à la
+	    chaîne vide.</dd>
+
+	    <dt><strong>&lt;=expression de comparaison</strong></dt>
+	    <dd>inférieur ou égal à au sens lexicographique<br />
+            Considère l'<em>expression_de_comparaison</em> comme une
+	    chaîne de caractères et la compare au sens lexicographique à
+	    la <em>chaîne_de_test</em>. Vrai si <em>chaîne_de_test</em>
+	    précède lexicographiquement <em>expression_de_comparaison</em>, ou est
+	    égale à <em>expression_de_comparaison</em> (les deux chaînes
+	    sont identiques, caractère pour caractère).</dd>
+
+            <dt><strong>&gt;=expression de comparaison</strong></dt>
+	    <dd>supérieur ou égal à au sens lexicographique<br />
+            Considère l'<em>expression_de_comparaison</em> comme une
+	    chaîne de caractères et la compare au sens lexicographique à
+	    la <em>chaîne_de_test</em>. Vrai si <em>chaîne_de_test</em>
+	    suit lexicographiquement <em>expression_de_comparaison</em>, ou est
+	    égale à <em>expression_de_comparaison</em> (les deux chaînes
+	    sont identiques, caractère pour caractère).</dd>
+        </dl>
+	</li>
+
+        <li>
+          Vous pouvez effectuer des comparaisons d'entiers :
+          <dl>
+
+            <dt><strong>-eq</strong></dt>
+	    <dd>est numériquement égal à<br />
+            La <em>chaîne_de_test</em> est considérée comme un entier,
+	    et est comparée numériquement à l'<em>expression de
+	    comparaison</em>. Vrai si les deux expressions sont
+	    numériquement égales.</dd>
+
+            <dt><strong>-ge</strong></dt>
+	    <dd>est numériquement supérieur ou égal à<br />
+            La <em>chaîne_de_test</em> est considérée comme un entier,
+	    et est comparée numériquement à l'<em>expression de
+	    comparaison</em>. Vrai si <em>chaîne_de_test</em> est
+	    numériquement supérieure ou égale à
+	    <em>expression_de_comparaison</em>.</dd>
+
+             <dt><strong>-gt</strong></dt>
+	     <dd>est numériquement supérieur à<br />
+            La <em>chaîne_de_test</em> est considérée comme un entier,
+	    et est comparée numériquement à l'<em>expression de
+	    comparaison</em>. Vrai si <em>chaîne_de_test</em> est
+	    numériquement
+	    supérieure à <em>expression_de_comparaison</em>.</dd>
+
+            <dt><strong>-le</strong></dt>
+	    <dd>est numériquement inférieur ou égal à<br />
+            La <em>chaîne_de_test</em> est considérée comme un entier,
+	    et est comparée numériquement à l'<em>expression de
+	    comparaison</em>. Vrai si <em>chaîne_de_test</em> est
+	    numériquement
+	    inférieure ou égale à <em>expression_de_comparaison</em>.
+	    Attention à la confusion avec le drapeau <strong>-l</strong>
+	    en utilisant la variante the <strong>-L</strong> ou
+	    <strong>-h</strong>.</dd>
+
+             <dt><strong>-lt</strong></dt>
+	     <dd>est numériquement inférieur à<br />
+            La <em>chaîne_de_test</em> est considérée comme un entier,
+	    et est comparée numériquement à l'<em>expression de
+	    comparaison</em>. Vrai si <em>chaîne_de_test</em> est
+	    numériquement
+	    inférieure à <em>expression_de_comparaison</em>.
+	    Attention à la confusion avec le drapeau <strong>-l</strong>
+	    en utilisant la variante the <strong>-L</strong> ou
+	    <strong>-h</strong>.</dd>
+
+            <dt><strong>-ne</strong></dt>
+            <dd>Est numériquement <strong>n</strong>on <strong>é</strong>gal à<br />
+	     La <em>Chaîne de test</em> est considérée comme un entier et est
+	     numériquement comparée à l'<em>expression de comparaison</em>. Vrai
+	     si les deux éléments comparés sont numériquement différents.
+	     Equivalent à <code>!-eq</code>.</dd>	    
+
+           </dl>
+        </li>
+
+        <li>Vous pouvez effectuer différents tests sur les attributs de
+	fichier :
+          <dl>
+
+            <dt><strong>-d</strong></dt>
+	    <dd>est un <strong>r</strong>épertoire<br />
+	    Traite <em>chaîne_de_test</em> comme un chemin et vérifie
+	    s'il existe ou pas, et s'il s'agit d'un répertoire.</dd>
+
+            <dt><strong>-f</strong></dt>
+	    <dd>est un <strong>f</strong>ichier régulier<br />
+	    Traite <em>chaîne_de_test</em> comme un chemin et vérifie
+	    s'il existe ou pas, et s'il s'agit d'un fichier régulier.</dd>
+
+            <dt><strong>-F</strong></dt>
+	    <dd>test de l'existence d'un fichier via une sous-requête<br />
+	    Vérifie si <em>chaîne_de_test</em> est un fichier valide,
+	    accessible à travers tous les contrôles d'accès du serveur
+	    actuellement configurés pour ce chemin. C'est une
+	    sous-requête interne qui effectue cette vérification - à
+	    utiliser avec précautions car les performances du serveur
+	    peuvent s'en trouver affectées !</dd>
+
+	    <dt><strong>-h</strong></dt>
+	    <dd>est un lien symbolique, selon la convention bash<br />
+            Voir <strong>-l</strong>.</dd>
+
+            <dt><strong>-l</strong></dt>
+	    <dd>est un <strong>l</strong>ien symbolique<br />
+            Considère la <em>chaîne_de_test</em> comme un chemin et
+	    vérifie son existence et si elle est un lien symbolique. On
+	    peut aussi utiliser la convention bash <strong>-L</strong>
+	    ou <strong>-h</strong> lorsqu'il y a risque de confusion
+	    avec les tests <strong>-lt</strong> ou <strong>-le</strong>.</dd>
+
+            <dt><strong>-L</strong></dt>
+	    <dd>est un lien symbolique, selon la convention bash<br />
+            Voir <strong>-l</strong>.</dd>
+
+            <dt><strong>-s</strong></dt>
+	    <dd>est un fichier régulier d'une certaine taille<br />
+            Considère la <em>chaîne_de_test</em> comme un chemin et
+	    vérifie son existence et si elle est un fichier régulier
+	    d'une taille supérieure à zéro.</dd>
+
+            <dt><strong>-U</strong></dt>
+	    <dd><p>test de l'existence d'une
+	    URL via une sous-requête<br />
+	    Vérifie si <em>chaîne_de_test</em> est une URL valide,
+	    accessible à travers tous les contrôles d'accès du serveur
+	    actuellement configurés pour ce chemin. C'est une
+	    sous-requête interne qui effectue cette vérification - à
+	    utiliser avec précautions car les performances du serveur
+	    peuvent s'en trouver affectées !</p>
+	    <p>Ce drapeau ne renvoie <em>que</em> des informations
+	    concernant le contrôle d'accès, l'authentification et
+	    l'autorisation. Il ne renvoie <em>pas</em> d'informations
+	    concernant le code d'état que le gestionnaire configuré
+	    (static file, CGI, proxy, etc...) aurait, quant à lui,
+	    retourné.</p></dd>
+
+	  <dt><strong>-x</strong></dt>
+	  <dd>a l'attribut d'exécution positionné<br />
+            Considère la <em>chaîne_de_test</em> comme un chemin et
+	    vérifie son existence et si elle a son attribut d'exécution
+	    positionné. Ce positionnement est déterminé en fonction de
+	    l'OS sous-jacent.</dd>
+
+	    </dl>
+
+	    Par exemple:
+
+        <pre class="prettyprint lang-config">RewriteCond /var/www/%{REQUEST_URI} !-f
+RewriteRule ^(.+) /other/archive/$1 [R]</pre>
+
+
+        </li>
+
+	<li>
+           <p>Si la <em>chaîne_de_test</em> contient la valeur spéciale
+	   <code>expr</code>, la <em>chaîne de comparaison</em> sera
+	   traitée en tant qu'expression rationnelle de type <a href="../expr.html">ap_expr</a>.</p>
+
+	   <p>
+            Dans l'exemple ci-dessous, on utilise <code>-strmatch</code>
+	    pour comparer le <code>REFERER</code> avec le nom d'hôte du
+	    site afin de bloquer le hotlinking (référencement direct)
+	    non désiré.
+           </p>
+
+           <pre class="prettyprint lang-config">           RewriteCond expr "! %{HTTP_REFERER} -strmatch '*://%{HTTP_HOST}/*'"
+           RewriteRule "^/images" "-" [F]</pre>
+
+        </li>
+    </ol>
+
+	<p>Vous pouvez aussi définir certains drapeaux pour
+	l'<em>expression_de_comparaison</em> en ajoutant ces
+	<strong><code>[</code><em>drapeaux</em><code>]</code></strong>
+	comme troisième argument de la directive
+	<code class="directive">RewriteCond</code>, où <em>drapeaux</em> est un
+	sous-ensemble séparé par des virgules des drapeaux suivants :</p>
+
+      <ul>
+        <li>'<strong><code>nocase|NC</code></strong>'
+	(<strong>n</strong>o <strong>c</strong>ase)<br />
+	Rend le test insensible à la casse - il n'est pas fait de
+	distinction entre majuscules et minuscules, à la fois dans le
+	développement de <em>chaîne_de_test</em> et dans
+	<em>expression_de_comparaison</em>. Ce drapeau n'est pris en
+	compte que lors d'une comparaison entre <em>chaîne_de_test</em>
+	et <em>expression_de_comparaison</em>. Il ne l'est pas pour les
+	vérification par sous-requêtes ou sur le système de
+	fichiers.</li>
+
+        <li>
+          '<strong><code>ornext|OR</code></strong>'
+	  (<strong>ou</strong> condition suivante)<br />
+	  Permet de chaîner les conditions de règles avec un OU au
+	  lieu du AND implicite. Exemple typique :
+
+<pre class="prettyprint lang-config">RewriteCond "%{REMOTE_HOST}"  "^host1"  [OR]
+RewriteCond "%{REMOTE_HOST}"  "^host2"  [OR]
+RewriteCond "%{REMOTE_HOST}"  "^host3"
+RewriteRule ...règles concernant tous ces hôtes...</pre>
+
+
+          Sans ce drapeau, les paires
+	  condition/règle devraient être écrites trois fois.
+        </li>
+
+        <li>'<strong><code>novary|NV</code></strong>'
+	(<strong>n</strong>o <strong>v</strong>ary)<br />
+	Si la condition contient un en-tête HTTP, ce drapeau empêche
+	ce dernier d'être ajouté à l'en-tête Vary de la réponse. <br />
+	L'utilisation de ce drapeau peut provoquer une mise en cache
+	incorrecte de la réponse, si la représentation de cette réponse
+	varie avec la valeur de l'en-tête considéré. Ce drapeau ne
+	devrait donc être utilisé que si l'on maîtrise parfaitement le
+	fonctionnement de l'en-tête Vary.
+        </li>
+      </ul>
+      
+
+      <p><strong>Exemple :</strong></p>
+
+       <p>Pour réécrire la page d'accueil d'un site en fonction de
+       l'en-tête ``<code>User-Agent:</code>'' de la requête, vous
+       pouvez utiliser ce qui suit : </p>
+
+<pre class="prettyprint lang-config">RewriteCond  "%{HTTP_USER_AGENT}"  "(iPhone|Blackberry|Android)"
+RewriteRule  "^/$"               "/homepage.mobile.html"  [L]
+
+RewriteRule  "^/$"                 "/homepage.std.html"  [L]</pre>
+
+
+        <p>Explications : si vous utilisez un navigateur
+	qui s'identifie comme un
+	navigateur de plateforme mobile (notez que l'exemple est
+	incomplet car il existe de nombreuses autres plateformes
+	mobiles), c'est la version pour mobile de la page d'accueil qui
+	sera renvoyée. Dans le cas contraire, ce sera la page d'accueil
+	standard.</p>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="rewriteengine" id="rewriteengine">Directive</a> <a name="RewriteEngine" id="RewriteEngine">RewriteEngine</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Active ou désactive l'exécution du
+moteur de réécriture</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntaxe:</a></th><td><code>RewriteEngine on|off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Défaut:</a></th><td><code>RewriteEngine off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Contexte:</a></th><td>configuration globale, serveur virtuel, répertoire, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Surcharges autorisées:</a></th><td>FileInfo</td></tr>
+<tr><th><a href="directive-dict.html#Status">Statut:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_rewrite</td></tr>
+</table>
+
+      <p>La directive <code class="directive">RewriteEngine</code> active ou
+      désactive l'exécution du moteur de réécriture. Si sa valeur est
+      <code>off</code>, ce module n'exécutera aucun traitement et ne
+      mettra pas à jour les variables d'environnement
+      <code>SCRIPT_URx</code>.</p>
+
+      <p>Plutôt que de commenter toutes les directives <code class="directive"><a href="#rewriterule">RewriteRule</a></code>, il est préférable
+      d'utiliser cette directive si l'on souhaite désactiver les
+      règles de réécriture dans un contexte particulier.</p>
+
+      <p>Notez que les  hôtes virtuels n'héritent pas des
+      configurations de réécriture. Ceci implique que vous devez
+      insérer une directive <code>RewriteEngine on</code> dans chaque
+      hôte virtuel pour lequel vous souhaitez utiliser des règles
+      de réécriture.</p>
+
+      <p>Les directives <code class="directive"><a href="#rewritemap">RewriteMap</a></code> du type
+      <code>prg</code> ne sont pas prises en compte au cours de
+      l'initialisation du serveur si elle ont été définies dans un
+      contexte où la directive <code class="directive">RewriteEngine</code> n'a
+      pas été définie à <code>on</code>.</p>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="rewritemap" id="rewritemap">Directive</a> <a name="RewriteMap" id="RewriteMap">RewriteMap</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Définit une fonction de mise en correspondance pour la
+recherche de mots-clés</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntaxe:</a></th><td><code>RewriteMap <em>MapName</em> <em>MapType</em>:<em>MapSource</em> [<em>MapTypeOptions</em>]
+</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Contexte:</a></th><td>configuration globale, serveur virtuel</td></tr>
+<tr><th><a href="directive-dict.html#Status">Statut:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_rewrite</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibilité:</a></th><td>Le troisième paramètre, MapTypeOptions, est disponible à partir
+de la version 2.4.29 du serveur HTTP Apache</td></tr>
+</table>
+      <p>La directive <code class="directive">RewriteMap</code> définit une
+      <em>Table de correspondance pour la réécriture</em> que les
+      fonctions de mise en correspondance
+      peuvent utiliser dans les chaînes de substitution des règles
+      pour insérer/substituer des champs en recherchant des mots-clés.
+      La source utilisée pour cette recherche peut être de plusieurs
+      types.</p>
+
+      <p><a id="mapfunc" name="mapfunc"><em>MapName</em></a> est le nom de la table de correspondance
+      et servira à spécifier une fonction de mise en correspondance
+      pour les chaînes de substitution d'une règle de réécriture selon
+      une des constructions suivantes :</p>
+
+      <p class="indent">
+        <strong><code>${</code> <em>MapName</em> <code>:</code>
+        <em>mot-clé</em> <code>}</code><br />
+         <code>${</code> <em>MapName</em> <code>:</code>
+        <em>mot-clé</em> <code>|</code> <em>valeur par défaut</em>
+        <code>}</code></strong>
+      </p>
+
+      <p>Lorsqu'une telle construction est rencontrée, la table de
+      correspondance <em>MapName</em> est consultée
+      et la clé <em>mot-clé</em> recherchée. Si la clé est trouvée, la
+      construction est remplacée par
+      la <em>valeur de remplacement</em>. Si la clé n'est pas trouvée,
+      elle est remplacée par la <em>valeur par défaut</em>, ou par une
+      chaîne vide si aucune <em>valeur par défaut</em> n'est
+      spécifiée. La valeur vide se comporte comme si la
+      clé était absente ; il est donc impossible de distinguer une
+      valeur vide d'une absence de clé.</p>
+
+      <p>Par exemple, vous pouvez définir une directive
+      <code class="directive">RewriteMap</code> comme suit </p>
+
+      <pre class="prettyprint lang-config">RewriteMap map-exemple "txt:/chemin/vers/fichier/map.txt"</pre>
+
+
+      <p>Vous pourrez ensuite utiliser cette table dans une
+      directive <code class="directive"><a href="#rewriterule">RewriteRule</a></code> comme suit :</p>
+
+      <pre class="prettyprint lang-config">RewriteRule "^/ex/(.*)" "${map-exemple:$1}"</pre>
+
+
+      <p>La signification de l'argument <em>MapTypeOptions</em> dépend du <em>MapType</em>
+      spécifié. Veuillez vous référer au document <a href="../rewrite/rewritemap.html">Utiliser RewriteMap</a> pour
+      plus de détails.</p>
+
+      <p>Les combinaisons suivantes pour <em>type de correspondance</em>
+      et <em>MapSource</em>
+      peuvent être utilisées :</p>
+
+<dl>
+    <dt>txt</dt>
+        <dd>Un fichier texte contenant des paires clé-valeur séparées
+	par des espaces, une paire par ligne (<a href="../rewrite/rewritemap.html#txt">Détails ...</a>).</dd>
+
+    <dt>rnd</dt>
+        <dd>Sélection aléatoire d'une entrée depuis un fichier texte (<a href="../rewrite/rewritemap.html#rnd">Détails ...</a>).</dd>
+
+    <dt>dbm</dt>
+        <dd>Recherche une entrée dans un fichier dbm contenant des
+	paires nom-valeur. Le condensé hash est élaboré à partir d'un
+	format de fichier texte via l'utilitaire <code><a href="../programs/httxt2dbm.html">httxt2dbm</a></code> (<a href="../rewrite/rewritemap.html#dbm">Détails ...</a>).</dd>
+
+    <dt>int</dt>
+        <dd>Une des quatre fonctions internes disponibles que fournit
+	<code>RewriteMap</code>: toupper, tolower, escape ou unescape
+	(<a href="../rewrite/rewritemap.html#int">Détails ...</a>).</dd>
+
+    <dt>prg</dt>
+        <dd>Appelle un programme externe ou un script pour effectuer la
+	réécriture (<a href="../rewrite/rewritemap.html#prg">Détails
+	...</a>).</dd>
+
+    <dt>dbd or fastdbd</dt>
+        <dd>Une commande SQL SELECT à exécuter pour rechercher la cible
+	de réécriture (<a href="../rewrite/rewritemap.html#dbd">Détails
+	...</a>).</dd>
+    </dl>
+
+<p>Vous trouverez plus de détails et de nombreux exemples dans le <a href="../rewrite/rewritemap.html">RewriteMap HowTo</a>.</p>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="rewriteoptions" id="rewriteoptions">Directive</a> <a name="RewriteOptions" id="RewriteOptions">RewriteOptions</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Configure certaines options spéciales
+pour le moteur de réécriture</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntaxe:</a></th><td><code>RewriteOptions <var>Options</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Contexte:</a></th><td>configuration globale, serveur virtuel, répertoire, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Surcharges autorisées:</a></th><td>FileInfo</td></tr>
+<tr><th><a href="directive-dict.html#Status">Statut:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_rewrite</td></tr>
+</table>
+
+      <p>La directive <code class="directive">RewriteOptions</code> définit
+      certaines options spéciales pour la configuration au niveau du
+      serveur ou du répertoire. La chaîne de caractères <em>Option</em>
+      ne peut actuellement prendre qu'une des valeurs suivantes :</p>
+
+      <dl>
+      <dt><code>Inherit</code></dt>
+      <dd>
+
+      <p>Ceci force la configuration locale à hériter de la
+      configuration du niveau supérieur. Dans le contexte des hôtes
+      virtuels, cela signifie que les correspondances, conditions et
+      règles du serveur principal sont héritées. Dans le contexte des
+      répertoires, cela signifie que les conditions et règles de la
+      configuration <code>.htaccess</code> ou les sections <code class="directive"><a href="../mod/core.html#directory">&lt;Directory&gt;</a></code> du répertoire
+      parent sont héritées. Les règles héritées sont virtuellement
+      copiées dans la section où cette directive est utilisée. Si elles
+      sont utilisées avec des règles locales, les règles héritées sont
+      placées après ces dernières. La place de cette directive - avant
+      ou après les règles locales - n'a aucune influence sur ce
+      comportement. Si des règles locales ont forcé l'arrêt de la
+      réécriture, les règles héritées ne seront pas traitées.</p>
+
+      <div class="warning">
+      Les règles héritées du niveau parent sont appliquées
+      <strong>after</strong> après les règles spécifiées dans le niveau
+      enfant.
+      </div>
+      </dd>
+
+      <dt><code>InheritBefore</code></dt>
+      <dd>
+      <p>Même effet que l'option <code>Inherit</code> ci-dessus, mais
+      les règles spécifiées dans le niveau parent s'appliquent
+      <strong>avant</strong> les règles spécifiées dans le niveau
+      enfant.<br />
+      Disponible depuis la version 2.3.10 du serveur HTTP Apache.</p>
+      </dd>
+
+      <dt><code>InheritDown</code></dt>
+      <dd>
+
+      <p>Si cette option est activée, toutes les configurations enfants
+      hériteront de la configuration courante. Il en est de même si l'on
+      spécifie <code>RewriteOptions Inherit</code> dans toutes les
+      configurations enfants. Voir l'option <code>Inherit</code> pour
+      plus de détails à propos de la manière dont les relations
+      parent-enfants sont traitées.<br />
+      Cette option est disponible à partir
+      de la version 2.4.8 du serveur HTTP Apache.</p>
+      </dd>
+
+      <dt><code>InheritDownBefore</code></dt>
+      <dd>
+
+      <p>L'effet de cette option est équivalent à celui de l'option
+      <code>InheritDown</code> ci-dessus, mais les règles de la
+      configuration parente s'appliquent <strong>avant</strong> toute
+      règle de la configuration enfant.<br />
+      Cette option est disponible à partir
+      de la version 2.4.8 du serveur HTTP Apache.</p>
+      </dd>
+
+      <dt><code>IgnoreInherit</code></dt>
+      <dd>
+
+      <p>Si cette option est activée, les configurations courante et
+      enfants ignoreront toute règle héritée d'une configuration parente
+      via les options <code>InheritDown</code> ou
+      <code>InheritDownBefore</code>.<br />
+      Cette option est disponible à partir
+      de la version 2.4.8 du serveur HTTP Apache.</p>
+      </dd>
+      
+      <dt><code>AllowNoSlash</code></dt>
+      <dd>
+      <p>Par défaut, <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> ignore les URLs qui
+      correspondent à un répertoire sur disque, mais ne comportent pas
+      de slash final, afin que le module <code class="module"><a href="../mod/mod_dir.html">mod_dir</a></code>
+      redirige le client vers l'URL canonique avec un slash final.</p>
+      
+      <p>Lorsque la directive <code class="directive"><a href="../mod/mod_dir.html#directoryslash">DirectorySlash</a></code> est définie à off, il
+      est possible de spécifier l'option <code>AllowNoSlash</code> pour
+      s'assurer que les règles de réécriture ne soient plus ignorées.
+      Si on le souhaite, cette option permet de faire s'appliquer des
+      règles de réécriture qui correspondent à un répertoire sans slash
+      final au sein de fichiers .htaccess.<br />
+      Elle est disponible à
+      partir de la version 2.4.0 du serveur HTTP Apache.</p>
+      </dd>
+
+      <dt><code>AllowAnyURI</code></dt>
+      <dd>
+
+      <p>A partir de la version 2.2.22 de httpd, lorsqu'une directive <code class="directive"><a href="#rewriterule">RewriteRule</a></code> se situe dans un
+      contexte de <code>serveur virtuel</code> ou de serveur principal,
+      <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> ne traitera les règles de réécriture
+      que si l'URI de la requête respecte la syntaxe d'un <a href="directive-dict.html#Syntax">chemin URL</a>. Ceci permet
+      d'éviter certains problèmes de sécurité où des règles
+      particulières pourraient permettre  des développements de modèles
+      inattendus (voir <a href="http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2011-3368">CVE-2011-3368</a>
+      et <a href="http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2011-4317">CVE-2011-4317</a>).
+      Pour s'affranchir de la restriction relative à la syntaxe des chemins URL, on peut
+      utiliser l'option <code>AllowAnyURI</code>, afin de permettre à
+      <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> d'appliquer le jeu de règles à toute
+      chaîne de requête URI, sans vérifier si cette dernière respecte la
+      grammaire des chemins URL définie dans la spécification HTTP.<br />
+      Disponible depuis la version 2.4.3 du serveur HTTP Apache.</p>
+
+      <div class="warning">
+      <h3>Avertissement à propos de la sécurité</h3> 
+
+      <p>L'utilisation de cette option rendra le serveur vulnérable à
+      certains problèmes de sécurité si les règles de réécritures
+      concernées n'ont pas été rédigées avec soin. Il est par conséquent
+      <strong>fortement recommandé</strong> de ne pas utiliser cette
+      option. En particulier, prêtez attention aux chaînes en entrée contenant le
+      caractère '<code>@</code>', qui peuvent modifier l'interprétation
+      de l'URI réécrite, comme indiqué dans les liens ci-dessus.</p>
+      </div>
+      </dd>
+
+      <dt><code>MergeBase</code></dt>
+      <dd>
+
+      <p>Avec cette option, la valeur de la directive <code class="directive"><a href="#rewritebase">RewriteBase</a></code> est recopiée depuis
+      une valeur explicitement définie dans tout sous-répertoire qui ne
+      définit pas sa propre directive <code class="directive"><a href="#rewritebase">RewriteBase</a></code>. Il s'agissait du
+      comportement par défaut avec les versions 2.4.0 à 2.4.3, et ce
+      drapeau qui permet de retrouver ce comportement est disponible
+      depuis la version 2.4.4 du serveur HTTP Apache.</p>
+      </dd>
+
+      <dt><code>IgnoreContextInfo</code></dt>
+      <dd>
+
+      <p>Lors d'une
+      substitution relative dans un contexte de répertoire (htaccess),
+      et si la directive <code class="directive"><a href="#rewritebase">RewriteBase</a></code> n'a pas été définie,
+      ce module utilise des informations en provenance d'une extension
+      d'URL et du contexte du système de fichiers pour transformer la
+      sustitution relative en URL. Par exemple, les modules
+      <code class="module"><a href="../mod/mod_userdir.html">mod_userdir</a></code> et <code class="module"><a href="../mod/mod_alias.html">mod_alias</a></code>
+      utilisent ces informations de contexte étendu. Disponible à partir de la
+      version 2.4.16 du serveur HTTP Apache.</p>
+      </dd>
+
+      <dt><code>LegacyPrefixDocRoot</code></dt>
+      <dd>
+
+      <p>Avant la version 2.4.26, si une substitution était une URL absolue qui
+      correspondait au serveur virtuel courant, l'URL pouvait être tout d'abord
+      réduite à sa partie chemin, puis enfin en chemin local. Comme l'URL peut
+      être réduite en chemin local, le chemin doit être préfixé par la
+      valeur de la directive DocumentRoot, ce qui permet d'interdire l'accès à
+      un fichier tel que /tmp/myfile suite à une requête pour
+      http://host/file/myfile avec la <code class="directive"><a href="#rewriterule">RewriteRule</a></code> suivante :</p>
+      <pre class="prettyprint lang-config">RewriteRule /file/(.*) http://localhost/tmp/$1</pre>
+
+      <p>Cette option permet de restaurer l'ancien comportement lorsqu'un chemin
+      local obtenu à partir de la réduction d'une URL n'est pas préfixé par la
+      valeur de la directive DocumentRoot. Disponible à partir de la version
+      2.4.26 du serveur HTTP Apache.</p>
+      </dd>
+
+      </dl>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="rewriterule" id="rewriterule">Directive</a> <a name="RewriteRule" id="RewriteRule">RewriteRule</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Définit les règles pour le moteur de réécriture</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntaxe:</a></th><td><code>RewriteRule
+      <em>Modèle</em> <em>Substitution</em> [<em>drapeaux</em>]</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Contexte:</a></th><td>configuration globale, serveur virtuel, répertoire, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Surcharges autorisées:</a></th><td>FileInfo</td></tr>
+<tr><th><a href="directive-dict.html#Status">Statut:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_rewrite</td></tr>
+</table>
+      <p>La directive <code class="directive">RewriteRule</code> est le
+      véritable cheval de trait de la réécriture. La directive peut
+      apparaître plusieurs fois, chaque instance définissant une
+      règle de réécriture particulière. L'ordre dans lequel ces règles
+      sont définies est important - il s'agit de l'ordre dans lequel
+      les règles seront appliquées au cours du processus de
+      réécriture.</p>
+
+      <p><a id="patterns" name="patterns"><em>Modèle</em></a> est une
+      <a id="regexp" name="regexp">expression rationnelle</a>
+      compatible perl. Ce avec quoi ce modèle est comparé dépend de l'endroit où
+      la directive <code class="directive">RewriteRule</code> est définie.</p>
+
+<div class="note"><h3><a id="what_is_matched" name="what_is_matched">Qu'est-ce qui est comparé ?</a></h3>
+
+<ul>
+      <li><p>Dans un contexte de serveur virtuel <code class="directive"><a href="../mod/core.html#virtualhost">VirtualHost</a></code>, le <em>modèle</em> est tout
+      d'abord comparé à la portion de l'URL située entre le nom d'hôte
+      éventuellement accompagné du port, et la chaîne de paramètres (par
+      exemple "/app1/index.html"). Il s'agit du <a href="directive-dict.html#Syntax">URL-path</a> décodé de sa valeur "%xx".</p></li>
+
+      <li><p>Dans un contexte de répertoire (sections <code class="directive"><a href="../mod/core.html#directory">Directory</a></code> et fichiers .htaccess), le
+      <em>Modèle</em> est comparé avec une partie de chemin ; par exemple une
+      requête pour "/app1/index.html" entraînera une comparaison avec
+      "app1/index.html" ou "index.html" selon l'endroit où la directive
+      <code class="directive">RewriteRule</code> est définie.</p>
+
+      <p>Le chemin où la règle est défini est supprimé du chemin correspondant
+      du système de fichiers avant comparaison (jusqu'au slash final compris).
+      En conséquence de cette suppression, les règles définies dans
+      ce contexte n'effectuent des comparaisons qu'avec la portion du chemin
+      du système de fichiers "en dessous" de l'endroit où la règle est définie.</p>
+
+      <p>Le chemin correspondant actuel du système de fichiers est déterminé par
+      des directives telles que <code class="directive"><a href="../mod/core.html#documentroot">DocumentRoot</a></code> et
+      <code class="directive"><a href="../mod/mod_alias.html#alias">Alias</a></code>, ou même le résultat de
+      substitutions dans des règles <code class="directive">RewriteRule</code> précédentes.  
+      </p>
+      </li>
+
+      <li><p>Si vous souhaitez faire une comparaison sur le nom
+      d'hôte, le port, ou la chaîne de requête, utilisez une
+      directive <code class="directive"><a href="#rewritecond">RewriteCond</a></code>
+      comportant respectivement les variables
+      <code>%{HTTP_HOST}</code>, <code>%{SERVER_PORT}</code>, ou
+      <code>%{QUERY_STRING}</code>.</p></li>
+</ul>
+      
+</div>
+
+<div class="note"><h3>Réécritures dans un contexte de répertoire</h3>
+<ul>
+<li>L'utilisation du moteur de réécriture dans les
+fichiers <a href="../howto/htaccess.html">.htaccess</a> et les sections
+<code class="directive"><a href="../mod/core.html#directory">&lt;Directory&gt;</a></code> est un peu plus
+complexe.</li>
+
+<li>Pour activer le moteur de réécriture dans ces contextes, vous devez
+définir "<code>RewriteEngine On</code>" <strong>et</strong>
+"<code>Options FollowSymLinks</code>". Si l'administrateur a désactivé
+la possibilité de modifier l'option <code>FollowSymLinks</code> au
+niveau du répertoire d'un utilisateur, vous ne pouvez pas utiliser le
+moteur de réécriture. Cette restriction a été instaurée à des fins de
+sécurité.</li>
+
+<li>Voir la directive
+<code class="directive"><a href="#rewritebase">RewriteBase</a></code> pour plus de détails à
+propos de l'ajout du préfixe après les substitutions relatives.</li>
+
+<li>Si vous souhaitez effectuer une comparaison en prenant en compte
+l'intégralité du
+chemin de l'URL dans un contexte de répertoire (htaccess), vous devez
+utiliser la variable <code>%{REQUEST_URI}</code> dans la directive
+<code class="directive"><a href="#rewritecond">RewriteCond</a></code>.</li>
+
+<li>Le prefixe supprimé se termine toujours par un slash, ce qui
+signifie que la comparaison s'effectue avec une chaîne qui ne comporte
+<em>jamais</em> de slash de début. Ainsi, un <em>modèle</em> contenant
+<code>^/</code> ne correspondra jamais dans un contexte de répertoire.</li>
+
+<li>Bien que les règles de réécriture soient permises du point de vue de
+la syntaxe dans les sections <code class="directive"><a href="../mod/core.html#location">&lt;Location&gt;</a></code> et <code class="directive"><a href="../mod/core.html#files">&lt;Files&gt;</a></code> (y compris leurs versions sous forme
+d'expression rationnelle), elles n'y sont pas prises en compte, et
+n'y sont à priori d'aucune utilité. Les substitutions
+relatives sont une fonctionnalité qui n'est, elle non-plus pas supportée
+dans ce genre de contexte.</li>
+</ul>
+</div>
+
+	<p>Pour quelques conseils à propos des <a class="glossarylink" href="../glossary.html#regex" title="voir glossaire">expressions rationnelles</a>, voir le
+	document <a href="../rewrite/intro.html#regex">Introduction à
+	mod_rewrite</a>.</p>
+
+      <p>Dans <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>, on peut aussi utiliser le caractère
+      NOT ('<code>!</code>') comme préfixe de modèle. Ceci vous permet
+      d'inverser la signification d'un modèle, soit pour dire
+      ``<em>si l'URL considérée ne correspond <strong>PAS</strong> à
+      ce modèle</em>''. Le caractère NON peut donc être utilisé à
+      titre exceptionnel, lorsqu'il est plus simple d'effectuer une
+      comparaison avec le modèle inversé, ou dans la dernière règle
+      par défaut.</p>
+
+<div class="note"><h3>Note</h3>
+Si vous utilisez le caractère NON pour inverser la signification d'un
+modèle, vous ne pouvez pas inclure de parties génériques groupées dans
+le modèle. Ceci est dû au fait que, lorsque le modèle ne correspond
+pas (autrement dit, sa négation correspond), les groupes sont vides.
+Ainsi, si vous utilisez des modèles inversés, vous ne pouvez
+pas vous référer aux groupes par <code>$N</code> dans la chaîne de
+substitution !
+</div>
+
+      <p>Dans une règle de réécriture,
+      <a id="rhs" name="rhs"><em>Substitution</em></a> est la chaîne
+      de caractères qui remplace le chemin de l'URL original qui
+      correspondait au <em>Modèle</em>. <em>Substitution</em> peut
+      être :</p>
+
+      <dl>
+
+        <dt>un chemin du système de fichiers</dt>
+
+        <dd>Il indique alors la localisation dans le système de
+	fichiers de la ressource qui doit être envoyée au
+	client. Les substitutions ne sont traitées en tant que chemins du
+	système de fichiers que si la règle est configurée dans un
+	contexte de serveur (serveur virtuel), et si le premier
+	composant du chemin dans la substitution existe dans le système
+	de fichiers.</dd>
+
+        <dt>chemin d'URL</dt>
+
+        <dd>Un chemin relatif à la valeur de <code class="directive"><a href="../mod/core.html#documentroot">DocumentRoot</a></code> vers la ressource qui
+	doit être servie. Notez que <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>
+	essaie de deviner si vous avez spécifié un chemin du système
+	de fichiers ou un chemin d'URL en vérifiant si la première
+	partie du chemin existe à la racine du système de fichiers.
+	Par exemple, si vous avez spécifié comme chaîne de
+	<em>Substitution</em> <code>/www/file.html</code>, cette
+	dernière sera traitée comme un chemin d'URL <em>à moins</em>
+	qu'un répertoire nommé <code>www</code> n'existe à la racine
+	de votre système de fichiers (ou dans le cas d'une
+	réécriture au sein d'un fichier <code>.htaccess</code>,
+	relativement à la racine des documents), auquel cas la chaîne de
+	substitution sera traitée comme un chemin du système de
+	fichiers. Si vous désirez que d'autres directives de
+	correspondance d'URL (comme la directive <code class="directive"><a href="../mod/mod_alias.html#alias">Alias</a></code>) soient appliquées au
+	chemin d'URL résultant, utilisez le drapeau <code>[PT]</code>
+	comme décrit ci-dessous.</dd>
+
+        <dt>URL absolue</dt>
+
+        <dd>Si une URL absolue est spécifiée,
+	<code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> vérifie si le nom d'hôte
+	correspond à celui de l'hôte local. Si c'est le cas, le
+	protocole et le nom d'hôte sont supprimés, et ce qui reste est
+	traité comme un chemin d'URL. Dans le cas contraire, une
+	redirection externe vers l'URL indiquée est effectuée. Pour
+	forcer une redirection externe vers l'hôte local, voir le
+	drapeau <code>[R]</code> ci-dessous.</dd>
+
+        <dt><code>-</code> (tiret)</dt>
+
+        <dd>Un tiret indique qu'aucune substitution ne doit être
+	effectuée (le chemin considéré est transmis sans changement).
+	Ceci est utile quand un drapeau doit être appliqué sans
+	modifier le chemin (voir ci-dessous).</dd>
+
+      </dl>
+
+      <p>En plus du texte, la chaîne <em>Substitution</em> peut
+      comporter :</p>
+
+      <ol>
+        <li>des références arrières (<code>$N</code>) vers le modèle
+	d'une directive RewriteRule</li>
+
+        <li>des références arrières (<code>%N</code>) vers le dernier
+	modèle d'une directive RewriteCond qui correspondait</li>
+
+        <li>des variables du serveur comme dans les chaînes de test de
+	condition d'une règle (<code>%{VARNAME}</code>)</li>
+
+        <li>des appels de
+	<a href="#mapfunc">fonctions de comparaison</a>
+	(<code>${nom correspondance:clé|défaut}</code>)</li>
+      </ol>
+
+      <p>Les références arrières sont des identificateurs de la forme
+      <code>$</code><strong>N</strong> (<strong>N</strong>=0..9), qui
+      seront remplacés par le contenu du <strong>N</strong>ème groupe
+      du <em>Modèle</em> qui correspondait. Les variables du serveur
+      sont les mêmes que dans la <em>Chaîne_de_test</em> d'une
+      directive <code class="directive"><a href="#rewritecond">RewriteCond</a></code>. Les
+      fonctions de comparaison sont issues de la directive <code class="directive"><a href="#rewritemap">RewriteMap</a></code> dans la
+      section de laquelle elles sont décrites. Ces trois types de
+      variables sont évaluées dans l'ordre ci-dessus.</p>
+
+       <p>Chaque règle de réécriture s'applique au résultat de la règle
+       précédente, selon l'ordre dans lequel elles ont été définies dans
+       le fichier de configuration. Le chemin de l'URL ou du système de fichier (voir
+       ci-dessus <a href="#what_is_matched">Qu'est-ce qui est
+       comparé ?</a>) est <strong>intégralement
+      remplacée</strong> par la chaîne de <em>Substitution</em> et le
+      processus de réécriture se poursuit jusqu'à ce que toutes les
+      règles aient été appliquées, ou qu'il soit explicitement stoppé
+      par un drapeau <a href="../rewrite/flags.html#flag_l"><code><strong>L</strong></code></a>,
+      ou par un autre drapeau qui implique un arrêt immédiat, comme
+      <code><strong>END</strong></code> ou
+      <code><strong>F</strong></code>.</p>
+
+     <div class="note"><h3>Modifier la chaîne de requête</h3>
+      <p>Par défaut, la chaîne de requête est transmise sans
+      modification. Vous pouvez cependant créer dans la chaîne de
+      substitution des URLs dont une partie constitue une chaîne de
+      requête. Pour cela, ajoutez simplement un point d'interrogation
+      dans la chaîne de substitution pour indiquer que le texte qui
+      suit doit être réinjecté dans la chaîne de requête. Pour
+      supprimer une chaîne de requête, terminez simplement la chaîne de
+      substitution par un point d'interrogation. Pour combiner les
+      nouvelles chaînes de requête avec les anciennes, utilisez le
+      drapeau <code>[QSA]</code>.</p>
+     </div>
+
+
+      <p>En outre, vous pouvez spécifier des <a name="rewriteflags" id="rewriteflags">actions</a> spéciales à effectuer en ajoutant
+      des
+      <strong><code>[</code><em>drapeaux</em><code>]</code></strong>
+      comme troisième argument de la directive
+      <code class="directive">RewriteRule</code>. Séparés par des virgules au sein d'une
+      liste encadrée par des crochets, les <em>drapeaux</em> peuvent
+      être choisis dans la table suivante. Vous trouverez plus de
+      détails, et des exemples pour chaque drapeau dans le <a href="../rewrite/flags.html">document à propos des drapeaux de
+      réécriture.</a></p>
+
+      <table class="bordered"><tr class="header"><th>Drapeaux et syntaxe</th>
+        <th>Fonction</th>
+    </tr>
+<tr>
+        <td>B</td>
+        <td>Echappe les caractères non-alphanumériques
+	dans les références arrières <em>avant</em>
+	d'appliquer la transformation. <em><a href="../rewrite/flags.html#flag_b">détails ...</a></em></td>
+    </tr>
+<tr class="odd">
+        <td>backrefnoplus|BNP</td>
+        <td>Avec ce drapeau, si les références arrières sont échappées,
+	les espaces seront échappés en %20 au lieu de +. Ceci s'avère
+	utile lorsqu'une référence arrière est utilisée dans la partie
+	chemin, et non dans la chaîne de paramètres de la requête ;
+	pour plus de détails, voir <em><a href="../rewrite/flags.html#flag_bnp">ici.</a></em></td>
+    </tr>
+<tr>        
+	<td>chain|C</td>
+        <td>La règle est chaînée avec la règle suivante. Si la règle
+	échoue, la ou les règles avec lesquelles elle est est chaînée
+	seront sautées. <em><a href="../rewrite/flags.html#flag_c">détails ...</a></em></td>
+    </tr>
+<tr class="odd">
+        <td>cookie|CO=<em>NAME</em>:<em>VAL</em></td>
+        <td>Définit un cookie au niveau du navigateur client. La syntaxe
+	complète est :
+	CO=<em>NAME</em>:<em>VAL</em>:<em>domain</em>[:<em>lifetime</em>[:<em>path</em>[:<em>secure</em>[:<em>httponly</em>]]]] <em><a href="../rewrite/flags.html#flag_co">details ...</a></em>
+	<em><a href="../rewrite/flags.html#flag_co">détails ...</a></em>
+        </td>
+    </tr>
+<tr>
+        <td>discardpath|DPI</td>
+        <td>Supprime la partie PATH_INFO de l'URI réécrit. <em><a href="../rewrite/flags.html#flag_dpi">détails
+        ...</a></em></td>
+    </tr>
+<tr class="odd">
+        <td>END</td>
+        <td>Stoppe le processus de réécriture immédiatement et
+	n'applique plus aucune règle. Empêche aussi l'application
+	ultérieure de règles de réécriture dans les contextes de
+	répertoire et de fichier .htaccess (disponible à partir de la
+	version 2.3.9 du serveur HTTP Apache). <em><a href="../rewrite/flags.html#flag_end">détails ...</a></em></td>
+    </tr>
+<tr>    
+        <td>env|E=[!]<em>VAR</em>[:<em>VAL</em>]</td>
+        <td>Définit la variable d'environnement <em>VAR</em> (à la valeur
+	<em>VAL</em> si elle est fournie). La variante !<em>VAR</em>
+	annule la définition de la variable <em>VAR</em>.<em><a href="../rewrite/flags.html#flag_e">détails ...</a></em></td>
+    </tr>
+<tr class="odd">
+        <td>forbidden|F</td>
+        <td>Renvoie une réponse 403 FORBIDDEN au navigateur client.
+	<em><a href="../rewrite/flags.html#flag_f">détails ...</a></em></td>
+    </tr>
+<tr>
+        <td>gone|G</td>
+        <td>Renvoie un message d'erreur 410 GONE au navigateur client. <em><a href="../rewrite/flags.html#flag_g">détails ...</a></em></td>
+    </tr>
+<tr class="odd">
+        <td>Handler|H=<em>Gestionnaire de contenu</em></td>
+        <td>L'URI résultant est envoyé au <em>Gestionnaire de
+	contenu</em> pour traitement. <em><a href="../rewrite/flags.html#flag_h">détails ...</a></em></td>
+    </tr>
+<tr>
+        <td>last|L</td>
+        <td>Arrête le processus de réécriture immédiatement et n'applique
+	plus aucune règle. Prêtez une attention particulière aux mises
+	en garde concernant les contextes de niveau répertoire et
+	.htaccess (voir aussi le drapeau END). <em><a href="../rewrite/flags.html#flag_l">détails ...</a></em></td>
+    </tr>
+<tr class="odd">
+        <td>next|N</td>
+        <td>Réexécute le processus de réécriture à partir de la première
+	règle, en utilisant le résultat du jeu de règles, sous réserve
+	qu'il y ait un point de départ. <em><a href="../rewrite/flags.html#flag_n">détails
+        ...</a></em></td>
+    </tr>
+<tr>
+        <td>nocase|NC</td>
+        <td>Rend la comparaison entre modèles insensible à la casse.
+	<em><a href="../rewrite/flags.html#flag_nc">détails ...</a></em></td>
+    </tr>
+<tr class="odd">
+        <td>noescape|NE</td>
+        <td>Empêche mod_rewrite d'effectuer un échappement hexadécimal
+	des caractères spéciaux dans le résultat de la réécriture. <em><a href="../rewrite/flags.html#flag_ne">détails ...</a></em></td>
+    </tr>
+<tr>
+        <td>nosubreq|NS</td>
+        <td>La règle est sautée si la requête courante est une
+	sous-requête interne. <em><a href="../rewrite/flags.html#flag_ns">détails ...</a></em></td>
+    </tr>
+<tr class="odd">
+        <td>proxy|P</td>
+        <td>Force l'envoi en interne de l'URL de substitution en tant
+	que requête mandataire. <em><a href="../rewrite/flags.html#flag_p">détails
+        ...</a></em></td>
+    </tr>
+<tr>
+        <td>passthrough|PT</td>
+        <td>L'URI résultant est repassé au moteur de mise en
+	correspondance des URLs pour y être traité par d'autres
+	traducteurs URI-vers-nom de fichier, comme <code>Alias</code> ou
+	<code>Redirect</code>. <em><a href="../rewrite/flags.html#flag_pt">détails ...</a></em></td>
+    </tr>
+<tr class="odd">
+        <td>qsappend|QSA</td>
+        <td>Ajoute toute chaîne de paramètres présente dans l'URL de la
+	requête originale à toute chaîne de paramètres créée dans la
+	cible de réécriture. <em><a href="../rewrite/flags.html#flag_qsa">détails ...</a></em></td>
+    </tr>
+<tr>
+        <td>qsdiscard|QSD</td>
+        <td>Supprime toute chaîne de paramètres de l'URI entrant. <em><a href="../rewrite/flags.html#flag_qsd">détails
+        ...</a></em></td>
+    </tr>
+<tr class="odd">
+        <td>qslast|QSL</td>
+        <td>Interprète le dernier (le plus à droite) point d'interrogation comme
+	le délimiteur de la chaîne de paramètres de la requête, au lieu du
+	premier (le plus à gauche) comme c'est le cas habituellement. Disponble
+	à partir de la version 2.4.19 du serveur HTTP Apache. <em><a href="../rewrite/flags.html#flag_qsl">détails ...</a></em></td>
+    </tr>
+<tr>
+	<td>redirect|R[=<em>code</em>]</td>
+        <td>Force une redirection externe, avec un code de statut HTTP
+	optionnel. <em><a href="../rewrite/flags.html#flag_r">détails ...</a></em>
+        </td>
+    </tr>
+<tr class="odd">
+        <td>skip|S=<em>nombre</em></td>
+        <td>Si la règle courante s'applique, le moteur de réécriture
+	doit sauter les <em>nombre</em> règles suivantes. <em><a href="../rewrite/flags.html#flag_s">détails ...</a></em></td>
+    </tr>
+<tr>
+        <td>type|T=<em>MIME-type</em></td>
+        <td>Force l'attribution du <a class="glossarylink" href="../glossary.html#type-mime" title="voir glossaire">Type-MIME</a>
+	spécifié au fichier cible. <em><a href="../rewrite/flags.html#flag_t">détails ...</a></em></td>
+    </tr>
+</table>
+
+<div class="note"><h3>Développement du répertoire home</h3>
+<p> Quand la chaîne de substitution commence par quelque chose comme
+"/~user" (de manière explicite ou par références arrières), <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>
+développe le répertoire home sans tenir compte de la présence ou de la
+configuration du module <code class="module"><a href="../mod/mod_userdir.html">mod_userdir</a></code>.</p>
+
+<p> Ce développement n'est pas effectué si le drapeau <em>PT</em> est
+utilisé dans la directive <code class="directive"><a href="#rewriterule">RewriteRule</a></code></p>
+</div>
+
+     <p>Voici toutes les combinaisons de substitution et leurs
+     significations :</p>
+
+      <p><strong>Dans la configuration au niveau du serveur principal
+      (<code>httpd.conf</code>)<br />
+       pour la requête ``<code>GET
+      /chemin/infochemin</code>'':</strong><br />
+      </p>
+
+<table class="bordered"><tr class="header">
+<th>Règle</th>
+<th>Résultat de la substitution</th>
+</tr>
+<tr>
+<td>^/un_chemin(.*) autre_chemin$1</td>
+<td>invalide, non supporté</td>
+</tr>
+<tr class="odd">
+<td>^/un_chemin(.*) autre_chemin$1  [R]</td>
+<td>invalide, non supporté</td>
+</tr>
+<tr>
+<td>^/un_chemin(.*) autre_chemin$1  [P]</td>
+<td>invalide, non supporté</td>
+</tr>
+<tr class="odd">
+<td>^/un_chemin(.*) /autre_chemin$1</td>
+<td>/autre_chemin/info_chemin</td>
+</tr>
+<tr>
+<td>^/un_chemin(.*) /autre_chemin$1 [R]</td>
+<td>http://cet_hote/autre_chemin/info_chemin via une redirection externe</td>
+</tr>
+<tr class="odd">
+<td>^/un_chemin(.*) /autre_chemin$1 [P]</td>
+<td>sans objet, non supporté</td>
+</tr>
+<tr>
+<td>^/un_chemin(.*) http://cet_hote/autre_chemin$1</td>
+<td>/autre_chemin/info_chemin</td>
+</tr>
+<tr class="odd">
+<td>^/un_chemin(.*) http://cet_hote/autre_chemin$1 [R]</td>
+<td>http://cet_hote/autre_chemin/info_chemin via une redirection externe</td>
+</tr>
+<tr>
+<td>^/un_chemin(.*) http://cet_hote/autre_chemin$1 [P]</td>
+<td>sans objet, non supporté</td>
+</tr>
+<tr class="odd">
+<td>^/un_chemin(.*) http://autre_hote/autre_chemin$1</td>
+<td>http://autre_hote/autre_chemin/info_chemin via une redirection externe</td>
+</tr>
+<tr>
+<td>^/un_chemin(.*) http://autre_hote/autre_chemin$1 [R]</td>
+<td>http://autre_hote/autre_chemin/info_chemin (le drapeau [R] est
+redondant)</td>
+</tr>
+<tr class="odd">
+<td>^/somepath(.*) http://otherhost/otherpath$1 [P]</td>
+<td>http://otherhost/otherpath/pathinfo via internal proxy</td>
+</tr>
+</table>
+
+      <p><strong>Dans une configuration de niveau répertoire pour
+      <code>/chemin</code><br />
+       (<code>/chemin/physique/vers/chemin/.htacccess</code>, avec
+      <code>RewriteBase "/chemin"</code>)<br />
+       pour la requête ``<code>GET
+      /chemin/chemin-local/infochemin</code>'':</strong><br />
+     </p>
+
+<table class="bordered"><tr class="header">
+<th>Règle</th>
+<th>Résultat de la substitution</th>
+</tr>
+<tr>
+<td>^chemin-local(.*) autre-chemin$1</td>
+<td>/chemin/autre-chemin/infochemin</td>
+</tr>
+<tr class="odd">
+<td>^chemin-local(.*) autre-chemin$1  [R]</td>
+<td>http://cet-hôte/chemin/autre-chemin/infochemin via redirection
+externe</td>
+</tr>
+<tr>
+<td>^chemin-local(.*) autre-chemin$1  [P]</td>
+<td>n'a pas lieu d'être, non supporté</td>
+</tr>
+<tr class="odd">
+<td>^chemin-local(.*) /autre-chemin$1</td>
+<td>/autre-chemin/infochemin</td>
+</tr>
+<tr>
+<td>^chemin-local(.*) /autre-chemin$1 [R]</td>
+<td>http://cet-hôte/autre-chemin/infochemin via redirection externe</td>
+</tr>
+<tr class="odd">
+<td>^chemin-local(.*) /autre-chemin$1 [P]</td>
+<td>n'a pas lieu d'être, non supporté</td>
+</tr>
+<tr>
+<td>^chemin-local(.*) http://cet-hôte/autre-chemin$1</td>
+<td>/autre-chemin/infochemin</td>
+</tr>
+<tr class="odd">
+<td>^chemin-local(.*) http://cet-hôte/autre-chemin$1 [R]</td>
+<td>http://cet-hôte/autre-chemin/infochemin via redirection externe</td>
+</tr>
+<tr>
+<td>^chemin-local(.*) http://cet-hôte/autre-chemin$1 [P]</td>
+<td>n'a pas lieu d'être, non supporté</td>
+</tr>
+<tr class="odd">
+<td>^chemin-local(.*) http://autre hôte/autre-chemin$1</td>
+<td>http://autre hôte/autre-chemin/infochemin via redirection externe</td>
+</tr>
+<tr>
+<td>^chemin-local(.*) http://autre hôte/autre-chemin$1 [R]</td>
+<td>http://autre hôte/autre-chemin/infochemin via redirection externe
+(le drapeau [R] est redondant)</td>
+</tr>
+<tr class="odd">
+<td>^chemin-local(.*) http://autre hôte/autre-chemin$1 [P]</td>
+<td>http://autre hôte/autre-chemin/infochemin via un mandataire interne</td>
+</tr>
+</table>
+
+  
+</div>
+</div>
+<div class="bottomlang">
+<p><span>Langues Disponibles: </span><a href="../en/mod/mod_rewrite.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_rewrite.html" title="Français">&nbsp;fr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Commentaires</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_rewrite.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Autorisé sous <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

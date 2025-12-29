@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-cn" xml:lang="zh-cn"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>多处理模块(MPM) - Apache HTTP 服务器 版本 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">模块</a> | <a href="./mod/directives.html">指令</a> | <a href="http://wiki.apache.org/httpd/FAQ">常见问题</a> | <a href="./glossary.html">术语</a> | <a href="./sitemap.html">网站导航</a></p>
+<p class="apache">Apache HTTP 服务器版本 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP 服务器</a> &gt; <a href="http://httpd.apache.org/docs/">文档</a> &gt; <a href="./">版本 2.4</a></div><div id="page-content"><div id="preamble"><h1>多处理模块(MPM)</h1>
+<div class="toplang">
+<p><span>可用语言: </span><a href="./de/mpm.html" hreflang="de" rel="alternate" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="./en/mpm.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./es/mpm.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="./fr/mpm.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/mpm.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/mpm.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/mpm.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a> |
+<a href="./zh-cn/mpm.html" title="Simplified Chinese">&nbsp;zh-cn&nbsp;</a></p>
+</div>
+<div class="outofdate">此翻译可能过期。要了解最近的更改，请阅读英文版。</div>
+
+<p>本文档介绍了什么是多处理模块，以及 Apache HTTP 服务器如何使用它们。</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#introduction">介绍</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#defaults">默认 MPM</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#static">构建 MPM 为静态模块</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#dynamic">构建 MPM 为动态模块</a></li>
+</ul><h3>参见</h3><ul class="seealso"><li><a href="#comments_section">评论</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="introduction" id="introduction">介绍</a></h2>
+
+    <p>Apache HTTP 服务器被设计为一个功能强大，并且灵活的 web 服务器，
+    可以在很多平台与环境中工作。不同平台和不同的环境往往需要不同
+    的特性，或可能以不同的方式实现相同的特性最有效率。Apache httpd
+    通过模块化的设计来适应各种环境。这种设计允许网站管理员通过在
+    编译时或运行时，选择哪些模块将会加载在服务器中，来选择服务器特性。</p>
+
+    <p>Apache HTTP 服务器 2.0 扩展此模块化设计到最基本的 web 服务器功能。
+    它提供了可以选择的多处理模块(MPM)，用来绑定到网络端口上，接受请求，
+    以及调度子进程处理请求。</p>
+
+    <p>扩展到这一级别的服务器模块化设计，带来两个重要的好处:</p>
+
+    <ul>
+      <li>Apache httpd 能更优雅，更高效率的支持不同的平台。尤其是
+      Apache httpd 的 Windows 版本现在更有效率了，因为
+      <code class="module"><a href="./mod/mpm_winnt.html">mpm_winnt</a></code> 能使用原生网络特性取代在
+      Apache httpd 1.3 中使用的 POSIX 层。它也可以扩展到其它平台
+      来使用专用的 MPM。</li>
+
+      <li>Apache httpd 能更好的为有特殊要求的站点定制。例如，要求
+      更高伸缩性的站点可以选择使用线程的 MPM，即
+      <code class="module"><a href="./mod/worker.html">worker</a></code> 或 <code class="module"><a href="./mod/event.html">event</a></code>；
+      需要可靠性或者与旧软件兼容的站点可以使用
+      <code class="module"><a href="./mod/prefork.html">prefork</a></code>。</li>
+    </ul>
+
+    <p>在用户看来，MPM 很像其它 Apache httpd 模块。主要是区别是，在任何时间，
+    必须有一个，而且只有一个 MPM 加载到服务器中。可用的 MPM 列表位于
+    <a href="mod/">模块索引页面</a>。</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="defaults" id="defaults">默认 MPM</a></h2>
+
+<p>下表列出了不同系统的默认 MPM。如果你不在编译时选择，那么它就是你将要使用的 MPM。</p>
+
+<table class="bordered"><tr><td>Netware</td><td><code class="module"><a href="./mod/mpm_netware.html">mpm_netware</a></code></td></tr>
+<tr class="odd"><td>OS/2</td><td><code class="module"><a href="./mod/mpmt_os2.html">mpmt_os2</a></code></td></tr>
+<tr><td>Unix</td><td><code class="module"><a href="./mod/prefork.html">prefork</a></code>，<code class="module"><a href="./mod/worker.html">worker</a></code> 或
+    <code class="module"><a href="./mod/event.html">event</a></code>，取决于平台特性</td></tr>
+<tr class="odd"><td>Windows</td><td><code class="module"><a href="./mod/mpm_winnt.html">mpm_winnt</a></code></td></tr>
+</table>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="static" id="static">构建 MPM 为静态模块</a></h2>
+
+    <p>在全部平台中，MPM 都可以构建为静态模块。在构建时选择一种
+    MPM，链接到服务器中。如果要改变 MPM，必须重新构建。</p>
+
+    <p>为了使用指定的 MPM，请在执行 <code class="program"><a href="./programs/configure.html">configure</a></code> 脚本
+      时，使用参数 <code>--with-mpm=<em>NAME</em></code>。<em>NAME</em>
+      是指定的 MPM 名称。</p>
+
+    <p>编译完成后，可以使用 <code>./httpd -l</code> 来确定选择的 MPM。
+    此命令会列出编译到服务器程序中的所有模块，包括 MPM。</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="dynamic" id="dynamic">构建 MPM 为动态模块</a></h2>
+
+    <p>在 Unix 或类似平台中，MPM 可以构建为动态模块，与其它动态模块一样在运行时加载。
+    构建 MPM 为动态模块允许通过修改 <code class="directive"><a href="./mod/mod_so.html#loadmodule">LoadModule</a></code>
+    指令内容来改变 MPM，而不用重新构建服务器程序。</p>
+
+    <p>在执行 <code class="program"><a href="./programs/configure.html">configure</a></code> 脚本时，使用
+    <code>--enable-mpms-shared</code> 选项可以启用此特性。
+    当给出的参数为 <code><em>all</em></code> 时，所有此平台支持的 MPM
+    模块都会被安装。还可以在参数中给出模块列表。</p>
+
+    <p>默认 MPM，可以自动选择或者在执行 <code class="program"><a href="./programs/configure.html">configure</a></code>
+    脚本时通过 <code>--with-mpm</code> 选项来指定，然后出现在生成的服务器配置文件中。
+    编辑 <code class="directive"><a href="./mod/mod_so.html#loadmodule">LoadModule</a></code> 指令内容可以选择不同的 MPM。</p>
+
+</div></div>
+<div class="bottomlang">
+<p><span>可用语言: </span><a href="./de/mpm.html" hreflang="de" rel="alternate" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="./en/mpm.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./es/mpm.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="./fr/mpm.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/mpm.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/mpm.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/mpm.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a> |
+<a href="./zh-cn/mpm.html" title="Simplified Chinese">&nbsp;zh-cn&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">评论</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mpm.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />基于 <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> 许可证.</p>
+<p class="menu"><a href="./mod/">模块</a> | <a href="./mod/directives.html">指令</a> | <a href="http://wiki.apache.org/httpd/FAQ">常见问题</a> | <a href="./glossary.html">术语</a> | <a href="./sitemap.html">网站导航</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

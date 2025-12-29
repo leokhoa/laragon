@@ -1,0 +1,1078 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_cache - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Modules</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache Module mod_cache</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_cache.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_cache.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_cache.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_cache.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">Description:</a></th><td>RFC 2616 compliant HTTP caching filter.</td></tr>
+<tr><th><a href="module-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">Module Identifier:</a></th><td>cache_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">Source File:</a></th><td>mod_cache.c</td></tr></table>
+<h3>Summary</h3>
+
+    <div class="warning">This module should be used with care, as when the
+    <code class="directive"><a href="#cachequickhandler">CacheQuickHandler</a></code> directive is
+    in its default value of <strong>on</strong>, the <code class="directive"><a href="../mod/mod_access_compat.html#allow">Allow</a></code> and <code class="directive"><a href="../mod/mod_access_compat.html#deny">Deny</a></code> directives will be circumvented.
+    You should not enable quick handler caching for any content to which you
+    wish to limit access by client host name, address or environment
+    variable.</div>
+
+    <p><code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> implements an <a href="http://www.ietf.org/rfc/rfc2616.txt">RFC 2616</a> compliant
+    <strong>HTTP content caching filter</strong>, with support for the caching
+    of content negotiated responses containing the Vary header.</p>
+
+    <p>RFC 2616 compliant caching provides a mechanism to verify whether
+    stale or expired content is still fresh, and can represent a significant
+    performance boost when the origin server supports <strong>conditional
+    requests</strong> by honouring the
+    <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.26">If-None-Match</a>
+    HTTP request header. Content is only regenerated from scratch when the content
+    has changed, and not when the cached entry expires.</p>
+
+    <p>As a filter, <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> can be placed in front of
+    content originating from any handler, including <strong>flat
+    files</strong> (served from a slow disk cached on a fast disk), the output
+    of a <strong>CGI script</strong> or <strong>dynamic content
+    generator</strong>, or content <strong>proxied from another
+    server</strong>.</p>
+
+    <p>In the default configuration, <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> inserts the
+    caching filter as far forward as possible within the filter stack,
+    utilising the <strong>quick handler</strong> to bypass all per request
+    processing when returning content to the client. In this mode of
+    operation, <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> may be thought of as a caching
+    proxy server bolted to the front of the webserver, while running within
+    the webserver itself.</p>
+
+    <p>When the quick handler is switched off using the
+    <code class="directive"><a href="#cachequickhandler">CacheQuickHandler</a></code> directive,
+    it becomes possible to insert the <strong>CACHE</strong> filter at a
+    point in the filter stack chosen by the administrator. This provides the
+    opportunity to cache content before that content is personalised by the
+    <code class="module"><a href="../mod/mod_include.html">mod_include</a></code> filter, or optionally compressed by the
+    <code class="module"><a href="../mod/mod_deflate.html">mod_deflate</a></code> filter.</p>
+
+    <p>Under normal operation, <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> will respond to
+    and can be controlled by the
+    <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.9">Cache-Control</a>
+    and
+    <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.32">Pragma</a>
+    headers sent from a client in a request, or from a
+    server within a response. Under exceptional circumstances,
+    <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> can be configured to override these headers
+    and force site specific behaviour, however such behaviour will be limited
+    to this cache only, and will not affect the operation of other caches
+    that may exist between the client and server, and as a result is not
+    recommended unless strictly necessary.</p>
+
+    <p>RFC 2616 allows for the cache to return stale data while the existing
+    stale entry is refreshed from the origin server, and this is supported
+    by <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> when the
+    <code class="directive"><a href="#cachelock">CacheLock</a></code> directive is suitably
+    configured. Such responses will contain a
+    <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.46">Warning</a>
+    HTTP header with a 110 response code. RFC 2616 also allows a cache to return
+    stale data when the attempt made to refresh the stale data returns an
+    error 500 or above, and this behaviour is supported by default by
+    <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code>. Such responses will contain a
+    <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.46">Warning</a>
+    HTTP header with a 111 response code.</p>
+
+    <p><code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> requires the services of one or more
+    storage management modules. The following storage management modules are included in
+    the base Apache distribution:</p>
+    <dl>
+    <dt><code class="module"><a href="../mod/mod_cache_disk.html">mod_cache_disk</a></code></dt>
+    <dd>Implements a disk based storage manager. Headers and bodies are
+    stored separately on disk, in a directory structure derived from the
+    md5 hash of the cached URL. Multiple content negotiated responses can
+    be stored concurrently, however the caching of partial content is not
+    supported by this module. The <code class="program"><a href="../programs/htcacheclean.html">htcacheclean</a></code> tool is
+    provided to list cached URLs, remove cached URLs, or to maintain the size
+    of the disk cache within size and inode limits.</dd>
+    <dt><code class="module"><a href="../mod/mod_cache_socache.html">mod_cache_socache</a></code></dt>
+    <dd>Implements a shared object cache based storage manager. Headers and
+    bodies are stored together beneath a single key based on the URL of the
+    response being cached. Multiple content negotiated responses can
+    be stored concurrently, however the caching of partial content is not
+    supported by this module.</dd>
+    </dl>
+
+    <p>Further details, discussion, and examples, are provided in the
+    <a href="../caching.html">Caching Guide</a>.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>Topics</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#related">Related Modules and Directives</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#sampleconf">Sample Configuration</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#thunderingherd">Avoiding the Thundering Herd</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#finecontrol">Fine Control with the CACHE Filter</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#status">Cache Status and Logging</a></li>
+</ul><h3 class="directives">Directives</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#cachedefaultexpire">CacheDefaultExpire</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachedetailheader">CacheDetailHeader</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachedisable">CacheDisable</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheenable">CacheEnable</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheheader">CacheHeader</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheignorecachecontrol">CacheIgnoreCacheControl</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheignoreheaders">CacheIgnoreHeaders</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheignorenolastmod">CacheIgnoreNoLastMod</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheignorequerystring">CacheIgnoreQueryString</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheignoreurlsessionidentifiers">CacheIgnoreURLSessionIdentifiers</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachekeybaseurl">CacheKeyBaseURL</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachelastmodifiedfactor">CacheLastModifiedFactor</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachelock">CacheLock</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachelockmaxage">CacheLockMaxAge</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachelockpath">CacheLockPath</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachemaxexpire">CacheMaxExpire</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cacheminexpire">CacheMinExpire</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachequickhandler">CacheQuickHandler</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachestaleonerror">CacheStaleOnError</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachestoreexpired">CacheStoreExpired</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachestorenostore">CacheStoreNoStore</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cachestoreprivate">CacheStorePrivate</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_cache">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_cache">Report a bug</a></li></ul><h3>See also</h3>
+<ul class="seealso">
+<li><a href="../caching.html">Caching Guide</a></li>
+<li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="related" id="related">Related Modules and Directives</a></h2>
+    <table class="related"><tr><th>Related Modules</th><th>Related Directives</th></tr><tr><td><ul><li><code class="module"><a href="../mod/mod_cache_disk.html">mod_cache_disk</a></code></li><li><code class="module"><a href="../mod/mod_cache_socache.html">mod_cache_socache</a></code></li></ul></td><td><ul><li><code class="directive"><a href="../mod/mod_cache_disk.html#cacheroot">CacheRoot</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cachedirlevels">CacheDirLevels</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cachedirlength">CacheDirLength</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cacheminfilesize">CacheMinFileSize</a></code></li><li><code class="directive"><a href="../mod/mod_cache_disk.html#cachemaxfilesize">CacheMaxFileSize</a></code></li><li><code class="directive"><a href="../mod/mod_cache_socache.html#cachesocache">CacheSocache</a></code></li><li><code class="directive"><a href="../mod/mod_cache_socache.html#cachesocachemaxtime">CacheSocacheMaxTime</a></code></li><li><code class="directive"><a href="../mod/mod_cache_socache.html#cachesocachemintime">CacheSocacheMinTime</a></code></li><li><code class="directive"><a href="../mod/mod_cache_socache.html#cachesocachemaxsize">CacheSocacheMaxSize</a></code></li><li><code class="directive"><a href="../mod/mod_cache_socache.html#cachesocachereadsize">CacheSocacheReadSize</a></code></li><li><code class="directive"><a href="../mod/mod_cache_socache.html#cachesocachereadtime">CacheSocacheReadTime</a></code></li></ul></td></tr></table>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="sampleconf" id="sampleconf">Sample Configuration</a></h2>
+    <div class="example"><h3>Sample httpd.conf</h3><pre class="prettyprint lang-config">#
+# Sample Cache Configuration
+#
+LoadModule cache_module modules/mod_cache.so
+&lt;IfModule mod_cache.c&gt;
+    LoadModule cache_disk_module modules/mod_cache_disk.so
+    &lt;IfModule mod_cache_disk.c&gt;
+        CacheRoot "c:/cacheroot"
+        CacheEnable disk  "/"
+        CacheDirLevels 5
+        CacheDirLength 3
+    &lt;/IfModule&gt;
+
+    # When acting as a proxy, don't cache the list of security updates
+    CacheDisable "http://security.update.server/update-list/"
+&lt;/IfModule&gt;</pre>
+</div>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="thunderingherd" id="thunderingherd">Avoiding the Thundering Herd</a></h2>
+  <p>When a cached entry becomes stale, <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> will submit
+  a conditional request to the backend, which is expected to confirm whether the
+  cached entry is still fresh, and send an updated entity if not.</p>
+  <p>A small but finite amount of time exists between the time the cached entity
+  becomes stale, and the time the stale entity is fully refreshed. On a busy
+  server, a significant number of requests might arrive during this time, and
+  cause a <strong>thundering herd</strong> of requests to strike the backend
+  suddenly and unpredictably.</p>
+  <p>To keep the thundering herd at bay, the <code class="directive"><a href="#cachelock">CacheLock</a></code>
+  directive can be used to define a directory in which locks are created for
+  URLs <strong>in flight</strong>. The lock is used as a <strong>hint</strong>
+  by other requests to either suppress an attempt to cache (someone else has
+  gone to fetch the entity), or to indicate that a stale entry is being refreshed
+  (stale content will be returned in the mean time).
+  </p>
+  <h3>Initial caching of an entry</h3>
+    
+    <p>When an entity is cached for the first time, a lock will be created for the
+    entity until the response has been fully cached. During the lifetime of the
+    lock, the cache will suppress the second and subsequent attempt to cache the
+    same entity. While this doesn't hold back the thundering herd, it does stop
+    the cache attempting to cache the same entity multiple times simultaneously.
+    </p>
+  
+  <h3>Refreshment of a stale entry</h3>
+    
+    <p>When an entity reaches its freshness lifetime and becomes stale, a lock
+    will be created for the entity until the response has either been confirmed as
+    still fresh, or replaced by the backend. During the lifetime of the lock, the
+    second and subsequent incoming request will cause stale data to be returned,
+    and the thundering herd is kept at bay.</p>
+  
+  <h3>Locks and Cache-Control: no-cache</h3>
+    
+    <p>Locks are used as a <strong>hint only</strong> to enable the cache to be
+    more gentle on backend servers, however the lock can be overridden if necessary.
+    If the client sends a request with a Cache-Control header forcing a reload, any
+    lock that may be present will be ignored, and the client's request will be
+    honored immediately and the cached entry refreshed.</p>
+    <p>As a further safety mechanism, locks have a configurable maximum age.
+    Once this age has been reached, the lock is removed, and a new request is
+    given the opportunity to create a new lock. This maximum age can be set using
+    the <code class="directive"><a href="#cachelockmaxage">CacheLockMaxAge</a></code> directive, and defaults
+    to 5 seconds.
+    </p>
+  
+  <h3>Example configuration</h3>
+    
+    <div class="example"><h3>Enabling the cache lock</h3><pre class="prettyprint lang-config">#
+# Enable the cache lock
+#
+&lt;IfModule mod_cache.c&gt;
+    CacheLock on
+    CacheLockPath "/tmp/mod_cache-lock"
+    CacheLockMaxAge 5
+&lt;/IfModule&gt;</pre>
+</div>
+  
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="finecontrol" id="finecontrol">Fine Control with the CACHE Filter</a></h2>
+  <p>Under the default mode of cache operation, the cache runs as a quick handler,
+  short circuiting the majority of server processing and offering the highest
+  cache performance available.</p>
+
+  <p>In this mode, the cache <strong>bolts onto</strong> the front of the server,
+  acting as if a free standing RFC 2616 caching proxy had been placed in front of
+  the server.</p>
+
+  <p>While this mode offers the best performance, the administrator may find that
+  under certain circumstances they may want to perform further processing on the
+  request after the request is cached, such as to inject personalisation into the
+  cached page, or to apply authorization restrictions to the content. Under these
+  circumstances, an administrator is often forced to place independent reverse
+  proxy servers either behind or in front of the caching server to achieve this.</p>
+
+  <p>To solve this problem the <code class="directive"><a href="#cachequickhandler">CacheQuickHandler</a></code>
+  directive can be set to <strong>off</strong>, and the server will
+  process all phases normally handled by a non-cached request, including the
+  <strong>authentication and authorization</strong> phases.</p>
+
+  <p>In addition, the administrator may optionally specify the <strong>precise point
+  within the filter chain</strong> where caching is to take place by adding the
+  <strong>CACHE</strong> filter to the output filter chain.</p>
+
+  <p>For example, to cache content before applying compression to the response,
+  place the <strong>CACHE</strong> filter before the <strong>DEFLATE</strong>
+  filter as in the example below:</p>
+
+  <pre class="prettyprint lang-config"># Cache content before optional compression
+CacheQuickHandler off
+AddOutputFilterByType CACHE;DEFLATE text/plain</pre>
+
+
+  <p>Another option is to have content cached before personalisation is applied
+  by <code class="module"><a href="../mod/mod_include.html">mod_include</a></code> (or another content processing filter). In this
+  example templates containing tags understood by
+  <code class="module"><a href="../mod/mod_include.html">mod_include</a></code> are cached before being parsed:</p>
+
+  <pre class="prettyprint lang-config"># Cache content before mod_include and mod_deflate
+CacheQuickHandler off
+AddOutputFilterByType CACHE;INCLUDES;DEFLATE text/html</pre>
+
+
+  <p>You may place the <strong>CACHE</strong> filter anywhere you wish within the
+  filter chain. In this example, content is cached after being parsed by
+  <code class="module"><a href="../mod/mod_include.html">mod_include</a></code>, but before being processed by
+  <code class="module"><a href="../mod/mod_deflate.html">mod_deflate</a></code>:</p>
+
+  <pre class="prettyprint lang-config"># Cache content between mod_include and mod_deflate
+CacheQuickHandler off
+AddOutputFilterByType INCLUDES;CACHE;DEFLATE text/html</pre>
+
+
+  <div class="warning"><h3>Warning:</h3>If the location of the
+  <strong>CACHE</strong> filter in the filter chain is changed for any reason,
+  you may need to <strong>flush your cache</strong> to ensure that your data
+  served remains consistent. <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> is not in a position
+  to enforce this for you.</div>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="status" id="status">Cache Status and Logging</a></h2>
+  <p>Once <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> has made a decision as to whether or not
+  an entity is to be served from cache, the detailed reason for the decision
+  is written to the subprocess environment within the request under the
+  <strong>cache-status</strong> key. This reason can be logged by the
+  <code class="directive"><a href="../mod/mod_log_config.html#logformat">LogFormat</a></code> directive as
+  follows:</p>
+
+  <pre class="prettyprint lang-config">LogFormat "%{cache-status}e ..."</pre>
+
+
+  <p>Based on the caching decision made, the reason is also written to the
+  subprocess environment under one the following four keys, as appropriate:</p>
+
+  <dl>
+    <dt>cache-hit</dt><dd>The response was served from cache.</dd>
+    <dt>cache-revalidate</dt><dd>The response was stale and was successfully
+      revalidated, then served from cache.</dd>
+    <dt>cache-miss</dt><dd>The response was served from the upstream server.</dd>
+    <dt>cache-invalidate</dt><dd>The cached entity was invalidated by a request
+      method other than GET or HEAD.</dd>
+  </dl>
+
+  <p>This makes it possible to support conditional logging of cached requests
+  as per the following example:</p>
+
+  <pre class="prettyprint lang-config">CustomLog "cached-requests.log" common env=cache-hit
+CustomLog "uncached-requests.log" common env=cache-miss
+CustomLog "revalidated-requests.log" common env=cache-revalidate
+CustomLog "invalidated-requests.log" common env=cache-invalidate</pre>
+
+
+  <p>For module authors, a hook called <var>cache_status</var> is available,
+  allowing modules to respond to the caching outcomes above in customised
+  ways.</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheDefaultExpire" id="CacheDefaultExpire">CacheDefaultExpire</a> <a name="cachedefaultexpire" id="cachedefaultexpire">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>The default duration to cache a document when no expiry date is specified.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheDefaultExpire <var>seconds</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheDefaultExpire 3600 (one hour)</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>The <code class="directive">CacheDefaultExpire</code> directive specifies a default time,
+    in seconds, to cache a document if neither an expiry date nor last-modified date are provided
+    with the document. The value specified with the <code class="directive"><a href="#cachemaxexpire">CacheMaxExpire</a></code>
+    directive does <em>not</em> override this setting.</p>
+
+    <pre class="prettyprint lang-config">CacheDefaultExpire 86400</pre>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheDetailHeader" id="CacheDetailHeader">CacheDetailHeader</a> <a name="cachedetailheader" id="cachedetailheader">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Add an X-Cache-Detail header to the response.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheDetailHeader <var>on|off</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheDetailHeader off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in Apache 2.3.9 and later</td></tr>
+</table>
+  <p>When the <code class="directive">CacheDetailHeader</code> directive
+  is switched on, an <strong>X-Cache-Detail</strong> header will be added to the response
+  containing the detailed reason for a particular caching decision.</p>
+
+  <p>It can be useful during development of cached RESTful services to have additional
+  information about the caching decision written to the response headers, so as to
+  confirm whether <code>Cache-Control</code> and other headers have been correctly
+  used by the service and client.</p>
+
+  <p>If the normal handler is used, this directive may appear within a
+  <code class="directive"><a href="../mod/core.html#directory">&lt;Directory&gt;</a></code> or
+  <code class="directive"><a href="../mod/core.html#location">&lt;Location&gt;</a></code> directive. If the quick handler
+  is used, this directive must appear within a server or virtual host context, otherwise
+  the setting will be ignored.</p>
+
+  <pre class="prettyprint lang-config"># Enable the X-Cache-Detail header
+CacheDetailHeader on</pre>
+
+
+  <div class="example"><p><code>
+    X-Cache-Detail: "conditional cache hit: entity refreshed" from localhost<br />
+  </code></p></div>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheDisable" id="CacheDisable">CacheDisable</a> <a name="cachedisable" id="cachedisable">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Disable caching of specified URLs</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheDisable <var>url-string</var> | <var>on</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>The <code class="directive">CacheDisable</code> directive instructs
+    <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> to <em>not</em> cache urls at or below
+    <var>url-string</var>.</p>
+
+    <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">CacheDisable "/local_files"</pre>
+</div>
+
+    <p>If used in a <code class="directive"><a href="../mod/core.html#location">&lt;Location&gt;</a></code> directive,
+    the path needs to be specified below the Location, or if the word "on"
+    is used, caching for the whole location will be disabled.</p>
+
+    <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">&lt;Location "/foo"&gt;
+    CacheDisable on
+&lt;/Location&gt;</pre>
+</div>
+
+    <p>The <code>no-cache</code> environment variable can be set to
+    disable caching on a finer grained set of resources in versions
+    2.2.12 and later.</p>
+
+
+<h3>See also</h3>
+<ul>
+<li><a href="../env.html">Environment Variables in Apache</a></li>
+</ul>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheEnable" id="CacheEnable">CacheEnable</a> <a name="cacheenable" id="cacheenable">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Enable caching of specified URLs using a specified storage
+manager</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheEnable <var>cache_type</var> [<var>url-string</var>]</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>A url-string of '/' applied to forward proxy content in 2.2 and
+ earlier.</td></tr>
+</table>
+    <p>The <code class="directive">CacheEnable</code> directive instructs
+    <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> to cache urls at or below
+    <var>url-string</var>. The cache storage manager is specified with the
+    <var>cache_type</var> argument. The <code class="directive">CacheEnable</code>
+    directive can alternatively be placed inside either
+    <code class="directive"><a href="../mod/core.html#location">&lt;Location&gt;</a></code> or
+    <code class="directive"><a href="../mod/core.html#locationmatch">&lt;LocationMatch&gt;</a></code> sections to indicate
+    the content is cacheable.
+    <var>cache_type</var> <code>disk</code> instructs
+    <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> to use the disk based storage manager
+    implemented by <code class="module"><a href="../mod/mod_cache_disk.html">mod_cache_disk</a></code>. <var>cache_type</var>
+    <code>socache</code> instructs <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> to use the
+    shared object cache based storage manager implemented by
+    <code class="module"><a href="../mod/mod_cache_socache.html">mod_cache_socache</a></code>.</p>
+    <p>In the event that the URL space overlaps between different
+    <code class="directive">CacheEnable</code> directives (as in the example below),
+    each possible storage manager will be run until the first one that
+    actually processes the request. The order in which the storage managers are
+    run is determined by the order of the <code class="directive">CacheEnable</code>
+    directives in the configuration file. <code class="directive">CacheEnable</code>
+    directives within <code class="directive"><a href="../mod/core.html#location">&lt;Location&gt;</a></code> or
+    <code class="directive"><a href="../mod/core.html#locationmatch">&lt;LocationMatch&gt;</a></code> sections are processed
+    before globally defined <code class="directive">CacheEnable</code> directives.</p>
+
+    <p>When acting as a forward proxy server, <var>url-string</var> must
+    minimally begin with a protocol for which caching should be enabled.</p>
+
+    <pre class="prettyprint lang-config"># Cache content (normal handler only)
+CacheQuickHandler off
+&lt;Location "/foo"&gt;
+    CacheEnable disk
+&lt;/Location&gt;
+
+# Cache regex (normal handler only)
+CacheQuickHandler off
+&lt;LocationMatch "foo$"&gt;
+    CacheEnable disk
+&lt;/LocationMatch&gt;
+
+# Cache all but forward proxy url's (normal or quick handler)
+CacheEnable  disk  /
+
+# Cache FTP-proxied url's (normal or quick handler)
+CacheEnable  disk  ftp://
+
+# Cache forward proxy content from www.example.org (normal or quick handler)
+CacheEnable  disk  http://www.example.org/</pre>
+
+
+    <p>A hostname starting with a <strong>"*"</strong> matches all hostnames with
+    that suffix. A hostname starting with <strong>"."</strong> matches all
+    hostnames containing the domain components that follow.</p>
+
+    <pre class="prettyprint lang-config"># Match www.example.org, and fooexample.org
+CacheEnable  disk  "http://*example.org/"
+# Match www.example.org, but not fooexample.org
+CacheEnable  disk  "http://.example.org/"</pre>
+
+
+    <p> The <code>no-cache</code> environment variable can be set to
+    disable caching on a finer grained set of resources in versions
+    2.2.12 and later.</p>
+
+
+<h3>See also</h3>
+<ul>
+<li><a href="../env.html">Environment Variables in Apache</a></li>
+</ul>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheHeader" id="CacheHeader">CacheHeader</a> <a name="cacheheader" id="cacheheader">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Add an X-Cache header to the response.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheHeader <var>on|off</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheHeader off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in Apache 2.3.9 and later</td></tr>
+</table>
+  <p>When the <code class="directive">CacheHeader</code> directive
+  is switched on, an <strong>X-Cache</strong> header will be added to the response
+  with the cache status of this response. If the normal handler is used, this
+  directive may appear within a <code class="directive"><a href="../mod/core.html#directory">&lt;Directory&gt;</a></code>
+  or <code class="directive"><a href="../mod/core.html#location">&lt;Location&gt;</a></code> directive. If the quick
+  handler is used, this directive must appear within a server or virtual host
+  context, otherwise the setting will be ignored.</p>
+
+  <dl>
+    <dt><strong>HIT</strong></dt><dd>The entity was fresh, and was served from
+    cache.</dd>
+    <dt><strong>REVALIDATE</strong></dt><dd>The entity was stale, was successfully
+    revalidated and was served from cache.</dd>
+    <dt><strong>MISS</strong></dt><dd>The entity was fetched from the upstream
+      server and was not served from cache.</dd>
+  </dl>
+
+  <pre class="prettyprint lang-config"># Enable the X-Cache header
+CacheHeader on</pre>
+
+
+  <pre class="prettyprint lang-config">X-Cache: HIT from localhost</pre>
+
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheIgnoreCacheControl" id="CacheIgnoreCacheControl">CacheIgnoreCacheControl</a> <a name="cacheignorecachecontrol" id="cacheignorecachecontrol">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Ignore request to not serve cached content to client</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheIgnoreCacheControl On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheIgnoreCacheControl Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>Ordinarily, requests containing a <code>Cache-Control: no-cache</code> or
+    Pragma: no-cache header value will not be served from the cache.  The
+    <code class="directive">CacheIgnoreCacheControl</code> directive allows this
+    behavior to be overridden.  <code class="directive">CacheIgnoreCacheControl On</code>
+    tells the server to attempt to serve the resource from the cache even
+    if the request contains no-cache header values.  Resources requiring
+    authorization will <em>never</em> be cached.</p>
+
+    <pre class="prettyprint lang-config">CacheIgnoreCacheControl On</pre>
+
+
+    <div class="warning"><h3>Warning:</h3>
+       This directive will allow serving from the cache even if the client has
+       requested that the document not be served from the cache.  This might
+       result in stale content being served.
+    </div>
+
+<h3>See also</h3>
+<ul>
+<li><code class="directive"><a href="#cachestoreprivate">CacheStorePrivate</a></code></li>
+<li><code class="directive"><a href="#cachestorenostore">CacheStoreNoStore</a></code></li>
+</ul>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheIgnoreHeaders" id="CacheIgnoreHeaders">CacheIgnoreHeaders</a> <a name="cacheignoreheaders" id="cacheignoreheaders">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Do not store the given HTTP header(s) in the cache.
+</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheIgnoreHeaders <var>header-string</var> [<var>header-string</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheIgnoreHeaders None</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>According to RFC 2616, hop-by-hop HTTP headers are not stored in
+    the cache.  The following HTTP headers are hop-by-hop headers and thus
+    do not get stored in the cache in <em>any</em> case regardless of the
+    setting of <code class="directive">CacheIgnoreHeaders</code>:</p>
+
+    <ul>
+      <li><code>Connection</code></li>
+      <li><code>Keep-Alive</code></li>
+      <li><code>Proxy-Authenticate</code></li>
+      <li><code>Proxy-Authorization</code></li>
+      <li><code>TE</code></li>
+      <li><code>Trailers</code></li>
+      <li><code>Transfer-Encoding</code></li>
+      <li><code>Upgrade</code></li>
+    </ul>
+
+    <p><code class="directive">CacheIgnoreHeaders</code> specifies additional HTTP
+    headers that should not to be stored in the cache.  For example, it makes
+    sense in some cases to prevent cookies from being stored in the cache.</p>
+
+    <p><code class="directive">CacheIgnoreHeaders</code> takes a space separated list
+    of HTTP headers that should not be stored in the cache. If only hop-by-hop
+    headers not should be stored in the cache (the RFC 2616 compliant
+    behaviour), <code class="directive">CacheIgnoreHeaders</code> can be set to
+    <code>None</code>.</p>
+
+    <div class="example"><h3>Example 1</h3><pre class="prettyprint lang-config">CacheIgnoreHeaders Set-Cookie</pre>
+</div>
+
+    <div class="example"><h3>Example 2</h3><pre class="prettyprint lang-config">CacheIgnoreHeaders None</pre>
+</div>
+
+    <div class="warning"><h3>Warning:</h3>
+      If headers like <code>Expires</code> which are needed for proper cache
+      management are not stored due to a
+      <code class="directive">CacheIgnoreHeaders</code> setting, the behaviour of
+      mod_cache is undefined.
+    </div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheIgnoreNoLastMod" id="CacheIgnoreNoLastMod">CacheIgnoreNoLastMod</a> <a name="cacheignorenolastmod" id="cacheignorenolastmod">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Ignore the fact that a response has no Last Modified
+header.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheIgnoreNoLastMod On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheIgnoreNoLastMod Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>Ordinarily, documents without a last-modified date are not cached.
+    Under some circumstances the last-modified date is removed (during
+    <code class="module"><a href="../mod/mod_include.html">mod_include</a></code> processing for example) or not provided
+    at all. The <code class="directive">CacheIgnoreNoLastMod</code> directive
+    provides a way to specify that documents without last-modified dates
+    should be considered for caching, even without a last-modified date.
+    If neither a last-modified date nor an expiry date are provided with
+    the document then the value specified by the
+    <code class="directive"><a href="#cachedefaultexpire">CacheDefaultExpire</a></code> directive will be used to
+    generate an expiration date.</p>
+
+    <pre class="prettyprint lang-config">CacheIgnoreNoLastMod On</pre>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheIgnoreQueryString" id="CacheIgnoreQueryString">CacheIgnoreQueryString</a> <a name="cacheignorequerystring" id="cacheignorequerystring">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Ignore query string when caching</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheIgnoreQueryString On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheIgnoreQueryString Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>Ordinarily, requests with query string parameters are cached separately
+    for each unique query string. This is according to RFC 2616/13.9 done only
+    if an expiration time is specified. The
+    <code class="directive">CacheIgnoreQueryString</code> directive tells the cache to
+    cache requests even if no expiration time is specified, and to reply with
+    a cached reply even if the query string differs. From a caching point of
+    view the request is treated as if having no query string when this
+    directive is enabled.</p>
+
+    <pre class="prettyprint lang-config">CacheIgnoreQueryString On</pre>
+
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheIgnoreURLSessionIdentifiers" id="CacheIgnoreURLSessionIdentifiers">CacheIgnoreURLSessionIdentifiers</a> <a name="cacheignoreurlsessionidentifiers" id="cacheignoreurlsessionidentifiers">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Ignore defined session identifiers encoded in the URL when caching
+</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheIgnoreURLSessionIdentifiers <var>identifier</var> [<var>identifier</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheIgnoreURLSessionIdentifiers None</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>Sometimes applications encode the session identifier into the URL like in the following
+    Examples:
+    </p>
+    <ul>
+      <li><code>/someapplication/image.gif;jsessionid=123456789</code></li>
+      <li><code>/someapplication/image.gif?PHPSESSIONID=12345678</code></li>
+    </ul>
+    <p>This causes cacheable resources to be stored separately for each session, which
+    is often not desired. <code class="directive">CacheIgnoreURLSessionIdentifiers</code> lets
+    define a list of identifiers that are removed from the key that is used to identify
+    an entity in the cache, such that cacheable resources are not stored separately for
+    each session.
+    </p>
+    <p><code>CacheIgnoreURLSessionIdentifiers None</code> clears the list of ignored
+    identifiers. Otherwise, each identifier is added to the list.</p>
+
+    <div class="example"><h3>Example 1</h3><pre class="prettyprint lang-config">CacheIgnoreURLSessionIdentifiers jsessionid</pre>
+</div>
+
+    <div class="example"><h3>Example 2</h3><pre class="prettyprint lang-config">CacheIgnoreURLSessionIdentifiers None</pre>
+</div>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheKeyBaseURL" id="CacheKeyBaseURL">CacheKeyBaseURL</a> <a name="cachekeybaseurl" id="cachekeybaseurl">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Override the base URL of reverse proxied cache keys.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheKeyBaseURL <var>URL</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in Apache 2.3.9 and later</td></tr>
+</table>
+  <p>When the <code class="directive">CacheKeyBaseURL</code> directive
+  is specified, the URL provided will be used as the base URL to calculate
+  the URL of the cache keys in the reverse proxy configuration. When not specified,
+  the scheme, hostname and port of the current virtual host is used to construct
+  the cache key. When a cluster of machines is present, and all cached entries
+  should be cached beneath the same cache key, a new base URL can be specified
+  with this directive.</p>
+
+  <pre class="prettyprint lang-config"># Override the base URL of the cache key.
+CacheKeyBaseURL "http://www.example.com/"</pre>
+
+
+  <div class="warning">Take care when setting this directive. If two separate virtual
+  hosts are accidentally given the same base URL, entries from one virtual host
+  will be served to the other.</div>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheLastModifiedFactor" id="CacheLastModifiedFactor">CacheLastModifiedFactor</a> <a name="cachelastmodifiedfactor" id="cachelastmodifiedfactor">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>The factor used to compute an expiry date based on the
+LastModified date.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheLastModifiedFactor <var>float</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheLastModifiedFactor 0.1</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>In the event that a document does not provide an expiry date but does
+    provide a last-modified date, an expiry date can be calculated based on
+    the time since the document was last modified. The
+    <code class="directive">CacheLastModifiedFactor</code> directive specifies a
+    <var>factor</var> to be used in the generation of this expiry date
+    according to the following formula:
+
+    <code>expiry-period = time-since-last-modified-date * <var>factor</var>
+    expiry-date = current-date + expiry-period</code>
+
+    For example, if the document was last modified 10 hours ago, and
+    <var>factor</var> is 0.1 then the expiry-period will be set to
+    10*0.1 = 1 hour. If the current time was 3:00pm then the computed
+    expiry-date would be 3:00pm + 1hour = 4:00pm.
+
+    If the expiry-period would be longer than that set by
+    <code class="directive"><a href="#cachemaxexpire">CacheMaxExpire</a></code>, then the latter takes
+    precedence.</p>
+
+    <pre class="prettyprint lang-config">CacheLastModifiedFactor 0.5</pre>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheLock" id="CacheLock">CacheLock</a> <a name="cachelock" id="cachelock">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Enable the thundering herd lock.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheLock <var>on|off</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheLock off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in Apache 2.2.15 and later</td></tr>
+</table>
+  <p>The <code class="directive">CacheLock</code> directive enables the thundering herd lock
+  for the given URL space.</p>
+
+  <p>In a minimal configuration the following directive is all that is needed to
+  enable the thundering herd lock in the default system temp directory.</p>
+
+  <pre class="prettyprint lang-config"># Enable cache lock
+CacheLock on</pre>
+
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheLockMaxAge" id="CacheLockMaxAge">CacheLockMaxAge</a> <a name="cachelockmaxage" id="cachelockmaxage">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Set the maximum possible age of a cache lock.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheLockMaxAge <var>integer</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheLockMaxAge 5</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+</table>
+  <p>The <code class="directive">CacheLockMaxAge</code> directive specifies the maximum
+  age of any cache lock.</p>
+
+  <p>A lock older than this value in seconds will be ignored, and the next
+  incoming request will be given the opportunity to re-establish the lock.
+  This mechanism prevents a slow client taking an excessively long time to refresh
+  an entity.</p>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheLockPath" id="CacheLockPath">CacheLockPath</a> <a name="cachelockpath" id="cachelockpath">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Set the lock path directory.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheLockPath <var>directory</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheLockPath /tmp/mod_cache-lock</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+</table>
+  <p>The <code class="directive">CacheLockPath</code> directive allows you to specify the
+  directory in which the locks are created. By default, the system's temporary
+  folder is used. Locks consist of empty files that only exist for stale URLs
+  in flight, so is significantly less resource intensive than the traditional
+  disk cache.</p>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheMaxExpire" id="CacheMaxExpire">CacheMaxExpire</a> <a name="cachemaxexpire" id="cachemaxexpire">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>The maximum time in seconds to cache a document</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheMaxExpire <var>seconds</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheMaxExpire 86400 (one day)</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>The <code class="directive">CacheMaxExpire</code> directive specifies the maximum number of
+    seconds for which cacheable HTTP documents will be retained without checking the origin
+    server. Thus, documents will be out of date at most this number of seconds. This maximum
+    value is enforced even if an expiry date was supplied with the document.</p>
+
+    <pre class="prettyprint lang-config">CacheMaxExpire 604800</pre>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheMinExpire" id="CacheMinExpire">CacheMinExpire</a> <a name="cacheminexpire" id="cacheminexpire">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>The minimum time in seconds to cache a document</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheMinExpire <var>seconds</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheMinExpire 0</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>The <code class="directive">CacheMinExpire</code> directive specifies the minimum number of
+    seconds for which cacheable HTTP documents will be retained without checking the origin
+    server. This is only used if no valid expire time was supplied with the document.</p>
+
+
+    <pre class="prettyprint lang-config">CacheMinExpire 3600</pre>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheQuickHandler" id="CacheQuickHandler">CacheQuickHandler</a> <a name="cachequickhandler" id="cachequickhandler">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Run the cache from the quick handler.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheQuickHandler <var>on|off</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheQuickHandler on</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Apache HTTP Server 2.3.3 and later</td></tr>
+</table>
+    <p>The <code class="directive">CacheQuickHandler</code> directive
+    controls the phase in which the cache is handled.</p>
+
+    <p>In the default enabled configuration, the cache operates within the quick
+    handler phase. This phase short circuits the majority of server processing,
+    and represents the most performant mode of operation for a typical server.
+    The cache <strong>bolts onto</strong> the front of the server, and the
+    majority of server processing is avoided.</p>
+
+    <p>When disabled, the cache operates as a normal handler, and is subject to
+    the full set of phases when handling a server request. While this mode is
+    slower than the default, it allows the cache to be used in cases where full
+    processing is required, such as when content is subject to authorization.</p>
+
+    <pre class="prettyprint lang-config"># Run cache as a normal handler
+CacheQuickHandler off</pre>
+
+
+    <p>It is also possible, when the quick handler is disabled, for the
+    administrator to choose the precise location within the filter chain where
+    caching is to be performed, by adding the <strong>CACHE</strong> filter to
+    the chain.</p>
+
+    <pre class="prettyprint lang-config"># Cache content before mod_include and mod_deflate
+CacheQuickHandler off
+AddOutputFilterByType CACHE;INCLUDES;DEFLATE text/html</pre>
+
+
+    <p>If the CACHE filter is specified more than once, the last instance will
+    apply.</p>
+
+  
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheStaleOnError" id="CacheStaleOnError">CacheStaleOnError</a> <a name="cachestaleonerror" id="cachestaleonerror">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Serve stale content in place of 5xx responses.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheStaleOnError <var>on|off</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheStaleOnError on</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in Apache 2.3.9 and later</td></tr>
+</table>
+  <p>When the <code class="directive">CacheStaleOnError</code> directive
+  is switched on, and when stale data is available in the cache, the cache will
+  respond to 5xx responses from the backend by returning the stale data instead of
+  the 5xx response. While the Cache-Control headers sent by clients will be respected,
+  and the raw 5xx responses returned to the client on request, the 5xx response so
+  returned to the client will not invalidate the content in the cache.</p>
+
+  <pre class="prettyprint lang-config"># Serve stale data on error.
+CacheStaleOnError on</pre>
+
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheStoreExpired" id="CacheStoreExpired">CacheStoreExpired</a> <a name="cachestoreexpired" id="cachestoreexpired">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Attempt to cache responses that the server reports as expired</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheStoreExpired On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheStoreExpired Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>Since httpd 2.2.4, responses which have already expired are not
+       stored in the cache.  The <code class="directive">CacheStoreExpired</code>
+       directive allows this behavior to be overridden.
+       <code class="directive">CacheStoreExpired</code> On
+       tells the server to attempt to cache the resource if it is stale.
+       Subsequent requests would trigger an If-Modified-Since request of
+       the origin server, and the response may be fulfilled from cache
+       if the backend resource has not changed.</p>
+
+    <pre class="prettyprint lang-config">CacheStoreExpired On</pre>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheStoreNoStore" id="CacheStoreNoStore">CacheStoreNoStore</a> <a name="cachestorenostore" id="cachestorenostore">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Attempt to cache requests or responses that have been marked as no-store.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheStoreNoStore On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheStoreNoStore Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>Ordinarily, requests or responses with <code>Cache-Control: no-store</code> header
+       values will not be stored in the cache.  The
+       <code class="directive">CacheStoreNoStore</code> directive allows this
+       behavior to be overridden.  <code class="directive">CacheStoreNoStore</code> On
+       tells the server to attempt to cache the resource even if it contains
+       no-store header values.  Resources requiring authorization will
+       <em>never</em> be cached.</p>
+
+    <pre class="prettyprint lang-config">CacheStoreNoStore On</pre>
+
+
+    <div class="warning"><h3>Warning:</h3>
+       As described in RFC 2616, the no-store directive is intended to
+       "prevent the inadvertent release or retention of sensitive information
+       (for example, on backup tapes)."  Enabling this option could store
+       sensitive information in the cache.  You are hereby warned.
+    </div>
+
+<h3>See also</h3>
+<ul>
+<li><code class="directive"><a href="#cacheignorecachecontrol">CacheIgnoreCacheControl</a></code></li>
+<li><code class="directive"><a href="#cachestoreprivate">CacheStorePrivate</a></code></li>
+</ul>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheStorePrivate" id="CacheStorePrivate">CacheStorePrivate</a> <a name="cachestoreprivate" id="cachestoreprivate">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Attempt to cache responses that the server has marked as private</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheStorePrivate On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheStorePrivate Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_cache</td></tr>
+</table>
+    <p>Ordinarily, responses with <code>Cache-Control: private</code> header values will not
+       be stored in the cache.  The <code class="directive">CacheStorePrivate</code>
+       directive allows this behavior to be overridden.
+       <code class="directive">CacheStorePrivate</code> On
+       tells the server to attempt to cache the resource even if it contains
+       private header values.  Resources requiring authorization will
+       <em>never</em> be cached.</p>
+
+    <pre class="prettyprint lang-config">CacheStorePrivate On</pre>
+
+
+    <div class="warning"><h3>Warning:</h3>
+       This directive will allow caching even if the upstream server has
+       requested that the resource not be cached.  This directive is only
+       ideal for a 'private' cache.
+    </div>
+
+<h3>See also</h3>
+<ul>
+<li><code class="directive"><a href="#cacheignorecachecontrol">CacheIgnoreCacheControl</a></code></li>
+<li><code class="directive"><a href="#cachestorenostore">CacheStoreNoStore</a></code></li>
+</ul>
+</div>
+</div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_cache.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_cache.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_cache.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_cache.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_cache.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

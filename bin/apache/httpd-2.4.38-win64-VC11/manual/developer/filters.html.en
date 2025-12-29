@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>How filters work in Apache 2.0 - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Developer Documentation</a></div><div id="page-content"><div id="preamble"><h1>How filters work in Apache 2.0</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/developer/filters.html" title="English">&nbsp;en&nbsp;</a></p>
+</div>
+
+    <div class="warning"><h3>Warning</h3>
+      <p>This is a cut 'n paste job from an email
+      (&lt;022501c1c529$f63a9550$7f00000a@KOJ&gt;) and only reformatted for
+      better readability. It's not up to date but may be a good start for
+      further research.</p>
+    </div>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#types">Filter Types</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#howinserted">How are filters inserted?</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#asis">Asis</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#conclusion">Explanations</a></li>
+</ul><h3>See also</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="types" id="types">Filter Types</a></h2>
+    <p>There are three basic filter types (each of these is actually broken
+    down into two categories, but that comes later).</p>
+
+    <dl>
+    <dt><code>CONNECTION</code></dt>
+    <dd>Filters of this type are valid for the lifetime of this connection.
+    (<code>AP_FTYPE_CONNECTION</code>, <code>AP_FTYPE_NETWORK</code>)</dd>
+
+    <dt><code>PROTOCOL</code></dt>
+    <dd>Filters of this type are valid for the lifetime of this request from
+    the point of view of the client, this means that the request is valid
+    from the time that the request is sent until the time that the response
+    is received. (<code>AP_FTYPE_PROTOCOL</code>,
+    <code>AP_FTYPE_TRANSCODE</code>)</dd>
+
+    <dt><code>RESOURCE</code></dt>
+    <dd>Filters of this type are valid for the time that this content is used
+    to satisfy a request.  For simple requests, this is identical to
+    <code>PROTOCOL</code>, but internal redirects and sub-requests can change
+    the content without ending the request. (<code>AP_FTYPE_RESOURCE</code>,
+    <code>AP_FTYPE_CONTENT_SET</code>)</dd>
+    </dl>
+
+    <p>It is important to make the distinction between a protocol and a
+    resource filter.  A resource filter is tied to a specific resource, it
+    may also be tied to header information, but the main binding is to a
+    resource.  If you are writing a filter and you want to know if it is
+    resource or protocol, the correct question to ask is:  "Can this filter
+    be removed if the request is redirected to a different resource?"  If
+    the answer is yes, then it is a resource filter.  If it is no, then it
+    is most likely a protocol or connection filter.  I won't go into
+    connection filters, because they seem to be well understood. With this
+    definition, a few examples might help:</p>
+
+    <dl>
+    <dt>Byterange</dt>
+    <dd>We have coded it to be inserted for all requests, and it is removed
+    if not used.  Because this filter is active at the beginning of all
+    requests, it can not be removed if it is redirected, so this is a
+    protocol filter.</dd>
+
+    <dt>http_header</dt>
+    <dd>This filter actually writes the headers to the network.  This is
+    obviously a required filter (except in the asis case which is special
+    and will be dealt with below) and so it is a protocol filter.</dd>
+
+    <dt>Deflate</dt>
+    <dd>The administrator configures this filter based on which file has been
+    requested.  If we do an internal redirect from an autoindex page to an
+    index.html page, the deflate filter may be added or removed based on
+    config, so this is a resource filter.</dd>
+    </dl>
+
+    <p>The further breakdown of each category into two more filter types is
+    strictly for ordering.  We could remove it, and only allow for one
+    filter type, but the order would tend to be wrong, and we would need to
+    hack things to make it work.  Currently, the <code>RESOURCE</code> filters
+    only have one filter type, but that should change.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="howinserted" id="howinserted">How are filters inserted?</a></h2>
+    <p>This is actually rather simple in theory, but the code is
+    complex.  First of all, it is important that everybody realize that
+    there are three filter lists for each request, but they are all
+    concatenated together:</p>
+    <ul>
+        <li><code>r-&gt;output_filters</code> (corresponds to RESOURCE)</li>
+        <li><code>r-&gt;proto_output_filters</code> (corresponds to PROTOCOL)</li>
+        <li><code>r-&gt;connection-&gt;output_filters</code> (corresponds to CONNECTION)</li>
+    </ul> 
+    
+    <p>The problem previously, was that we used a singly linked list to create the filter stack, and we
+    started from the "correct" location.  This means that if I had a
+    <code>RESOURCE</code> filter on the stack, and I added a
+    <code>CONNECTION</code> filter, the <code>CONNECTION</code> filter would
+    be ignored. This should make sense, because we would insert the connection
+    filter at the top of the <code>c-&gt;output_filters</code> list, but the end
+    of <code>r-&gt;output_filters</code> pointed to the filter that used to be
+    at the front of <code>c-&gt;output_filters</code>. This is obviously wrong.
+    The new insertion code uses a doubly linked list. This has the advantage
+    that we never lose a filter that has been inserted. Unfortunately, it comes
+    with a separate set of headaches.</p>
+
+    <p>The problem is that we have two different cases were we use subrequests.
+    The first is to insert more data into a response. The second is to
+    replace the existing response with an internal redirect. These are two
+    different cases and need to be treated as such.</p>
+
+    <p>In the first case, we are creating the subrequest from within a handler
+    or filter.  This means that the next filter should be passed to
+    <code>make_sub_request</code> function, and the last resource filter in the
+    sub-request will point to the next filter in the main request.  This
+    makes sense, because the sub-request's data needs to flow through the
+    same set of filters as the main request.  A graphical representation
+    might help:</p>
+
+<div class="example"><pre>Default_handler --&gt; includes_filter --&gt; byterange --&gt; ...</pre></div>
+
+    <p>If the includes filter creates a sub request, then we don't want the
+    data from that sub-request to go through the includes filter, because it
+    might not be SSI data.  So, the subrequest adds the following:</p>
+
+<div class="example"><pre>Default_handler --&gt; includes_filter -/-&gt; byterange --&gt; ...
+                                    /
+Default_handler --&gt; sub_request_core</pre></div>
+
+    <p>What happens if the subrequest is SSI data?  Well, that's easy, the
+    <code>includes_filter</code> is a resource filter, so it will be added to
+    the sub request in between the <code>Default_handler</code> and the
+    <code>sub_request_core</code> filter.</p>
+
+    <p>The second case for sub-requests is when one sub-request is going to
+    become the real request.  This happens whenever a sub-request is created
+    outside of a handler or filter, and NULL is passed as the next filter to
+    the <code>make_sub_request</code> function.</p>
+
+    <p>In this case, the resource filters no longer make sense for the new
+    request, because the resource has changed.  So, instead of starting from
+    scratch, we simply point the front of the resource filters for the
+    sub-request to the front of the protocol filters for the old request.
+    This means that we won't lose any of the protocol filters, neither will
+    we try to send this data through a filter that shouldn't see it.</p>
+
+    <p>The problem is that we are using a doubly-linked list for our filter
+    stacks now. But, you should notice that it is possible for two lists to
+    intersect in this model.  So, you do you handle the previous pointer?
+    This is a very difficult question to answer, because there is no "right"
+    answer, either method is equally valid.  I looked at why we use the
+    previous pointer.  The only reason for it is to allow for easier
+    addition of new servers.  With that being said, the solution I chose was
+    to make the previous pointer always stay on the original request.</p>
+
+    <p>This causes some more complex logic, but it works for all cases.  My
+    concern in having it move to the sub-request, is that for the more
+    common case (where a sub-request is used to add data to a response), the
+    main filter chain would be wrong.  That didn't seem like a good idea to
+    me.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="asis" id="asis">Asis</a></h2>
+    <p>The final topic.  :-)  Mod_Asis is a bit of a hack, but the
+    handler needs to remove all filters except for connection filters, and
+    send the data.  If you are using <code class="module"><a href="../mod/mod_asis.html">mod_asis</a></code>, all other
+    bets are off.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="conclusion" id="conclusion">Explanations</a></h2>
+    <p>The absolutely last point is that the reason this code was so hard to
+    get right, was because we had hacked so much to force it to work.  I
+    wrote most of the hacks originally, so I am very much to blame.
+    However, now that the code is right, I have started to remove some
+    hacks.  Most people should have seen that the <code>reset_filters</code>
+    and <code>add_required_filters</code> functions are gone.  Those inserted
+    protocol level filters for error conditions, in fact, both functions did
+    the same thing, one after the other, it was really strange. Because we
+    don't lose protocol filters for error cases any more, those hacks went away.
+    The <code>HTTP_HEADER</code>, <code>Content-length</code>, and
+    <code>Byterange</code> filters are all added in the
+    <code>insert_filters</code> phase, because if they were added earlier, we
+    had some interesting interactions.  Now, those could all be moved to be
+    inserted with the <code>HTTP_IN</code>, <code>CORE</code>, and
+    <code>CORE_IN</code> filters.  That would make the code easier to
+    follow.</p>
+</div></div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/developer/filters.html" title="English">&nbsp;en&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/developer/filters.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

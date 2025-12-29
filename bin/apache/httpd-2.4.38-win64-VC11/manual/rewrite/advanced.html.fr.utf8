@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Advanced Techniques with mod_rewrite - Serveur HTTP Apache Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p>
+<p class="apache">Serveur HTTP Apache Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">Serveur HTTP</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Rewrite</a></div><div id="page-content"><div id="preamble"><h1>Advanced Techniques with mod_rewrite</h1>
+<div class="toplang">
+<p><span>Langues Disponibles: </span><a href="../en/rewrite/advanced.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/rewrite/advanced.html" title="Français">&nbsp;fr&nbsp;</a></p>
+</div>
+
+
+<p>Ce document complète la <a href="../mod/mod_rewrite.html">documentation de référence</a> du
+    module <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>. Il présente un certain nombre
+    de techniques avancées quant à
+    l'utilisation de mod_rewrite.</p>
+
+<div class="warning">Notez que la plupart des exemples ne fonctionneront
+pas en l'état dans la configuration particulière de votre serveur ; il
+est donc important de bien comprendre leur fonctionnement, plutôt que de
+simplement les copier/coller dans votre configuration.</div>
+
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#sharding">Distribution de la charge entre plusieurs serveurs
+  d'arrière-plan en fonction de l'adresse IP</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#on-the-fly-content">Régéneration de contenu à la volée</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#load-balancing">Répartition de charge</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#structuredhomedirs">Répertoires Home structurés</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#redirectanchors">Redirection des ancrages</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#time-dependent">Réécriture dépendant de l'heure</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#setenvvars">Définir des variables d'environnement en fonction de
+      certaines parties de l'URL</a></li>
+</ul><h3>Voir aussi</h3><ul class="seealso"><li><a href="../mod/mod_rewrite.html">Documentation du module</a></li><li><a href="intro.html">Introduction à mod_rewrite</a></li><li><a href="remapping.html">Redirection et remise en
+correspondance</a></li><li><a href="access.html">Contrôler l'accès</a></li><li><a href="vhosts.html">serveurs virtuels</a></li><li><a href="proxy.html">serveurs mandataires</a></li><li><a href="rewritemap.html">Utilisation de RewriteMap</a></li><li><a href="avoid.html">Quand ne pas utiliser mod_rewrite</a></li><li><a href="#comments_section">Commentaires</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="sharding" id="sharding">Distribution de la charge entre plusieurs serveurs
+  d'arrière-plan en fonction de l'adresse IP</a></h2>
+
+  
+
+  <dl>
+    <dt>Description :</dt>
+
+    <dd>
+      <p>La fragmentation ou "sharding" est une technique courante de
+      distribution de la charge du serveur ou de l'espace de stockage.
+      Quand on utilise cette méthode, un serveur frontal utilise l'URL
+      pour répartir de manière appropriée les utilisateurs et objets
+      entre différents serveurs d'arrière-plan.</p>
+    </dd>
+
+    <dt>Solution :</dt>
+
+    <dd>
+      <p>On maintient une table de correspondance entre utilisateurs et
+      serveurs cibles dans des fichiers externes. Ces derniers se
+      présentent comme suit :</p>
+
+<div class="example"><p><code>
+utilisateur1  serveur_physique_utilisateur1<br />
+utilisateur2  serveur_physique_utilisateur2<br />
+:      :
+</code></p></div>
+
+  <p>Tout ceci est enregistré dans un fichier
+  <code>correspondances-utilisateurs-serveurs</code>. Le but est de
+  faire correspondre</p>
+
+<div class="example"><p><code>
+/u/utilisateur1/chemin
+</code></p></div>
+
+  <p>avec</p>
+
+<div class="example"><p><code>
+http://serveur_physique_utilisateur1/u/utilisateur/chemin
+</code></p></div>
+
+      <p>il n'est ainsi pas nécessaire que tous les chemins URL soient
+      valides sur tous les serveurs physiques d'arrière-plan. Le jeu de
+      règles suivant fait tout ceci pour nous, en s'appuyant sur les
+      fichiers de correspondances, en supposant que serveur0 est un
+      serveur par défaut qui sera utilisé lorsqu'un utilisateur ne
+      possèdera pas d'entrée dans la table de correspondances :</p>
+
+<pre class="prettyprint lang-config">RewriteEngine on
+RewriteMap      users-to-hosts   "txt:/path/to/map.users-to-hosts"
+RewriteRule   "^/u/([^/]+)/?(.*)"   "http://${users-to-hosts:$1|server0}/u/$1/$2"</pre>
+
+    </dd>
+  </dl>
+
+  <p>Voir la documentation de <code class="directive"><a href="../mod/mod_rewrite.html#rewritemap">RewriteMap</a></code> pour une description plus
+  approfondie de la syntaxe de cette directive.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="on-the-fly-content" id="on-the-fly-content">Régéneration de contenu à la volée</a></h2>
+
+  
+
+  <dl>
+    <dt>Description :</dt>
+
+    <dd>
+      <p>Nous voulons générer du contenu de manière dynamique, mais le
+      conserver de manière statique lorsqu'il a été généré. La règle
+      suivante vérifie l'existence du fichier statique, et le génère
+      s'il est absent. Les fichiers statiques peuvent être supprimés
+      périodiquement si on le désire (par exemple via cron), et seront
+      régénérés à la demande.</p>
+    </dd>
+
+    <dt>Solution :</dt>
+
+    <dd>
+      A cet effet, on utilise le jeu de règles suivant :
+
+<pre class="prettyprint lang-config"># Cet exemple n'est valable que dans un contexte de répertoire
+RewriteCond "%{REQUEST_URI}"   "!-U"
+RewriteRule "^(.+)\.html$"          "/regenerate_page.cgi"   [PT,L]</pre>
+
+
+      <p>L'opérateur <code>-U</code> permet de déterminer si la chaîne
+      de test (dans ce cas <code>REQUEST_URI</code>) est une URL valide.
+      Pour ce faire, il utilise une sous-requête. Si cette sous-requête
+      échoue, ou en d'autres termes, si la ressource demandée n'existe pas,
+      cette règle invoque le programme CGI
+      <code>/regenerate_page.cgi</code> qui génère la ressource
+      demandée et la sauvegarde dans le répertoire des documents, de
+      façon à ce qu'une copie statique puisse être servie lors d'une
+      demande ultérieure.</p>
+
+    <p>De cette façon, les documents qui ne sont pas mis à jour
+    régulièrement peuvent être servis sous une forme statique. Si ces
+    documents doivent être réactualisés, on peut les supprimer du
+    répertoire des documents, et ils seront ainsi régénérés à la
+    prochaine demande.</p>
+    </dd>
+  </dl>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="load-balancing" id="load-balancing">Répartition de charge</a></h2>
+
+  
+
+  <dl>
+    <dt>Description :</dt>
+
+    <dd>
+      <p>Nous voulons répartir la charge de manière aléatoire entre
+      plusieurs serveurs en utilisant mod_rewrite.</p>
+    </dd>
+
+    <dt>Solution :</dt>
+
+    <dd>
+      <p>Pour y parvenir, nous allons utiliser la directive <code class="directive"><a href="../mod/mod_rewrite.html#rewritemap">RewriteMap</a></code> et une liste de
+      serveurs.</p>
+
+<pre class="prettyprint lang-config">RewriteEngine on
+RewriteMap lb "rnd:/path/to/serverlist.txt"
+RewriteRule "^/(.*)" "http://${lb:serveurs}/$1" [P,L]</pre>
+
+
+<p><code>liste-serveurs.txt</code> contiendra la liste des serveurs :</p>
+
+<div class="example"><p><code>
+## liste-serveurs.txt<br />
+<br />
+serveurs un.example.com|deux.example.com|trois.example.com<br />
+</code></p></div>
+
+<p>Si vous voulez qu'un serveur se voit confier d'avantage de charge que
+les autres, faites le figurer plusieurs fois dans la liste.</p>
+
+   </dd>
+
+   <dt>Discussion</dt>
+   <dd>
+<p>Apache possède un module de répartition de charge -
+<code class="module"><a href="../mod/mod_proxy_balancer.html">mod_proxy_balancer</a></code> - beaucoup plus souple et présentant
+plus de fonctionnalités dans ce domaine que mod_rewrite.</p>
+   </dd>
+  </dl>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="structuredhomedirs" id="structuredhomedirs">Répertoires Home structurés</a></h2>
+
+  
+
+  <dl>
+    <dt>Description :</dt>
+
+    <dd>
+      <p>Certains sites avec des milliers d'utilisateurs organisent
+	  les répertoires utilisateurs de manière structurée, c'est à
+	  dire que chaque répertoire utilisateur se trouve dans un
+	  sous-répertoire dont le nom commence (par exemple) par le
+	  premier caractère du nom de l'utilisateur. Ainsi,
+	  <code>/~larry/chemin</code> correspond à
+	  <code>/home/<strong>l</strong>/larry/public_html/chemin</code>, alors
+	  que <code>/~waldo/chemin</code> correspond à
+	  <code>/home/<strong>w</strong>/waldo/public_html/chemin</code>.</p>
+    </dd>
+
+    <dt>Solution :</dt>
+
+    <dd>
+      <p>On utilise le jeu de règles suivant pour développer les
+	  URLs avec tilde selon l'organisation structurée précédente.</p>
+
+<pre class="prettyprint lang-config">RewriteEngine on
+RewriteRule   "^/~(<strong>([a-z])</strong>[a-z0-9]+)(.*)"  "/home/<strong>$2</strong>/$1/public_html$3"</pre>
+
+    </dd>
+  </dl>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="redirectanchors" id="redirectanchors">Redirection des ancrages</a></h2>
+
+  
+
+  <dl>
+    <dt>Description :</dt>
+
+    <dd>
+    <p>Par défaut, la redirection vers un ancrage HTML ne fonctionne
+	pas, car mod_rewrite échappe le caractère <code>#</code> en le
+	transformant en <code>%23</code>, ce qui rend la redirection
+	inopérante.</p>
+    </dd>
+
+    <dt>Solution :</dt>
+
+    <dd>
+      <p>On utilise le drapeau <code>[NE]</code> dans la règle
+	  <code>RewriteRule</code>. NE signifie "No Escape".
+      </p>
+    </dd>
+
+    <dt>Discussion :</dt>
+    <dd>Cette technique fonctionne bien entendu pour tout autre
+    caractère spécial que mod_rewrite, par défaut, code pour insertion
+    dans une URL.</dd>
+  </dl>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="time-dependent" id="time-dependent">Réécriture dépendant de l'heure</a></h2>
+
+  
+
+  <dl>
+    <dt>Description :</dt>
+
+    <dd>
+      <p>Nous voulons servir des contenus différents selon l'heure du
+      jour en utilisant mod_rewrite.</p>
+    </dd>
+
+    <dt>Solution :</dt>
+
+    <dd>
+      <p>Il existe de nombreuses variables nommées
+	  <code>TIME_xxx</code> utilisables dans les conditions de
+	  réécriture. Utilisées en conjonction avec les modèles de
+	  comparaison lexicographique spéciaux <code>&lt;STRING</code>,
+	  <code>&gt;STRING</code> et <code>=STRING</code>, elles
+	  permettent d'effectuer des redirections dépendant de
+	  l'heure :</p>
+
+<pre class="prettyprint lang-config">RewriteEngine on
+RewriteCond   "%{TIME_HOUR}%{TIME_MIN}" "&gt;0700"
+RewriteCond   "%{TIME_HOUR}%{TIME_MIN}" "&lt;1900"
+RewriteRule   "^foo\.html$"             "foo.day.html" [L]
+RewriteRule   "^foo\.html$"             "foo.night.html"</pre>
+
+
+      <p>Avec cet exemple, l'URL <code>foo.html</code> renvoie
+	  le contenu de <code>foo.jour.html</code> durant le
+	  créneau horaire <code>07:01-18:59</code>, et le contenu de
+	  <code>foo.nuit.html</code> le reste du temps.</p>
+
+      <div class="warning"><code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code>, les mandataires
+	intermédiaires et les navigateurs peuvent chacun mettre en cache
+	les réponses et ainsi afficher une des deux pages en dehors de
+	la fenêtre de temps configurée. On peut utiliser
+	<code class="module"><a href="../mod/mod_expires.html">mod_expires</a></code> pour contourner ce problème. Il est
+	cependant bien plus commode de servir un contenu dynamique, et
+	de le personnaliser en fonction de l'heure du jour.</div> </dd>
+  </dl>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="setenvvars" id="setenvvars">Définir des variables d'environnement en fonction de
+      certaines parties de l'URL</a></h2>
+
+  
+
+  <dl>
+    <dt>Description :</dt>
+
+    <dd>
+      <p>Ici, nous voulons conserver une certaine forme de statut
+      lorsqu'une réécriture a eu lieu. Par exemple, vous souhaitez
+      consigner le fait que cette réécriture a eu lieu, et vous servir
+      plus tard de cette information pour déterminer si une requête sera
+      concernée par cette réécriture. Pour y parvenir, on peut utiliser
+      une variable d'environnement.</p>
+    </dd>
+
+    <dt>Solution :</dt>
+
+    <dd>
+      <p>Utiliser le drapeau [E] pour définir une variable
+      d'environnement.</p>
+
+<pre class="prettyprint lang-config">RewriteEngine on
+RewriteRule   "^/cheval/(.*)"   "/poney/$1" [E=<strong>rewritten:1</strong>]</pre>
+
+
+    <p>Plus loin dans votre jeu de règles, vous pouvez vérifier le
+    contenu de cette variable d'environnement via une directive
+    RewriteCond :</p>
+
+<pre class="prettyprint lang-config">RewriteCond "%{ENV:rewritten}" "=1"</pre>
+
+
+    </dd>
+  </dl>
+
+</div></div>
+<div class="bottomlang">
+<p><span>Langues Disponibles: </span><a href="../en/rewrite/advanced.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/rewrite/advanced.html" title="Français">&nbsp;fr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Commentaires</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/rewrite/advanced.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Autorisé sous <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

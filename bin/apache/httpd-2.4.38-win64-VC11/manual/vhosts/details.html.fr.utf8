@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Détails sur le fonctionnement des serveurs virtuels - Serveur HTTP Apache Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p>
+<p class="apache">Serveur HTTP Apache Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">Serveur HTTP</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Serveurs virtuels</a></div><div id="page-content"><div id="preamble"><h1>Détails sur le fonctionnement des serveurs virtuels</h1>
+<div class="toplang">
+<p><span>Langues Disponibles: </span><a href="../en/vhosts/details.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/details.html" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ko/vhosts/details.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/details.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+
+    <p>Ce document vise à expliquer dans le détail comment le serveur
+    HTTP Apache procède lors du choix de l'utilisation
+    d'un serveur virtuel en fonction d'une requête reçue.</p>
+
+    <p>Il est recommandé de lire la documentation<a href="name-based.html#namevip">
+    Serveurs virtuels à base de nom et serveurs virtuels à base
+    d'adresse IP</a> pour déterminer quel type de serveur virtuel nous
+    convient le mieux, puis de lire les documentations <a href="name-based.html">serveurs virtuels à base de nom</a> ou <a href="ip-based.html">serveurs virtuels à base d'adresse IP</a>, et enfin
+    d'étudier <a href="examples.html">quelques exemples</a>.</p>
+
+    <p>Si vous voulez entrer dans les détails, vous pouvez revenir vers
+    cette page.</p>
+
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#configparsing">Fichier de configuration</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#hostmatching">Choix du serveur virtuel</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#tips">Trucs et astuces</a></li>
+</ul><h3>Voir aussi</h3><ul class="seealso"><li><a href="ip-based.html">Support des serveurs virtuels à base
+d'adresse IP</a></li><li><a href="name-based.html">Support des serveurs virtuels à base
+de nom</a></li><li><a href="examples.html">Exemples de serveurs virtuels pour une
+configuration courante</a></li><li><a href="mass.html">Hébergement virtuel de masse configuré
+dynamiquement</a></li><li><a href="#comments_section">Commentaires</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="configparsing" id="configparsing">Fichier de configuration</a></h2>
+
+    <p>Un <em>serveur  principal (main_server)</em> contient toutes
+    les définitions qui apparaissent en dehors des sections
+    <code>&lt;VirtualHost&gt;</code>.</p>
+
+    <p>Les serveurs virtuels, aussi
+    appelés <em>vhosts</em> (pour virtual hosts), sont définis par les
+    sections <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code>.</p>
+
+    <p>Chaque directive <code>VirtualHost</code> comporte une ou
+    plusieurs adresses et des ports optionnels.</p>
+
+    <p>Il est possible d'utiliser des noms d'hôtes dans la définition
+    d'un serveur virtuel, mais ils seront résolus en adresses IP au
+    démarrage du serveur, et si une résolution de nom échoue, cette
+    définition de serveur virtuel sera ignorée. Cette méthode est par
+    conséquent déconseillée.</p>
+
+    <p>L'adresse peut
+    être spécifiée sous la forme <code>*</code>, ce qui conviendra à la
+    requête si aucun autre serveur virtuel ne possède l'adresse IP
+    explicite correspondant à celle de la requête.</p>
+
+    <p>L'adresse qui apparaît dans la directive <code>VirtualHost</code>
+    peut être associée à un port optionnel. Si aucun port n'est
+    spécifié, il s'agit d'un port générique qui peut aussi être spécifié
+    comme <code>*</code>. Le port générique correspond à toutes les
+    valeurs de port.</p>
+
+    <p>(Il ne faut pas confondre les numéros de port sur lesquels Apache
+    est en écoute avec les numéros de port spécifiés dans la directive
+    <code>VirtualHost</code> ; ces derniers ne servent qu'à définir le
+    <code>serveur virtuel</code> qui sera sélectionné pour traiter la
+    requête. Pour définir les ports sur lesquels Apache est en écoute,
+    utilisez la directive <code class="directive"><a href="../mod/mpm_common.html#listen">Listen</a></code>).
+    </p>
+
+    <p>L'ensemble des adresses (y compris les résultats multiples
+    <code>A</code> issus des requêtes DNS) est appelé <em>jeu
+    d'adresses</em> du serveur virtuel.</p>
+
+    <p>Apache fait automatiquement sa sélection à partir de l'en-tête
+    HTTP <code>Host</code> fourni par le client, lorsque la
+    correspondance la plus exacte du point de vue adresse IP/port a lieu
+    pour plusieurs serveurs virtuels.</p>
+
+    <p>La directive <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code> peut
+    apparaître en quelque endroit de la définition d'un serveur.
+    Cependant, chaque occurrence écrase la précédente (pour ce serveur).
+    Si aucune directive <code>ServerName</code> n'est spécifiée, le
+    serveur tente de déterminer le nom du serveur à partir de l'adresse
+    IP.</p>
+
+    <p>Le premier serveur virtuel à base de nom apparaissant dans le
+    fichier de configuration pour une paire IP:port donnée est
+    significatif car c'est lui qui sera utilisé pour toutes les requêtes
+    reçues sur cette adresse IP/port et pour laquelle aucun autre
+    serveur virtuel ne possède un ServerName ou un ServerAlias
+    correspondant. Il sera aussi utilisé pour toutes les connexions SSL
+    si le serveur ne supporte pas l'<a class="glossarylink" href="../glossary.html#servernameindication" title="voir glossaire">Indication du nom du serveur</a>.</p>
+
+    <p>Tous les noms spécifiés au sein d'une section
+    <code>VirtualHost</code> sont traités comme un
+    <code>ServerAlias</code> (sans caractères génériques), mais ne sont
+    écrasés par aucune directive <code>ServerAlias</code>.</p>
+
+    <p>Pour chaque serveur virtuel, diverses valeurs sont initialisées
+    par défaut. En particulier&nbsp;:</p>
+
+    <ol>
+      <li>Dans le cas où un serveur virtuel ne contient pas de directives
+      <code class="directive"><a href="../mod/core.html#serveradmin">ServerAdmin</a></code>,
+      <code class="directive"><a href="../mod/core.html#timeout">Timeout</a></code>,
+      <code class="directive"><a href="../mod/core.html#keepalivetimeout">KeepAliveTimeout</a></code>,
+      <code class="directive"><a href="../mod/core.html#keepalive">KeepAlive</a></code>,
+      <code class="directive"><a href="../mod/core.html#maxkeepaliverequests">MaxKeepAliveRequests</a></code>,
+      <code class="directive"><a href="../mod/mpm_common.html#receivebuffersize">ReceiveBufferSize</a></code>,
+      ou <code class="directive"><a href="../mod/mpm_common.html#sendbuffersize">SendBufferSize</a></code>,
+      alors la valeur de chacun de ces paramètres est héritée de celle du
+      serveur principal. (C'est à dire, héritée de la valeur finale après
+      lecture de la configuration du serveur principal.)</li>
+
+      <li>Les permissions par défaut sur les répertoires de chaque
+      serveur virtuel sont assemblées avec celles du serveur principal.
+      Elles concernent également toutes les informations de configuration
+      par répertoire pour tous les modules.</li>
+
+      <li>Les configurations par serveur pour chaque module sont assemblées
+      à partir de celles du serveur principal.</li>
+    </ol>
+
+    <p>L'essentiel des valeurs de configuration des serveurs virtuels
+    provient de valeurs par défaut issues du serveur principal.
+    Mais la position dans le fichier de configuration des directives
+    du serveur principal n'a pas d'importance -- l'ensemble de la
+    configuration du serveur principal est lu avant que ces valeurs par
+    défaut soient appliquées aux serveur virtuels. Ainsi, même si la
+    définition d'une valeur apparaît après celle d'un serveur virtuel,
+    cette valeur peut affecter la definition du serveur virtuel.</p>
+
+    <p>Dans le cas où le serveur principal n'a pas de <code>ServerName</code>
+    à ce stade, le nom de la machine sur laquelle tourne le programme
+    <code class="program"><a href="../programs/httpd.html">httpd</a></code> est utilisé à sa place. Nous appellerons
+    <em>jeu d'adresses du serveur principal</em> les adresses IP
+    renvoyées par une résolution DNS sur le <code>ServerName</code>
+    du serveur principal.</p>
+
+    <p>Pour tous les champs <code>ServerName</code> non définis, dans
+    le cas d'une configuration en serveur virtuel par nom, la valeur
+    adoptée par défaut est la première adresse donnée dans la section
+    <code>VirtualHost</code> qui définit le serveur virtuel.</p>
+
+    <p>Si un serveur virtuel contient la valeur magique
+    <code>_default_</code>, il fonctionne sur le même <code>ServerName</code>
+    que le serveur principal.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="hostmatching" id="hostmatching">Choix du serveur virtuel</a></h2>
+
+    <p>À la réception d'une requête, le serveur procède comme suit pour
+    déterminer quel serveur virtuel utiliser&nbsp;:</p>
+
+    <h3><a name="hashtable" id="hashtable">Recherche de l'adresse IP</a></h3>
+
+    <p>Lors d'une première connexion sur une adresse/port, le serveur
+    recherche toutes les directives <code>VirtualHost</code> qui
+    possèdent la même adresse IP/port.</p>
+
+    <p>S'il n'y a aucune correspondance exacte pour cette adresse/port,
+    la recherche s'effectue sur la valeur générique (<code>*</code>).</p>
+
+    <p>Si aucune correspondance n'est enfin trouvée, la requête sera
+    servie par le serveur principal.</p>
+
+    <p>S'il existe des définitions <code>VirtualHost</code> pour
+    l'adresse IP, l'étape suivante consiste à déterminer si nous avons à
+    faire à un serveur virtuel à base de nom ou d'adresse IP.</p>
+
+    
+
+    <h3><a name="ipbased" id="ipbased">Serveur virtuel par IP</a></h3>
+
+    <p>Si une seule section <code>VirtualHost</code> présente la
+    meilleure correspondance avec la paire adresse IP/port, aucune
+    action n'est entreprise et la requête est
+    traitée par le serveur virtuel qui correspond.</p>
+
+    
+
+    <h3><a name="namebased" id="namebased">Serveur virtuel par nom</a></h3>
+
+    <p>Si plusieurs sections <code>VirtualHost</code> présentent la
+    meilleure correspondance avec la paire adresse IP/port, le terme
+    "liste" dans les étapes suivantes fait référence à la liste des
+    serveurs virtuels qui correspondent, selon l'ordre dans lequel ils
+    apparaissent dans le fichier de configuration.</p>
+
+    <p>Si la connexion utilise SSL, si le serveur supporte l'<a class="glossarylink" href="../glossary.html#servernameindication" title="voir glossaire">Indication de nom de serveur</a>,
+    et si la négociation du client SSL inclut l'extension TLS dans le
+    nom d'hôte requis, alors ce nom d'hôte sera utilisé par la suite, tout
+    comme un en-tête <code>Host:</code> aurait été utilisé dans le cas
+    d'une connexion non-SSL. Si ces conditions ne sont pas réunies, le
+    premier serveur virtuel à base de nom dont l'adresse correspond sera
+    utilisé pour les connexions SSL. Ceci est important car c'est le
+    serveur virtuel qui détermine quel certificat le serveur va utiliser
+    pour la connexion.</p>
+
+    <p>Si la requête contient un en-tête <code>Host:</code>, on
+    recherche dans la liste le premier serveur virtuel dont le
+    <code>ServerName</code> ou le <code>ServerAlias</code> correspond,
+    et c'est celui-ci qui va traiter la requête. Un en-tête
+    <code>Host:</code> peut comporter un numéro de port mais Apache
+    l'ignore systématiquement et utilise toujours le
+    port sur lequel il a effectivement reçu la requête.</p>
+
+    <p>Le premier serveur virtuel du fichier de configuration qui
+    possède l'adresse spécifiée est prioritaire et intercepte toutes les
+    requêtes à destination d'un nom de serveur inconnu, ou toute requête
+    sans en-tête <code>Host:</code> (comme les requêtes HTTP/1.0).</p>
+
+    
+
+    <h3><a name="persistent" id="persistent">Connexions persistantes</a></h3>
+
+    <p>La <em>recherche par adresse IP</em> décrite ci-avant n'est faite
+    qu'<em>une fois</em> pour chaque session TCP/IP, alors que la
+    <em>recherche par nom</em> est réalisée pour <em>chaque</em> requête au
+    cours d'une connexion persistante (KeepAlive). En d'autres termes,
+    il est possible pour un client de faire des requêtes sur
+    différents serveurs virtuels par nom, au cours d'une unique
+    connexion persistante.</p>
+
+    
+
+    <h3><a name="absoluteURI" id="absoluteURI">URI absolu</a></h3>
+
+    <p>Au cas où l'URI de la requête est absolu, et que son nom de
+    serveur et son port correspondent au serveur principal (ou l'un
+    des serveurs virtuels configurés), <em>et</em> qu'ils correspondent
+    à l'adresse et au port de la requête, alors l'URI est amputé
+    de son préfixe protocole/nom de serveur/port et traité par le
+    serveur correspondant (principal ou virtuel). Si cette correspondance
+    n'existe pas, l'URI reste inchangé et la requête est considérée
+    comme une requête d'un serveur mandataire (proxy).</p>
+
+
+<h3><a name="observations" id="observations">Observations</a></h3>
+
+    <ul>
+      <li>La sélection d'un serveur virtuel en fonction de son nom est
+      un processus qui intervient après la sélection par le serveur du
+      serveur virtuel qui correspond le mieux du point de vue adresse
+      IP/port.</li>
+
+      <li>Si vous ne tenez pas compte de l'adresse IP à laquelle le
+      client s'est connecté, indiquez un caractère "*" comme adresse
+      pour tous les serveurs virtuels, et la sélection du serveur
+      virtuel en fonction du nom s'appliquera alors à tous les serveurs
+      virtuels définis.</li>
+
+      <li>Les vérifications sur <code>ServerName</code> et
+      <code>ServerAlias</code> ne sont jamais
+      réalisées pour les serveurs virtuels par IP.</li>
+
+      <li>Seul l'ordre des serveurs virtuels par nom
+      pour une adresse donnée a une importance. Le serveur virtuel
+      par nom qui est présent en premier dans la configuration se
+      voit attribué la priorité la plus haute pour les requêtes
+      arrivant sur son jeu d'adresses IP.</li>
+
+      <li>Le numéro de port contenu dans l'en-tête <code>Host:</code> n'est jamais utilisé
+      pour les tests de correspondances. Apache ne prend en compte
+      que le numéro de port sur lequel le client a envoyé la requête.</li>
+
+      <li>Si deux serveurs virtuels partagent la même adresse, la
+      sélection se fera implicitement sur le nom. Il s'agit d'une
+      nouvelle fonctionnalité de la version 2.3.11.</li>
+
+      <li>Le serveur principal ne sert les requêtes que
+      lorsque l'adresse IP et le port demandés par le client ne
+      correspondent à aucun serveur virtuel (y compris un serveur
+      virtuel <code>*</code>). En d'autres termes, le serveur
+      principal n'est utile que pour les combinaisons adresse/port
+      non spécifiées (sauf quand un serveur virtuel <code>_default_</code>
+      correspond au port).</li>
+
+      <li>Il ne faut jamais employer de noms DNS dans des directives
+      <code>VirtualHost</code>, car cela oblige le serveur a s'appuyer
+      sur le DNS au moment du démarrage. De plus, vous vous exposez
+      à des problèmes de sécurité si vous n'avez pas la maîtrise du
+      DNS pour la totalité de vos domaines. Voir la documentation
+      <a href="../dns-caveats.html">disponible ici</a>, ainsi que
+      les deux points précisés ci-après.</li>
+
+      <li>Un nom de serveur <code>ServerName</code> devrait toujours
+      être indiqué pour chaque serveur virtuel. Sans cela, une
+      résolution DNS est nécessaire pour chaque serveur virtuel.</li>
+      </ul>
+      
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="tips" id="tips">Trucs et astuces</a></h2>
+
+    <p>En plus des points évoqués sur la page des
+    <a href="../dns-caveats.html#tips">problèmes liés au DNS</a>,
+    voici quelques points intéressants&nbsp;:</p>
+
+    <ul>
+      <li>Toujours positionner les définitions relatives au serveur
+      principal avant toute définition <code>VirtualHost</code>.
+      (Ceci améliore grandement la lisibilité de la configuration
+      -- la manière dont la configuration est interprétée après la
+      lecture des fichiers ne met pas en évidence le fait que les
+      définitions positionnées avant et surtout après les serveurs
+      virtuels peuvent impacter le fonctionnement de tous les
+      serveurs virtuels.)</li>
+
+   </ul>
+
+</div></div>
+<div class="bottomlang">
+<p><span>Langues Disponibles: </span><a href="../en/vhosts/details.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/details.html" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ko/vhosts/details.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/details.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Commentaires</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/vhosts/details.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Autorisé sous <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

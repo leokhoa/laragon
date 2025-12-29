@@ -1,0 +1,680 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="tr" xml:lang="tr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>İçerik Uzlaşımı - Apache HTTP Sunucusu Sürüm 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">Modüller</a> | <a href="./mod/directives.html">Yönergeler</a> | <a href="http://wiki.apache.org/httpd/FAQ">SSS</a> | <a href="./glossary.html">Terimler</a> | <a href="./sitemap.html">Site Haritası</a></p>
+<p class="apache">Apache HTTP Sunucusu Sürüm 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Sunucusu</a> &gt; <a href="http://httpd.apache.org/docs/">Belgeleme</a> &gt; <a href="./">Sürüm 2.4</a></div><div id="page-content"><div id="preamble"><h1>İçerik Uzlaşımı</h1>
+<div class="toplang">
+<p><span>Mevcut Diller: </span><a href="./en/content-negotiation.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/content-negotiation.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/content-negotiation.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/content-negotiation.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/content-negotiation.html" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+
+    <p>Apache HTTPD, içerik uzlaşımını HTTP/1.1 belirtiminde bahsedildiği şekliyle
+      destekler. Bir özkaynağın en iyi gösterimini, tarayıcının sağladığı
+      karakter kodlaması, karakter kümesi, dil, ortam türü gibi kullanıcı
+      tercihlerine bağlı olarak seçebilir. Ayrıca, tarayıcının kullanıcı
+      tercihlerini tam yansıtamadığı durumlarda istekleri daha akıllıca ele
+      alabilmeyi sağlayacak bir takım özelliklere de sahiptir.</p>
+
+    <p>İçerik uzlaşımı öntanımlı olarak derlenen
+      <code class="module"><a href="./mod/mod_negotiation.html">mod_negotiation</a></code> modülü tarafından sağlanır.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#about">İçerik Uzlaşımı Hakkında</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#negotiation">httpd’de İçerik Uzlaşımı</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#methods">Uzlaşım Yöntemleri</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#better">Üstünlük Değerleriyle Oynamak</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#extensions">Şeffaf İçerik Uzlaşımının Genişletilmesi</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#naming">Hiperbağlar ve İsimlendirme Uzlaşımları</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#caching">Arabellekler Hakkında</a></li>
+</ul><h3>Ayrıca bakınız:</h3><ul class="seealso"><li><a href="#comments_section">Yorum</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="about" id="about">İçerik Uzlaşımı Hakkında</a></h2>
+
+    <p>Bir özkaynağın bir çok farklı gösterimi olabilir. Örneğin, bir belgenin
+      farklı ortam türleri ve/veya farklı diller için gösterimleri olabilir.
+      En uygun seçimi yapmanın tek yolu kullanıcıya bir liste verip seçmesini
+      istemektir. Bununla birlikte sunucunun bu seçimi kendiliğinden yapması
+      da mümkündür. Tarayıcılar isteğin bir parçası olarak kullanıcı
+      tercihlerini de gönderdiğinden bu istendiği gibi çalışır. Örneğin bir
+      tarayıcı, kullanıcısınının mümkünse Fransızca içerik tercih ettiğini
+      yoksa İngilizce içeriğe de razı olabileceğini belirtebilirdi.
+      Tarayıcılar bu tercihleri başlıkta belirtirler. Tarayıcı sadece Türkçe
+      içerik istendiğini şöyle belirtebilirdi:</p>
+
+    <div class="example"><p><code>Accept-Language: tr</code></p></div>
+
+    <p>Bu tercihin yerine getirilebilmesininin sadece, desteklenen diller
+      arasında bu dilin varlığına ve istenen belgenin bu dilde bir
+      gösteriminin bulunmasına bağlı oluşuna dikkat ediniz.</p>
+
+    <p>Daha karmaşık bir istek örneği olarak, tarayıcının Fransızca ve
+      İngilizce içerik kabul etmeye ayarlandığını fakat Fransızcayı tercih
+      ettiğini ve çeşitli ortam türlerini kabul etmekle birlikte salt metin ve
+      diğer metin türlerinden ziyade HTML tercih ettiğini, ayrıca, diğer ortam
+      türleri üzerinde GIF veya JPEG tercih ettiğini fakat başka çare yoksa
+      her ortam türüne de izin verdiğini belirtiyor olsun:</p>
+
+    <div class="example"><p><code>
+      Accept-Language: fr; q=1.0, en; q=0.5<br />
+      Accept: text/html; q=1.0, text/*; q=0.8, image/gif; q=0.6, image/jpeg;
+      q=0.6, image/*; q=0.5, */*; q=0.1
+    </code></p></div>
+
+    <p>httpd, HTTP/1.1 belirtiminde tanımlanan şekliyle ‘sunucu yönetiminde’
+      içerik uzlaşımını destekler. <code>Accept</code>,
+      <code>Accept-Language</code>, <code>Accept-Charset</code> ve
+      <code>Accept-Encoding</code> istek başlıklarını tamamen destekler.
+      httpd ayrıca, RFC 2295 ve RFC 2296’da tanımlanan bir deneysel uzlaşım
+      olarak ‘şeffaf’ içerik uzlaşımını da destekler. Fakat ‘özellik
+      uzlaşımını’ bu RFC’lerde tanımlandığı gibi desteklemez.</p>
+
+    <p>Bir <strong>özkaynak</strong> bir URI (RFC 2396) tarafından betimlenen
+      kavramsal bir öğedir. Apache gibi bir HTTP sunucusu, ortam türü,
+      karakter kümesi, kodlama ve saire ile tanımlanmış bir bayt dizisi
+      şeklindeki her gösterimiyle, özkaynaklara kendi isim alanları dahilinde
+      erişim sağlar. Her özkaynağın aynı anda bir veya daha fazla gösterimi
+      mevcut olabileceği gibi hiç mevcut olmayabilir de. Eğer çok sayıda
+      gösterim mevcutsa, bu özkaynağın <strong>uzlaşılabilir</strong>
+      olduğundan ve her gösteriminin  bir <strong>çeşitlilik</strong>
+      oluşturduğundan bunun da uzlaşımın <strong>boyutlar</strong>ından
+      kaynaklandığından bahsedilebilir.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="negotiation" id="negotiation">httpd’de İçerik Uzlaşımı</a></h2>
+
+    <p>Bir özkaynak üzerinde uzlaşılırken gösterim çeşitlerinin her biri
+      hakkında sunucuya bilgi verilmesi gerekir. Bu iki yolla yapılabilir:</p>
+
+    <ul>
+      <li>Ya gösterim çeşitlerini içeren dosyaların isimleriyle eşleşmeyi
+        sağlayan bir tür eşlemi kullanılır (bir <code>*.var</code> dosyası
+        gibi).</li>
+
+      <li>Ya da sunucu örtük bir dosya ismi kalıbı eşleşmesinin ardından
+        sonuçlar arasından seçim yapar; buna ‘Çoklu Görünüm’ araması adı
+        verilir.</li>
+    </ul>
+
+   <h3><a name="type-map" id="type-map">Bir türeşlem dosyası kullanmak</a></h3>
+
+    <p>Bir türeşlem dosyası, <code>type-map</code> eylemcisi ile ilişkili bir
+      belgedir (ya da eski httpd yapılandırmaları ile geriye uyumluluk için,
+      <code>application/x-type-map</code> <a class="glossarylink" href="./glossary.html#mime türü" title="sözlüğe bakınız">MIME türü</a>nde
+      bir belgedir). Bu özelliği kullanmak için, yapılandırmada bir tür
+      eşleyici olarak her dosya ismi uzantısı için bir <code>type-map</code>
+      eylemcisi tanımlamalısınız. Bu, sunucu yapılandırma dosyasında en iyi
+      şöyle yapılabilir:</p>
+
+    <pre class="prettyprint lang-config">AddHandler type-map .var</pre>
+
+
+    <p>Türeşlem dosyaları kendilerini tanımlayan özkaynak ile aynı isimde
+      olmalı ve isim bir <code>.var</code> uzantısı içermelidir. Aşağıdaki
+      örneklerde özkaynak ismi <code>foo</code> olduğundan türeşlem dosyasının
+      ismi <code>foo.var</code>'dır.</p>
+
+    <p>Bu dosya her gösterim çeşidi için bir girdi içermelidir; bu girdiler
+      ardarda belirtilen HTTP biçem başlık satırlarından oluşur. Farklı
+      gösterimlerin girdileri bir boş satırla diğerlerinden ayrılır. Aynı
+      girdi içinde boş satır kullanılamaz. Bir eşlem dosyasını bir birleşik
+      öğenin tamamı için bir girdi ile başlatmak adet olmuştur (ise de, bu
+      gerekli değildir, hele yoksayılacaksa hiç gerekli değildir). Eşlem
+      dosyası için aşağıda bir örnek verilmiştir.</p>
+
+   <p>Bu dosyadaki URI'ler türeşlem dosyasının yerine görelidir. Dolayısıyla,
+     bu dosyaların aynı dizinde bulunması beklenirse de bu gerekli değildir.
+     Aynı sunucuda bulunan tüm dosyalar için türeşlem dosyasındaki gibi mutlak
+     veya göreli URI'ler belirtebilirsiniz.</p>
+
+    <div class="example"><p><code>
+      URI: misal<br />
+    <br />
+      URI: misal.en.html<br />
+      Content-type: text/html<br />
+      Content-language: en<br />
+    <br />
+      URI: misal.fr.de.html<br />
+      Content-type: text/html;charset=iso-8859-2<br />
+      Content-language: fr, de<br />
+    </code></p></div>
+
+    <p>Ayrıca, <code>MultiViews</code> etkin olsa bile bir türeşlem dosyasının
+      dosya ismi uzantılarının taranmasına göre öncelik alacağına dikkat
+      ediniz. Eğer gösterimler bu örnekteki resim dosyasında olduğu gibi
+      farklı kaynak üstünlüklerine sahipseler, ortam türünün <code>qs</code>
+      parametresi kullanılarak kaynak üstünlükleri belirtilebilir: </p>
+
+    <div class="example"><p><code>
+      URI: misal<br />
+    <br />
+      URI: misal.jpeg<br />
+      Content-type: image/jpeg; <strong>qs=0.8</strong><br />
+    <br />
+      URI: misal.gif<br />
+      Content-type: image/gif; <strong>qs=0.5</strong><br />
+    <br />
+      URI: misal.txt<br />
+      Content-type: text/plain; <strong>qs=0.01</strong><br />
+    </code></p></div>
+
+    <p><code>qs</code> değerleri 0.000-1.000 değer aralığı içinde
+      belirtilebilir. 0.000 <code>qs</code> değerine sahip gösterimin asla
+      seçilmeyeceğine dikkat ediniz. Bir <code>qs</code> değeri belirtilmeyen
+      gösterimlerin kaynak üstünlüğü 1.000 kabul edilir. <code>qs</code>
+      parametresinin belirttiği değer istemcinin yeteneklerinden bağımsız
+      olarak olası gösterimler arasında göreli bir üstünlük ifade eder.
+      Örneğin bir fotoğraf sözkonusu olduğunda bir JPEG dosyasının kaynak
+      üstünlüğü bir ASCII çiziminkinden yüksek olacaktır. Diğer taraftan özgün
+      resim bir ASCII çizim olduğu takdirde, ASCII çizim, bir JPEG gösterimine
+      göre öncelikli olacaktır. Bu nedenle <code>qs</code> değeri özkaynağın
+      doğasına bakarak belirlenir.</p>
+
+    <p>Tanınan başlıkların tam listesini <a href="mod/mod_negotiation.html#typemaps">mod_negotiation</a> modülünün
+      belgesinde bulabilirsiniz.</p>
+  
+
+  <h3><a name="multiviews" id="multiviews">Çoklu Görünümler</a></h3>
+
+    <p><code>MultiViews</code>, <code>httpd.conf</code> dosyasındaki veya
+      (<code class="directive"><a href="./mod/core.html#allowoverride">AllowOverride</a></code> yönergesinin
+      değerine bağlı olarak) <code>.htaccess</code> dosyalarındaki <code class="directive"><a href="./mod/core.html#directory">&lt;Directory&gt;</a></code>, <code class="directive"><a href="./mod/core.html#location">&lt;Location&gt;</a></code> veya <code class="directive"><a href="./mod/core.html#files">&lt;Files&gt;</a></code> bölümleri içinde
+      <code class="directive"><a href="./mod/core.html#options">Options</a></code> yönergeleri ile
+      belirtilebilen, dizine özgü bir seçenektir. Yalnız, dikkatli olun,
+      <code>Options All</code> yaparak <code>MultiViews</code> seçeneğini
+      etkin kılamazsınız; seçeneği ismiyle açıkça belirtmelisiniz.</p>
+
+    <p><code>MultiViews</code> şöyle etki eder: Sunucudan,
+      <code>MultiViews</code> seçeneğinin etkin olduğu <code>/bir/dizin</code>
+      dizininden <code>filanca</code> dosyası için bir istekte bulunulmuşsa
+      fakat dizinde bu dosya yoksa, sunucu dizin içeriğini
+      <code>filanca.*</code> dosyaları için tarar ve bu dosyalar için
+      istemcinin ismiyle talep ettiği ortam türlerini ve kodlamaları
+      kullanarak bir türeşlem dosyası uydurup bu gösterimler arasından
+      istemcinin gereksinimlerine en uygun gösterimi seçer.</p>
+
+    <p><code>MultiViews</code> ayrıca, sunucunun bir dizin içeriğini
+      listelemeye çalıştığı durumda <code class="directive"><a href="./mod/mod_dir.html#directoryindex">DirectoryIndex</a></code> yönergesi ile belirtilen dosya için de bir
+      arama tertipleyebilir. Eğer yapılandırma dosyalarında</p>
+
+    <pre class="prettyprint lang-config">DirectoryIndex index</pre>
+
+
+    <p>şeklinde bir atama varsa ve dizinde <code>index.html</code> ve
+      <code>index.html3</code> dosyaları varsa sunucu bunlar arasından hakem
+      sıfatıyla bir seçim yapacaktır; ama bu ikisi yerine dizinde sadece
+      <code>index.cgi</code> mevcutsa sunucu sadece bu dosyayı
+      çalıştıracaktır.</p>
+
+    <p>Okunan dizinde bulunan dosyalar arasında <code>mod_mime</code>
+      tarafından tanınan karakter kümesi, içerik türü, dil ve kodlama
+      başlıklarına uygun gösterim uzantılarından birine sahip bir dosya yoksa
+      sonuç <code class="directive"><a href="./mod/mod_mime.html#multiviewsmatch">MultiViewsMatch</a></code>
+      yönergesiyle yapılan tanıma bağlı olur. Bu yönerge hangi diğer dosya
+      uzantılarının, eylemcilerin veya süzgeçlerin çok gösterimli uzlaşımla
+      ilintileneceğini belirler.</p>
+  
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="methods" id="methods">Uzlaşım Yöntemleri</a></h2>
+
+    <p>httpd’nin, bir türeşlem dosyası veya dizin içindeki bir dosya
+      sayesinde belli bir özkaynağın gösterim çeşitlerinin bir listesini elde
+      ettikten sonra ‘en uygun’ gösterime karar vermek için kullanabileceği
+      iki yöntem vardır. httpd’nin içerik uzlaşım özelliklerinin kullanımı
+      sırasında uzlaşımın nasıl yerine getirileceği ile ilgili ayrıntıları
+      bilmek aslında gerekli değildir. Bununla birlikte belgenin kalanında bu
+      konu açıklanmaya çalışılmıştır.</p>
+
+    <p>İki uzlaşım yöntemi vardır:</p>
+
+    <ol>
+      <li>Normal durumda <strong>sunucu yönetiminde httpd uzlaşım
+        algoritması</strong> kullanılır. Bu algoritma aşağıda ayrıntılı olarak
+        açıklanmıştır. Bu algoritma kullanıldığı zaman, httpd, en iyi sonuca
+        ulaşmak için bazen belli boyutların üstünlük katsayılarıyla ‘oynar’.
+        httpd’nin bu katsayılarla oynama işini nasıl yaptığı aşağıda daha
+        ayrıntılı açıklanmıştır.</li>
+
+      <li>İstemci bu işlem için özellikle RFC 2295’te tanımlanan mekanizmanın
+        kullanılmasını isterse <strong>şeffaf içerik uzlaşımı</strong>
+        kullanılır. Bu uzlaşım yöntemi, en uygun gösterimin seçilmesi
+        konusunda tarayıcıya tam denetim imkanı verir; dolayısıyla sonuç
+        tarayıcının bu işlem için kullandığı algoritmanın başarısına bağlıdır.
+        Şeffaf uzlaşım sürecinin bir parçası olarak, tarayıcı, RFC 2296’da
+        tanımlanan ‘gösterim çeşidini uzaktan seçme algoritması’nın
+        çalıştırılmasını httpd’den isteyebilir.</li>
+    </ol>
+
+  <h3><a name="dimensions" id="dimensions">Uzlaşımın Boyutları</a></h3>
+
+    <table>
+      
+      <tr valign="top">
+        <th>Boyut</th>
+
+        <th>Açıklama</th>
+      </tr>
+
+      <tr valign="top">
+        <td>Ortam Türü</td>
+
+        <td>Tarayıcı ortam türü tercihlerini <code>Accept</code> başlık alanı
+          ile belirtir. Her öğenin kendine özgü bir üstünlük katsayısı
+          olabilir. Gösterimin açıklaması da ayrıca bir kaynak üstünlüğüne
+          (<code>qs</code> parametresi) sahip olabilir.</td>
+      </tr>
+
+      <tr valign="top">
+        <td>Dil</td>
+
+        <td>Tarayıcı dil tercihlerini <code>Accept-Language</code> başlık
+          alanı ile belirtir. Her öğenin kendine özgü bir üstünlük katsayısı
+          olabilir. Gösterimler bir kaç dilde olabileceği gibi hiç bir dille
+          ilişkilendirimemiş de olabilir.</td>
+      </tr>
+
+      <tr valign="top">
+        <td>Kodlama</td>
+
+        <td>Tarayıcı kodlama tercihlerini <code>Accept-Encoding</code> başlık
+          alanı ile belirtir. Her öğenin kendine özgü bir üstünlük katsayısı
+          olabilir.</td>
+      </tr>
+
+      <tr valign="top">
+        <td>Karakter Kümesi</td>
+
+        <td>Tarayıcı karakter kümesi tercihlerini <code>Accept-Charset</code>
+          başlık alanı ile belirtir. Her öğenin kendine özgü bir üstünlük
+          katsayısı olabilir. Gösterim çeşitleri karakter kümesini ortam
+          türünün bir parametresi olarak belirtebilirler.</td>
+      </tr>
+    </table>
+  
+
+  <h3><a name="algorithm" id="algorithm">httpd Uzlaşım Algoritması</a></h3>
+
+    <p>httpd, tarayıcıya döndürülecek en uygun gösterim çeşidini (varsa)
+      seçmek için aşağıdaki algoritmayı kullanabilir. Bu algoritma pek de
+      yapılandırılabilir değildir. Şöyle çalışır:</p>
+
+    <ol>
+      <li>Önce her uzlaşım boyutu için ilgili <em>Accept*</em> başlık alanına
+        bakılıp her gösterim çeşidine bir üstünlük katsayısı atanır. Eğer
+        boyutlardan bazıları için ilgili <em>Accept*</em> başlığı
+        uygulanabilir değilse bu boyut elenir ve sonuçta hiçbir gösterim
+        çeşidi kalmasza 4. adıma atlanır.</li>
+
+      <li>‘En uygun’ gösterim çeşidi bir eleme süreciyle seçilir. Bu süreç
+        sırasında aşağıdaki sınamalar sırayla uygulanır. Sınamalardan
+        geçemeyen bir gösterim çeşidi elenir.  Sınamaların bir aşamasında tek
+        bir gösterim çeşidi kalırsa bu en uygun eşleşme olarak seçilmiş olur
+        ve 3. adıma atlanır. Eğer birden fazla gösterim çeşidi kalırsa sonraki
+        sınamaya geçilir.
+
+        <ol>
+          <li><code>Accept</code> başlığındaki üstünlük katsayısı ile
+            gösterimin ortam türünde belirtilen kaynak üstünlüğünün çarpımı en
+            büyük olan gösterim çeşidi seçilir.</li>
+
+          <li>En yüksek dil üstünlük katsayısına sahip gösterim çeşidi seçilir.
+          </li>
+
+          <li>En uygun dil eşleşmesine sahip gösterim çeşidini seçmek için
+            önce varsa <code>Accept-Language</code> başlığındaki dil
+            sıralamasına bakılır, aksi takdirde <code>LanguagePriority</code>
+            yönergesi ile atanmışsa oradaki dil sıralamasına bakılır.</li>
+
+          <li>En yüksek ‘seviyeden’ ortam parametresine (text/html ortam türü
+            sürümünü belirtmekte kullanılır) sahip gösterim çeşitleri
+            seçilir.</li>
+
+          <li><code>Accept-Charset</code> başlık satırında belirtilene bakarak
+            en uygun karakter kümesine sahip gösterim çeşitleri seçilir.
+            Alenen dışlanmadıkça ISO-8859-1 kabul edilebilir karakter
+            kümesidir. <code>text/*</code> ortam türüne sahip gösterim
+            çeşitlerinden belli bir karakter kümesi ile ilişkilendirilmemiş
+            olanların karakter kümesinin ISO-8859-1 olduğu varsayılır.</li>
+
+          <li>ISO-8859-1 karakter kümesi ile ilişkilendirilmemiş gösterim
+            çeşitleri seçilir. Böyle hiçbir gösterim yoksa bütün gösterimler
+            seçilir.</li>
+
+          <li>En uygun kodlamaya sahip gösterim çeşitleri seçilir. Tarayıcı
+            tarafından kabul edilebilir kodlamaya sahip gösterim çeşitleri
+            varsa bunlar seçilir. Yoksa kodlanmış ve kodlanmamış gösterim
+            çeşitleri karışık olarak mevcutsa sadece kodlanmamış olanlar
+            seçilir. Eğer bütün gösterim çeşitlerinin sadece kodlanmış ya da
+            sadece kodlanmamış gösterimleri mevcutsa hepsi seçilir.</li>
+
+          <li>En küçük içerik uzunluğuna sahip gösterim çeşitleri seçilir.</li>
+
+          <li>Kalan gösterim çeşitlerinin ilki seçilir. Bu ilk, ya türeşlem
+            dosyasında listelenen ilk çeşittir ya da gösterimler bir dizinden
+            okunuyorsa ASCII kod sıralamasına göre ilk sıradaki dosya ismine
+            sahip gösterimdir.</li>
+        </ol>
+      </li>
+
+      <li>Algoritma, artık seçilmiş en uygun gösterim çeşidine sahipse bu
+        artık yanıt olarak döndürülebilir. HTTP yanıt başlığı
+        <code>Vary</code>’ye uzlaşım boyutları atanır (tarayıcı ve
+        arabellekler özkaynağı kaydederken bu bilgiyi kullanırlar)
+        ve algoritma sonlandırılır.</li>
+
+      <li>Buraya gelinmişse hiçbir gösterim seçilmemiş demektir (hiçbiri
+        tarayıcı tarafından kabul edilebilir bulunmadığından dolayı).
+        Gövdesinde mevcut gösterim çeşitlerini listeleyen bir HTML belgesi 406
+        durum koduyla döndürülür (406: ‘kabul edilebilir bir gösterim yok’).
+        Ayrıca HTTP <code>Vary</code> başlığında gösterim çeşitliliğinin
+        boyutları belirtilir.</li>
+    </ol>
+  
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="better" id="better">Üstünlük Değerleriyle Oynamak</a></h2>
+
+    <p>httpd bazen yukarıdaki httpd uzlaşım algoritmasının kesin sonucunun
+      beklenenden farklı olması için üstünlük değerleriyle oynar. Bunu tam ve
+      doğru bilgi göndermeyen tarayıcılar için algoritmadan en iyi sonucu elde
+      etmek amacıyla yapar. Bazen günümüzün en tanınmış tarayıcıları bile çoğu
+      durumda yanlış bir seçimle sonuçlanmayacaksa <code>Accept</code> başlık
+      bilgilerini göndermemektedir. Eğer tarayıcı eksiksiz ve doğru bilgi
+      gönderirse httpd bu değerlerle oynamayacaktır.</p>
+
+  <h3><a name="wildcards" id="wildcards">Ortam Türleri ve Dosyaismi Kalıpları</a></h3>
+
+    <p><code>Accept:</code> istek başlığı ortam türü tercihlerini yansıtır.
+      Ayrıca, * bir dizge ile eşleşmek üzere "image/*" veya  "*/*" gibi ortam
+      türü kalıpları da içerebilir. Dolayısıyla şöyle bir istek,</p>
+
+    <div class="example"><p><code>Accept: image/*, */*</code></p></div>
+
+    <p>diğer türler gibi "image/" ile başlayan ortam türlerini kabul
+      edilebilir kılacaktır. Bazı tarayıcılar ortam türlerini örtük olarak
+      elde etmek amacıyla hep bu tür kalıplar gönderirler. Örnek:</p>
+
+    <div class="example"><p><code>
+      Accept: text/html, text/plain, image/gif, image/jpeg, */*
+    </code></p></div>
+
+    <p>Bunun amacı, açıkça listelenmiş türlerin tercih edildiğini, fakat
+      farklı gösterimler varsa onların da kabul edilebileceğini belirtmektir.
+      Üstünlük değerlerini doğrudan kullanarak tarayıcılar gerçekte ne
+      istediklerini şuna benzer şekilde belirtebilirler:</p>
+
+    <div class="example"><p><code>
+      Accept: text/html, text/plain, image/gif, image/jpeg, */*; q=0.01
+    </code></p></div>
+
+    <p>Açıkça belirtilen türler için üstünlük katsayısı belirtilmemiştir,
+      dolayısıyla üstünlük katsayılarının 1.0 (en yüksek) olduğu
+      varsayılmaktadır. */* kalıbı 0.01 gibi çok daha düşük bir öncelik
+      belirtmektedir. Bu bakımdan, ancak, açıkça belirtilen türlerden
+      hiçbirinin bulunmaması halinde diğer türler eşleşecektir.</p>
+
+    <p>Eğer <code>Accept:</code> başlığı <em>hiçbir</em> <code>q</code>
+      katsayısı içermiyorsa ve başlıkta "*/*" belirtilmişse, httpd istenen
+      davranışı taklit etmek için bu kalıba 0.01 katsayısını atar. Keza
+      "type/*" kalıbına da 0.02 katsayısını atar (yani, */* kalıbına göre
+      tercihli olur). Eğer  <code>Accept:</code> alanındaki her ortam türü bir
+      <code>q</code> katsayısı içeriyorsa bu özel değerler uygulanmaz.
+      Dolayısıyla gerekli bilgiyi açıkça bildiren tarayıcılardan gelen
+      istekler umulduğu gibi işlem görecektir.</p>
+  
+
+  <h3><a name="exceptions" id="exceptions">Dil Uzlaşımında İstisnalar</a></h3>
+
+    <p>httpd 2.0’dan itibaren, uzlaşım algoritmasına, bir eşleşme bulmak
+      konusunda algoritma başarılı olamadığı takdirde hoş bir son çareye izin
+      vermek için bazı istisnalar eklenmiştir.</p>
+
+    <p>İstemci sunucudan bir sayfa istediğinde, sunucu, tarayıcı tarafından
+      gönderilen <code>Accept-language</code> başlığıyla eşleşen tek bir sayfa
+      bulamadığı takdirde istemciye ya “Kabul edilebilir bir gösterim çeşidi
+      yok” ya da “Çok sayıda seçim belirtilmiş” yanıtını döndürür. Bu hata
+      iletilerinden kaçınmak için bu gibi durumlarda httpd
+      <code>Accept-language</code> başlığını yoksaymaya ayarlanabilir. Böylece
+      istemcinin isteğine tam olarak uymasa da bir belge sağlanır. Bu hata
+      iletilerinin birini veya her ikisini de geçersiz kılmak için <code class="directive"><a href="./mod/mod_negotiation.html#forcelanguagepriority">ForceLanguagePriority</a></code> yönergesi
+      kullanılabilir ve sunucunun kararını <code class="directive"><a href="./mod/mod_negotiation.html#languagepriority">LanguagePriority</a></code> yönergesine
+      dayanarak vermesi sağlanabilir.</p>
+
+    <p>Sunucu ayrıca, tam bir eşleşme bulunmadığı zaman lehçelerle de eşleşme
+      arayabilir. Örneğin, bir istemci Britanya İngilizcesi
+      (<code>en-GB</code>) ile yazılmış belgeler için istekte bulunursa,
+      sunucu normalde HTTP/1.1 standardına göre bir belgenin basitçe
+      <code>en</code> olarak imlenmesine izin vermez. (Bir okuyucu Britanya
+      İngilizcesini anlıyor ama genel İngilizceyi anlamıyor diye
+      <code>Accept-Language</code> başlığında <code>en</code>  değil de
+      <code>en-GB</code>’yi belirtmesinin hemen hemen daima bir yapılandırma
+      hatasına yol açacağına dikkat ediniz. Maalesef, mevcut istemcilerin çoğu
+      öntanımlı yapılandırmalarında buna benzer şeyler yapmaktadır.) Bununla
+      birlikte, başka bir dille eşleşme mümkün değilse ve sunucu “Kabul
+      edilebilir bir gösterim çeşidi yok” hatasını döndürmeye hazırsa veya
+      <code class="directive"><a href="./mod/mod_negotiation.html#languagepriority">LanguagePriority</a></code> son
+      çaresine ayarlanmışsa alt küme belirtimini yok sayacak ve
+      <code>en</code> belge isteklerine <code>en-GB</code> belgelerle yanıt
+      verecektir. httpd, lehçenin üyesi olduğu anadili, istemcinin kabul
+      edilebilir diller listesine örtük olarak düşük bir üstünlük değeri ile
+      ekler. Yalnız şuna dikkat edin, eğer istemci tercihini "en-GB; q=0.9,
+      fr; q=0.8" olarak belirtirse ve sunucuda sadece "en" ve "fr" belgeleri
+      varsa sunucu "fr" belge ile yanıt verecektir. HTTP/1.1 belirtimi ile
+      uyumluluğu sağlamak ve düzgün yapılandırılmış istemcilerle gerektiği
+      gibi çalışabilmek için bu gereklidir.</p>
+
+    <p>Gelişmiş tekniklerin (çerezler, özel URL yolları gibi) desteklenmesi
+      sırasında, kullanıcının tercih ettiği dili saptamak için httpd 2.0.47
+      sürümünden beri <code class="module"><a href="./mod/mod_negotiation.html">mod_negotiation</a></code> modülü
+      <code>prefer-language</code> <a href="env.html">ortam değişkenini</a>
+      tanımaktadır. Değişken mevcutsa ve uygun bir dil yaftası içeriyorsa
+      <code class="module"><a href="./mod/mod_negotiation.html">mod_negotiation</a></code> uygun gösterimi seçmeyi deneyecektir.
+      Böyle bir gösterim çeşidi mevcut değilse normal uzlaşım işlemi
+      uygulanacaktır.</p>
+
+    <div class="example"><h3>Örnek</h3><pre class="prettyprint lang-config">SetEnvIf Cookie "language=(.+)" prefer-language=$1
+Header append Vary cookie</pre>
+</div>
+  
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="extensions" id="extensions">Şeffaf İçerik Uzlaşımının Genişletilmesi</a></h2>
+  
+
+  <p>httpd, şeffaf içerik uzlaşımı protokolünü (RFC 2295) şöyle genişletir:
+    Sadece içerik kodlamasına özgü olmak üzere gösterim çeşidi listelerinde
+    gösterim çeşitlerini imlemek için yeni bir <code>{encoding ..}</code>
+    elemanı kullanılır. RVSA/1.0 algoritmasının (RFC 2296) gerçeklenimi,
+    listedeki kodlanmış gösterim çeşitlerini tanımak ve onları
+    <code>Accept-Encoding</code> başlık alanıyla ilgili olarak kabul
+    edilebilir kodlamalara aday gösterim çeşitleri olarak kullanmak üzere
+    genişletilmiştir. RVSA/1.0 gerçeklenimi, en uygun gösterim çeşidi
+    seçiminin öncesinde hesaplanmış üstünlük katsayısını virgülden sonra beş
+    haneye yuvarlamaz.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="naming" id="naming">Hiperbağlar ve İsimlendirme Uzlaşımları</a></h2>
+
+    <p>Eğer dil uzlaşımı kullanıyorsanız ve birden fazla dosya ismi uzantısına
+      sahip dosyalarınız varsa uzantıların sıralamasının normalde uygunsuz
+      düştüğü farklı isimlendirme yaklaşımlarında bulunabilirsiniz (ayrıntılar
+      için <a href="mod/mod_mime.html#multipleext">mod_mime</a> belgesine
+      bakınız).</p>
+
+    <p>Bir MIME türü uzantısına sahip bir dosyanın (<code>html</code> gibi),
+      kodlanmış bir gösterimi (<code>gz</code> gibi) mevcut olabilir. Bu
+      dosyanın ayrıca farklı dillerdeki gösterimleri için de bir uzantısı
+      (<code>en</code> gibi) olabilir.</p>
+
+    <p>Örnekler:</p>
+
+    <ul>
+      <li>misal.en.html</li>
+
+      <li>misal.html.en</li>
+
+      <li>misal.en.html.gz</li>
+    </ul>
+
+    <p>Hiperbağ olarak geçerli ve geçersiz bazı dosya ismi örnekleri:</p>
+
+    <table class="bordered">
+      
+      <tr>
+        <th>Dosya ismi</th>
+
+        <th>Geçerli Hiperbağ</th>
+
+        <th>Geçersiz Hiperbağ</th>
+      </tr>
+
+      <tr>
+        <td><em>misal.html.en</em></td>
+
+        <td>misal<br />
+         misal.html</td>
+
+        <td>-</td>
+      </tr>
+
+      <tr>
+        <td><em>misal.en.html</em></td>
+
+        <td>misal</td>
+
+        <td>misal.html</td>
+      </tr>
+
+      <tr>
+        <td><em>misal.html.en.gz</em></td>
+
+        <td>misal<br />
+         misal.html</td>
+
+        <td>misal.gz<br />
+         misal.html.gz</td>
+      </tr>
+
+      <tr>
+        <td><em>misal.en.html.gz</em></td>
+
+        <td>misal</td>
+
+        <td>misal.html<br />
+         misal.html.gz<br />
+         misal.gz</td>
+      </tr>
+
+      <tr>
+        <td><em>misal.gz.html.en</em></td>
+
+        <td>misal<br />
+         misal.gz<br />
+         misal.gz.html</td>
+
+        <td>misal.html</td>
+      </tr>
+
+      <tr>
+        <td><em>misal.html.gz.en</em></td>
+
+        <td>misal<br />
+         misal.html<br />
+         misal.html.gz</td>
+
+        <td>misal.gz</td>
+      </tr>
+    </table>
+
+    <p>Yukarıdaki tabloya bakarak hiperbağlarda bir dosya ismini uzantısız
+      olarak (<code>misal</code> gibi) kullanmanın daima mümkün olduğunu
+      farkedeceksiniz. Böylece bir belgenin asıl türünü gizleyebilir ve
+      sonradan bir hiperbağ değişikliği yapmaksızın örneğin
+      <code>html</code>’den <code>shtml</code> veya <code>cgi</code>’ye
+      geçebilirsiniz.</p>
+
+    <p>Hiperbağlarda MIME türlerini (<code>misal.html</code> gibi) kullanmaya
+      devam etmek istiyorsanız dil uzantısı MIME türü uzantısının sağında
+      kalmalıdır (<code>misal.html.en</code> gibi).</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="caching" id="caching">Arabellekler Hakkında</a></h2>
+
+    <p>Bir arabellek, bir gösterimi istek URL’si ile ilişkilendirerek saklar.
+      Böylece, sonradan aynı URL için bir istek yapıldığında kaydettiği
+      gösterimi kullanabilir. Fakat özkaynak sunucuyla uzlaşılan türdeyse
+      arabelleğe ilk istenen çeşit saklanmış olacağından isteğe yanlış
+      gösterimle yanıt verilmiş olacaktır. Bunun olmaması için httpd, normal
+      olarak içerik uzlaşımının sonucu olarak döndürülen tüm yanıtları
+      HTTP/1.0 istemciler tarafından arabelleklenemez olarak imler. httpd
+      ayrıca, uzlaşımlı yanıtların arabelleklenmesini mümkün kılan HTTP/1.1
+      protokolünü de destekler.</p>
+
+    <p>HTTP/1.0 uyumlu istemcilerden (bir tarayıcı veya arabellek) gelen
+      istekler için, uzlaşıma konu yanıtların arabelleklenmesini mümkün kılmak
+      üzere <code class="directive"><a href="./mod/mod_negotiation.html#cachenegotiateddocs">CacheNegotiatedDocs</a></code> yönergesi kullanılabilir. Bu yönerge
+      argümansızdır ve sunucu genelinde veya sanal konakların
+      yapılandırılmasında kullanılabilir. Bunun HTTP/1.1 istemcilerinden gelen
+      isteklere bir etkisi yoktur.</p>
+
+    <p>HTTP/1.1 istemciler için, httpd, yanıtın uzlaşım boyutlarını göstermek
+      üzere bir <code>Vary</code> HTTP yanıt başlığı gönderir. Arabellekler bu
+      bilgiyi sonraki istekleri yerel kopyadan sunarken kullanabilirler. Bir
+      arabelleğin uzlaşım boyutlarına bakmaksızın yerel kopyasını kullanmaya
+      teşvik etmek için <code>force-no-vary</code> <a href="env.html#special">ortam değişkenini</a> etkin kılabilirsiniz.</p>
+
+</div></div>
+<div class="bottomlang">
+<p><span>Mevcut Diller: </span><a href="./en/content-negotiation.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/content-negotiation.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/content-negotiation.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/content-negotiation.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/content-negotiation.html" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Yorum</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/content-negotiation.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br /><a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> altında lisanslıdır.</p>
+<p class="menu"><a href="./mod/">Modüller</a> | <a href="./mod/directives.html">Yönergeler</a> | <a href="http://wiki.apache.org/httpd/FAQ">SSS</a> | <a href="./glossary.html">Terimler</a> | <a href="./sitemap.html">Site Haritası</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

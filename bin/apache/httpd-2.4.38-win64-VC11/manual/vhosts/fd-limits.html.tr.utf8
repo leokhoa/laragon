@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="tr" xml:lang="tr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Dosya Tanıtıcı Sınırları - Apache HTTP Sunucusu Sürüm 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page" class="no-sidebar"><div id="page-header">
+<p class="menu"><a href="../mod/">Modüller</a> | <a href="../mod/directives.html">Yönergeler</a> | <a href="http://wiki.apache.org/httpd/FAQ">SSS</a> | <a href="../glossary.html">Terimler</a> | <a href="../sitemap.html">Site Haritası</a></p>
+<p class="apache">Apache HTTP Sunucusu Sürüm 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Sunucusu</a> &gt; <a href="http://httpd.apache.org/docs/">Belgeleme</a> &gt; <a href="../">Sürüm 2.4</a> &gt; <a href="./">Sanal Konaklar</a></div><div id="page-content"><div id="preamble"><h1>Dosya Tanıtıcı Sınırları</h1>
+<div class="toplang">
+<p><span>Mevcut Diller: </span><a href="../en/vhosts/fd-limits.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/fd-limits.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/vhosts/fd-limits.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/vhosts/fd-limits.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/fd-limits.html" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+
+    <p>Çok büyük sayıda sanal konak kullanıyorsanız ve bunların her biri için
+      ayrı günlük kayıtları tutuyorsanız, Apache dosya tanıtıcılarını
+      tüketebilir. Apache tarafından, dahili olarak 10-20 dosya tanıtıcıya ek
+      olarak her hata günlüğü için bir ve her diğer günlük kaydı için bir dosya
+      tanıcı kullanılır. Unix işletim sisteminde dosya tanıtıcıların sayısı
+      süreç başına 64 taneyle sınırlıdır ve gerekirse donanıma bağlı olarak
+      arttırılabilir.</p>
+
+    <p>Apache gerektiğinde bu sınırı kendisi arttırmaya çalışırsa da bu her
+      zaman mümkün olmaz. Şöyle ki:</p>
+
+    <ol>
+      <li>Sisteminiz <code>setrlimit()</code> sistem çağrısını
+        sağlamıyordur.</li>
+
+      <li>Sisteminizde <code>setrlimit(RLIMIT_NOFILE)</code> çağrısı hiçbir işe
+        yaramıyordur (örneğin, Solaris 2.3).</li>
+
+      <li>Dosya tanıtıcılarının sayısı donanıma bağlı olarak daha fazla
+        arttırılamıyordur.</li>
+
+      <li>Sisteminiz dosya tanıtıcı sayısını başka sınırlara bağlı kılmıştır:
+        örneğin stdio akımları ile ilgili sınır, dosya tanıtıcı sayısının
+        256’nın altında ollmasını gerektiriyordur (Solaris 2).</li>
+    </ol>
+
+    <p>Böyle sorunlar karşısında yapabilecekleriniz:</p>
+
+    <ul><li>Ana günlük dosyaları hariç, <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> bölümlerinde günlük dosyası
+      belirtmeyerek günlük dosyası sayısını düşürürsünüz. (Bunun nasıl
+      yapılacağını öğrenmek için <a href="#splitlogs">Günlük kayıtlarının
+      ayrıştırılması</a> bölümüne bakınız.)</li>
+
+      <li>Sisteminizde serbest dosya tanıtıcı sayısı 1-2 civarına düşerse
+        Apache’yi aşağıdaki gibi bir betikle yeniden çalıştırarak dosya
+        tanıtıcı sayısını arttırabilirsiniz:
+
+        <div class="example"><p><code>
+          <code>#!/bin/sh<br />
+           ulimit -S -n 100<br />
+           exec httpd</code>
+        </code></p></div>
+      </li>
+    </ul>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="splitlogs" id="splitlogs">Günlük kayıtlarının ayrıştırılması</a></h2>
+
+    <p>Günlük dosyalarını çok sayıda sanal konak için ortak olarak
+      kullanıyorsanız, sanal konaklar için istatistiksel çözümlemeler yapmak
+      amacıyla sırası geldiğinde bunları ayrıştırabilirsiniz. Bu işlem aşağıda
+      anlatıldığı gibi yapılabilir.</p>
+
+    <p>İlk iş olarak, sanal konak bilgilerini günlük girdilerine eklemeniz
+      gerekir. Bu işlem, <code class="directive"><a href="../mod/mod_log_config.html#logformat">LogFormat</a></code> yönergesi ve
+      <code>%v</code> biçem değişkeni ile yapılabilir. Günlük girdisi biçem
+      dizgesinin başına bunu ekleyiniz:</p>
+
+    <pre class="prettyprint lang-config">LogFormat "%v %h %l %u %t \"%r\" %&gt;s %b" vhost
+CustomLog logs/multiple_vhost_log vhost</pre>
+
+
+    <p>Bu yapılandırma ile her günlük kaydının başında sanal konağın
+      <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code> yönergesine belirtilen
+      ismi eklenir. (Günlük dosyalarınızın kişiselleştirilmesi ile ilgili daha
+      fazla bilgi için <code class="module"><a href="../mod/mod_log_config.html">mod_log_config</a></code> belgesine bakınız.)</p>
+
+    <p>Günlük dosyanızdaki kayıtları bileşenlere göre gruplamak isterseniz
+      <code><a href="../programs/other.html">split-logfile</a></code>
+      programını kullanabilirsiniz. Bu programı Apache dağıtımının
+      <code>support</code> dizininde bulabilirsiniz.</p>
+
+    <p>Programı aşağıdaki gibi çalıştırın:</p>
+
+    <div class="example"><p><code>
+    split-logfile &lt; /logs/multiple_vhost_log
+    </code></p></div>
+
+    <p>Bu programı sanal konaklar için tuttuğunuz günlük dosyasının ismini
+      argüman olarak belirterek çalıştırdığınızda o dosyadaki kayıtlardan her
+      sanal konak için ayrı bir günlük dosyası
+      (<code><em>konakadı</em>.log</code>) üretilir.</p>
+
+</div></div>
+<div class="bottomlang">
+<p><span>Mevcut Diller: </span><a href="../en/vhosts/fd-limits.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/fd-limits.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/vhosts/fd-limits.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/vhosts/fd-limits.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/fd-limits.html" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Yorum</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/vhosts/fd-limits.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br /><a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> altında lisanslıdır.</p>
+<p class="menu"><a href="../mod/">Modüller</a> | <a href="../mod/directives.html">Yönergeler</a> | <a href="http://wiki.apache.org/httpd/FAQ">SSS</a> | <a href="../glossary.html">Terimler</a> | <a href="../sitemap.html">Site Haritası</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

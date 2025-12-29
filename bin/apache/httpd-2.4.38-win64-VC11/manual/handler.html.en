@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Apache's Handler Use - Apache HTTP Server Version 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">Modules</a> | <a href="./mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">Glossary</a> | <a href="./sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="./">Version 2.4</a></div><div id="page-content"><div id="preamble"><h1>Apache's Handler Use</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="./en/handler.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="./es/handler.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="./fr/handler.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/handler.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/handler.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/handler.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a> |
+<a href="./zh-cn/handler.html" hreflang="zh-cn" rel="alternate" title="Simplified Chinese">&nbsp;zh-cn&nbsp;</a></p>
+</div>
+
+    <p>This document describes the use of Apache's Handlers.</p>
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#definition">What is a Handler</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#examples">Examples</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#programmer">Programmer's Note</a></li>
+</ul><h3>See also</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="definition" id="definition">What is a Handler</a></h2>
+    
+    <table class="related"><tr><th>Related Modules</th><th>Related Directives</th></tr><tr><td><ul><li><code class="module"><a href="./mod/mod_actions.html">mod_actions</a></code></li><li><code class="module"><a href="./mod/mod_asis.html">mod_asis</a></code></li><li><code class="module"><a href="./mod/mod_cgi.html">mod_cgi</a></code></li><li><code class="module"><a href="./mod/mod_imagemap.html">mod_imagemap</a></code></li><li><code class="module"><a href="./mod/mod_info.html">mod_info</a></code></li><li><code class="module"><a href="./mod/mod_mime.html">mod_mime</a></code></li><li><code class="module"><a href="./mod/mod_negotiation.html">mod_negotiation</a></code></li><li><code class="module"><a href="./mod/mod_status.html">mod_status</a></code></li></ul></td><td><ul><li><code class="directive"><a href="./mod/mod_actions.html#action">Action</a></code></li><li><code class="directive"><a href="./mod/mod_mime.html#addhandler">AddHandler</a></code></li><li><code class="directive"><a href="./mod/mod_mime.html#removehandler">RemoveHandler</a></code></li><li><code class="directive"><a href="./mod/core.html#sethandler">SetHandler</a></code></li></ul></td></tr></table>
+
+
+    <p>A "handler" is an internal Apache representation of the
+    action to be performed when a file is called. Generally, files
+    have implicit handlers, based on the file type. Normally, all
+    files are simply served by the server, but certain file types
+    are "handled" separately.</p>
+
+    <p>Handlers may also be configured explicitly,
+    based on either filename extensions or on location,
+    without relation to file type. This is
+    advantageous both because it is a more elegant solution, and
+    because it also allows for both a type <strong>and</strong> a
+    handler to be associated with a file. (See also <a href="mod/mod_mime.html#multipleext">Files with Multiple
+    Extensions</a>.)</p>
+
+    <p>Handlers can either be built into the server or included in
+    a module, or they can be added with the <code class="directive"><a href="./mod/mod_actions.html#action">Action</a></code> directive. The
+    built-in handlers in the standard distribution are as
+    follows:</p>
+
+    <ul>
+      <li><strong>default-handler</strong>: Send the file using the
+      <code>default_handler()</code>, which is the handler used by
+      default to handle static content. (core)</li>
+
+      <li><strong>send-as-is</strong>: Send file with HTTP headers
+      as is. (<code class="module"><a href="./mod/mod_asis.html">mod_asis</a></code>)</li>
+
+      <li><strong>cgi-script</strong>: Treat the file as a CGI
+      script. (<code class="module"><a href="./mod/mod_cgi.html">mod_cgi</a></code>)</li>
+
+      <li><strong>imap-file</strong>: Parse as an imagemap rule
+      file. (<code class="module"><a href="./mod/mod_imagemap.html">mod_imagemap</a></code>)</li>
+
+      <li><strong>server-info</strong>: Get the server's
+      configuration information. (<code class="module"><a href="./mod/mod_info.html">mod_info</a></code>)</li>
+
+      <li><strong>server-status</strong>: Get the server's status
+      report. (<code class="module"><a href="./mod/mod_status.html">mod_status</a></code>)</li>
+
+      <li><strong>type-map</strong>: Parse as a type map file for
+      content negotiation. (<code class="module"><a href="./mod/mod_negotiation.html">mod_negotiation</a></code>)</li>
+    </ul>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="examples" id="examples">Examples</a></h2>
+    
+
+    <h3><a name="example1" id="example1">Modifying static content using a CGI script</a></h3>
+      
+
+      <p>The following directives will cause requests for files with
+      the <code>html</code> extension to trigger the launch of the
+      <code>footer.pl</code> CGI script.</p>
+
+      <pre class="prettyprint lang-config">Action add-footer /cgi-bin/footer.pl
+AddHandler add-footer .html</pre>
+
+
+      <p>Then the CGI script is responsible for sending the
+      originally requested document (pointed to by the
+      <code>PATH_TRANSLATED</code> environment variable) and making
+      whatever modifications or additions are desired.</p>
+
+    
+    <h3><a name="example2" id="example2">Files with HTTP headers</a></h3>
+      
+
+      <p>The following directives will enable the
+      <code>send-as-is</code> handler, which is used for files which
+      contain their own HTTP headers. All files in the
+      <code>/web/htdocs/asis/</code> directory will be processed by
+      the <code>send-as-is</code> handler, regardless of their
+      filename extensions.</p>
+
+      <pre class="prettyprint lang-config">&lt;Directory "/web/htdocs/asis"&gt;
+    SetHandler send-as-is
+&lt;/Directory&gt;</pre>
+
+
+    
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="programmer" id="programmer">Programmer's Note</a></h2>
+    
+
+    <p>In order to implement the handler features, an addition has
+    been made to the <a href="developer/API.html">Apache API</a> that
+    you may wish to make use of. Specifically, a new record has
+    been added to the <code>request_rec</code> structure:</p>
+
+    <pre class="prettyprint lang-c">char *handler</pre>
+
+
+    <p>If you wish to have your module engage a handler, you need
+    only to set <code>r-&gt;handler</code> to the name of the
+    handler at any time prior to the <code>invoke_handler</code>
+    stage of the request. Handlers are implemented as they were
+    before, albeit using the handler name instead of a content
+    type. While it is not necessary, the naming convention for
+    handlers is to use a dash-separated word, with no slashes, so
+    as to not invade the media type name-space.</p>
+  </div></div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="./en/handler.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="./es/handler.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="./fr/handler.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/handler.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/handler.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/handler.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a> |
+<a href="./zh-cn/handler.html" hreflang="zh-cn" rel="alternate" title="Simplified Chinese">&nbsp;zh-cn&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/handler.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="./mod/">Modules</a> | <a href="./mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">Glossary</a> | <a href="./sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+<meta content="text/html; charset=EUC-KR" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>DNS와 아파치와 관련된 사항 - Apache HTTP Server Version 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">모듈</a> | <a href="./mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">용어</a> | <a href="./sitemap.html">사이트맵</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="./">Version 2.4</a></div><div id="page-content"><div id="preamble"><h1>DNS와 아파치와 관련된 사항</h1>
+<div class="toplang">
+<p><span>가능한 언어: </span><a href="./en/dns-caveats.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/dns-caveats.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="./ja/dns-caveats.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/dns-caveats.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/dns-caveats.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">이 문서는 최신판 번역이 아닙니다.
+            최근에 변경된 내용은 영어 문서를 참고하세요.</div>
+
+    <p>이 문서를 한 문장으로 요약할 수 있다. 아파치가 설정파일을
+    읽을때 DNS를 의존하지않도록 하라. 아파치가 설정파일을 읽는데
+    DNS가 필요하다면 서버는 신뢰성 문제 (시작이 안될 수도 있다)
+    혹은 서비스거부 공격과 (사용자가 다른 사용자에 대한 접근을
+    가로채는 것을 포함하여) 서비스도둑(theft of service) 공격에
+    시달릴 수 있다.</p>
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#example">간단한 예제</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#denial">서비스거부 (Denial of Service)</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#main">"주서버" 주소</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#tips">이 문제를 피하기위한 팁</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#appendix">부록: 앞으로는</a></li>
+</ul><h3>참고</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="example" id="example">간단한 예제</a></h2>
+    
+
+    <div class="example"><p><code>
+      &lt;VirtualHost www.abc.dom&gt; <br />
+      ServerAdmin webgirl@abc.dom <br />
+      DocumentRoot /www/abc <br />
+      &lt;/VirtualHost&gt;
+    </code></p></div>
+
+    <p>아파치가 정상적으로 동작하기위해서는 각 가상호스트에
+    대해 두가지 정보가 절대적으로 필요하다. 이 정보는
+    <code class="directive"><a href="./mod/core.html#servername">ServerName</a></code>과 서버가
+    기다리고 응답할 최소 한개의 IP 주소이다. 이 예는 IP 주소가
+    없기때문에, 아파치는 DNS를 사용하여 <code>www.abc.dom</code>의
+    주소를 찾아야 한다. 서버가 설정파일을 읽을때 어떤 이유에서건
+    DNS를 사용할 수 없다면 가상호스트를 <strong>만들 수 없다</strong>.
+    이 가상호스트는 요청에 응답할 수 없다. (아파치 1.2 이전
+    버전에서는 심지어 서버가 부팅도 안한다.)</p>
+
+    <p><code>www.abc.dom</code>의 주소가 192.0.2.1이라고 가정하자.
+    그리고 다음 설정을 보라:</p>
+
+    <div class="example"><p><code>
+      &lt;VirtualHost 192.0.2.1&gt; <br />
+      ServerAdmin webgirl@abc.dom <br />
+      DocumentRoot /www/abc <br />
+      &lt;/VirtualHost&gt;
+    </code></p></div>
+
+    <p>이제 아파치는 이 가상호스트의 <code>ServerName</code>을
+    찾기위해 역DNS를 사용해야 한다. 역찾기가 실패하면 아파치는
+    가상호스트를 부분적으로 끈다. (아파치 1.2 이전 버전에서는
+    심지어 서버가 부팅도 안한다.) 즉, 이 경우 이름기반
+    가상호스트라면 가상호스트는 완전히 동작하지않고, ip기반이라면
+    대부분 동작한다. 그러나 아파치가 서버명을 포함하여 서버의
+    전체 URL을 만들어야 한다면 정상적인 URL을 만들지 못한다.</p>
+
+    <p>아래 경우 이 두가지 문제가 없다.</p>
+
+    <div class="example"><p><code>
+      &lt;VirtualHost 192.0.2.1&gt; <br />
+      ServerName www.abc.dom <br />
+      ServerAdmin webgirl@abc.dom <br />
+      DocumentRoot /www/abc <br />
+      &lt;/VirtualHost&gt;
+    </code></p></div>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="denial" id="denial">서비스거부 (Denial of Service)</a></h2>
+    
+
+    <p>(최소한) 두가지 종류의 서비스거부가 발생할 수 있다.
+    아파치 1.2 이전 버전의 경우 어떤 가상호스트에서라도
+    위에서 말한 두 DNS 검색이 실패하면 서버가 켜지지도 않는다.
+    DNS가 당신의 권한 밖의 문제일 수도 있다. 예를 들어,
+    <code>abc.dom</code>이 고객 사이트이고 고객이 자신의 DNS를
+    관리한다면, <code>www.abc.dom</code> 레코드를 지우기만 해도
+    (1.2 이전) 서버는 시작하지 못한다.</p>
+
+    <p>훨씬 더 교활한 방법도 있다. 다음 설정을 살펴보자:</p>
+
+    <div class="example"><p><code>
+      &lt;VirtualHost www.abc.dom&gt; <br />
+      &nbsp;&nbsp;ServerAdmin webgirl@abc.dom <br />
+      &nbsp;&nbsp;DocumentRoot /www/abc <br />
+      &lt;/VirtualHost&gt; <br />
+      <br />
+      &lt;VirtualHost www.def.dom&gt; <br />
+      &nbsp;&nbsp;ServerAdmin webguy@def.dom <br />
+      &nbsp;&nbsp;DocumentRoot /www/def <br />
+      &lt;/VirtualHost&gt;
+    </code></p></div>
+
+    <p>당신이 <code>www.abc.dom</code>에 192.0.2.1,
+    <code>www.def.dom</code>에 192.0.2.2를 할당했다고 하자.
+    또, <code>def.dom</code>은 자체 DNS를 사용한다고 가정하자.
+    이 설정과 함께 <code>def.dom</code>을 <code>abc.dom</code>으로
+    가는 모든 통신을 가로챌 수 있는 장소에 두었다. 그렇다면 그들은
+    <code>www.def.dom</code>을 192.0.2.1로 설정하기만 하면 된다.
+    그들이 자체 DNS를 사용하기때문에 당신은 그들이 원하는데로
+    <code>www.def.dom</code> 레코드를 설정하는 것을 막을 수
+    없다.</p>
+
+    <p>(사용자가 <code>http://www.abc.dom/whatever</code> 형식의
+    URL을 입력하는 경우를 포함하여) 192.0.2.1로 오는 모든 요청을
+    <code>def.dom</code> 가상호스트가 서비스하게 된다. 왜 이런
+    일이 일어나는지 이해하려면 아파치가 어떻게 가상호스트로
+    오는 요청을 처리하는지에 대한 설명이 필요하다.
+    <a href="vhosts/details.html">여기</a>에 대강 설명되있다.</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="main" id="main">"주서버" 주소</a></h2>
+    
+
+    <p>아파치 1.1에서 <a href="vhosts/name-based.html">이름기반
+    가상호스트 지원</a>이 포함되었기때문에 아파치는 웹서버를
+    실행하는 호스트의 IP 주소(들)를 알 필요가 생겼다. 이 주소는
+    (있다면) 전역 <code class="directive"><a href="./mod/core.html#servername">ServerName</a></code>
+    혹은 C 함수 <code>gethostname</code>으로 (명령프롬프트에
+    "hostname"을 입력했을때와 같은 결과) 얻는다. 그러면 이 주소로
+    DNS 검색을 한다. 현재 이 검색은 피할 수 없다.</p>
+
+    <p>DNS 서버가 죽어서 이 검색이 실패할 것 같다면
+    <code>/etc/hosts</code>에 호스트명을 집어넣을 수 있다.
+    (컴퓨터가 정상적으로 부팅되었다면 아마 이미 들어있을 것이다.)
+    그리고 DNS가 실패하면 서버가 <code>/etc/hosts</code>를
+    사용하는지 확인하라. 사용하는 운영체제에 따라
+    <code>/etc/resolv.conf</code> 혹은 <code>/etc/nsswitch.conf</code>를
+    수정하면 될 것이다.</p>
+
+    <p>서버가 어떤 이유에서건 DNS를 검색하면 안된다면
+    <code>HOSTRESORDER</code> 환경변수를 "local"로 설정하고
+    아파치를 실행할 수 있다. <code class="module"><a href="./mod/mod_env.html">mod_env</a></code>를
+    사용하여 환경을 변경하지 않는다면 이 환경변수는
+    CGI에도 영향을 준다. 운영체제의 manpage나 FAQ를 참고하는
+    것이 좋다.</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="tips" id="tips">이 문제를 피하기위한 팁</a></h2>
+    
+
+    <ul>
+      <li>
+        <code class="directive"><a href="./mod/core.html#virtualhost">VirtualHost</a></code>에 IP
+        주소를 사용하라
+      </li>
+
+      <li>
+        <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code>에
+        IP 주소를 사용하라
+      </li>
+
+      <li>
+        모든 가상호스트는 명시적으로
+        <code class="directive"><a href="./mod/core.html#servername">ServerName</a></code>을
+        가지게 하라
+      </li>
+
+      <li>어떤 페이지도 서비스하지않는
+      <code>&lt;VirtualHost _default_:*&gt;</code> 서버를
+      만들어라</li>
+    </ul>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="appendix" id="appendix">부록: 앞으로는</a></h2>
+    
+
+    <p>DNS와 관련된 상황은 매우 바람직하지 못하다. 아파치 1.2에서
+    우리는 DNS가 실패한 경우에도 최소한 서버가 켜지도록 노력했지만
+    결과는 나빴다. 어쨌든 설정파일에 직접 IP 주소를 요구하는
+    것은 번호를 다시 설정해야할 요즘 인터넷에 매우 바람직하지
+    못하다.</p>
+
+    <p>위에서 설명한 서비스도둑 공격을 막는 한가지 방법은 검색한
+    IP 주소에 다시 역DNS 검색을 하여 두 이름을 비교하는 것이다.
+    서로 다른 경우 가상호스트를 가동하지 않을 수 있다. 이 방법은
+    역DNS가 올바로 설정되야 한다. (FTP 서버나 TCP wrapper가
+    "중복-역" DNS 검색을 자주 사용하기때문에 대부분의 관리자에게
+    익숙할 것이다.)</p>
+
+    <p>어쨌든 IP 주소를 사용하지않으면 DNS가 실패한 경우 가상호스트
+    웹서버를 믿을 수 있게 시작할 수 없다. 설정의 일부를 무시하는
+    것과 같은 부분적인 해결책은 웹서버 전체를 시작하지않는 것보다
+    더 나쁠 수도 있다.</p>
+
+    <p>HTTP/1.1이 나왔고 브라우저와 프록시가 <code>Host</code>
+    헤더를 보내기 시작했으므로 IP기반 가상호스트를 완전히
+    사용하지않는 것이 가능해질 것이다. 그러면 웹서버는 설정중에서
+    DNS 검색을 할 필요가 없어진다. 그러나 1997년 3월에는 중요한
+    웹서버에 포함할 정도로 이름기반 가상호스트가 널리 사용되지
+    않았다.</p>
+  </div></div>
+<div class="bottomlang">
+<p><span>가능한 언어: </span><a href="./en/dns-caveats.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/dns-caveats.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="./ja/dns-caveats.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/dns-caveats.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/dns-caveats.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/dns-caveats.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="./mod/">모듈</a> | <a href="./mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">용어</a> | <a href="./sitemap.html">사이트맵</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

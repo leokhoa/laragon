@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Hook Functions in the Apache HTTP Server 2.x - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Developer Documentation</a></div><div id="page-content"><div id="preamble"><h1>Hook Functions in the Apache HTTP Server 2.x</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/developer/hooks.html" title="English">&nbsp;en&nbsp;</a></p>
+</div>
+
+    <div class="warning"><h3>Warning</h3>
+      <p>This document is still in development and may be partially out of
+      date.</p>
+    </div>
+
+    <p>In general, a hook function is one that the Apache HTTP Server
+    will call at some point during the processing of a request.
+    Modules can provide functions that are called, and specify when
+    they get called in comparison to other modules.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#corehooks">Core Hooks</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#create">Creating a hook function</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#hooking">Hooking the hook</a></li>
+</ul><h3>See also</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="corehooks" id="corehooks">Core Hooks</a></h2>
+    <p>The httpd's core modules offer a predefinined list of hooks
+    used during the standard <a href="./request.html">request processing</a>
+    phase. Creating a new hook will expose a function that 
+    implements it (see sections below) but it is essential to undestand that you will not 
+    extend the httpd's core hooks. Their presence and order in the request processing is in fact 
+    a consequence of how they are called in <code>server/request.c</code> 
+    (check <a href="./modguide.html#hooking">this section</a> 
+    for an overview). The core hooks are listed in the 
+    <a href="https://ci.apache.org/projects/httpd/trunk/doxygen/group__hooks.html">doxygen documentation</a>.</p>
+
+    <p>Reading <a href="./modguide.html">guide for developing modules</a> and 
+    <a href="./request.html">request processing</a> before proceeding is 
+    highly recomended.
+    </p> 
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="create" id="create">Creating a hook function</a></h2>
+    <p>In order to create a new hook, four things need to be
+    done:</p>
+
+    <h3><a name="create-declare" id="create-declare">Declare the hook function</a></h3>
+      <p>Use the <code>AP_DECLARE_HOOK</code> macro, which needs to be given
+      the return type of the hook function, the name of the hook, and the
+      arguments. For example, if the hook returns an <code>int</code> and
+      takes a <code>request_rec *</code> and an <code>int</code> and is
+      called <code>do_something</code>, then declare it like this:</p>
+      <pre class="prettyprint lang-c">AP_DECLARE_HOOK(int, do_something, (request_rec *r, int n))</pre>
+
+
+      <p>This should go in a header which modules will include if
+      they want to use the hook.</p>
+    
+
+    <h3><a name="create-create" id="create-create">Create the hook structure</a></h3>
+      <p>Each source file that exports a hook has a private structure
+      which is used to record the module functions that use the hook.
+      This is declared as follows:</p>
+
+      <pre class="prettyprint lang-c">APR_HOOK_STRUCT(
+  APR_HOOK_LINK(do_something)
+  ...
+)</pre>
+
+    
+
+    <h3><a name="create-implement" id="create-implement">Implement the hook caller</a></h3>
+      <p>The source file that exports the hook has to implement a
+      function that will call the hook. There are currently three
+      possible ways to do this. In all cases, the calling function is
+      called <code>ap_run_<var>hookname</var>()</code>.</p>
+
+      <h4>Void hooks</h4>
+        <p>If the return value of a hook is <code>void</code>, then all the
+        hooks are called, and the caller is implemented like this:</p>
+
+        <pre class="prettyprint lang-c">AP_IMPLEMENT_HOOK_VOID(do_something, (request_rec *r, int n), (r, n))</pre>
+
+
+        <p>The second and third arguments are the dummy argument
+        declaration and the dummy arguments as they will be used when
+        calling the hook. In other words, this macro expands to
+        something like this:</p>
+
+        <pre class="prettyprint lang-c">void ap_run_do_something(request_rec *r, int n)
+{
+    ...
+    do_something(r, n);
+}</pre>
+
+      
+
+      <h4>Hooks that return a value</h4>
+        <p>If the hook returns a value, then it can either be run until
+        the first hook that does something interesting, like so:</p>
+
+        <pre class="prettyprint lang-c">AP_IMPLEMENT_HOOK_RUN_FIRST(int, do_something, (request_rec *r, int n), (r, n), DECLINED)</pre>
+
+
+        <p>The first hook that does <em>not</em> return <code>DECLINED</code>
+        stops the loop and its return value is returned from the hook
+        caller. Note that <code>DECLINED</code> is the traditional
+        hook return value meaning "I didn't do anything", but it can be
+        whatever suits you.</p>
+
+        <p>Alternatively, all hooks can be run until an error occurs.
+        This boils down to permitting <em>two</em> return values, one of
+        which means "I did something, and it was OK" and the other
+        meaning "I did nothing". The first function that returns a
+        value other than one of those two stops the loop, and its
+        return is the return value. Declare these like so:</p>
+
+        <pre class="prettyprint lang-c">AP_IMPLEMENT_HOOK_RUN_ALL(int, do_something, (request_rec *r, int n), (r, n), OK, DECLINED)</pre>
+
+
+        <p>Again, <code>OK</code> and <code>DECLINED</code> are the traditional
+        values. You can use what you want.</p>
+      
+    
+
+    <h3><a name="create-call" id="create-call">Call the hook callers</a></h3>
+      <p>At appropriate moments in the code, call the hook caller,
+      like so:</p>
+
+      <pre class="prettyprint lang-c">int n, ret;
+request_rec *r;
+
+ret=ap_run_do_something(r, n);</pre>
+
+    
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="hooking" id="hooking">Hooking the hook</a></h2>
+    <p>A module that wants a hook to be called needs to do two
+    things.</p>
+
+    <h3><a name="hooking-implement" id="hooking-implement">Implement the hook function</a></h3>
+      <p>Include the appropriate header, and define a static function
+      of the correct type:</p>
+
+      <pre class="prettyprint lang-c">static int my_something_doer(request_rec *r, int n)
+{
+    ...
+    return OK;
+}</pre>
+
+    
+
+    <h3><a name="hooking-add" id="hooking-add">Add a hook registering function</a></h3>
+      <p>During initialisation, the server will call each modules hook
+      registering function, which is included in the module
+      structure:</p>
+
+      <pre class="prettyprint lang-c">static void my_register_hooks()
+{
+    ap_hook_do_something(my_something_doer, NULL, NULL, APR_HOOK_MIDDLE);
+}
+
+mode MODULE_VAR_EXPORT my_module =
+{
+    ...
+    my_register_hooks       /* register hooks */
+};</pre>
+
+    
+
+    <h3><a name="hooking-order" id="hooking-order">Controlling hook calling order</a></h3>
+      <p>In the example above, we didn't use the three arguments in
+      the hook registration function that control calling order of 
+      all the functions registered within the hook.
+      There are two mechanisms for doing this. The first, rather
+      crude, method, allows us to specify roughly where the hook is
+      run relative to other modules. The final argument control this.
+      There are three possible values: <code>APR_HOOK_FIRST</code>,
+      <code>APR_HOOK_MIDDLE</code> and <code>APR_HOOK_LAST</code>.</p>
+
+      <p>All modules using any particular value may be run in any
+      order relative to each other, but, of course, all modules using
+      <code>APR_HOOK_FIRST</code> will be run before <code>APR_HOOK_MIDDLE</code>
+      which are before <code>APR_HOOK_LAST</code>. Modules that don't care
+      when they are run should use <code>APR_HOOK_MIDDLE</code>. <em>These
+      values are spaced out, so that positions like <code>APR_HOOK_FIRST-2</code>
+      are possible to hook slightly earlier than other functions.</em></p>
+
+      <p>Note that there are two more values,
+      <code>APR_HOOK_REALLY_FIRST</code> and <code>APR_HOOK_REALLY_LAST</code>. These
+      should only be used by the hook exporter.</p>
+
+      <p>The other method allows finer control. When a module knows
+      that it must be run before (or after) some other modules, it
+      can specify them by name. The second (third) argument is a
+      NULL-terminated array of strings consisting of the names of
+      modules that must be run before (after) the current module. For
+      example, suppose we want "mod_xyz.c" and "mod_abc.c" to run
+      before we do, then we'd hook as follows:</p>
+
+      <pre class="prettyprint lang-c">static void register_hooks()
+{
+    static const char * const aszPre[] = { "mod_xyz.c", "mod_abc.c", NULL };
+
+    ap_hook_do_something(my_something_doer, aszPre, NULL, APR_HOOK_MIDDLE);
+}</pre>
+
+
+      <p>Note that the sort used to achieve this is stable, so
+      ordering set by <code>APR_HOOK_<var>ORDER</var></code> is preserved, as far
+      as is possible.</p>
+
+    
+</div></div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/developer/hooks.html" title="English">&nbsp;en&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/developer/hooks.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

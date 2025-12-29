@@ -1,0 +1,80 @@
+% atbeginend.sty 
+%
+% Licensed to the Apache Software Foundation (ASF) under one or more
+% contributor license agreements.  See the NOTICE file distributed with
+% this work for additional information regarding copyright ownership.
+% The ASF licenses this file to You under the Apache License, Version 2.0
+% (the "License"); you may not use this file except in compliance with
+% the License.  You may obtain a copy of the License at
+%
+%     http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+
+% defines
+% \BeforeBegin{environment}{code-to-execute}
+% \BeforeEnd  {environment}{code-to-execute}
+% \AfterBegin {environment}{code-to-execute}
+% \AfterEnd   {environment}{code-to-execute}
+%
+% Save \begin and \end to \BeginEnvironment and \EndEnvironment
+\let\BeginEnvironment=\begin
+\let\EndEnvironment=\end
+
+\def\IfUnDef#1{\expandafter\ifx\csname#1\endcsname\relax}
+
+% Null command needed to for \nothing{something}=.nothing.
+\def\NullCom#1{}
+
+\def\begin#1{%
+%
+% if defined \BeforeBeg for this environment, execute it
+\IfUnDef{BeforeBeg#1}\else\csname BeforeBeg#1\endcsname\fi%
+%
+%
+%
+\IfUnDef{AfterBeg#1}% This is done to skip the command for environments
+		     % which can take arguments, like multicols; YOU MUST NOT
+		     % USE \AfterBegin{...}{...} for such environments!
+	\let\SaveBegEng=\BeginEnvironment%
+\else%
+	% Start this environment
+		\BeginEnvironment{#1}%
+	% and execute code after \begin{environment}
+		\csname AfterBeg#1\endcsname%
+	% 
+	\let\SaveBegEng=\NullCom%
+\fi%
+\SaveBegEng{#1}%
+}
+
+
+\def\end#1{%
+%
+% execute code before \end{environment}
+\IfUnDef{BeforeEnd#1}\else\csname BeforeEnd#1\endcsname\fi%
+%
+% close this environment
+\EndEnvironment{#1}%
+%
+% and execute code after \begin{environment}
+\IfUnDef{AfterEnd#1}\else\csname AfterEnd#1\endcsname\fi%
+}
+
+
+%% Now, define commands
+% \BeforeBegin{environment}{code-to-execute}
+% \BeforeEnd  {environment}{code-to-execute}
+% \AfterBegin {environment}{code-to-execute}
+% \AfterEnd   {environment}{code-to-execute}
+
+\def\BeforeBegin#1#2{\expandafter\gdef\csname BeforeBeg#1\endcsname
+{#2}}
+\def\BeforeEnd  #1#2{\expandafter\gdef\csname BeforeEnd#1\endcsname
+{#2}}
+\def\AfterBegin #1#2{\expandafter\gdef\csname AfterBeg#1\endcsname {#2}}
+\def\AfterEnd   #1#2{\expandafter\gdef\csname AfterEnd#1\endcsname{#2}}

@@ -1,0 +1,585 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+<meta content="text/html; charset=EUC-KR" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>아파치 EBCDIC 포팅 - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Platform Specific Notes</a></div><div id="page-content"><div id="preamble"><h1>아파치 EBCDIC 포팅</h1>
+<div class="toplang">
+<p><span>가능한 언어: </span><a href="../en/platform/ebcdic.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../ko/platform/ebcdic.html" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div>
+<div class="outofdate">이 문서는 최신판 번역이 아닙니다.
+            최근에 변경된 내용은 영어 문서를 참고하세요.</div>
+
+
+    <div class="warning">이 문서는 아파치 웹서버 2.0 버전에서
+    변경된 내용을 담고있지 않다. 아직도 유효한 정보가 있지만,
+    주의해서 사용하길 바란다.
+    </div>
+
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#overview">아파치 EBCDIC 포팅 개요</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#design">설계 목표</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#technical">기술적 해결책</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#porting">포팅에 대해서</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#document">문서 저장에 대해서</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#modules">아파치 모듈의 상태</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#third-party">제삼자가 만든 모듈의 상태</a></li>
+</ul><h3>참고</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="overview" id="overview">아파치 EBCDIC 포팅 개요</a></h2>
+
+    
+
+    <p>아파치 웹서버는 1.3 버전때 처음으로 EBCDIC 문자집합을
+    기본 문자집합으로 사용하는 (비-ASCII) 메인플레임 컴퓨터로
+    포팅되었다.</p>
+
+    <p>(<a href="http://www.siemens.de/servers/bs2osd/osdbc_us.htm">BS2000/OSD
+    운영체제</a>를 사용하는 SIEMENS 계열 메인플레임을 말한다.
+    이 메인플레임 운영체제에는 현재 SVR4계열의 POSIX 하위시스템이
+    있다).</p>
+
+    <p>포팅은 처음에 다음과 같은 목적에서 시작되었다</p>
+
+    <ul>
+      <li>이 플레폼으로도 <a href="http://dev.apache.org/">아파치
+      웹서버</a>를 포팅할 수 있다는 가능성을 보이기위해서</li>
+
+      <li>(몇년 전에 포팅된) 오래된 <a href="http://www.w3.org/Daemon/">CERN-3.0</a> 서버를 대체할
+      "쓸만하고 유능한" 후계자를 찾기위해</li>
+
+      <li>이 플레폼에서 아파치의 prefork 프로세스 방식이 CERN의
+      accept-fork-serve 방식 보다 5배 이상 성능이 좋음을
+      보이기위해서.</li>
+    </ul>
+
+    <p>이 문서는 포팅시 여러 설계상 결정의 이유를 설명한다.</p>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="design" id="design">설계 목표</a></h2>
+
+    
+
+    <p>EBCDIC 포팅의 목적중 하나는 새로운 서버로 전환을 유도하고
+    쉽게 전환할 수 있도록 가능한 (EBCDIC) CERN 서버와 호환성을
+    유지하는 것이다. 그래서 HTML 문서가 (이전 CERN 서버가 인식하는
+    유일한 형식인) ASCII와 (POSIX 하위시스템의 기본 문서 형식.
+    그러므로 <code>grep</code>이나 <code>sed</code> 같은 POSIX
+    도구를 사용할 수 있는 현실적인 형식인) EBCDIC 중 어느 형식인지
+    설정할 수 있어야 한다. 현재 해결책은 아파치 서버가 중간에서
+    문서를 가로채서 문서의 형식을 파악하는 "가상 MIME 형식"이다
+    (아래 참고). 다음 버전에서는 변환해야할 모든 문서에
+    "ebcdic-handler"를 정의하는 방법으로 문제를 해결할 것이다.</p>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="technical" id="technical">기술적 해결책</a></h2>
+
+    
+
+    <p>아파치가 BUFF 자료형과 메써드를 사용하여 모든 입출력을
+    하므로 가장 쉬운 방법은 BUFF 처리 함수에 변환기능을 추가하는
+    것이다. 언제든지 변환할 수 있어야 하기때문에 BUFF 객체를
+    변환해야 하는지 알려주는 BUFF 표시를 추가했다. 이 표시는
+    HTTP 프로토콜의 여러 단계에서 변경될 수 있다:</p>
+
+    <ul>
+      <li>요청을 받기 전에 <strong>변환</strong> (요청과 요청헤더가
+      항상 ASCII 형식이기 때문에)</li>
+
+      <li>요청 내용을 받았을때 content type에 따라
+      <strong>변환/변환안함</strong> (요청 내용이 ASCII 문자나
+      바이너리 파일인 경우 변환해야 하기때문에)</li>
+
+      <li>응답헤더를 보내기 전에 <strong>변환</strong> (응답헤더는
+      항상 ASCII 형식이기때문에)</li>
+
+      <li>응답 내용을 보낼때 content type에 따라
+      <strong>변환/변환안함</strong> (응답 내용이 문자 파일이거나
+      바이너리 파일이기때문에)</li>
+    </ul>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="porting" id="porting">포팅에 대해서</a></h2>
+
+    
+
+    <ol>
+      <li>
+        <p>소스의 변화는 두가지 <code>#ifdef</code>로 구분할
+        수 있다:</p>
+
+        <dl>
+          <dt><code><strong>#ifdef
+          CHARSET_EBCDIC</strong></code></dt>
+
+          <dd>
+            <p>모든 EBCDIC기반 컴퓨터에 필요한 코드. 문자변환,
+            두 문자집합간의 연속된 문자값 차이, 어떤 HTTP 프로토콜
+            부분이 변환되야 하는지를 알려주는 표시 <em>등.</em></p>
+          </dd>
+
+          <dt><code><strong>#ifdef _OSD_POSIX</strong></code></dt>
+
+          <dd>
+            <p>SIEMENS BS2000/OSD 메인플레임 플레폼에만 필요한
+            코드. BS2000/OSD 플레폼에만 필요한 헤더파일 차이와
+            소켓 구현 문제를 다룬다.</p>
+          </dd>
+        </dl>
+      </li>
+
+      <li>
+        <p>소켓 수준에서 ASCII와 EBCDIC간 변화는 (BS2000 POSIX에는
+        이 기능을 지원하는 소켓 옵션이 있다) HTTP 프로토콜 수준에서
+        전송되는 자료에 프로토콜관련 문자열과 프로토콜과 무관한
+        일반파일이 섞여있기때문에 의도적으로 사용하지
+        <em>않았다</em>. HTTP 프로토콜 문자열은 (<code>GET</code>
+        요청, Header: 줄, 기타 정보 <em>등.</em>) 항상 ASCII
+        형식이고, 파일전송 부분은 (<em>즉</em>, GIF 그림, CGI
+        출력 <em>등.</em>) 서버가 항상 "변환하지않고 그냥" 보내야
+        한다. 서버 코드는 "프로토콜 문자열"과 "일반 자료"를,
+        문자열에는 <code>bgets()</code>나 <code>rvputs()</code>,
+        바이너리 자료에는 <code>bgets()</code>나
+        <code>rvputs()</code> 함수를 사용하여 구별한다. 그러므로
+        무조건 모든 것을 변환하는 것은 적절하지 않다.</p>
+
+        <p>(물론 문자파일의 경우 EBCDIC 문서를 항상 ASCII로
+        서비스하도록 준비해야 한다)</p>
+      </li>
+
+      <li>
+        <p>그래서 포팅에는 (컴파일러가 EBCDIC 문자열로 변환한)
+        서버 내부 문자열과 서버가 생성한 문서를 기본 프로토콜
+        수준에서 변환하는 기능이 있다. 서버 코드에 산재된 ASCII
+        escape문자 <code>\012</code>와 <code>\015</code>는 예외다:
+        이들이 이미 ASCII <code>\n</code>과 <code>\r</code>의
+        바이너리 값이기때문에 ASCII로 두번 변환하면 안된다.
+        이 예외는 서버가 생성한 문자열에만 적용된다; <em>외부</em>
+        EBCDIC 문서는 ASCII 줄바꿈문자를 포함하면 안된다.</p>
+      </li>
+
+      <li>
+        <p>BUFF 관리함수를 사용하는 방법을 살펴본 후 나는 모든
+        puts/write/get/gets가 거치게되는 "ebcdic/ascii 변환
+        계층"을 추가하고, 동적으로 변환유무를 설정할 수 있는
+        변환 표시를 추가했다. 문서가 원본(파일이나 CGI 출력)에서
+        대상(요청한 클라이언트)으로 이동할때 항상 이 계층을
+        두번 지난다: <code>파일 -&gt; 아파치</code>, <code>아파치
+        -&gt; 클라이언트</code>.</p>
+
+        <p>서버는 이제 EBCDIC 형식으로 된 CGI 스크립트 출력의
+        헤더줄을 읽고, 나머지 스크립트 출력이 ASCII임을 알아낼
+        수 있다 (WWW 방문자수를 세는 프로그램과 같은 경우: 문서
+        내용은 GIF 그림이다). 기본 EBCDIC 형식으로 모든 헤더를
+        처리한다; 그런 다음 서비스할 문서의 type에 따라 서버는
+        문서 내용이 이미 ASCII인지 혹은 EBCDIC에서 변환을 해야
+        하는지 결정한다.</p>
+      </li>
+
+      <li>
+        <p>(MIME type이 text/plain, text/html <em>등</em>) 내용이
+        일반 문자인 문서를 암묵적으로 ASCII로 변환하거나, (사용자에게
+        빠르게 서비스하기위해 미리 문서를 ASCII 형식으로 저장하였거나
+        NFS로 마운트한 디렉토리에 파일이 있는 경우) 변환없이
+        서비스할 수 있다.</p>
+
+        <p><strong>예:</strong></p>
+
+        <p>이름이 <code>.ahtml</code>로 끝나는 파일을 암묵적인
+        변환없이 ASCII <code>text/html</code> 문서로 (그리고
+        <code>.ascii</code> 확장자는 ASCII
+        <code>text/plain</code>으로) 서비스하려면 다음 지시어를
+        사용한다:</p>
+
+        <div class="example"><p><code>
+          AddType  text/x-ascii-html  .ahtml <br />
+          AddType  text/x-ascii-plain .ascii
+        </code></p></div>
+
+        <p>또, <code>text/foo</code> 식의 MIME type을
+        <code>AddType</code> "<code>text/x-ascii-foo</code>"
+        설정하여 "일반 ASCII"로 서비스할 수 있다.</p>
+      </li>
+
+      <li>
+        <p>내용이 일반 문자가 아닌 문서는 변환없이 항상 "바이너리"로
+        서비스한다. <em>예를 들어</em>, GIF/ZIP/AU 파일형식에
+        가장 적합한 선택이다. 물론 사용자는 "<code>rcp -b</code>"
+        바이너리 옵션을 사용하여 파일을 메인플레임 호스트로
+        복사했어야 한다.</p>
+      </li>
+
+      <li>
+        <p>서버파싱 파일은 항상 컴퓨터가 사용하는 기본 형식으로
+        (<em>즉</em>, EBCDIC) 저장되었다고 가정하고, 처리후에
+        변환한다.</p>
+      </li>
+
+      <li>
+        <p>CGI 출력의 경우 CGI 스크립트가 변환이 필요한지 결정한다:
+        적절한 Content-Type을 설정하여, 문자파일은 변환하고,
+        GIF 출력은 변환없이 보낼 수 있다. 우리가 포팅한 wwwcount
+        프로그램이 후자의 경우다.</p>
+      </li>
+
+    </ol>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="document" id="document">문서 저장에 대해서</a></h2>
+
+    
+
+    <h3><a name="binary" id="binary">바이너리 파일</a></h3>
+
+      
+
+      <p>서버는 <code>Content-Type:</code>이 <code>text/</code>로
+      시작하는 않는 파일을 <em>바이너리 파일</em>로 간주하여
+      어떤 변환도 하지 않는다. 바이너리 파일에는 GIF 그림, gzip으로
+      압축한 파일 등이 있다.</p>
+
+      <p>메인플레임 호스트와 유닉스 혹은 윈도우즈 PC간에 바이너리
+      파일을 전송할 때는 ftp "binary" (<code>TYPE I</code>) 명령어나
+      메인플레임 호스트에서 (유닉스 <code>rcp</code>는
+      <code>-b</code> 옵션을 지원하지 않는다) <code>rcp -b</code>
+      명령어를 반드시 사용하라.</p>
+
+    
+
+    <h3><a name="text" id="text">문자 문서</a></h3>
+
+      
+
+      <p>기본적으로 서버는 문자파일이 (<em>즉</em>,
+      <code>Content-Type:</code>이 <code>text/</code>로 시작하는
+      모든 파일) 호스트의 기본 문자집합인 EBCDIC으로 저장되었다고
+      가정한다.</p>
+
+    
+
+    <h3><a name="ssi" id="ssi">Server Side Include 문서</a></h3>
+
+      
+
+      <p>SSI 문서는 현재 EBCDIC 형식으로만 저장해야 한다. 처리하기
+      전에 ASCII를 변환하지 않는다.</p>
+
+    
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="modules" id="modules">아파치 모듈의 상태</a></h2>
+
+    
+
+    <table class="bordered">
+      <tr>
+        <th>모듈</th>
+        <th>상태</th>
+        <th>비고</th>
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/core.html">core</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_access.html">mod_access</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_actions.html">mod_actions</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_alias.html">mod_alias</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_asis.html">mod_asis</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_auth.html">mod_auth</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_auth_anon.html">mod_auth_anon</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_auth_dbm.html">mod_auth_dbm</a></code></td>
+        <td class="centered">?</td>
+        <td>자체 <code>libdb.a</code>를 사용하여</td>
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_autoindex.html">mod_autoindex</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_cern_meta.html">mod_cern_meta</a></code></td>
+        <td class="centered">?</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_cgi.html">mod_cgi</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code>mod_digest</code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_dir.html">mod_dir</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_so.html">mod_so</a></code></td>
+        <td class="centered">-</td>
+        <td>공유라이브러리가 없음</td>
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_env.html">mod_env</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_example.html">mod_example</a></code></td>
+        <td class="centered">-</td>
+        <td>(시험 단계)</td>
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_expires.html">mod_expires</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_headers.html">mod_headers</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_imagemap.html">mod_imagemap</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_include.html">mod_include</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_info.html">mod_info</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code>mod_log_agent</code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code>mod_log_config</code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_log_referer.html">mod_log_referer</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_mime.html">mod_mime</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_mime_magic.html">mod_mime_magic</a></code></td>
+        <td class="centered">?</td>
+        <td>아직 포팅안됨</td>
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_negotiation.html">mod_negotiation</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code></td>
+        <td class="centered">+</td>
+        <td>테스트안됨</td>
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_setenvif.html">mod_setenvif</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_speling.html">mod_speling</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_status.html">mod_status</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_unique_id.html">mod_unique_id</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_userdir.html">mod_userdir</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_usertrack.html">mod_usertrack</a></code></td>
+        <td class="centered">?</td>
+        <td>테스트안됨</td>
+      </tr>
+    </table>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="third-party" id="third-party">제삼자가 만든 모듈의 상태</a></h2>
+
+    
+
+    <table class="bordered">
+      <tr>
+        <th>모듈</th>
+        <th>상태</th>
+        <th>비고</th>
+      </tr>
+
+      <tr>
+        <td><code><a href="https://tomcat.apache.org/connectors-doc-archive/jk2/">JK</a> (mod_jserv)
+        </code></td>
+        <td class="centered">-</td>
+        <td>JAVA는 포팅중이다.</td>
+      </tr>
+
+      <tr>
+        <td><code><a href="http://www.php.net/">mod_php3</a></code></td>
+        <td class="centered">+</td>
+        <td><code>mod_php3</code>는 LDAP, GD, FreeType 라이브러리와
+        함께 잘 동작한다.</td>
+      </tr>
+
+      <tr>
+        <td><code><a href="http://hpwww.ec-lyon.fr/~vincent/apache/mod_put.html">mod_put</a></code></td>
+        <td class="centered">?</td>
+        <td>테스트안됨</td>
+      </tr>
+
+      <tr>
+        <td><code><a href="ftp://hachiman.vidya.com/pub/apache/">mod_session</a></code></td>
+        <td class="centered">-</td>
+        <td>테스트안됨</td>
+      </tr>
+    </table>
+
+  </div></div>
+<div class="bottomlang">
+<p><span>가능한 언어: </span><a href="../en/platform/ebcdic.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../ko/platform/ebcdic.html" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/platform/ebcdic.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

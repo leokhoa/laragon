@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+<meta content="text/html; charset=EUC-KR" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_unique_id - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">모듈</a></div>
+<div id="page-content">
+<div id="preamble"><h1>아파치 모듈 mod_unique_id</h1>
+<div class="toplang">
+<p><span>가능한 언어: </span><a href="../en/mod/mod_unique_id.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_unique_id.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_unique_id.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_unique_id.html" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div>
+<div class="outofdate">이 문서는 최신판 번역이 아닙니다.
+            최근에 변경된 내용은 영어 문서를 참고하세요.</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">설명:</a></th><td>각 요청마다 유일한 식별자를 가지는 환경변수를
+제공한다</td></tr>
+<tr><th><a href="module-dict.html#Status">상태:</a></th><td>Extension</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">모듈명:</a></th><td>unique_id_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">소스파일:</a></th><td>mod_unique_id.c</td></tr></table>
+<h3>요약</h3>
+
+
+    <p>이 모듈은 어떤 특별한 상황에서도 "모든" 요청중에서
+    유일하도록 보장된 식별자(identifier)를 모든 요청에 제공한다.
+    심지어 이 식별자는 특별하게 구성한 클러스터의 여러 컴퓨터들
+    중에서도 유일하다. 각 요청마다 환경변수
+    <code>UNIQUE_ID</code>를 설정한다. 유일한 식별자는 여러가지
+    용도로 사용할 수 있지만, 설명은 이 문서의 범위를 넘어선다.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>주제</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#theory">이론</a></li>
+</ul><h3 class="directives">지시어들</h3>
+<p>이 모듈에는 지시어가 없습니다.</p>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_unique_id">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_unique_id">Report a bug</a></li></ul><h3>참고</h3>
+<ul class="seealso">
+<li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="theory" id="theory">이론</a></h2>
+    
+
+    <p>먼저 유닉스 시스템에서 아파치 서버가 어떻게 동작하는지
+    간략히 살펴보자. Windows NT는 현재 이 기능을 지원하지 않는다.
+    유닉스에서 아파치는 여러 자식을 만들고, 자식 프로세스는
+    한번에 한 요청씩 처리한다. 자식은 실행중에 여러 요청을
+    처리한다. 여기서 중요한 것은 자식들이 서로 자료를
+    공유하지 않는다는 점이다. 앞으로 자식을 httpd 프로세스라고
+    한다.</p>
+
+    <p>여러 컴퓨터로 웹사이트를 서비스한다면 클러스터(cluster)라고
+    부른다. 각 컴퓨터는 여러 아파치를 실행할 수 있다. 이들 모두를
+    "우주"로 보면, 클러스터에 있는 컴퓨터들간에 많은 통신없이
+    각 요청마다 우주에서 유일한 식별자를 만들 수 있다.</p>
+
+    <p>클러스터에 있는 컴퓨터는 다음 요구사항을 만족해야 한다.
+    (컴퓨터를 한대만 사용하더라도 컴퓨터 시간을 NTP와 동기해야
+    한다.)</p>
+
+    <ul>
+      <li>컴퓨터 시간은 NTP나 다른 네트웍 시간 프로토콜과
+      동기화된다.</li>
+
+      <li>컴퓨터의 호스트명이 모두 다르다. 그래서 모듈이
+      호스트명으로 찾으면 클러스터에 있는 각 컴퓨터마다 다른
+      IP 주소를 얻는다.</li>
+    </ul>
+
+    <p>운영체제에서 pid (프로세스 id)가 32비트에 들어간다고
+    가정한다. 운영체제가 pid로 32비트 이상을 사용한다면 간단하지만
+    코드를 수정해야 한다.</p>
+
+    <p>이런 가정하에 우리는 어떤 시점에서 클러스터의 어떤 컴퓨터에
+    있는 어떤 httpd 프로세스를 다른 모든 httpd 프로세스들과
+    구별할 수 있다. 컴퓨터의 IP 주소와 httpd 프로세스의 pid만으로도
+    충분히 구별할 수 있다. 그래서 요청에 대해 유일한 구별자를
+    만드려면 시간차를 구별할 수만 있으면 된다.</p>
+
+    <p>시간을 구별하기위해 유닉스 시간(timestamp, 세계 표준시로
+    1970년 1월 1일 이후 지난 초)과 16비트 카운터를 사용한다.
+    유닉스 시간은 초단위이고, 카운터는 일 초동안 65536까지
+    증가한다. <em>( ip_addr, pid, time_stamp, counter )</em>
+    묶음은 어떤 httpd 프로세스에서 일 초동안 65536 요청을 구별할
+    수 있다. 그러나 카운터는 pid를 재사용하는 문제를 해결해야
+    한다.</p>
+
+    <p>httpd 자식을 만들면 카운터는 ( 현재 밀리초 나누기 10 )을
+    65536으로 나눈 나머지가 된다. (몇몇 시스템의 밀리초 시간에서
+    하위 비트가 일치하지않는 문제때문에 이 공식을 만들었다.)
+    유일한 식별자를 만들때 사용하는 시간은 웹서버가 요청을 받은
+    시간이다. 카운터는 식별자를 만들때마다 증가한다 (그리고
+    다시 시작한다).</p>
+
+    <p>커널은 프로세스를 포크할때(fork) 각 프로세스에 pid를
+    할당하고, pid는 다시 시작할 수 있다. (pid는 많은 유닉스에서
+    16비트이지만, 최근 시스템은 32비트로 확장했다.) 그래서 시간이
+    지나면 같은 pid를 재사용할 수 있다. 그러나 같은 시간에 pid를
+    재사용하지 않는다면 위의 묶음은 유일하다. 즉, 우리는 시스템이
+    일초동안 프로세스를 65536개 이상 만들지 않는다고 가정한다.
+    (어떤 유닉스에서는 32768개 이상 프로세스를 만들면 pid 재사용
+    문제가 발생할 수 있지만, 이것조차도 일어날 것같지 않다.)</p>
+
+    <p>시간이 어떤 이유에서건 반복된다고 가정해보자. 즉, 시스템
+    시계가 꼬여서 시간이 과거로 돌아가는 (혹은 시계가 너무 앞서가서
+    올바로 재설정한후 미래에 같은 시간이 되는) 경우다. 이 경우
+    pid와 시간을 모두 재사용할 수 있다. 카운터의 초기화 공식은
+    이 문제를 해결하려고 고안되었다. 우리는 실제 무작위 숫자로
+    카운터를 초기화하길 원하지만, 많은 시스템에서 이런 수를
+    쉽게 얻을 수 없다. (<em>예를 들어</em>, seed가 필요하기때문에
+    rand()를 사용할 수 없고, 시간은 최소한 일초 단위이기때문에
+    시간으로 seed로 사용할 수 없다.) 즉 완벽한 해결책이 없다.</p>
+
+    <p>그럼 이 방법은 얼마나 괜찮을까? 컴퓨터중 하나가 요청을
+    초당 최대 500개 (시스템은 일반적으로 정적인 파일을 전송하는
+    것 이상의 작업을 하므로 이 글을 쓰는 시점에서 상당히 높은
+    값이다.) 서비스한다고 가정하자. 동시에 얼마만큼의 클라이언트를
+    처리하는가에 따라 자식의 개수가 결정된다. 그러나 우리는
+    비관적으로 한 자식이 요청을 초당 500개 처리할 수 있다고
+    가정한다. 재사용한 pid를 가진 자식의 500개 요청과 이전 자식의
+    500개 요청의 카운터값이 겹칠 수 있는 카운터 시작값 경우수는
+    1000개이다. 그래서 (초단위에서) 자식이 카운터값을 반복하여
+    유일성이 깨질 확률은 1.5%이다. 이것은 매우 비관적인 가정이며,
+    실제 이럴 경우는 상당히 더 낮다. 그래도 시스템에서 이런
+    일이 발생할 것 같다면 (소스를 수정하여) 카운터를 32비트로
+    만들어라.</p>
+
+    <p>섬머타임때문에 시계가 "뒤로 가는" 것을 걱정할지도 모른다.
+    그러나 여기서 사용하는 시간은 국제 표준시(UTC), 즉 시간이
+    "항상" 앞으로 가므로 문제가 없다. x86기반 유닉스에서는
+    적절한 설정이 필요하다. 메인보드 시계가 UTC를 사용하도록
+    설정해야 한다. 그러나 NTP를 사용한다면 재시작후 조금 지나면
+    UTC 시간에 올바로 맞춘다.</p>
+
+    <p>환경변수 <code>UNIQUE_ID</code>는 MIME base64 인코딩과
+    비슷한 방법으로 112비트 (32비트 IP 주소, 32비트 pid, 32비트
+    시간, 16비트 카운터) 묶음을 알파벳 <code>[A-Za-z0-9@-]</code>로
+    표현한다. 실제 MIME base64 알파벳은
+    <code>[A-Za-z0-9+/]</code>이지만 <code>+</code>와
+    <code>/</code>는 URL에서 특별한 의미로 사용하므로 제외했다.
+    모든 값을 네트웍 바이트순서로 인코딩하기때문에 다른 바이트순서를
+    사용하는 아키텍쳐간에 값이 같다. 실제 인코딩 순서는
+    시간, IP 주소, pid, 카운터 순서이다. 이 순서에는 어떤 목적이
+    있지만, 프로그램은 인코딩 순서에 의존하여 값들을 분석하면
+    안됨을 강조한다. 프로그램은 인코딩된 <code>UNIQUE_ID</code>
+    전체를 한 단위로 생각하고, 다른 <code>UNIQUE_ID</code>와
+    동일한지만 비교할 수 있다.</p>
+
+    <p>순서는 앞으로 기존의 <code>UNIQUE_ID</code> 데이터베이스와
+    충돌을 염려하지않고 인코딩을 변경할 수 있도록 고안했다.
+    새로운 인코딩은 첫 항목으로 시간을 사용하거나, 같은 알파벳과
+    비트 길이를 사용할 수도 있다. 시간이 기본적으로 증가하는 값이므로
+    클러스터에 있는 모든 컴퓨터가 요청 서비스를 중단하고 이전
+    인코딩 형식을 그만 사용하기위해 <em>기준 초(flag second)</em>만으로
+    충분하다. 이후 요청을 재게하고 새로운 인코딩을 시작할 수
+    있다.</p>
+
+    <p>우리는 이 방법이 이 문제에 대하여 상대적으로 포팅가능한
+    해결책이라고 믿는다. 이 방법은 Windows NT와 같은 멀티쓰레드
+    시스템으로 확장할 수 있고, 앞으로 용도에 따라 확장할 수
+    있다. 미래에 필요한만큼 더 긴 식별자를 만들 수 있기때문에
+    생성한 식별자는 기본적으로 영원한 수명을 가진다. 기본적으로
+    클러스터의 컴퓨터들 사이에 통신이 필요없고 (부하가 작은
+    NTP 동기만 필요하다), httpd 프로세스 사이에 통신도 필요없다
+    (커널이 부여하는 pid값이 암묵적인 통신이다). 매우 특이한
+    상황이라면 인식자 크기를 줄일 수 있지만 더 많은 정보를
+    가정해야 한다. (예를 들어, 어떤 사이트에서 32비트 IP 주소
+    구분은 불필요하게 크지만, 이를 줄이는 방법은 상황에 따라
+    다르다.) </p>
+</div>
+</div>
+<div class="bottomlang">
+<p><span>가능한 언어: </span><a href="../en/mod/mod_unique_id.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_unique_id.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_unique_id.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_unique_id.html" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_unique_id.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

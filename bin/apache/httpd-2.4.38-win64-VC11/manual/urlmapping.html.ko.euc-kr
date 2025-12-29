@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+<meta content="text/html; charset=EUC-KR" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>URL을 파일시스템 위치로 대응하기 - Apache HTTP Server Version 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">모듈</a> | <a href="./mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">용어</a> | <a href="./sitemap.html">사이트맵</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="./">Version 2.4</a></div><div id="page-content"><div id="preamble"><h1>URL을 파일시스템 위치로 대응하기</h1>
+<div class="toplang">
+<p><span>가능한 언어: </span><a href="./en/urlmapping.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/urlmapping.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="./ja/urlmapping.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/urlmapping.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/urlmapping.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">이 문서는 최신판 번역이 아닙니다.
+            최근에 변경된 내용은 영어 문서를 참고하세요.</div>
+
+    <p>이 문서는 요청의 URL을 가지고 아파치가 어떻게 서비스할 
+    파일의 파일시스템상 위치를 찾는지 설명한다.</p>
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#related">관련된 모듈과 지시어들</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#documentroot">DocumentRoot</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#outside">DocumentRoot 밖에 있는 파일들</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#user">사용자 디렉토리</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#redirect">URL 리다이렉션(Redirection)</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#proxy">역프록시(Reverse Proxy)</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#rewrite">재작성 엔진 (Rewriting Engine)</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#notfound">File Not Found</a></li>
+</ul><h3>참고</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="related" id="related">관련된 모듈과 지시어들</a></h2>
+
+<table class="related"><tr><th>관련된 모듈</th><th>관련된 지시어</th></tr><tr><td><ul><li><code class="module"><a href="./mod/mod_alias.html">mod_alias</a></code></li><li><code class="module"><a href="./mod/mod_proxy.html">mod_proxy</a></code></li><li><code class="module"><a href="./mod/mod_rewrite.html">mod_rewrite</a></code></li><li><code class="module"><a href="./mod/mod_userdir.html">mod_userdir</a></code></li><li><code class="module"><a href="./mod/mod_speling.html">mod_speling</a></code></li><li><code class="module"><a href="./mod/mod_vhost_alias.html">mod_vhost_alias</a></code></li></ul></td><td><ul><li><code class="directive"><a href="./mod/mod_alias.html#alias">Alias</a></code></li><li><code class="directive"><a href="./mod/mod_alias.html#aliasmatch">AliasMatch</a></code></li><li><code class="directive"><a href="./mod/mod_speling.html#checkspelling">CheckSpelling</a></code></li><li><code class="directive"><a href="./mod/core.html#documentroot">DocumentRoot</a></code></li><li><code class="directive"><a href="./mod/core.html#errordocument">ErrorDocument</a></code></li><li><code class="directive"><a href="./mod/core.html#options">Options</a></code></li><li><code class="directive"><a href="./mod/mod_proxy.html#proxypass">ProxyPass</a></code></li><li><code class="directive"><a href="./mod/mod_proxy.html#proxypassreverse">ProxyPassReverse</a></code></li><li><code class="directive"><a href="./mod/mod_proxy.html#proxypassreversecookiedomain">ProxyPassReverseCookieDomain</a></code></li><li><code class="directive"><a href="./mod/mod_proxy.html#proxypassreversecookiepath">ProxyPassReverseCookiePath</a></code></li><li><code class="directive"><a href="./mod/mod_alias.html#redirect">Redirect</a></code></li><li><code class="directive"><a href="./mod/mod_alias.html#redirectmatch">RedirectMatch</a></code></li><li><code class="directive"><a href="./mod/mod_rewrite.html#rewritecond">RewriteCond</a></code></li><li><code class="directive"><a href="./mod/mod_rewrite.html#rewritematch">RewriteMatch</a></code></li><li><code class="directive"><a href="./mod/mod_alias.html#scriptalias">ScriptAlias</a></code></li><li><code class="directive"><a href="./mod/mod_alias.html#scriptaliasmatch">ScriptAliasMatch</a></code></li><li><code class="directive"><a href="./mod/mod_userdir.html#userdir">UserDir</a></code></li></ul></td></tr></table>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="documentroot" id="documentroot">DocumentRoot</a></h2>
+
+    <p>요청을 받은 아파치는 어떤 파일을 서비스할지 결정하기위해
+    기본적으로 요청의 URL-경로(URL에서 호스트명과 포트 뒤에
+    나오는 부분)를 설정파일에서 지정한 <code class="directive"><a href="./mod/core.html#documentroot">DocumentRoot</a></code> 뒤에 붙인다. 그래서
+    <code class="directive"><a href="./mod/core.html#documentroot">DocumentRoot</a></code> 아래있는
+    파일과 디렉토리들은 웹에서 보게될 기본적인 내용이다.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="outside" id="outside">DocumentRoot 밖에 있는 파일들</a></h2>
+
+    <p>종종 파일시스템에서 <code class="directive"><a href="./mod/core.html#documentroot">DocumentRoot</a></code> 아래 있지않은 부분을
+    웹에서 접근할 필요가 있다. 아파치는 이 경우 여러가지 방법을
+    사용할 수 있다. 유닉스 시스템에서 심볼링크를 사용하여
+    파일시스템의 다른 부분을 <code class="directive"><a href="./mod/core.html#documentroot">DocumentRoot</a></code> 아래에 둘 수 있다.
+    보안을 위해 아파치는 해당 디렉토리의 <code class="directive"><a href="./mod/core.html#options">Options</a></code> 설정에
+    <code>FollowSymLinks</code>나
+    <code>SymLinksIfOwnerMatch</code>가 있는 경우에만 심볼링크를
+    따라간다.</p>
+
+    <p>또, <code class="directive"><a href="./mod/mod_alias.html#alias">Alias</a></code>
+    지시어는 파일시스템의 특정 부분을 웹공간에 대응한다. 예를
+    들어 다음과 같다면</p>
+
+<div class="example"><p><code>Alias /docs /var/web</code></p></div>
+
+    <p>URL <code>http://www.example.com/docs/dir/file.html</code>은
+    <code>/var/web/dir/file.html</code>을 가지고 서비스한다.
+    지정한 경로에 있는 모든 내용을 CGI 스크립트로 취급하는 것을
+    제외하고는 <code class="directive"><a href="./mod/mod_alias.html#scriptalias">ScriptAlias</a></code>
+    지시어도 같은 일을 한다.</p>
+
+    <p><code class="directive"><a href="./mod/mod_alias.html#aliasmatch">AliasMatch</a></code>와
+    <code class="directive"><a href="./mod/mod_alias.html#scriptaliasmatch">ScriptAliasMatch</a></code>
+    지시어의 강력한 정규표현식기반 대응과 대치를 사용하여 더
+    유연한 설정이 가능하다. 예를 들어,</p>
+
+<div class="example"><p><code>ScriptAliasMatch ^/~([a-zA-Z0-9]+)/cgi-bin/(.+)
+      /home/$1/cgi-bin/$2</code></p></div>
+
+    <p>는 <code>http://example.com/~user/cgi-bin/script.cgi</code>로의
+    요청을 경로 <code>/home/user/cgi-bin/script.cgi</code>로
+    대응하고, 해당 파일을 CGI 스크립트로 취급한다.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="user" id="user">사용자 디렉토리</a></h2>
+
+    <p>유닉스 시스템은 전통적으로 특정 사용자 <em>user</em>의
+    홈디렉토리를 <code>~user/</code>로 지칭한다.
+    <code class="module"><a href="./mod/mod_userdir.html">mod_userdir</a></code> 모듈은 이 개념을 웹에까지
+    확장하여, 다음과 같은 URL을 가지고 각 사용자 홈디렉토리
+    안에 있는 파일을 서비스한다.</p>
+
+<div class="example"><p><code>http://www.example.com/~user/file.html</code></p></div>
+
+    <p>보안상 웹에서 사용자 홈디렉토리로 직접 접근할 수 있으면
+    안된다. 그래서 <code class="directive"><a href="./mod/mod_userdir.html#userdir">UserDir</a></code>
+    지시어는 사용자 홈디렉토리에서 웹용 파일들이 있을 디렉토리를
+    지정한다. 기본 설정 <code>Userdir public_html</code>을 사용하고
+    <code>/home/user/</code>가 <code>/etc/passwd</code>에 지정된
+    사용자 홈디렉토리라면, 위의 URL은 파일
+    <code>/home/user/public_html/file.html</code>에 대응한다.</p>
+
+    <p>또, <code>Userdir</code> 지시어는 <code>/etc/passwd</code>에
+    홈디렉토리의 위치가 저장되지않는 시스템을 위해 여러 다른
+    형태를 사용할 수 있다.</p>
+
+    <p>어떤 사람은 (보통 웹에서 <code>%7e</code>로 인코딩되는)
+    "~" 기호가 이상하여 다른 방식으로 사용자 디렉토리를 나타내고
+    싶어한다. 이 기능은 mod_userdir이 제공하지않는다. 그러나
+    사용자 홈디렉토리가 규칙적인 방법으로 구성되있다면, <code class="directive"><a href="./mod/mod_alias.html#aliasmatch">AliasMatch</a></code> 지시어를 사용하여
+    원하는 효과를 얻을 수 있다. 예를 들어, 다음의
+    <code>AliasMatch</code> 지시어를 사용하면
+    <code>http://www.example.com/upages/user/file.html</code>이
+    <code>/home/user/public_html/file.html</code>에 대응한다:</p>
+
+<div class="example"><p><code>AliasMatch ^/upages/([a-zA-Z0-9]+)/?(.*)
+      /home/$1/public_html/$2</code></p></div>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="redirect" id="redirect">URL 리다이렉션(Redirection)</a></h2>
+
+    <p>앞에서 설명한 설정 지시어들은 아파치가 파일시스템의 특정
+    장소에 있는 내용을 클라이언트에게 보내게 만든다. 그러나
+    때때로 요청한 내용이 다른 URL에 있다고 클라이언트에게 알려주어,
+    클라이언트가 새로 그 URL을 요청하도록 만드는 것이 좋을 때가
+    있다. 이를 <em>리다이렉션(redirection)</em>이라고 하며,
+    <code class="directive"><a href="./mod/mod_alias.html#redirect">Redirect</a></code> 지시어를
+    사용한다. 예를 들어, <code class="directive"><a href="./mod/core.html#documentroot">DocumentRoot</a></code> 아래 <code>/foo/</code>
+    디렉토리의 내용을 새로 <code>/bar/</code> 디렉토리로 옮겼다면
+    다음과 같이 클라이언트가 새로운 위치를 요청하도록 한다:</p>
+
+<div class="example"><p><code>Redirect permanent /foo/
+      http://www.example.com/bar/</code></p></div>
+
+    <p>그러면 <code>www.example.com</code> 서버의 <code>/foo/</code>로
+    시작하는 URL-경로는 <code>/foo/</code>를 <code>/bar/</code>로
+    바꾼 URL로 리다이렉션된다. 클라이언트를 원래 서버외에 어떤
+    다른 서버로도 리다이렉션할 수 있다.</p>
+
+    <p>또, 아파치는 더 복잡한 재작성 문제를 위해
+    <code class="directive"><a href="./mod/mod_alias.html#redirectmatch">RedirectMatch</a></code>
+    지시어를 제공한다. 예를 들어, 다른 요청은 그대로 두고 사이트
+    홈페이지에 대한 요청만을 다른 사이트로 리다이렉션하려면:</p>
+
+<div class="example"><p><code>RedirectMatch permanent ^/$
+      http://www.example.com/startpage.html</code></p></div>
+
+    <p>임시로 사이트의 모든 페이지를 다른 사이트의 특정 페이지로
+    리다이렉션하려면:</p>
+
+<div class="example"><p><code>RedirectMatch temp .*
+      http://othersite.example.com/startpage.html</code></p></div>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="proxy" id="proxy">역프록시(Reverse Proxy)</a></h2>
+
+<p>아파치는 다른 서버에 있는 문서를 서버의 URL 공간으로 가져올
+수 있다. 이 경우 웹서버가 원격 서버에서 문서를 가져와서
+클라이언트에게 전달하는 프록시 서버와 같이 동작하기때문에 이런
+방법을 <em>역프록시(reverse proxying)</em>라고 한다. 클라이언트의
+입장에서 역프록시 서버가 문서를 보내주는 것처럼 보이므로 일반
+프록시와는 다르다.</p>
+
+<p>아래 설정에서 클라이언트가 <code>/foo/</code>에 있는 문서를
+요청하면, 서버는 <code>internal.example.com</code>의
+<code>/bar/</code> 디렉토리에서 문서를 가져와서 문서가 마치
+서버에 있었던 것처럼 클라이언트에게 보낸다.</p>
+
+<div class="example"><p><code>
+ProxyPass /foo/ http://internal.example.com/bar/<br />
+ProxyPassReverse /foo/ http://internal.example.com/bar/
+</code></p></div>
+
+<p><code class="directive"><a href="./mod/mod_proxy.html#proxypass">ProxyPass</a></code>는 서버가
+적절한 문서를 가져오도록 설정하며, <code class="directive"><a href="./mod/mod_proxy.html#proxypassreverse">ProxyPassReverse</a></code> 지시어는
+<code>internal.example.com</code>이 보내는 리다이렉션을 재작성하여
+리다이렉션이 현재 서버의 적절한 디렉토리를 가리키도록 한다.
+또, <code class="directive"><a href="./mod/mod_proxy.html#proxypassreversecookiedomain">ProxyPassReverseCookieDomain</a></code>과
+<code class="directive"><a href="./mod/mod_proxy.html#proxypassreversecookiedomain">ProxyPassReverseCookieDomain</a></code>은
+같은 방법으로 원래 서버가 보낸 쿠키를 재작성한다.</p>
+<p>그러나 문서 안에 있는 링크는 재작성하지 않음을 주의하라.
+<code>internal.example.com</code>에 대한 절대링크는 클라이언트가
+프록시서버가 아니라 <code>internal.example.com</code>으로 직접
+요청하게 한다. 제삼자가 만든 <a href="http://apache.webthing.com/mod_proxy_html/">mod_proxy_html</a>
+모듈을 사용하여 HTML과 XHTML에 있는 링크를 재작성할 수 있다.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="rewrite" id="rewrite">재작성 엔진 (Rewriting Engine)</a></h2>
+
+    <p>더 강력한 치환이 필요할때 <code class="module"><a href="./mod/mod_rewrite.html">mod_rewrite</a></code>의
+    재작성 엔진이 도움이 된다. 이 모듈의 지시어는 브라우저 종류나
+    클라이언트의 IP 주소 등 요청의 특징을 가지고 어디에 있는
+    내용을 서비스할지 결정할 수 있다. 또, mod_rewrite는 요청을
+    어떻게 처리할지 결정하기위해 외부 데이터베이스 파일이나
+    프로그램을 사용할 수 있다. 재작성 엔진은 위에서 다룬 세
+    종류 대응, 즉, 내부 리다이렉션 (alias), 외부 리다이렉션,
+    프록시, 모두를 지원한다. mod_rewrite를 사용하는 실제 예는
+    <a href="misc/rewriteguide.html">URL 제작성 지침서</a>에서
+    설명한다.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="notfound" id="notfound">File Not Found</a></h2>
+
+    <p>결국 요청한 URL에 대응하는 파일을 파일시스템에서 찾지
+    못한 경우이다. 여러 가지 이유가 있다. 어떤 경우 문서를
+    다른 곳으로 옮겼기 때문일 수 있다. 이 경우 클라이언트에게
+    <a href="#redirect">URL 리다이렉션</a>으로 자원의 새로운
+    위치를 알려주는 방법이 제일 좋다. 그러면 자원을 옮겨도
+    오래된 북마크나 링크가 계속 유효하다.</p>
+
+    <p>"File Not Found" 오류의 다른 일반적인 원인은 브라우저에
+    직접 혹은 HTML 링크에 URL이 잘못 입력된 경우이다. 아파치는
+    <code class="module"><a href="./mod/mod_speling.html">mod_speling</a></code> (맞춤법이 틀리지 않았음) 모듈로
+    이와 같은 문제를 돕는다. 이 모듈을 사용하면 "File Not Found"
+    오류가 발생하는 경우 비슷한 파일명을 가진 자원을 찾는다.
+    만약 발견하면 mod_speling은 클라이언트를 올바른 위치로
+    HTTP 리다이렉션한다. "비슷한" 파일이 여러개 있다면
+    클라이언트에게 목록을 보낸다.</p>
+
+    <p>mod_speling의 특히 유용한 장점은 대소문자를 구별하지않고
+    파일명을 비교하는 기능이다. 그래서 유닉스 파일시스템과 URL의
+    대소문자 성질을 알지못하는 사용자가 있는 시스템에 도움이
+    된다. 그러나 mod_speling이 자주 URL을 고쳐야한다면, "잘못된"
+    요청때마다 URL 리다이렉션과 클라이언트의 새로운 요청이
+    일어나므로 서버에 부담이 된다.</p>
+
+    <p>찾는 시도가 모두 실패하면 아파치는 HTTP status code 404
+    (file not found) 오류페이지를 보낸다. 이 페이지의 내용은
+    <code class="directive"><a href="./mod/core.html#errordocument">ErrorDocument</a></code> 지시어로
+    조절하며, <a href="custom-error.html">사용자정의 오류 응답</a>
+    문서를 참고하여 사용자정의할 수 있다.</p>
+</div></div>
+<div class="bottomlang">
+<p><span>가능한 언어: </span><a href="./en/urlmapping.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/urlmapping.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="./ja/urlmapping.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/urlmapping.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/urlmapping.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/urlmapping.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="./mod/">모듈</a> | <a href="./mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">용어</a> | <a href="./sitemap.html">사이트맵</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

@@ -1,0 +1,514 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_session - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Modules</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache Module mod_session</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_session.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_session.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a></p>
+</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">Description:</a></th><td>Session support</td></tr>
+<tr><th><a href="module-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">Module Identifier:</a></th><td>session_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">Source File:</a></th><td>mod_session.c</td></tr>
+<tr><th><a href="module-dict.html#Compatibility">Compatibility:</a></th><td>Available in Apache 2.3 and later</td></tr></table>
+<h3>Summary</h3>
+
+    <div class="warning"><h3>Warning</h3>
+      <p>The session modules make use of HTTP cookies, and as such can fall
+      victim to Cross Site Scripting attacks, or expose potentially private
+      information to clients. Please ensure that the relevant risks have
+      been taken into account before enabling the session functionality on
+      your server.</p>
+    </div>
+
+    <p>This module provides support for a server wide per user session
+    interface. Sessions can be used for keeping track of whether a user
+    has been logged in, or for other per user information that should
+    be kept available across requests.</p>
+
+    <p>Sessions may be stored on the server, or may be stored on the
+    browser. Sessions may also be optionally encrypted for added security.
+    These features are divided into several modules in addition to
+    <code class="module"><a href="../mod/mod_session.html">mod_session</a></code>; <code class="module"><a href="../mod/mod_session_crypto.html">mod_session_crypto</a></code>,
+    <code class="module"><a href="../mod/mod_session_cookie.html">mod_session_cookie</a></code> and <code class="module"><a href="../mod/mod_session_dbd.html">mod_session_dbd</a></code>.
+    Depending on the server requirements, load the appropriate modules
+    into the server (either statically at compile time or dynamically
+    via the <code class="directive"><a href="../mod/mod_so.html#loadmodule">LoadModule</a></code> directive).</p>
+
+    <p>Sessions may be manipulated from other modules that depend on the
+    session, or the session may be read from and written to using
+    environment variables and HTTP headers, as appropriate.</p>
+
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>Topics</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#whatisasession">What is a session?</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#whocanuseasession">Who can use a session?</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#serversession">Keeping sessions on the server</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#browsersession">Keeping sessions on the browser</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#basicexamples">Basic Examples</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#sessionprivacy">Session Privacy</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cookieprivacy">Cookie Privacy</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#authentication">Session Support for Authentication</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#integration">Integrating Sessions with External Applications</a></li>
+</ul><h3 class="directives">Directives</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#session">Session</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#sessionenv">SessionEnv</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#sessionexclude">SessionExclude</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#sessionheader">SessionHeader</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#sessioninclude">SessionInclude</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#sessionmaxage">SessionMaxAge</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_session">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_session">Report a bug</a></li></ul><h3>See also</h3>
+<ul class="seealso">
+<li><code class="module"><a href="../mod/mod_session_cookie.html">mod_session_cookie</a></code></li>
+<li><code class="module"><a href="../mod/mod_session_crypto.html">mod_session_crypto</a></code></li>
+<li><code class="module"><a href="../mod/mod_session_dbd.html">mod_session_dbd</a></code></li>
+<li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="whatisasession" id="whatisasession">What is a session?</a></h2>
+      <p>At the core of the session interface is a table of key and value pairs
+      that are made accessible across browser requests. These pairs can be set
+      to any valid string, as needed by the application making use of the
+      session.</p>
+
+      <p>The "session" is a <strong>application/x-www-form-urlencoded</strong>
+      string containing these key value pairs, as defined by the
+      <a href="http://www.w3.org/TR/html4/">HTML specification</a>.</p>
+
+      <p>The session can optionally be encrypted and base64 encoded before
+      being written to the storage mechanism, as defined by the
+      administrator.</p>
+
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="whocanuseasession" id="whocanuseasession">Who can use a session?</a></h2>
+      <p>The session interface is primarily developed for the use by other
+      server modules, such as <code class="module"><a href="../mod/mod_auth_form.html">mod_auth_form</a></code>, however CGI
+      based applications can optionally be granted access to the contents
+      of the session via the HTTP_SESSION environment variable. Sessions
+      have the option to be modified and/or updated by inserting an HTTP
+      response header containing the new session parameters.</p>
+
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="serversession" id="serversession">Keeping sessions on the server</a></h2>
+      <p>Apache can be configured to keep track of per user sessions stored
+      on a particular server or group of servers. This functionality is
+      similar to the sessions available in typical application servers.</p>
+
+      <p>If configured, sessions are tracked through the use of a session ID that
+      is stored inside a cookie, or extracted from the parameters embedded
+      within the URL query string, as found in a typical GET request.</p>
+
+      <p>As the contents of the session are stored exclusively on the server,
+      there is an expectation of privacy of the contents of the session. This
+      does have performance and resource implications should a large number
+      of sessions be present, or where a large number of webservers have to
+      share sessions with one another.</p>
+
+      <p>The <code class="module"><a href="../mod/mod_session_dbd.html">mod_session_dbd</a></code> module allows the storage of user
+      sessions within a SQL database via <code class="module"><a href="../mod/mod_dbd.html">mod_dbd</a></code>.</p>
+
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="browsersession" id="browsersession">Keeping sessions on the browser</a></h2>
+      <p>In high traffic environments where keeping track of a session on a
+      server is too resource intensive or inconvenient, the option exists to store
+      the contents of the session within a cookie on the client browser instead.</p>
+
+      <p>This has the advantage that minimal resources are required on the
+      server to keep track of sessions, and multiple servers within a server
+      farm have no need to share session information.</p>
+
+      <p>The contents of the session however are exposed to the client, with a
+      corresponding risk of a loss of privacy. The
+      <code class="module"><a href="../mod/mod_session_crypto.html">mod_session_crypto</a></code> module can be configured to encrypt the
+      contents of the session before writing the session to the client.</p>
+
+      <p>The <code class="module"><a href="../mod/mod_session_cookie.html">mod_session_cookie</a></code> allows the storage of user
+      sessions on the browser within an HTTP cookie.</p>
+
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="basicexamples" id="basicexamples">Basic Examples</a></h2>
+
+      <p>Creating a session is as simple as turning the session on, and deciding
+      where the session will be stored. In this example, the session will be
+      stored on the browser, in a cookie called <code>session</code>.</p>
+
+      <div class="example"><h3>Browser based session</h3><pre class="prettyprint lang-config">Session On
+SessionCookieName session path=/</pre>
+</div>
+
+      <p>The session is not useful unless it can be written to or read from. The
+      following example shows how values can be injected into the session through
+      the use of a predetermined HTTP response header called
+      <code>X-Replace-Session</code>.</p>
+
+      <div class="example"><h3>Writing to a session</h3><pre class="prettyprint lang-config">Session On
+SessionCookieName session path=/
+SessionHeader X-Replace-Session</pre>
+</div>
+
+      <p>The header should contain name value pairs expressed in the same format
+      as a query string in a URL, as in the example below. Setting a key to the
+      empty string has the effect of removing that key from the session.</p>
+
+      <div class="example"><h3>CGI to write to a session</h3><pre class="prettyprint lang-sh">#!/bin/bash
+echo "Content-Type: text/plain"
+echo "X-Replace-Session: key1=foo&amp;key2=&amp;key3=bar"
+echo
+env</pre>
+</div>
+
+      <p>If configured, the session can be read back from the HTTP_SESSION
+      environment variable. By default, the session is kept private, so this
+      has to be explicitly turned on with the
+      <code class="directive"><a href="#sessionenv">SessionEnv</a></code> directive.</p>
+
+      <div class="example"><h3>Read from a session</h3><pre class="prettyprint lang-config">Session On
+SessionEnv On
+SessionCookieName session path=/
+SessionHeader X-Replace-Session</pre>
+</div>
+
+      <p>Once read, the CGI variable <code>HTTP_SESSION</code> should contain
+      the value <code>key1=foo&amp;key3=bar</code>.</p>
+
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="sessionprivacy" id="sessionprivacy">Session Privacy</a></h2>
+
+      <p>Using the "show cookies" feature of your browser, you would have seen
+      a clear text representation of the session. This could potentially be a
+      problem should the end user need to be kept unaware of the contents of
+      the session, or where a third party could gain unauthorised access to the
+      data within the session.</p>
+
+      <p>The contents of the session can be optionally encrypted before being
+      placed on the browser using the <code class="module"><a href="../mod/mod_session_crypto.html">mod_session_crypto</a></code>
+      module.</p>
+
+      <div class="example"><h3>Browser based encrypted session</h3><pre class="prettyprint lang-config">Session On
+SessionCryptoPassphrase secret
+SessionCookieName session path=/</pre>
+</div>
+
+      <p>The session will be automatically decrypted on load, and encrypted on
+      save by Apache, the underlying application using the session need have
+      no knowledge that encryption is taking place.</p>
+
+      <p>Sessions stored on the server rather than on the browser can also be
+      encrypted as needed, offering privacy where potentially sensitive
+      information is being shared between webservers in a server farm using
+      the <code class="module"><a href="../mod/mod_session_dbd.html">mod_session_dbd</a></code> module.</p>
+
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="cookieprivacy" id="cookieprivacy">Cookie Privacy</a></h2>
+
+      <p>The HTTP cookie mechanism also offers privacy features, such as the
+      ability to restrict cookie transport to SSL protected pages only, or
+      to prevent browser based javascript from gaining access to the contents
+      of the cookie.</p>
+
+      <div class="warning"><h3>Warning</h3>
+      <p>Some of the HTTP cookie privacy features are either non-standard, or
+      are not implemented consistently across browsers. The session modules
+      allow you to set cookie parameters, but it makes no guarantee that privacy
+      will be respected by the browser. If security is a concern, use the
+      <code class="module"><a href="../mod/mod_session_crypto.html">mod_session_crypto</a></code> to encrypt the contents of the session,
+      or store the session on the server using the <code class="module"><a href="../mod/mod_session_dbd.html">mod_session_dbd</a></code>
+      module.</p>
+      </div>
+
+      <p>Standard cookie parameters can be specified after the name of the cookie,
+      as in the example below.</p>
+
+      <div class="example"><h3>Setting cookie parameters</h3><pre class="prettyprint lang-config">Session On
+SessionCryptoPassphrase secret
+SessionCookieName session path=/private;domain=example.com;httponly;secure;</pre>
+</div>
+
+      <p>In cases where the Apache server forms the frontend for backend origin servers,
+      it is possible to have the session cookies removed from the incoming HTTP headers using
+      the <code class="directive"><a href="../mod/mod_session_cookie.html#sessioncookieremove">SessionCookieRemove</a></code> directive.
+      This keeps the contents of the session cookies from becoming accessible from the
+      backend server.
+      </p>
+
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="authentication" id="authentication">Session Support for Authentication</a></h2>
+
+      <p>As is possible within many application servers, authentication modules can use
+      a session for storing the username and password after login. The
+      <code class="module"><a href="../mod/mod_auth_form.html">mod_auth_form</a></code> saves the user's login name and password within
+      the session.</p>
+
+      <div class="example"><h3>Form based authentication</h3><pre class="prettyprint lang-config">Session On
+SessionCryptoPassphrase secret
+SessionCookieName session path=/
+AuthFormProvider file
+AuthUserFile "conf/passwd"
+AuthType form
+AuthName realm
+#...</pre>
+</div>
+
+      <p>See the <code class="module"><a href="../mod/mod_auth_form.html">mod_auth_form</a></code> module for documentation and complete
+      examples.</p>
+
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="integration" id="integration">Integrating Sessions with External Applications</a></h2>
+
+      <p>In order for sessions to be useful, it must be possible to share the contents
+      of a session with external applications, and it must be possible for an
+      external application to write a session of its own.</p>
+
+      <p> A typical example might be an application that changes a user's password set by
+      <code class="module"><a href="../mod/mod_auth_form.html">mod_auth_form</a></code>. This application would need to read the current
+      username and password from the session, make the required changes to the user's
+      password, and then write the new password to the session in order to provide a
+      seamless transition to the new password.</p>
+
+      <p>A second example might involve an application that registers a new user for
+      the first time. When registration is complete, the username and password is
+      written to the session, providing a seamless transition to being logged in.</p>
+
+      <dl>
+      <dt>Apache modules</dt>
+      <dd>Modules within the server that need access to the session can use the
+      <strong>mod_session.h</strong> API in order to read from and write to the
+      session. This mechanism is used by modules like <code class="module"><a href="../mod/mod_auth_form.html">mod_auth_form</a></code>.
+      </dd>
+
+      <dt>CGI programs and scripting languages</dt>
+      <dd>Applications that run within the webserver can optionally retrieve the
+      value of the session from the <strong>HTTP_SESSION</strong> environment
+      variable. The session should be encoded as a
+      <strong>application/x-www-form-urlencoded</strong> string as described by the
+      <a href="http://www.w3.org/TR/html4/">HTML specification</a>. The environment
+      variable is controlled by the setting of the
+      <code class="directive"><a href="#sessionenv">SessionEnv</a></code> directive. The session
+      can be written to by the script by returning a
+      <strong>application/x-www-form-urlencoded</strong> response header with a name
+      set by the <code class="directive"><a href="#sessionheader">SessionHeader</a></code>
+      directive. In both cases, any encryption or decryption, and the reading the
+      session from or writing the session to the chosen storage mechanism is handled
+      by the <code class="module"><a href="../mod/mod_session.html">mod_session</a></code> modules and corresponding configuration.
+      </dd>
+      
+      <dt>Applications behind <code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code></dt>
+      <dd>If the <code class="directive"><a href="#sessionheader">SessionHeader</a></code>
+      directive is used to define an HTTP request header, the session, encoded as
+      a <strong>application/x-www-form-urlencoded</strong> string, will be made
+      available to the application. If the same header is provided in the response,
+      the value of this response header will be used to replace the session. As
+      above, any encryption or decryption, and the reading the session from or
+      writing the session to the chosen storage mechanism is handled by the
+      <code class="module"><a href="../mod/mod_session.html">mod_session</a></code> modules and corresponding configuration.</dd>
+      
+      <dt>Standalone applications</dt>
+      <dd>Applications might choose to manipulate the session outside the control
+      of the Apache HTTP server. In this case, it is the responsibility of the
+      application to read the session from the chosen storage mechanism,
+      decrypt the session, update the session, encrypt the session and write
+      the session to the chosen storage mechanism, as appropriate.</dd>
+      </dl>
+
+    </div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="Session" id="Session">Session</a> <a name="session" id="session">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Enables a session for the current directory or location</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>Session On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>Session Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override:</a></th><td>AuthConfig</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_session</td></tr>
+</table>
+    <p>The <code class="directive">Session</code> directive enables a session for the
+    directory or location container. Further directives control where the
+    session will be stored and how privacy is maintained.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SessionEnv" id="SessionEnv">SessionEnv</a> <a name="sessionenv" id="sessionenv">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Control whether the contents of the session are written to the
+<var>HTTP_SESSION</var> environment variable</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>SessionEnv On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>SessionEnv Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override:</a></th><td>AuthConfig</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_session</td></tr>
+</table>
+    <p>If set to <var>On</var>, the <code class="directive">SessionEnv</code> directive
+    causes the contents of the session to be written to a CGI environment
+    variable called <var>HTTP_SESSION</var>.</p>
+
+    <p>The string is written in the URL query format, for example:</p>
+
+    <div class="example"><p><code>
+      <code>key1=foo&amp;key3=bar</code>
+    </code></p></div>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SessionExclude" id="SessionExclude">SessionExclude</a> <a name="sessionexclude" id="sessionexclude">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Define URL prefixes for which a session is ignored</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>SessionExclude <var>path</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>none</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_session</td></tr>
+</table>
+    <p>The <code class="directive">SessionExclude</code> directive allows sessions to
+    be disabled relative to URL prefixes only. This can be used to make a
+    website more efficient, by targeting a more precise URL space for which
+    a session should be maintained. By default, all URLs within the directory
+    or location are included in the session. The
+    <code class="directive"><a href="#sessionexclude">SessionExclude</a></code> directive takes
+    precedence over the
+    <code class="directive"><a href="#sessioninclude">SessionInclude</a></code> directive.</p>
+
+    <div class="warning"><h3>Warning</h3>
+    <p>This directive has a similar purpose to the <var>path</var> attribute
+    in HTTP cookies, but should not be confused with this attribute. This
+    directive does not set the <var>path</var> attribute, which must be
+    configured separately.</p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SessionHeader" id="SessionHeader">SessionHeader</a> <a name="sessionheader" id="sessionheader">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Import session updates from a given HTTP response header</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>SessionHeader <var>header</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>none</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override:</a></th><td>AuthConfig</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_session</td></tr>
+</table>
+    <p>The <code class="directive">SessionHeader</code> directive defines the name of an
+    HTTP response header which, if present, will be parsed and written to the
+    current session.</p>
+
+    <p>The header value is expected to be in the URL query format, for example:</p>
+
+    <div class="example"><p><code>
+      <code>key1=foo&amp;key2=&amp;key3=bar</code>
+    </code></p></div>
+
+    <p>Where a key is set to the empty string, that key will be removed from the
+    session.</p>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SessionInclude" id="SessionInclude">SessionInclude</a> <a name="sessioninclude" id="sessioninclude">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Define URL prefixes for which a session is valid</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>SessionInclude <var>path</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>all URLs</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override:</a></th><td>AuthConfig</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_session</td></tr>
+</table>
+    <p>The <code class="directive">SessionInclude</code> directive allows sessions to
+    be made valid for specific URL prefixes only. This can be used to make a
+    website more efficient, by targeting a more precise URL space for which
+    a session should be maintained. By default, all URLs within the directory
+    or location are included in the session.</p>
+
+    <div class="warning"><h3>Warning</h3>
+    <p>This directive has a similar purpose to the <var>path</var> attribute
+    in HTTP cookies, but should not be confused with this attribute. This
+    directive does not set the <var>path</var> attribute, which must be
+    configured separately.</p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SessionMaxAge" id="SessionMaxAge">SessionMaxAge</a> <a name="sessionmaxage" id="sessionmaxage">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Define a maximum age in seconds for a session</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>SessionMaxAge <var>maxage</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>SessionMaxAge 0</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override:</a></th><td>AuthConfig</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_session</td></tr>
+</table>
+    <p>The <code class="directive">SessionMaxAge</code> directive defines a time limit
+    for which a session will remain valid. When a session is saved, this time
+    limit is reset and an existing session can be continued. If a session
+    becomes older than this limit without a request to the server to refresh
+    the session, the session will time out and be removed. Where a session is
+    used to stored user login details, this has the effect of logging the user
+    out automatically after the given time.</p>
+
+    <p>Setting the maxage to zero disables session expiry.</p>
+
+</div>
+</div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_session.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_session.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_session.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

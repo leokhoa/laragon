@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Name-based Virtual Host Support - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Virtual Hosts</a></div><div id="page-content"><div id="preamble"><h1>Name-based Virtual Host Support</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../de/vhosts/name-based.html" hreflang="de" rel="alternate" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="../en/vhosts/name-based.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/name-based.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/vhosts/name-based.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/vhosts/name-based.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/name-based.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+    <p>This document describes when and how to use name-based virtual hosts.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#namevip">Name-based vs. IP-based Virtual Hosts</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#alg">How the server selects the proper name-based virtual host</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#using">Using Name-based Virtual Hosts</a></li>
+</ul><h3>See also</h3><ul class="seealso"><li><a href="ip-based.html">IP-based Virtual Host Support</a></li><li><a href="details.html">An In-Depth Discussion of Virtual Host Matching</a></li><li><a href="mass.html">Dynamically configured mass virtual hosting</a></li><li><a href="examples.html">Virtual Host examples for common setups</a></li><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="namevip" id="namevip">Name-based vs. IP-based Virtual Hosts</a></h2>
+
+    <p><a href="ip-based.html">IP-based virtual hosts</a> use the IP address of the connection to
+    determine the correct virtual host to serve.  Therefore you need to
+    have a separate IP address for each host.</p>
+
+    <p>With name-based virtual hosting, the server relies on the client to
+    report the hostname as part of the HTTP headers.  Using this technique,
+    many different hosts can share the same IP address.</p>
+
+    <p>Name-based virtual hosting is usually simpler, since you need
+    only configure your DNS server to map each hostname to the correct
+    IP address and then configure the Apache HTTP Server to recognize
+    the different hostnames. Name-based virtual hosting also eases
+    the demand for scarce IP addresses. Therefore you should use
+    name-based virtual hosting unless you are using equipment
+    that explicitly demands IP-based hosting.  Historical reasons for
+    IP-based virtual hosting based on client support are no longer
+    applicable to a general-purpose web server.</p>
+
+    <p> Name-based virtual hosting builds off of the IP-based virtual host
+    selection algorithm, meaning that searches for the proper server name
+    occur only between virtual hosts that have the best IP-based address.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="alg" id="alg">How the server selects the proper name-based virtual host</a></h2>
+
+    <p>It is important to recognize that the first step in name-based virtual
+    host resolution is IP-based resolution.  Name-based virtual host
+    resolution only chooses the most appropriate name-based virtual host
+    after narrowing down the candidates to the best IP-based match.  Using a wildcard (*)
+    for the IP address in all of the VirtualHost directives makes this
+    IP-based mapping irrelevant.</p>
+
+    <p>When a request arrives, the server will find the best (most specific) matching
+    <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> argument based on
+    the IP address and port used by the request.  If there is more than one virtual host
+    containing this best-match address and port combination, Apache will further
+    compare the <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code> and <code class="directive"><a href="../mod/core.html#serveralias">ServerAlias</a></code> directives to the server name
+    present in the request.</p>
+
+    <p>If you omit the <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code> 
+    directive from any name-based virtual host, the server will default
+    to a fully qualified domain name (FQDN) derived from the system hostname.
+    This implicitly set server name can lead to counter-intuitive virtual host
+    matching and is discouraged.</p>
+ 
+    <h3><a name="defaultvhost" id="defaultvhost">The default name-based vhost for an IP and port combination </a></h3>
+    <p> If no matching ServerName or ServerAlias is found in the set of
+    virtual hosts containing the most specific matching IP address and port
+    combination, then <strong>the first listed virtual host</strong> that
+    matches that will be used.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="using" id="using">Using Name-based Virtual Hosts</a></h2>
+
+<table class="related"><tr><th>Related Modules</th><th>Related Directives</th></tr><tr><td><ul><li><code class="module"><a href="../mod/core.html">core</a></code></li></ul></td><td><ul><li><code class="directive"><a href="../mod/core.html#documentroot">DocumentRoot</a></code></li><li><code class="directive"><a href="../mod/core.html#serveralias">ServerAlias</a></code></li><li><code class="directive"><a href="../mod/core.html#servername">ServerName</a></code></li><li><code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code></li></ul></td></tr></table>
+
+    <p>The first step is to create a <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> block for
+    each different host that you would like to serve.  Inside each <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> block, you will need at minimum a
+    <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code> directive to designate
+    which host is served and a <code class="directive"><a href="../mod/core.html#documentroot">DocumentRoot</a></code>
+    directive to show where in the filesystem the content for that host
+    lives.</p>
+
+    <div class="note"><h3>Main host goes away</h3>
+        <p> Any request that doesn't match an existing <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> is handled by the global
+        server configuration, regardless of the hostname or ServerName.</p>
+
+        <p> When you add a name-based virtual host to an existing server, and
+        the virtual host arguments match preexisting IP and port combinations,
+        requests will now be handled by an explicit virtual host.  In this case,
+        it's usually wise to create a <a href="#defaultvhost">default virtual host</a>
+        with a <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code> matching that of
+        the base server.  New domains on the same interface and port, but
+        requiring separate configurations,  can then be added as subsequent (non-default)
+        virtual hosts.</p>
+    </div>
+
+    <div class="note"><h3>ServerName inheritance</h3>
+       <p> It is best to always explicitly list a  <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code> in every name-based virtual host.</p>
+       <p>If a <code class="directive"><a href="../mod/core.html#virtualhost">VirtualHost</a></code> doesn't specify 
+       a <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code>, a server name will be 
+       inherited from the base server configuration.  If no server name was 
+       specified globally, one is detected at startup through reverse DNS resolution
+       of the first listening address.  In either case, this inherited server name
+       will influence name-based virtual host resolution, so it is best to always
+       explicitly list a  <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code> in every
+       name-based virtual host.</p>
+    </div>
+
+    <p>For example, suppose that you are serving the domain
+    <code>www.example.com</code> and you wish to add the virtual host
+    <code>other.example.com</code>, which points at the same IP address.
+    Then you simply add the following to <code>httpd.conf</code>:</p>
+
+    <pre class="prettyprint lang-config">&lt;VirtualHost *:80&gt;
+    # This first-listed virtual host is also the default for *:80
+    ServerName www.example.com
+    ServerAlias example.com 
+    DocumentRoot "/www/domain"
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost *:80&gt;
+    ServerName other.example.com
+    DocumentRoot "/www/otherdomain"
+&lt;/VirtualHost&gt;</pre>
+
+
+    <p>You can alternatively specify an explicit IP address in place of the
+    <code>*</code> in <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> directives. For example, you might want to do this
+    in order to run some name-based virtual hosts on one IP address, and either
+    IP-based, or another set of name-based virtual hosts on another address.</p>
+
+    <p>Many servers want to be accessible by more than one name. This is
+    possible with the <code class="directive"><a href="../mod/core.html#serveralias">ServerAlias</a></code>
+    directive, placed inside the <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> section. For example in the first <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> block above, the
+    <code class="directive"><a href="../mod/core.html#serveralias">ServerAlias</a></code> directive indicates that
+    the listed names are other names which people can use to see that same
+    web site:</p>
+
+    <pre class="prettyprint lang-config">ServerAlias example.com *.example.com</pre>
+
+
+    <p>then requests for all hosts in the <code>example.com</code> domain will
+    be served by the <code>www.example.com</code> virtual host. The wildcard
+    characters <code>*</code> and <code>?</code> can be used to match names.
+    Of course, you can't just make up names and place them in <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code> or <code>ServerAlias</code>. You must
+    first have your DNS server properly configured to map those names to an IP
+    address associated with your server.</p>
+
+    <p>Name-based virtual hosts for the best-matching set of  <code class="directive"><a href="../mod/core.html#virtualhost">&lt;virtualhost&gt;</a></code>s are processed 
+    in the order they appear in the configuration.  The first matching <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code> or <code class="directive"><a href="../mod/core.html#serveralias">ServerAlias</a></code> is used, with no different precedence for wildcards
+    (nor for ServerName vs. ServerAlias).  </p>
+
+    <p>The complete list of names in the <code class="directive"><a href="../mod/core.html#virtualhost">VirtualHost</a></code>
+    directive are treated just like a (non wildcard) 
+    <code class="directive"><a href="../mod/core.html#serveralias">ServerAlias</a></code>.</p>
+
+    <p>Finally, you can fine-tune the configuration of the virtual hosts
+    by placing other directives inside the <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> containers. Most directives can be
+    placed in these containers and will then change the configuration only of
+    the relevant virtual host. To find out if a particular directive is allowed,
+    check the <a href="../mod/directive-dict.html#Context">Context</a> of the
+    directive. Configuration directives set in the <em>main server context</em>
+    (outside any <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code>
+    container) will be used only if they are not overridden by the virtual host
+    settings.</p>
+
+</div></div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../de/vhosts/name-based.html" hreflang="de" rel="alternate" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="../en/vhosts/name-based.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/name-based.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/vhosts/name-based.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/vhosts/name-based.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/name-based.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/vhosts/name-based.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

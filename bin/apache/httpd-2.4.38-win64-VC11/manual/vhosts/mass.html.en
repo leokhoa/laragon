@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Dynamically Configured Mass Virtual Hosting - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Virtual Hosts</a></div><div id="page-content"><div id="preamble"><h1>Dynamically Configured Mass Virtual Hosting</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/vhosts/mass.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/mass.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ko/vhosts/mass.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/mass.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+
+    <p>This document describes how to efficiently serve an
+    arbitrary number of virtual hosts with the Apache HTTP Server. A
+    <a href="../rewrite/vhosts.html">separate document</a> discusses using
+    <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> to create dynamic mass virtual hosts.
+    </p>
+
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#motivation">Motivation</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#overview">Overview</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#simple">Dynamic Virtual Hosts with
+mod_vhost_alias</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#homepages">Simplified Dynamic Virtual Hosts</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#combinations">Using Multiple Virtual
+  Hosting Systems on the Same Server</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ipbased">More Efficient IP-Based Virtual Hosting</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#rewrite">Mass virtual hosts with
+mod_rewrite</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#macro">Mass virtual hosts with mod_macro</a></li>
+</ul><h3>See also</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="motivation" id="motivation">Motivation</a></h2>
+
+    <p>The techniques described here are of interest if your
+    <code>httpd.conf</code> contains many
+    <code>&lt;VirtualHost&gt;</code> sections that are
+    substantially the same, for example:</p>
+
+<pre class="prettyprint lang-config">&lt;VirtualHost 111.22.33.44&gt;
+    ServerName                 customer-1.example.com
+    DocumentRoot        "/www/hosts/customer-1.example.com/docs"
+    ScriptAlias  "/cgi-bin/"  "/www/hosts/customer-1.example.com/cgi-bin"
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost 111.22.33.44&gt;
+    ServerName                 customer-2.example.com
+    DocumentRoot        "/www/hosts/customer-2.example.com/docs"
+    ScriptAlias  "/cgi-bin/"  "/www/hosts/customer-2.example.com/cgi-bin"
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost 111.22.33.44&gt;
+    ServerName                 customer-N.example.com
+    DocumentRoot        "/www/hosts/customer-N.example.com/docs"
+    ScriptAlias  "/cgi-bin/"  "/www/hosts/customer-N.example.com/cgi-bin"
+&lt;/VirtualHost&gt;</pre>
+
+
+    <p>We wish to replace these multiple
+    <code>&lt;VirtualHost&gt;</code> blocks with a mechanism
+    that works them out dynamically. This has a number of
+    advantages:</p>
+
+    <ol>
+      <li>Your configuration file is smaller, so Apache starts
+      more quickly and uses less memory. Perhaps more importantly, the
+      smaller configuration is easier to maintain, and leaves less room
+      for errors.</li>
+
+      <li>Adding virtual hosts is simply a matter of creating the
+      appropriate directories in the filesystem and entries in the
+      DNS - you don't need to reconfigure or restart Apache.</li>
+    </ol>
+
+    <p>The main disadvantage is that you cannot have a different log file for
+    each virtual host; however, if you have many virtual hosts, doing
+    this can be a bad idea anyway, because of the <a href="fd-limits.html">number of file descriptors needed</a>.
+    It is better to <a href="../logs.html#piped">log to a pipe or a fifo</a>,
+    and arrange for the process at the other end to split up the log
+    files into one per virtual host. One example of such a process can
+    be found in the <a href="../programs/split-logfile.html">split-logfile</a>
+    utility.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="overview" id="overview">Overview</a></h2>
+
+    <p>A virtual host is defined by two pieces of information: its
+    IP address, and the contents of the <code>Host:</code> header
+    in the HTTP request. The dynamic mass virtual hosting technique
+    used here is based on automatically inserting this information into the
+    pathname of the file that is used to satisfy the request. This
+    can be most easily done by using <code class="module"><a href="../mod/mod_vhost_alias.html">mod_vhost_alias</a></code>
+    with Apache httpd. Alternatively,
+    <a href="../rewrite/vhosts.html">mod_rewrite can
+    be used</a>.</p>
+    <p>Both of these modules are disabled by default; you must enable
+    one of them when configuring and building Apache httpd if you want to
+    use this technique.</p>
+
+    <p>A couple of things need to be determined from the request in
+    order to make the dynamic
+    virtual host look like a normal one. The most important is the
+    server name, which is used by the server to generate
+    self-referential URLs etc. It is configured with the
+    <code>ServerName</code> directive, and it is available to CGIs
+    via the <code>SERVER_NAME</code> environment variable. The
+    actual value used at run time is controlled by the <code class="directive"><a href="../mod/core.html#usecanonicalname">UseCanonicalName</a></code>
+    setting. With <code>UseCanonicalName Off</code>, the server name
+    is taken from the contents of the <code>Host:</code> header in the
+    request. With <code>UseCanonicalName DNS</code>, it is taken from a
+    reverse DNS lookup of the virtual host's IP address. The former
+    setting is used for name-based dynamic virtual hosting, and the
+    latter is used for IP-based hosting. If httpd cannot work out
+    the server name because there is no <code>Host:</code> header,
+    or the DNS lookup fails, then the value configured with
+    <code>ServerName</code> is used instead.</p>
+
+    <p>The other thing to determine is the document root (configured
+    with <code>DocumentRoot</code> and available to CGI scripts via the
+    <code>DOCUMENT_ROOT</code> environment variable). In a normal
+    configuration, this is used by the core module when
+    mapping URIs to filenames, but when the server is configured to
+    do dynamic virtual hosting, that job must be taken over by another
+    module (either <code class="module"><a href="../mod/mod_vhost_alias.html">mod_vhost_alias</a></code> or
+    <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>), which has a different way of doing
+    the mapping. Neither of these modules is responsible for
+    setting the <code>DOCUMENT_ROOT</code> environment variable so
+    if any CGIs or SSI documents make use of it, they will get a
+    misleading value.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="simple" id="simple">Dynamic Virtual Hosts with
+mod_vhost_alias</a></h2>
+
+    <p>This extract from <code>httpd.conf</code> implements the
+    virtual host arrangement outlined in the <a href="#motivation">Motivation</a> section above
+    using <code class="module"><a href="../mod/mod_vhost_alias.html">mod_vhost_alias</a></code>.</p>
+
+<pre class="prettyprint lang-config"># get the server name from the Host: header
+UseCanonicalName Off
+
+# this log format can be split per-virtual-host based on the first field
+# using the split-logfile utility.
+LogFormat "%V %h %l %u %t \"%r\" %s %b" vcommon
+CustomLog "logs/access_log" vcommon
+
+# include the server name in the filenames used to satisfy requests
+VirtualDocumentRoot "/www/hosts/%0/docs"
+VirtualScriptAlias  "/www/hosts/%0/cgi-bin"</pre>
+
+
+    <p>This configuration can be changed into an IP-based virtual
+    hosting solution by just turning <code>UseCanonicalName
+    Off</code> into <code>UseCanonicalName DNS</code>. The server
+    name that is inserted into the filename is then derived from
+    the IP address of the virtual host. The variable <code>%0</code>
+    references the requested servername, as indicated in the
+    <code>Host:</code> header.</p>
+
+<p>See the <code class="module"><a href="../mod/mod_vhost_alias.html">mod_vhost_alias</a></code> documentation for more usage
+examples.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="homepages" id="homepages">Simplified Dynamic Virtual Hosts</a></h2>
+
+    <p>This is an adjustment of the above system, tailored for an
+    ISP's web hosting server. Using <code>%2</code>,
+    we can select substrings of the server name to
+    use in the filename so that, for example, the documents for
+    <code>www.user.example.com</code> are found in
+    <code>/home/user/www</code>. It uses a single <code>cgi-bin</code>
+    directory instead of one per virtual host.</p>
+
+<pre class="prettyprint lang-config">UseCanonicalName Off
+
+LogFormat "%V %h %l %u %t \"%r\" %s %b" vcommon
+CustomLog "logs/access_log" vcommon
+
+# include part of the server name in the filenames
+VirtualDocumentRoot "/home/%2/www"
+
+# single cgi-bin directory
+ScriptAlias  "/cgi-bin/"  "/www/std-cgi/"</pre>
+
+
+    <p>There are examples of more complicated
+    <code>VirtualDocumentRoot</code> settings in the
+    <code class="module"><a href="../mod/mod_vhost_alias.html">mod_vhost_alias</a></code> documentation.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="combinations" id="combinations">Using Multiple Virtual
+  Hosting Systems on the Same Server</a></h2>
+
+    <p>With more complicated setups, you can use httpd's normal
+    <code>&lt;VirtualHost&gt;</code> directives to control the
+    scope of the various virtual hosting configurations. For
+    example, you could have one IP address for general customers' homepages,
+    and another for commercial customers, with the following setup.
+    This can be combined with conventional
+    <code>&lt;VirtualHost&gt;</code> configuration sections, as shown
+    below.</p>
+
+<pre class="prettyprint lang-config">UseCanonicalName Off
+
+LogFormat "%V %h %l %u %t \"%r\" %s %b" vcommon
+
+&lt;Directory "/www/commercial"&gt;
+    Options FollowSymLinks
+    AllowOverride All
+&lt;/Directory&gt;
+
+&lt;Directory "/www/homepages"&gt;
+    Options FollowSymLinks
+    AllowOverride None
+&lt;/Directory&gt;
+
+&lt;VirtualHost 111.22.33.44&gt;
+    ServerName www.commercial.example.com
+
+    CustomLog "logs/access_log.commercial" vcommon
+
+    VirtualDocumentRoot "/www/commercial/%0/docs"
+    VirtualScriptAlias  "/www/commercial/%0/cgi-bin"
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost 111.22.33.45&gt;
+    ServerName www.homepages.example.com
+
+    CustomLog "logs/access_log.homepages" vcommon
+
+    VirtualDocumentRoot "/www/homepages/%0/docs"
+    ScriptAlias         "/cgi-bin/" "/www/std-cgi/"
+&lt;/VirtualHost&gt;</pre>
+
+
+<div class="note">
+    <h3>Note</h3>
+    <p>If the first VirtualHost block does <em>not</em> include a
+    <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code> directive, the reverse
+    DNS of the relevant IP will be used instead.
+    If this is not the server name you
+    wish to use, a bogus entry (eg. <code>ServerName
+    none.example.com</code>) can be added to get around this
+    behaviour.</p>
+</div>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="ipbased" id="ipbased">More Efficient IP-Based Virtual Hosting</a></h2>
+
+    <p>The configuration changes suggested to turn <a href="#simple">the first
+    example</a> into an IP-based virtual hosting setup result in
+    a rather inefficient setup. A new DNS lookup is required for every
+    request. To avoid this overhead, the filesystem can be arranged to
+    correspond to the IP addresses, instead of to the host names, thereby
+    negating the need for a DNS lookup. Logging will also have to be adjusted
+    to fit this system.</p>
+
+<pre class="prettyprint lang-config"># get the server name from the reverse DNS of the IP address
+UseCanonicalName DNS
+
+# include the IP address in the logs so they may be split
+LogFormat "%A %h %l %u %t \"%r\" %s %b" vcommon
+CustomLog "logs/access_log" vcommon
+
+# include the IP address in the filenames
+VirtualDocumentRootIP "/www/hosts/%0/docs"
+VirtualScriptAliasIP  "/www/hosts/%0/cgi-bin"</pre>
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="rewrite" id="rewrite">Mass virtual hosts with
+mod_rewrite</a></h2>
+
+<p>
+Mass virtual hosting may also be accomplished using
+<code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>, either using simple <code class="directive"><a href="../mod/mod_rewrite.html#rewriterule">RewriteRule</a></code> directives, or using more
+complicated techniques such as storing the vhost definitions externally
+and accessing them via <code class="directive"><a href="../mod/mod_rewrite.html#rewritemap">RewriteMap</a></code>. These techniques are
+discussed in the <a href="../rewrite/vhosts.html">rewrite
+documentation</a>.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="macro" id="macro">Mass virtual hosts with mod_macro</a></h2>
+
+<p>Another option for dynamically generated virtual hosts is
+<code class="module"><a href="../mod/mod_macro.html">mod_macro</a></code>, with which you can create a virtualhost
+template, and invoke it for multiple hostnames. An example of this is
+provided in the <strong>Usage</strong> section of the module
+documentation.
+</p>
+</div></div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/vhosts/mass.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/mass.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ko/vhosts/mass.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/mass.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/vhosts/mass.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

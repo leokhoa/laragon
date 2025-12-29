@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_log_forensic - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Modules</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache Module mod_log_forensic</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_log_forensic.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_log_forensic.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_log_forensic.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../tr/mod/mod_log_forensic.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">Description:</a></th><td>Forensic Logging of the requests made to the server</td></tr>
+<tr><th><a href="module-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">Module Identifier:</a></th><td>log_forensic_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">Source File:</a></th><td>mod_log_forensic.c</td></tr>
+<tr><th><a href="module-dict.html#Compatibility">Compatibility:</a></th><td><code class="module"><a href="../mod/mod_unique_id.html">mod_unique_id</a></code> is no longer required since
+version 2.1</td></tr></table>
+<h3>Summary</h3>
+
+    <p>This module provides for forensic logging of client
+    requests. Logging is done before and after processing a request, so the
+    forensic log contains two log lines for each request.
+    The forensic logger is very strict, which means:</p>
+
+    <ul>
+    <li>The format is fixed. You cannot modify the logging format at
+    runtime.</li>
+    <li>If it cannot write its data, the child process
+    exits immediately and may dump core (depending on your
+    <code class="directive"><a href="../mod/mpm_common.html#coredumpdirectory">CoreDumpDirectory</a></code>
+    configuration).</li>
+    </ul>
+
+    <p>The <code>check_forensic</code> script, which can be found in the
+    distribution's support directory, may be helpful in evaluating the
+    forensic log output.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>Topics</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#formats">Forensic Log Format</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#security">Security Considerations</a></li>
+</ul><h3 class="directives">Directives</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#forensiclog">ForensicLog</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_log_forensic">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_log_forensic">Report a bug</a></li></ul><h3>See also</h3>
+<ul class="seealso">
+<li><a href="../logs.html">Apache Log Files</a></li>
+<li><code class="module"><a href="../mod/mod_log_config.html">mod_log_config</a></code></li>
+<li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="formats" id="formats">Forensic Log Format</a></h2>
+    <p>Each request is logged two times. The first time is <em>before</em> it's
+    processed further (that is, after receiving the headers). The second log
+    entry is written <em>after</em> the request processing at the same time
+    where normal logging occurs.</p>
+
+    <p>In order to identify each request, a unique request ID is assigned.
+    This forensic ID can be cross logged in the normal transfer log using the
+    <code>%{forensic-id}n</code> format string. If you're using
+    <code class="module"><a href="../mod/mod_unique_id.html">mod_unique_id</a></code>, its generated ID will be used.</p>
+
+    <p>The first line logs the forensic ID, the request line and all received
+    headers, separated by pipe characters (<code>|</code>). A sample line
+    looks like the following (all on one line):</p>
+
+    <div class="example"><p><code>
+        +yQtJf8CoAB4AAFNXBIEAAAAA|GET /manual/de/images/down.gif
+        HTTP/1.1|Host:localhost%3a8080|User-Agent:Mozilla/5.0 (X11;
+        U; Linux i686; en-US; rv%3a1.6) Gecko/20040216
+        Firefox/0.8|Accept:image/png, <var>etc...</var>
+    </code></p></div>
+
+    <p>The plus character at the beginning indicates that this is the first log
+    line of this request. The second line just contains a minus character and
+    the ID again:</p>
+
+    <div class="example"><p><code>
+      -yQtJf8CoAB4AAFNXBIEAAAAA
+    </code></p></div>
+
+    <p>The <code>check_forensic</code> script takes as its argument the name
+    of the logfile. It looks for those <code>+</code>/<code>-</code> ID pairs
+    and complains if a request was not completed.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="security" id="security">Security Considerations</a></h2>
+    <p>See the <a href="../misc/security_tips.html#serverroot">security tips</a>
+    document for details on why your security could be compromised
+    if the directory where logfiles are stored is writable by
+    anyone other than the user that starts the server.</p>
+    <p>The log files may contain sensitive data such as the contents of 
+    <code>Authorization:</code> headers (which can contain passwords), so
+    they should not be readable by anyone except the user that starts the
+    server.</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ForensicLog" id="ForensicLog">ForensicLog</a> <a name="forensiclog" id="forensiclog">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Sets filename of the forensic log</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ForensicLog <var>filename</var>|<var>pipe</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_log_forensic</td></tr>
+</table>
+    <p>The <code class="directive">ForensicLog</code> directive is used to
+    log requests to the server for forensic analysis. Each log entry
+    is assigned a unique ID which can be associated with the request
+    using the normal <code class="directive"><a href="../mod/mod_log_config.html#customlog">CustomLog</a></code>
+    directive. <code class="module"><a href="../mod/mod_log_forensic.html">mod_log_forensic</a></code> creates a token called
+    <code>forensic-id</code>, which can be added to the transfer log
+    using the <code>%{forensic-id}n</code> format string.</p>
+
+    <p>The argument, which specifies the location to which
+    the logs will be written, can take one of the following two
+    types of values:</p>
+
+    <dl>
+      <dt><var>filename</var></dt>
+      <dd>A filename, relative to the <code class="directive"><a href="../mod/core.html#serverroot">ServerRoot</a></code>.</dd>
+
+      <dt><var>pipe</var></dt>
+      <dd>The pipe character "<code>|</code>", followed by the path
+      to a program to receive the log information on its standard
+      input. The program name can be specified relative to the <code class="directive"><a href="../mod/core.html#serverroot">ServerRoot</a></code> directive.
+
+      <div class="warning"><h3>Security:</h3>
+      <p>If a program is used, then it will be run as the user who
+      started <code class="program"><a href="../programs/httpd.html">httpd</a></code>. This will be root if the server was
+      started by root; be sure that the program is secure or switches to a
+      less privileged user.</p>
+      </div>
+
+      <div class="note"><h3>Note</h3>
+        <p>When entering a file path on non-Unix platforms, care should be taken
+        to make sure that only forward slashes are used even though the platform
+        may allow the use of back slashes. In general it is a good idea to always
+        use forward slashes throughout the configuration files.</p>
+      </div></dd>
+    </dl>
+
+</div>
+</div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_log_forensic.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_log_forensic.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_log_forensic.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../tr/mod/mod_log_forensic.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_log_forensic.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

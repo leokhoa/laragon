@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Guide de configuration d'un mandataire inverse - Serveur HTTP Apache Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p>
+<p class="apache">Serveur HTTP Apache Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">Serveur HTTP</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Recettes / Tutoriels</a></div><div id="page-content"><div id="preamble"><h1>Guide de configuration d'un mandataire inverse</h1>
+<div class="toplang">
+<p><span>Langues Disponibles: </span><a href="../en/howto/reverse_proxy.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/howto/reverse_proxy.html" title="Français">&nbsp;fr&nbsp;</a></p>
+</div>
+
+    <p>En plus de ses fonctions de serveur web "basique", à savoir fournir du
+    contenu statique et dynamique à l'utilisateur, Apache httpd (comme la
+    plupart des autres serveurs web) peut aussi assurer les fonctions de serveur
+    mandataire inverse, connu aussi sous le nom de serveur "passerelle".</p>
+
+    <p>Dans un tel scénario, httpd ne génère et n'héberge pas lui-même les
+    données, le contenu étant en général obtenu à partir d'un ou plusieurs serveurs
+    d'arrière-plan qui n'ont normalement aucune connexion directe avec le réseau
+    externe. Lorsque httpd reçoit une requête en provenance d'un client, la
+    requête proprement dite est <em>mandatée</em> vers un de ces serveurs
+    d'arrière-plan qui traite la requête, génère le contenu et l'envoie à httpd,
+    ce dernier générant la véritable réponse HTTP à destination du client.</p>
+
+    <p>De nombreuses raisons peuvent vous motiver à utiliser cette
+    fonctionnalité, mais elles sont souvent du domaine de la sécurité, de
+    la haute disponibilité, de la répartition de charge et de
+    l'authentification/autorisation centralisée. Il est alors indispensable que
+    l'organisation, la conception et l'architecture de l'infrastructure
+    d'arrière-plan (les serveurs qui traitent au sens propre les requêtes) soient
+    isolées et protégées de l'extérieur ; vu du client, le serveur mandataire
+    inverse <em>est</em> le seul serveur accessible pouvant lui fournir du
+    contenu.</p>
+
+    <p>Voici un exemple typique d'implémentation de cette fonctionnalité :</p>
+    <p class="centered"><img src="../images/reverse-proxy-arch.png" alt="reverse-proxy-arch" /></p>
+
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#related">Mandataire inverse</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#simple">Mandatement inverse simple</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#cluster">Clusters et Balancers</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#config">Configuration du Balancer et des BalancerMembers</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#failover">Gestion des indisponibilités (Failover)</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#manager">Gestion du répartiteur de charge</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#health-check">Vérification dynamique du bon fonctionnement d'un serveur
+    d'arrière-plan</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#status">Drapeaux d'état d'un membre du groupe de répartition de charge</a></li>
+</ul><h3>Voir aussi</h3><ul class="seealso"><li><a href="#comments_section">Commentaires</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="related" id="related">Mandataire inverse</a></h2>
+  
+  <table class="related"><tr><th>Modules Apparentés</th><th>Directives Apparentées</th></tr><tr><td><ul><li><code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code></li><li><code class="module"><a href="../mod/mod_proxy_balancer.html">mod_proxy_balancer</a></code></li><li><code class="module"><a href="../mod/mod_proxy_hcheck.html">mod_proxy_hcheck</a></code></li></ul></td><td><ul><li><code class="directive"><a href="../mod/mod_proxy.html#proxypass">ProxyPass</a></code></li><li><code class="directive"><a href="../mod/mod_proxy.html#balancermember">BalancerMember</a></code></li></ul></td></tr></table>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="simple" id="simple">Mandatement inverse simple</a></h2>
+    
+
+    <p>
+      La directive <code class="directive"><a href="../mod/mod_proxy.html#proxypass">ProxyPass</a></code> permet de
+      rediriger les requêtes entrantes vers un serveur d'arrière-plan (ou un
+      cluster de serveurs plus connu sous le nom de groupe
+      <code>Balancer</code>). Dans cet exemple le plus simple, toutes les
+      requêtes (<code>"/"</code>) sont redirigées vers un serveur d'arrière-plan
+      unique :
+    </p>
+
+    <pre class="prettyprint lang-config">ProxyPass "/"  "http://www.example.com/"</pre>
+
+
+    <p>
+      Pour être sur que cette redirection soit effectuée et que les en-têtes
+      <code>Location:</code> générés par le serveur d'arrière-plan soient
+      modifiés pour pointer vers le mandataire inverse, et non vers le serveur
+      d'arrière-plan, la directive <code class="directive"><a href="../mod/mod_proxy.html#proxypassreverse">ProxyPassReverse</a></code> est souvent requise :
+    </p>
+
+    <pre class="prettyprint lang-config">ProxyPass "/"  "http://www.example.com/"
+ProxyPassReverse "/"  "http://www.example.com/"</pre>
+
+
+    <p>Seules des URIs spécifiques peuvent être mandatées, comme le montre
+    l'exemple suivant :</p>
+
+    <pre class="prettyprint lang-config">ProxyPass "/images"  "http://www.example.com/"
+ProxyPassReverse "/images"  "http://www.example.com/"</pre>
+
+
+    <p>Dans l'exemple précédent, si le chemin d'une requête commence par
+    <code>/images</code>, elle sera redirigée vers le serveur d'arrière-plan
+    spécifié ; dans le cas contraire, elle sera traitée localement.
+    </p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="cluster" id="cluster">Clusters et Balancers</a></h2>
+    
+
+    <p>
+      Utiliser un serveur d'arrière-plan unique n'est cependant pas une solution
+      idéale car ce dernier peut devenir indisponible ou surchargé, et le
+      mandatement inverse vers ce serveur ne présente alors plus aucun avantage.
+      La solution réside dans la définition d'un groupe de serveurs
+      d'arrière-plan qui vont se partager le traitement des requêtes via un
+      mécanisme de répartition de charge et de gestion des indisponibilités pris
+      en charge par le mandataire. Ce groupe de répartition est plus connu sous le nom de
+      <em>cluster</em>, mais dans la terminologie d'Apache httpd, on utilise
+      plutôt le terme de <em>balancer</em>. Un balancer se définit en
+      utilisant les directives <code class="directive"><a href="../mod/mod_proxy.html#proxy">&lt;Proxy&gt;</a></code> et <code class="directive"><a href="../mod/mod_proxy.html#balancermember">BalancerMember</a></code> comme suit :
+    </p>
+
+    <pre class="prettyprint lang-config">&lt;Proxy balancer://myset&gt;
+    BalancerMember http://www2.example.com:8080
+    BalancerMember http://www3.example.com:8080
+    ProxySet lbmethod=bytraffic
+&lt;/Proxy&gt;
+
+ProxyPass "/images/"  "balancer://myset/"
+ProxyPassReverse "/images/"  "balancer://myset/"</pre>
+
+
+    <p>
+      Le protocole <code>balancer://</code> indique à httpd que l'on souhaite
+      créer un balancer nommé <em>myset</em>. Ce balancer comporte deux serveurs
+      d'arrière-plan référencés dans la terminologie httpd sous le nom de
+      <em>BalancerMembers</em>. Avec cet exemple, toute requête dont le chemin
+      commence par <code>/images</code> sera mandatée vers <em>un</em> des deux
+      serveurs d'arrière-plan. La directive <code class="directive"><a href="../mod/mod_proxy.html#proxyset">ProxySet</a></code> définit ici pour le balancer
+      <em>myset</em> un algorithme de
+      répartition de charge basé sur le trafic entrées/sorties.
+    </p>
+
+    <div class="note"><h3>Remarque</h3>
+      <p>
+      	Les <em>BalancerMembers</em> sont aussi souvent référencés sous le terme
+	<em>workers</em>.
+      </p>
+   </div>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="config" id="config">Configuration du Balancer et des BalancerMembers</a></h2>
+    
+
+    <p>
+      Vous pouvez configurer de manière détaillée les <em>balancers</em> et
+      <em>workers</em> via les nombreux paramètres de la directive <code class="directive"><a href="../mod/mod_proxy.html#proxypass">ProxyPass</a></code>. Par exemple, si vous souhaitez
+      que <code>http://www3.example.com:8080</code> traite avec un facteur 3 le
+      trafic avec un timeout d'une seconde, utilisez la configuration suivante :
+    </p>
+
+    <pre class="prettyprint lang-config">&lt;Proxy balancer://myset&gt;
+    BalancerMember http://www2.example.com:8080
+    BalancerMember http://www3.example.com:8080 loadfactor=3 timeout=1
+    ProxySet lbmethod=bytraffic
+&lt;/Proxy&gt;
+
+ProxyPass "/images"  "balancer://myset/"
+ProxyPassReverse "/images"  "balancer://myset/"</pre>
+
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="failover" id="failover">Gestion des indisponibilités (Failover)</a></h2>
+    
+
+    <p>
+      Vous pouvez aussi définir finement des scénarios pour les cas
+      d'indisponibilité d'un ou plusieurs serveurs d'arrière-plan en spécifiant
+      quels serveurs doivent alors prendre le relai. Dans l'exemple suivant,
+      trois scénarios sont envisagés :
+    </p>
+    <ol>
+      <li>
+        <code>http://spare1.example.com:8080</code> et
+        <code>http://spare2.example.com:8080</code> ne sont sollicités que si
+	<code>http://www2.example.com:8080</code> ou
+	<code>http://www3.example.com:8080</code> est indisponible (un serveur
+	de remplacement sera utilisé à la place d'un membre indisponible du même
+	jeu de serveurs cibles).
+      </li>
+      <li>
+        <code>http://hstandby.example.com:8080</code> n'est sollicité que si
+	tous les autres serveurs cibles du jeu de serveurs <code>0</code> sont
+	indisponibles.
+      </li>
+      <li>
+        Les serveurs <code>http://bkup1.example.com:8080</code> et
+	<code>http://bkup2.example.com:8080</code> du jeu <code>1</code> ne seront sollicités que si
+	tous les serveurs du jeu <code>0</code>, tous les serveurs de
+	remplacement et tous les serveurs de standby sont indisponibles.
+      </li>
+    </ol>
+    <p>
+      Il est ainsi possible de définir un ou plusieurs serveurs de remplacement
+      ou de standby pour chaque jeu de serveurs du répartiteur de charge.
+    </p>
+
+    <pre class="prettyprint lang-config">&lt;Proxy balancer://myset&gt;
+    BalancerMember http://www2.example.com:8080
+    BalancerMember http://www3.example.com:8080 loadfactor=3 timeout=1
+    BalancerMember http://spare1.example.com:8080 status=+R
+    BalancerMember http://spare2.example.com:8080 status=+R
+    BalancerMember http://hstandby.example.com:8080 status=+H
+    BalancerMember http://bkup1.example.com:8080 lbset=1
+    BalancerMember http://bkup2.example.com:8080 lbset=1
+    ProxySet lbmethod=byrequests
+&lt;/Proxy&gt;
+
+ProxyPass "/images/"  "balancer://myset/"
+ProxyPassReverse "/images/"  "balancer://myset/"</pre>
+
+
+    <p>
+      Les serveurs de remplacement à chaud remplacent les serveurs indisponibles
+      du même jeu de serveurs du répartiteur de charge. Un serveur est
+      considéré comme indisponible s'il est en maintenance, arrêté ou en erreur.
+      Les serveurs de standby à chaud sont utilisés si tous les serveurs et
+      serveurs de remplacement du jeu de serveurs du répartiteur de charge sont
+      indisponibles. Les jeux de serveurs du répartiteur de charge (avec leurs
+      serveurs de standby et de remplacement à chaud respectifs) sont toujours
+      sollicités dans l'ordre du plus bas lbset vers le plus haut.
+    </p>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="manager" id="manager">Gestion du répartiteur de charge</a></h2>
+    
+
+    <p>
+     L'application <em>balancer-manager</em> fournie avec le mandataire inverse
+     d'Apache httpd en est un des outils les plus utiles. Comme
+     <code class="module"><a href="../mod/mod_status.html">mod_status</a></code>, <em>balancer-manager</em> affiche la
+     configuration et l'activité actuelles des balancers actifs. L'affichage de
+     ces informations n'est cependant pas sa seule fonction ; il permet aussi de
+     modifier la plupart d'entre elles et même d'ajouter des membres au groupe
+     de répartition de charge en temps réel. Pour activer ces fonctionnalités,
+     vous devez ajouter les lignes suivantes à votre fichier de configuration : 
+    </p>
+
+    <pre class="prettyprint lang-config">&lt;Location "/balancer-manager"&gt;
+    SetHandler balancer-manager
+    Require host localhost
+&lt;/Location&gt;</pre>
+
+
+    <div class="warning"><h3>Avertissement</h3>
+      <p>N'activez le <em>balancer-manager</em> que si vous avez déjà <a href="../mod/mod_proxy.html#access">sécurisé votre serveur</a>.
+      Assurez-vous en particulier que l'accès à l'URL soit fortement restreint.</p>
+    </div>
+
+    <p>
+      Lorsque vous accédez au serveur mandataire avec une adresse du style
+      <code>http://rproxy.example.com/balancer-manager/</code>, la page suivante
+      s'affiche :
+    </p>
+    <p class="centered"><img src="../images/bal-man.png" alt="balancer-manager page" /></p>
+
+    <p>
+      Ce formulaire permet à l'administrateur de modifier certains paramètres,
+      de désactiver ou d'ajouter certains serveurs d'arrière-plan, et de
+      modifier les règles de répartition de charge. Par exemple, si on clique
+      sur le répartiteur, la page suivante s'affiche : 
+    </p>
+    <p class="centered"><img src="../images/bal-man-b.png" alt="balancer-manager page" /></p>
+
+    <p>
+      Si on clique sur un membre du groupe de répartition de charge, la page
+      suivante s'affiche :
+    </p>
+    <p class="centered"><img src="../images/bal-man-w.png" alt="balancer-manager page" /></p>
+
+    <p>
+      Si vous souhaitez que ces modifications soient conservées après un
+      redémarrage du serveur, assurez-vous que la directive <code class="directive"><a href="../mod/mod_proxy.html#balancerpersist">BalancerPersist</a></code> soit définie à On.
+    </p>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="health-check" id="health-check">Vérification dynamique du bon fonctionnement d'un serveur
+    d'arrière-plan</a></h2>
+    
+
+    <p>
+      Avant que le mandataire httpd ne fasse appel à un serveur d'arrière-plan, il
+      peut <em>"tester"</em> si ce dernier est disponible en définissant le
+      paramètre <code>ping</code> de ce serveur via la directive <code class="directive"><a href="../mod/mod_proxy.html#proxypass">ProxyPass</a></code>. Cependant, il est souvent plus
+      judicieux de vérifier le bon fonctionnement d'un serveur <em>hors
+      bande</em> et de manière dynamique via le module
+      <code class="module"><a href="../mod/mod_proxy_hcheck.html">mod_proxy_hcheck</a></code> d'Apache httpd.
+    </p>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="status" id="status">Drapeaux d'état d'un membre du groupe de répartition de charge</a></h2>
+    
+
+    <p>
+      <em>balancer-manager</em> permet d'afficher et de modifier l'état d'un
+      membre du groupe de répartition de charge. Les différents états et leurs
+      significations sont les suivants :
+    </p>
+      <table class="bordered">
+      	<tr><th>Drapeau</th><th>Sigle</th><th>Description</th></tr>
+      	<tr><td>&nbsp;</td><td><em>Ok</em></td><td>Le serveur est disponible</td></tr>
+      	<tr><td>&nbsp;</td><td><em>Init</em></td><td>Le serveur a été initialisé</td></tr>
+        <tr><td><code>D</code></td><td><em>Dis</em></td><td>Le serveur est
+	désactivé et n'accepte aucune requête ; il sera retesté automatiquement.</td></tr>
+        <tr><td><code>S</code></td><td><em>Stop</em></td><td>Le serveur a été
+	arrêté par l'administrateur ; il n'accepte aucune requête et il ne sera
+	pas retesté automatiquement.</td></tr>
+        <tr><td><code>I</code></td><td><em>Ign</em></td><td>Les erreurs
+	concernant ce serveur sont ignorées et il sera donc toujours considéré
+	comme disponible.</td></tr>
+	<tr><td><code>R</code></td><td><em>Spar</em></td><td>Le serveur cible sert de remplaçant à
+	 chaud. Lorsqu'un serveur cible avec un lbset donné est inutilisable
+	 (maintenance, arrêt, en erreur, etc...), un serveur de remplacement à
+	 chaud libre de même lbset sera utilisé à sa place. Les remplaçants à
+	 chaud permettent de s'assurer qu'un nombre déterminé de serveurs cibles
+	 sera toujours disponible pour un répartiteur de charge.</td></tr>
+        <tr><td><code>H</code></td><td><em>Stby</em></td><td>Le serveur est en
+	mode hot-standby et ne sera donc utilisé que si aucun autre serveur ou
+	serveur de remplacement	n'est disponible dans le jeu de serveurs du
+	répartiteur de charge.</td></tr>
+        <tr><td><code>E</code></td><td><em>Err</em></td><td>Le serveur est en
+	erreur, en général suite à un test préalable à une requête ; aucune
+	requête ne lui sera soumise, mais il sera retesté en fonction de la
+	valeur de son paramètre <code>retry</code>.</td></tr>
+        <tr><td><code>N</code></td><td><em>Drn</em></td><td>Le serveur est en
+	mode drain ; il n'acceptera de requêtes que dans le cadre des sessions
+	persistantes qui lui sont réservées et ignorera toutes les autres.</td></tr>
+        <tr><td><code>C</code></td><td><em>HcFl</em></td><td>Le serveur a échoué
+	au test dynamique de bon fonctionnement et ne sera utilisé que lorsqu'il
+	aura réussi un test ultérieur.</td></tr>
+      </table>
+  </div></div>
+<div class="bottomlang">
+<p><span>Langues Disponibles: </span><a href="../en/howto/reverse_proxy.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/howto/reverse_proxy.html" title="Français">&nbsp;fr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Commentaires</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/howto/reverse_proxy.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Autorisé sous <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

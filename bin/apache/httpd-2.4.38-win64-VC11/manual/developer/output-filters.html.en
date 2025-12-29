@@ -1,0 +1,585 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Guide to writing output filters - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Developer Documentation</a></div><div id="page-content"><div id="preamble"><h1>Guide to writing output filters</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/developer/output-filters.html" title="English">&nbsp;en&nbsp;</a></p>
+</div>
+
+    <p>There are a number of common pitfalls encountered when writing
+    output filters; this page aims to document best practice for
+    authors of new or existing filters.</p>
+
+    <p>This document is applicable to both version 2.0 and version 2.2
+    of the Apache HTTP Server; it specifically targets
+    <code>RESOURCE</code>-level or <code>CONTENT_SET</code>-level
+    filters though some advice is generic to all types of filter.</p>
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#basics">Filters and bucket brigades</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#invocation">Filter invocation</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#brigade">Brigade structure</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#buckets">Processing buckets</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#filtering">Filtering brigades</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#state">Maintaining state</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#buffer">Buffering buckets</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#nonblock">Non-blocking bucket reads</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#rules">Ten rules for output filters</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#usecase1">Use case: buffering in mod_ratelimit</a></li>
+</ul><h3>See also</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="basics" id="basics">Filters and bucket brigades</a></h2>
+    
+
+    <p>Each time a filter is invoked, it is passed a <em>bucket
+    brigade</em>, containing a sequence of <em>buckets</em> which
+    represent both data content and metadata.  Every bucket has a
+    <em>bucket type</em>; a number of bucket types are defined and
+    used by the <code>httpd</code> core modules (and the
+    <code>apr-util</code> library which provides the bucket brigade
+    interface), but modules are free to define their own types.</p>
+
+    <div class="note">Output filters must be prepared to process
+    buckets of non-standard types; with a few exceptions, a filter
+    need not care about the types of buckets being filtered.</div>
+
+    <p>A filter can tell whether a bucket represents either data or
+    metadata using the <code>APR_BUCKET_IS_METADATA</code> macro.
+    Generally, all metadata buckets should be passed down the filter
+    chain by an output filter.  Filters may transform, delete, and
+    insert data buckets as appropriate.</p>
+
+    <p>There are two metadata bucket types which all filters must pay
+    attention to: the <code>EOS</code> bucket type, and the
+    <code>FLUSH</code> bucket type.  An <code>EOS</code> bucket
+    indicates that the end of the response has been reached and no
+    further buckets need be processed.  A <code>FLUSH</code> bucket
+    indicates that the filter should flush any buffered buckets (if
+    applicable) down the filter chain immediately.</p>
+
+    <div class="note"><code>FLUSH</code> buckets are sent when the
+    content generator (or an upstream filter) knows that there may be
+    a delay before more content can be sent.  By passing
+    <code>FLUSH</code> buckets down the filter chain immediately,
+    filters ensure that the client is not kept waiting for pending
+    data longer than necessary.</div>
+
+    <p>Filters can create <code>FLUSH</code> buckets and pass these
+    down the filter chain if desired.  Generating <code>FLUSH</code>
+    buckets unnecessarily, or too frequently, can harm network
+    utilisation since it may force large numbers of small packets to
+    be sent, rather than a small number of larger packets.  The
+    section on <a href="#nonblock">Non-blocking bucket reads</a>
+    covers a case where filters are encouraged to generate
+    <code>FLUSH</code> buckets.</p>
+
+    <div class="example"><h3>Example bucket brigade</h3><p><code>
+    HEAP FLUSH FILE EOS</code></p></div>
+
+    <p>This shows a bucket brigade which may be passed to a filter; it
+    contains two metadata buckets (<code>FLUSH</code> and
+    <code>EOS</code>), and two data buckets (<code>HEAP</code> and
+    <code>FILE</code>).</p>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="invocation" id="invocation">Filter invocation</a></h2>
+    
+
+    <p>For any given request, an output filter might be invoked only
+    once and be given a single brigade representing the entire response.
+    It is also possible that the number of times a filter is invoked
+    for a single response is proportional to the size of the content
+    being filtered, with the filter being passed a brigade containing
+    a single bucket each time.  Filters must operate correctly in
+    either case.</p>
+
+    <div class="warning">An output filter which allocates long-lived
+    memory every time it is invoked may consume memory proportional to
+    response size.  Output filters which need to allocate memory
+    should do so once per response; see <a href="#state">Maintaining
+    state</a> below.</div>
+
+    <p>An output filter can distinguish the final invocation for a
+    given response by the presence of an <code>EOS</code> bucket in
+    the brigade.  Any buckets in the brigade after an EOS should be
+    ignored.</p>
+
+    <p>An output filter should never pass an empty brigade down the
+    filter chain.  To be defensive, filters should be prepared to
+    accept an empty brigade, and should return success without passing
+    this brigade on down the filter chain.  The handling of an empty
+    brigade should have no side effects (such as changing any state
+    private to the filter).</p>
+
+    <div class="example"><h3>How to handle an empty brigade</h3><pre class="prettyprint lang-c">apr_status_t dummy_filter(ap_filter_t *f, apr_bucket_brigade *bb)
+{
+    if (APR_BRIGADE_EMPTY(bb)) {
+        return APR_SUCCESS;
+    }
+    ...</pre>
+</div>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="brigade" id="brigade">Brigade structure</a></h2>
+    
+
+    <p>A bucket brigade is a doubly-linked list of buckets.  The list
+    is terminated (at both ends) by a <em>sentinel</em> which can be
+    distinguished from a normal bucket by comparing it with the
+    pointer returned by <code>APR_BRIGADE_SENTINEL</code>.  The list
+    sentinel is in fact not a valid bucket structure; any attempt to
+    call normal bucket functions (such as
+    <code>apr_bucket_read</code>) on the sentinel will have undefined
+    behaviour (i.e. will crash the process).</p>
+
+    <p>There are a variety of functions and macros for traversing and
+    manipulating bucket brigades; see the <a href="http://apr.apache.org/docs/apr-util/trunk/group___a_p_r___util___bucket___brigades.html">apr_buckets.h</a>
+    header for complete coverage.  Commonly used macros include:</p>
+
+    <dl>
+      <dt><code>APR_BRIGADE_FIRST(bb)</code></dt>
+      <dd>returns the first bucket in brigade bb</dd>
+
+      <dt><code>APR_BRIGADE_LAST(bb)</code></dt>
+      <dd>returns the last bucket in brigade bb</dd>
+
+      <dt><code>APR_BUCKET_NEXT(e)</code></dt>
+      <dd>gives the next bucket after bucket e</dd>
+
+      <dt><code>APR_BUCKET_PREV(e)</code></dt>
+      <dd>gives the bucket before bucket e</dd>
+
+    </dl>
+
+    <p>The <code>apr_bucket_brigade</code> structure itself is
+    allocated out of a pool, so if a filter creates a new brigade, it
+    must ensure that memory use is correctly bounded.  A filter which
+    allocates a new brigade out of the request pool
+    (<code>r-&gt;pool</code>) on every invocation, for example, will fall
+    foul of the <a href="#invocation">warning above</a> concerning
+    memory use.  Such a filter should instead create a brigade on the
+    first invocation per request, and store that brigade in its <a href="#state">state structure</a>.</p>
+
+    <div class="warning"><p>It is generally never advisable to use
+    <code>apr_brigade_destroy</code> to "destroy" a brigade unless
+    you know for certain that the brigade will never be used
+    again, even then, it should be used rarely.  The
+    memory used by the brigade structure will not be released by
+    calling this function (since it comes from a pool), but the
+    associated pool cleanup is unregistered.  Using
+    <code>apr_brigade_destroy</code> can in fact cause memory leaks;
+    if a "destroyed" brigade contains buckets when its
+    containing pool is destroyed, those buckets will <em>not</em> be
+    immediately destroyed.</p>
+
+    <p>In general, filters should use <code>apr_brigade_cleanup</code>
+    in preference to <code>apr_brigade_destroy</code>.</p></div>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="buckets" id="buckets">Processing buckets</a></h2>
+
+    
+
+    <p>When dealing with non-metadata buckets, it is important to
+    understand that the "<code>apr_bucket *</code>" object is an
+    abstract <em>representation</em> of data:</p>
+
+    <ol>
+      <li>The amount of data represented by the bucket may or may not
+      have a determinate length; for a bucket which represents data of
+      indeterminate length, the <code>-&gt;length</code> field is set to
+      the value <code>(apr_size_t)-1</code>.  For example, buckets of
+      the <code>PIPE</code> bucket type have an indeterminate length;
+      they represent the output from a pipe.</li>
+
+      <li>The data represented by a bucket may or may not be mapped
+      into memory.  The <code>FILE</code> bucket type, for example,
+      represents data stored in a file on disk.</li>
+    </ol>
+
+    <p>Filters read the data from a bucket using the
+    <code>apr_bucket_read</code> function.  When this function is
+    invoked, the bucket may <em>morph</em> into a different bucket
+    type, and may also insert a new bucket into the bucket brigade.
+    This must happen for buckets which represent data not mapped into
+    memory.</p>
+
+    <p>To give an example; consider a bucket brigade containing a
+    single <code>FILE</code> bucket representing an entire file, 24
+    kilobytes in size:</p>
+
+    <div class="example"><p><code>FILE(0K-24K)</code></p></div>
+
+    <p>When this bucket is read, it will read a block of data from the
+    file, morph into a <code>HEAP</code> bucket to represent that
+    data, and return the data to the caller.  It also inserts a new
+    <code>FILE</code> bucket representing the remainder of the file;
+    after the <code>apr_bucket_read</code> call, the brigade looks
+    like:</p>
+
+    <div class="example"><p><code>HEAP(8K) FILE(8K-24K)</code></p></div>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="filtering" id="filtering">Filtering brigades</a></h2>
+    
+
+    <p>The basic function of any output filter will be to iterate
+    through the passed-in brigade and transform (or simply examine)
+    the content in some manner.  The implementation of the iteration
+    loop is critical to producing a well-behaved output filter.</p>
+
+    <p>Taking an example which loops through the entire brigade as
+    follows:</p>
+
+    <div class="example"><h3>Bad output filter -- do not imitate!</h3><pre class="prettyprint lang-c">apr_bucket *e = APR_BRIGADE_FIRST(bb);
+const char *data;
+apr_size_t length;
+
+while (e != APR_BRIGADE_SENTINEL(bb)) {
+    apr_bucket_read(e, &amp;data, &amp;length, APR_BLOCK_READ);
+    e = APR_BUCKET_NEXT(e);
+}
+
+return ap_pass_brigade(bb);</pre>
+</div>
+
+    <p>The above implementation would consume memory proportional to
+    content size.  If passed a <code>FILE</code> bucket, for example,
+    the entire file contents would be read into memory as each
+    <code>apr_bucket_read</code> call morphed a <code>FILE</code>
+    bucket into a <code>HEAP</code> bucket.</p>
+
+    <p>In contrast, the implementation below will consume a fixed
+    amount of memory to filter any brigade; a temporary brigade is
+    needed and must be allocated only once per response, see the <a href="#state">Maintaining state</a> section.</p>
+
+    <div class="example"><h3>Better output filter</h3><pre class="prettyprint lang-c">apr_bucket *e;
+const char *data;
+apr_size_t length;
+
+while ((e = APR_BRIGADE_FIRST(bb)) != APR_BRIGADE_SENTINEL(bb)) {
+    rv = apr_bucket_read(e, &amp;data, &amp;length, APR_BLOCK_READ);
+    if (rv) ...;
+    /* Remove bucket e from bb. */
+    APR_BUCKET_REMOVE(e);
+    /* Insert it into  temporary brigade. */
+    APR_BRIGADE_INSERT_HEAD(tmpbb, e);
+    /* Pass brigade downstream. */
+    rv = ap_pass_brigade(f-&gt;next, tmpbb);
+    if (rv) ...;
+    apr_brigade_cleanup(tmpbb);
+}</pre>
+</div>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="state" id="state">Maintaining state</a></h2>
+
+    
+
+    <p>A filter which needs to maintain state over multiple
+    invocations per response can use the <code>-&gt;ctx</code> field of
+    its <code>ap_filter_t</code> structure.  It is typical to store a
+    temporary brigade in such a structure, to avoid having to allocate
+    a new brigade per invocation as described in the <a href="#brigade">Brigade structure</a> section.</p>
+
+    <div class="example"><h3>Example code to maintain filter state</h3><pre class="prettyprint lang-c">struct dummy_state {
+    apr_bucket_brigade *tmpbb;
+    int filter_state;
+    ...
+};
+
+apr_status_t dummy_filter(ap_filter_t *f, apr_bucket_brigade *bb)
+{
+    struct dummy_state *state;
+    
+    state = f-&gt;ctx;
+    if (state == NULL) {
+    
+        /* First invocation for this response: initialise state structure.
+         */
+        f-&gt;ctx = state = apr_palloc(f-&gt;r-&gt;pool, sizeof *state);
+
+        state-&gt;tmpbb = apr_brigade_create(f-&gt;r-&gt;pool, f-&gt;c-&gt;bucket_alloc);
+        state-&gt;filter_state = ...;
+    }
+    ...</pre>
+</div>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="buffer" id="buffer">Buffering buckets</a></h2>
+    
+
+    <p>If a filter decides to store buckets beyond the duration of a
+    single filter function invocation (for example storing them in its
+    <code>-&gt;ctx</code> state structure), those buckets must be <em>set
+    aside</em>.  This is necessary because some bucket types provide
+    buckets which represent temporary resources (such as stack memory)
+    which will fall out of scope as soon as the filter chain completes
+    processing the brigade.</p>
+
+    <p>To setaside a bucket, the <code>apr_bucket_setaside</code>
+    function can be called.  Not all bucket types can be setaside, but
+    if successful, the bucket will have morphed to ensure it has a
+    lifetime at least as long as the pool given as an argument to the
+    <code>apr_bucket_setaside</code> function.</p>
+
+    <p>Alternatively, the <code>ap_save_brigade</code> function can be
+    used, which will move all the buckets into a separate brigade
+    containing buckets with a lifetime as long as the given pool
+    argument.  This function must be used with care, taking into
+    account the following points:</p>
+
+    <ol>
+      <li>On return, <code>ap_save_brigade</code> guarantees that all
+      the buckets in the returned brigade will represent data mapped
+      into memory.  If given an input brigade containing, for example,
+      a <code>PIPE</code> bucket, <code>ap_save_brigade</code> will
+      consume an arbitrary amount of memory to store the entire output
+      of the pipe.</li>
+
+      <li>When <code>ap_save_brigade</code> reads from buckets which
+      cannot be setaside, it will always perform blocking reads,
+      removing the opportunity to use <a href="#nonblock">Non-blocking
+      bucket reads</a>.</li>
+
+      <li>If <code>ap_save_brigade</code> is used without passing a
+      non-NULL "<code>saveto</code>" (destination) brigade parameter,
+      the function will create a new brigade, which may cause memory
+      use to be proportional to content size as described in the <a href="#brigade">Brigade structure</a> section.</li>
+    </ol>
+
+    <div class="warning">Filters must ensure that any buffered data is
+    processed and passed down the filter chain during the last
+    invocation for a given response (a brigade containing an EOS
+    bucket).  Otherwise such data will be lost.</div>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="nonblock" id="nonblock">Non-blocking bucket reads</a></h2>
+    
+
+    <p>The <code>apr_bucket_read</code> function takes an
+    <code>apr_read_type_e</code> argument which determines whether a
+    <em>blocking</em> or <em>non-blocking</em> read will be performed
+    from the data source.  A good filter will first attempt to read
+    from every data bucket using a non-blocking read; if that fails
+    with <code>APR_EAGAIN</code>, then send a <code>FLUSH</code>
+    bucket down the filter chain, and retry using a blocking read.</p>
+
+    <p>This mode of operation ensures that any filters further down the
+    filter chain will flush any buffered buckets if a slow content
+    source is being used.</p>
+
+    <p>A CGI script is an example of a slow content source which is
+    implemented as a bucket type. <code class="module"><a href="../mod/mod_cgi.html">mod_cgi</a></code> will send
+    <code>PIPE</code> buckets which represent the output from a CGI
+    script; reading from such a bucket will block when waiting for the
+    CGI script to produce more output.</p>
+
+    <div class="example"><h3>Example code using non-blocking bucket reads</h3><pre class="prettyprint lang-c">apr_bucket *e;
+apr_read_type_e mode = APR_NONBLOCK_READ;
+
+while ((e = APR_BRIGADE_FIRST(bb)) != APR_BRIGADE_SENTINEL(bb)) {
+    apr_status_t rv;
+
+    rv = apr_bucket_read(e, &amp;data, &amp;length, mode);
+    if (rv == APR_EAGAIN &amp;&amp; mode == APR_NONBLOCK_READ) {
+
+        /* Pass down a brigade containing a flush bucket: */
+        APR_BRIGADE_INSERT_TAIL(tmpbb, apr_bucket_flush_create(...));
+        rv = ap_pass_brigade(f-&gt;next, tmpbb);
+        apr_brigade_cleanup(tmpbb);
+        if (rv != APR_SUCCESS) return rv;
+
+        /* Retry, using a blocking read. */
+        mode = APR_BLOCK_READ;
+        continue;
+    }
+    else if (rv != APR_SUCCESS) {
+        /* handle errors */
+    }
+
+    /* Next time, try a non-blocking read first. */
+    mode = APR_NONBLOCK_READ;
+    ...
+}</pre>
+</div>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="rules" id="rules">Ten rules for output filters</a></h2>
+    
+
+    <p>In summary, here is a set of rules for all output filters to
+    follow:</p>
+
+    <ol>
+      <li>Output filters should not pass empty brigades down the filter
+      chain, but should be tolerant of being passed empty
+      brigades.</li>
+
+      <li>Output filters must pass all metadata buckets down the filter
+      chain; <code>FLUSH</code> buckets should be respected by passing
+      any pending or buffered buckets down the filter chain.</li>
+
+      <li>Output filters should ignore any buckets following an
+      <code>EOS</code> bucket.</li>
+
+      <li>Output filters must process a fixed amount of data at a
+      time, to ensure that memory consumption is not proportional to
+      the size of the content being filtered.</li>
+
+      <li>Output filters should be agnostic with respect to bucket
+      types, and must be able to process buckets of unfamiliar
+      type.</li>
+
+      <li>After calling <code>ap_pass_brigade</code> to pass a brigade
+      down the filter chain, output filters should call
+      <code>apr_brigade_cleanup</code> to ensure the brigade is empty
+      before reusing that brigade structure; output filters should
+      never use <code>apr_brigade_destroy</code> to "destroy"
+      brigades.</li>
+
+      <li>Output filters must <em>setaside</em> any buckets which are
+      preserved beyond the duration of the filter function.</li>
+
+      <li>Output filters must not ignore the return value of
+      <code>ap_pass_brigade</code>, and must return appropriate errors
+      back up the filter chain.</li>
+
+      <li>Output filters must only create a fixed number of bucket
+      brigades for each response, rather than one per invocation.</li>
+
+      <li>Output filters should first attempt non-blocking reads from
+      each data bucket, and send a <code>FLUSH</code> bucket down the
+      filter chain if the read blocks, before retrying with a blocking
+      read.</li>
+
+    </ol>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="usecase1" id="usecase1">Use case: buffering in mod_ratelimit</a></h2>
+    
+    <p>The <a href="http://svn.apache.org/r1833875">r1833875</a> change is a good
+    example to show what buffering and keeping state means in the context of an
+    output filter. In this use case, a user asked on the users' mailing list a
+    interesting question about why <code class="module"><a href="../mod/mod_ratelimit.html">mod_ratelimit</a></code> seemed not to
+    honor its setting with proxied content (either rate limiting at a different
+    speed or simply not doing it at all). Before diving deep into the solution,
+    it is better to explain on a high level how <code class="module"><a href="../mod/mod_ratelimit.html">mod_ratelimit</a></code> works.
+    The trick is really simple: take the rate limit settings and calculate a
+    chunk size of data to flush every 200ms to the client. For example, let's imagine
+    that to set <code>rate-limit 60</code> in our config, these are the high level
+    steps to find the chunk size:</p>
+    <pre class="prettyprint lang-c">/* milliseconds to wait between each flush of data */
+RATE_INTERVAL_MS = 200;
+/* rate limit speed in b/s */
+speed = 60 * 1024;
+/* final chunk size is 12228 bytes */
+chunk_size = (speed / (1000 / RATE_INTERVAL_MS));</pre>
+
+    <p>If we apply this calculation to a bucket brigade carrying 38400 bytes, it means
+    that the filter will try to do the following:</p>
+    <ol>
+        <li>Split the 38400 bytes in chunks of maximum 12228 bytes each.</li>
+        <li>Flush the first 12228 chunk of bytes and sleep 200ms.</li>
+        <li>Flush the second 12228 chunk of bytes and sleep 200ms.</li>
+        <li>Flush the third 12228 chunk of bytes and sleep 200ms.</li>
+        <li>Flush the remaining 1716 bytes.</li>
+    </ol>
+    <p>The above pseudo code works fine if the output filter handles only one brigade
+    for each response, but it might happen that it needs to be called multiple times
+    with different brigade sizes as well. The former use case is for example when
+    httpd directly serves some content, like a static file: the bucket brigade
+    abstraction takes care of handling the whole content, and rate limiting
+    works nicely. But if the same static content is served via mod_proxy_http (for
+    example a backend is serving it rather than httpd) then the content generator
+    (in this case mod_proxy_http) may use a maximum buffer size and then send data
+    as bucket brigades to the output filters chain regularly, triggering of course
+    multiple calls to <code class="module"><a href="../mod/mod_ratelimit.html">mod_ratelimit</a></code>. If the reader tries to execute the pseudo code
+    assuming multiple calls to the output filter, each one requiring to process
+    a bucket brigade of 38400 bytes, then it is easy to spot some
+    anomalies:</p>
+    <ol>
+        <li>Between the last flush of a brigade and the first one of the next,
+            there is no sleep.</li>
+        <li>Even if the sleep was forced after the last flush, then that chunk size
+            would not be the ideal size (1716 bytes instead of 12228) and the final client's speed
+            would quickly become different than what set in the httpd's config.</li>
+    </ol>
+    <p>In this case, two things might help:</p>
+    <ol>
+        <li>Use the ctx internal data structure, initialized by <code class="module"><a href="../mod/mod_ratelimit.html">mod_ratelimit</a></code>
+        for each response handling cycle, to "remember" when the last sleep was
+        performed across multiple invocations, and act accordingly.</li>
+        <li>If a bucket brigade is not splittable into a finite number of chunk_size
+        blocks, store the remaining bytes (located in the tail of the bucket brigade) 
+        in a temporary holding area (namely another bucket brigade) and then use
+        <code>ap_save_brigade</code> to set them aside.
+        These bytes will be preprended to the next bucket brigade that will be handled
+        in the subsequent invocation.</li>
+        <li>Avoid the previous logic if the bucket brigade that is currently being
+        processed contains the end of stream bucket (EOS). There is no need to sleep
+        or buffering data if the end of stream is reached.</li>
+    </ol>
+    <p>The commit linked in the beginning of the section contains also a bit of code
+    refactoring so it is not trivial to read during the first pass, but the overall
+    idea is basically what written up to now. The goal of this section is not to
+    cause an headache to the reader trying to read C code, but to put him/her into
+    the right mindset needed to use efficiently the tools offered by the httpd's
+    filter chain toolset.</p>
+  </div></div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/developer/output-filters.html" title="English">&nbsp;en&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/developer/output-filters.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

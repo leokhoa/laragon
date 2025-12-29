@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_proxy_balancer - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Modules</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache Module mod_proxy_balancer</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_proxy_balancer.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_proxy_balancer.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_proxy_balancer.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a></p>
+</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">Description:</a></th><td><code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code> extension for load balancing </td></tr>
+<tr><th><a href="module-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">Module Identifier:</a></th><td>proxy_balancer_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">Source File:</a></th><td>mod_proxy_balancer.c</td></tr>
+<tr><th><a href="module-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.1 and later</td></tr></table>
+<h3>Summary</h3>
+
+    <p>This module <em>requires</em> the service of <code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code> and it provides load balancing for
+    all the supported protocols. The most important ones are:</p>
+    <ul>
+        <li>HTTP, using <code class="module"><a href="../mod/mod_proxy_http.html">mod_proxy_http</a></code></li>
+        <li>FTP, using <code class="module"><a href="../mod/mod_proxy_ftp.html">mod_proxy_ftp</a></code></li>
+        <li>AJP13, using <code class="module"><a href="../mod/mod_proxy_ajp.html">mod_proxy_ajp</a></code></li>
+        <li>WebSocket, using <code class="module"><a href="../mod/mod_proxy_wstunnel.html">mod_proxy_wstunnel</a></code></li>
+    </ul>
+    
+    <p>The Load balancing scheduler algorithm is not provided by this
+    module but from other ones such as:</p>
+    <ul>
+        <li><code class="module"><a href="../mod/mod_lbmethod_byrequests.html">mod_lbmethod_byrequests</a></code></li>
+        <li><code class="module"><a href="../mod/mod_lbmethod_bytraffic.html">mod_lbmethod_bytraffic</a></code></li>
+        <li><code class="module"><a href="../mod/mod_lbmethod_bybusyness.html">mod_lbmethod_bybusyness</a></code></li>
+        <li><code class="module"><a href="../mod/mod_lbmethod_heartbeat.html">mod_lbmethod_heartbeat</a></code></li>
+    </ul>
+
+    <p>Thus, in order to get the ability of load balancing,
+    <code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code>, <code class="module"><a href="../mod/mod_proxy_balancer.html">mod_proxy_balancer</a></code>
+    and at least one of load balancing scheduler algorithm modules have
+    to be present in the server.</p>
+
+    <div class="warning"><h3>Warning</h3>
+      <p>Do not enable proxying until you have <a href="mod_proxy.html#access">secured your server</a>. Open proxy
+      servers are dangerous both to your network and to the Internet at
+      large.</p>
+    </div>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>Topics</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#scheduler">Load balancer scheduler algorithm</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#stickyness">Load balancer stickyness</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#example">Examples of a balancer configuration</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#environment">Exported Environment Variables</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#balancer_manager">Enabling Balancer Manager Support</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#stickyness_implementation">Details on load balancer stickyness</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#stickyness_troubleshooting">Troubleshooting load balancer stickyness</a></li>
+</ul><h3 class="directives">Directives</h3>
+<p>This module provides no
+            directives.</p>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_proxy_balancer">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_proxy_balancer">Report a bug</a></li></ul><h3>See also</h3>
+<ul class="seealso">
+<li><code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code></li>
+<li><code class="directive"><a href="../mod/mod_proxy.html#balancermember">BalancerMember</a></code></li>
+<li><code class="directive"><a href="../mod/mod_proxy.html#balancergrowth">BalancerGrowth</a></code></li>
+<li><code class="directive"><a href="../mod/mod_proxy.html#balancerpersist">BalancerPersist</a></code></li>
+<li><code class="directive"><a href="../mod/mod_proxy.html#balancerinherit">BalancerInherit</a></code></li>
+<li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="scheduler" id="scheduler">Load balancer scheduler algorithm</a></h2>
+    
+    <p>At present, there are 4 load balancer scheduler algorithms available
+    for use: Request Counting (<code class="module"><a href="../mod/mod_lbmethod_byrequests.html">mod_lbmethod_byrequests</a></code>),
+    Weighted Traffic Counting (<code class="module"><a href="../mod/mod_lbmethod_bytraffic.html">mod_lbmethod_bytraffic</a></code>),
+    Pending Request Counting (<code class="module"><a href="../mod/mod_lbmethod_bybusyness.html">mod_lbmethod_bybusyness</a></code>) and
+    Heartbeat Traffic Counting (<code class="module"><a href="../mod/mod_lbmethod_heartbeat.html">mod_lbmethod_heartbeat</a></code>).
+    These are controlled via the <code>lbmethod</code> value of
+    the Balancer definition. See the <code class="directive"><a href="../mod/mod_proxy.html#proxypass">ProxyPass</a></code>
+    directive for more information, especially regarding how to
+    configure the Balancer and BalancerMembers.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="stickyness" id="stickyness">Load balancer stickyness</a></h2>
+    
+    <p>The balancer supports stickyness. When a request is proxied
+    to some back-end, then all following requests from the same user
+    should be proxied to the same back-end. Many load balancers implement
+    this feature via a table that maps client IP addresses to back-ends.
+    This approach is transparent to clients and back-ends, but suffers
+    from some problems: unequal load distribution if clients are themselves
+    hidden behind proxies, stickyness errors when a client uses a dynamic
+    IP address that changes during a session and loss of stickyness, if the
+    mapping table overflows.</p>
+    <p>The module <code class="module"><a href="../mod/mod_proxy_balancer.html">mod_proxy_balancer</a></code> implements stickyness
+    on top of two alternative means: cookies and URL encoding. Providing the
+    cookie can be either done by the back-end or by the Apache web server
+    itself. The URL encoding is usually done on the back-end.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="example" id="example">Examples of a balancer configuration</a></h2>
+    
+    <p>Before we dive into the technical details, here's an example of
+    how you might use <code class="module"><a href="../mod/mod_proxy_balancer.html">mod_proxy_balancer</a></code> to provide
+    load balancing between two back-end servers:
+    </p>
+
+    <pre class="prettyprint lang-config">&lt;Proxy "balancer://mycluster"&gt;
+    BalancerMember "http://192.168.1.50:80"
+    BalancerMember "http://192.168.1.51:80"
+&lt;/Proxy&gt;
+ProxyPass        "/test" "balancer://mycluster"
+ProxyPassReverse "/test" "balancer://mycluster"</pre>
+
+
+    <p>Another example of how to provide load balancing with stickyness
+    using <code class="module"><a href="../mod/mod_headers.html">mod_headers</a></code>, even if the back-end server does
+    not set a suitable session cookie:
+    </p>
+
+    <pre class="prettyprint lang-config">Header add Set-Cookie "ROUTEID=.%{BALANCER_WORKER_ROUTE}e; path=/" env=BALANCER_ROUTE_CHANGED
+&lt;Proxy "balancer://mycluster"&gt;
+    BalancerMember "http://192.168.1.50:80" route=1
+    BalancerMember "http://192.168.1.51:80" route=2
+    ProxySet stickysession=ROUTEID
+&lt;/Proxy&gt;
+ProxyPass        "/test" "balancer://mycluster"
+ProxyPassReverse "/test" "balancer://mycluster"</pre>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="environment" id="environment">Exported Environment Variables</a></h2>
+    
+    <p>At present there are 6 environment variables exported:</p>
+
+    <dl>
+    
+    <dt><var><a name="balancer_session_sticky" id="balancer_session_sticky">BALANCER_SESSION_STICKY</a></var></dt>
+    <dd>
+    <p>This is assigned the <var>stickysession</var> value used for the current
+    request.  It is the name of the cookie or request parameter used for sticky sessions</p>
+    </dd>
+
+    
+    <dt><var><a name="balancer_session_route" id="balancer_session_route">BALANCER_SESSION_ROUTE</a></var></dt>
+    <dd>
+    <p>This is assigned the <var>route</var> parsed from the current
+    request.</p>
+    </dd>
+
+    
+    <dt><var><a name="balancer_name" id="balancer_name">BALANCER_NAME</a></var></dt>
+    <dd>
+    <p>This is assigned the name of the balancer used for the current
+    request. The value is something like <code>balancer://foo</code>.</p>
+    </dd>
+
+    
+    <dt><var><a name="balancer_worker_name" id="balancer_worker_name">BALANCER_WORKER_NAME</a></var></dt>
+    <dd>
+    <p>This is assigned the name of the worker used for the current request.
+    The value is something like <code>http://hostA:1234</code>.</p>
+    </dd>
+
+    
+    <dt><var><a name="balancer_worker_route" id="balancer_worker_route">BALANCER_WORKER_ROUTE</a></var></dt>
+    <dd>
+    <p>This is assigned the <var>route</var> of the worker that will be
+    used for the current request.</p>
+    </dd>
+
+    
+    <dt><var><a name="balancer_route_changed" id="balancer_route_changed">BALANCER_ROUTE_CHANGED</a></var></dt>
+    <dd>
+    <p>This is set to 1 if the session route does not match the
+    worker route (BALANCER_SESSION_ROUTE != BALANCER_WORKER_ROUTE) or the
+    session does not yet have an established route.  This can be used to
+    determine when/if the client needs to be sent an updated route
+    when sticky sessions are used.</p>
+    </dd>
+    </dl>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="balancer_manager" id="balancer_manager">Enabling Balancer Manager Support</a></h2>
+    
+    <p>This module <em>requires</em> the service of
+    <code class="module"><a href="../mod/mod_status.html">mod_status</a></code>.
+    Balancer manager enables dynamic update of balancer
+    members. You can use balancer manager to change the balance
+    factor of a particular member, or put it in the off line
+    mode.
+    </p>
+
+    <p>Thus, in order to get the ability of load balancer management,
+    <code class="module"><a href="../mod/mod_status.html">mod_status</a></code> and <code class="module"><a href="../mod/mod_proxy_balancer.html">mod_proxy_balancer</a></code>
+    have to be present in the server.</p>
+
+    <p>To enable load balancer management for browsers from the example.com
+    domain add this code to your <code>httpd.conf</code>
+    configuration file</p>
+<pre class="prettyprint lang-config">&lt;Location "/balancer-manager"&gt;
+    SetHandler balancer-manager
+    Require host example.com
+&lt;/Location&gt;</pre>
+
+
+    <p>You can now access load balancer manager by using a Web browser
+    to access the page
+    <code>http://your.server.name/balancer-manager</code>. Please note
+    that only Balancers defined outside of <code>&lt;Location ...&gt;</code>
+    containers can be dynamically controlled by the Manager.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="stickyness_implementation" id="stickyness_implementation">Details on load balancer stickyness</a></h2>
+    
+    <p>When using cookie based stickyness, you need to configure the
+    name of the cookie that contains the information about which back-end
+    to use. This is done via the <var>stickysession</var> attribute added
+    to either <code class="directive"><a href="../mod/mod_proxy.html#proxypass">ProxyPass</a></code> or
+    <code class="directive"><a href="../mod/mod_proxy.html#proxyset">ProxySet</a></code>. The name of
+    the cookie is case-sensitive. The balancer extracts the value of the
+    cookie and looks for a member worker with <var>route</var> equal
+    to that value. The <var>route</var> must also be set in either
+    <code class="directive"><a href="../mod/mod_proxy.html#proxypass">ProxyPass</a></code> or
+    <code class="directive"><a href="../mod/mod_proxy.html#proxyset">ProxySet</a></code>. The cookie can either
+    be set by the back-end, or as shown in the above
+    <a href="#example">example</a> by the Apache web server itself.</p>
+    <p>Some back-ends use a slightly different form of stickyness cookie,
+    for instance Apache Tomcat. Tomcat adds the name of the Tomcat instance
+    to the end of its session id cookie, separated with a dot (<code>.</code>)
+    from the session id. Thus if the Apache web server finds a dot in the value
+    of the stickyness cookie, it only uses the part behind the dot to search
+    for the route. In order to let Tomcat know about its instance name, you
+    need to set the attribute <code>jvmRoute</code> inside the Tomcat
+    configuration file <code>conf/server.xml</code> to the value of the
+    <var>route</var> of the worker that connects to the respective Tomcat.
+    The name of the session cookie used by Tomcat (and more generally by Java
+    web applications based on servlets) is <code>JSESSIONID</code>
+    (upper case) but can be configured to something else.</p>
+    <p>The second way of implementing stickyness is URL encoding.
+    The web server searches for a query parameter in the URL of the request.
+    The name of the parameter is specified again using <var>stickysession</var>.
+    The value of the parameter is used to lookup a member worker with <var>route</var>
+    equal to that value. Since it is not easy to extract and manipulate all
+    URL links contained in responses, generally the work of adding the parameters
+    to each link is done by the back-end generating the content.
+    In some cases it might be feasible doing
+    this via the web server using <code class="module"><a href="../mod/mod_substitute.html">mod_substitute</a></code> or
+    <code class="module"><a href="../mod/mod_sed.html">mod_sed</a></code>. This can have negative impact on performance though.</p>
+    <p>The Java standards implement URL encoding slightly different. They use
+    a path info appended to the URL using a semicolon (<code>;</code>)
+    as the separator and add the session id behind. As in the cookie case,
+    Apache Tomcat can include the configured <code>jvmRoute</code> in this path
+    info. To let Apache find this sort of path info, you neet to set
+    <code>scolonpathdelim</code> to <code>On</code> in
+    <code class="directive"><a href="../mod/mod_proxy.html#proxypass">ProxyPass</a></code> or
+    <code class="directive"><a href="../mod/mod_proxy.html#proxyset">ProxySet</a></code>.</p>
+    <p>Finally you can support cookies and URL encoding at the same time, by
+    configuring the name of the cookie and the name of the URL parameter
+    separated by a vertical bar (<code>|</code>) as in the following example:</p>
+    <pre class="prettyprint lang-config">ProxyPass "/test" "balancer://mycluster" stickysession=JSESSIONID|jsessionid scolonpathdelim=On
+&lt;Proxy "balancer://mycluster"&gt;
+    BalancerMember "http://192.168.1.50:80" route=node1
+    BalancerMember "http://192.168.1.51:80" route=node2
+&lt;/Proxy&gt;</pre>
+
+    <p>If the cookie and the request parameter both provide routing information
+    for the same request, the information from the request parameter is used.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="stickyness_troubleshooting" id="stickyness_troubleshooting">Troubleshooting load balancer stickyness</a></h2>
+    
+    <p>If you experience stickyness errors, e.g. users lose their
+    application sessions and need to login again, you first want to
+    check whether this is because the back-ends are sometimes unavailable
+    or whether your configuration is wrong. To find out about possible
+    stability problems with the back-ends, check your Apache error log
+    for proxy error messages.</p>
+    <p>To verify your configuration, first check, whether the stickyness
+    is based on a cookie or on URL encoding. Next step would be logging
+    the appropriate data in the access log by using an enhanced
+    <code class="directive"><a href="../mod/mod_log_config.html#logformat">LogFormat</a></code>.
+    The following fields are useful:</p>
+    <dl>
+    <dt><code>%{MYCOOKIE}C</code></dt>
+    <dd>The value contained in the cookie with name <code>MYCOOKIE</code>.
+    The name should be the same given in the <var>stickysession</var>
+    attribute.</dd>
+    <dt><code>%{Set-Cookie}o</code></dt>
+    <dd>This logs any cookie set by the back-end. You can track,
+    whether the back-end sets the session cookie you expect, and
+    to which value it is set.</dd>
+    <dt><code>%{BALANCER_SESSION_STICKY}e</code></dt>
+    <dd>The name of the cookie or request parameter used
+    to lookup the routing information.</dd>
+    <dt><code>%{BALANCER_SESSION_ROUTE}e</code></dt>
+    <dd>The route information found in the request.</dd>
+    <dt><code>%{BALANCER_WORKER_ROUTE}e</code></dt>
+    <dd>The route of the worker chosen.</dd>
+    <dt><code>%{BALANCER_ROUTE_CHANGED}e</code></dt>
+    <dd>Set to <code>1</code> if the route in the request
+    is different from the route of the worker, i.e.
+    the request couldn't be handled sticky.</dd>
+    </dl>
+    <p>Common reasons for loss of session are session timeouts,
+    which are usually configurable on the back-end server.</p>
+    <p>The balancer also logs detailed information about handling
+    stickyness to the error log, if the log level is set to
+    <code>debug</code> or higher. This is an easy way to
+    troubleshoot stickyness problems, but the log volume might
+    be to high for production servers under high load.</p>
+</div>
+</div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_proxy_balancer.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_proxy_balancer.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_proxy_balancer.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_proxy_balancer.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

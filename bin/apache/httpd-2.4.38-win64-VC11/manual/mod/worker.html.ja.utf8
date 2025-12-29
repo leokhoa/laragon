@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>worker - Apache HTTP サーバ バージョン 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="../">バージョン 2.4</a> &gt; <a href="./">モジュール</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache MPM worker</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="../de/mod/worker.html" hreflang="de" rel="alternate" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="../en/mod/worker.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/worker.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/worker.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../tr/mod/worker.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+<table class="module"><tr><th><a href="module-dict.html#Description">説明:</a></th><td>マルチスレッドとマルチプロセスのハイブリッド型
+ウェブサーバを実装したマルチプロセッシングモジュール</td></tr>
+<tr><th><a href="module-dict.html#Status">ステータス:</a></th><td>MPM</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">モジュール識別子:</a></th><td>mpm_worker_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">ソースファイル:</a></th><td>worker.c</td></tr></table>
+<h3>概要</h3>
+
+    <p>このマルチプロセッシングモジュール (MPM) 
+    は、マルチスレッドとマルチプロセスのハイブリッド型サーバを
+    実装しています。リクエストの応答にスレッドを使うと、
+    プロセスベースのサーバよりも少ないシステム資源で、
+    多くのリクエストに応答することができます。
+    それにもかかわらず、多くのスレッドを持った複数のプロセスを
+    維持することで、
+    プロセスベースのサーバの持つ安定性も保持しています。</p>
+
+    <p>この MPM を制御するのに使われる最も重要なディレクティブは、
+    <code class="directive"><a href="../mod/mpm_common.html#threadsperchild">ThreadsPerChild</a></code> と
+    <code class="directive"><a href="../mod/mpm_common.html#maxclients">MaxClients</a></code> です。
+    <code class="directive"><a href="../mod/mpm_common.html#threadsperchild">ThreadsPerChild</a></code> は
+    各子プロセスで用意されるスレッド数を制御して、
+    <code class="directive"><a href="../mod/mpm_common.html#maxclients">MaxClients</a></code> は
+    起動されるスレッドの総数の最大値を制限します。</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>トピック</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#how-it-works">動作方法</a></li>
+</ul><h3 class="directives">ディレクティブ</h3>
+<ul id="toc">
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#coredumpdirectory">CoreDumpDirectory</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#enableexceptionhook">EnableExceptionHook</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mod_unixd.html#group">Group</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#listen">Listen</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#listenbacklog">ListenBacklog</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#maxconnectionsperchild">MaxConnectionsPerChild</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#maxmemfree">MaxMemFree</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#maxrequestworkers">MaxRequestWorkers</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#maxsparethreads">MaxSpareThreads</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#minsparethreads">MinSpareThreads</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#pidfile">PidFile</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#receivebuffersize">ReceiveBufferSize</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#scoreboardfile">ScoreBoardFile</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#sendbuffersize">SendBufferSize</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#serverlimit">ServerLimit</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#startservers">StartServers</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#threadlimit">ThreadLimit</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#threadsperchild">ThreadsPerChild</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mpm_common.html#threadstacksize">ThreadStackSize</a></li>
+<li><img alt="" src="../images/right.gif" /> <a href="mod_unixd.html#user">User</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mpm_worker">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mpm_worker">Report a bug</a></li></ul><h3>参照</h3>
+<ul class="seealso">
+<li><a href="../bind.html">Apache 
+の使用するアドレスとポートの設定</a></li>
+<li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="how-it-works" id="how-it-works">動作方法</a></h2>
+    <p>一つの制御用プロセス (親) が子プロセスを起動します。
+    子プロセスは
+    <code class="directive"><a href="../mod/mpm_common.html#threadsperchild">ThreadsPerChild</a></code>
+    ディレクティブで指定された一定数のサーバスレッドと接続を
+    listen するスレッドを一つ作ります。
+    Listener スレッドは接続が来たときにサーバプロセスに渡します。</p>
+
+    <p>Apache は<dfn>スペアの</dfn>、つまりアイドルなサーバスレッドの
+    プールを常に維持していて、それらは入ってくるリクエストに
+    答えられるように待機しています。
+    このようにして、クライアントはリクエストの応答が得られるようになるために
+    新しいスレッドやプロセスが生成されるのを
+    待たなくてもよいようになっています。
+    起動初期時のプロセス総数は、
+    <code class="directive"><a href="../mod/mpm_common.html#startservers">StartServers</a></code>
+    ディレクティブで設定されます。稼働中に、
+    Apache は全プロセスのアイドルスレッドの合計数を見積もって、
+    <code class="directive"><a href="../mod/mpm_common.html#minsparethreads">MinSpareThreads</a></code> と
+    <code class="directive"><a href="../mod/mpm_common.html#maxsparethreads">MaxSpareThreads</a></code>
+    で指定された範囲の中にこの数が収まるように fork したり
+    kill したりします。この操作は非常に自律的なので、
+    これらのディレクティブをデフォルト値から変更する必要は
+    めったにないでしょう。
+    同時に応答することのできるクライアント数の最大数
+    (つまり全プロセス中の総スレッド数の最大値) は
+    <code class="directive"><a href="../mod/mpm_common.html#maxclients">MaxClients</a></code>
+    ディレクティブで決定されます。
+    活動中の子プロセス数の最大値は
+    <code class="directive"><a href="../mod/mpm_common.html#maxclients">MaxClients</a></code> を
+    <code class="directive"><a href="../mod/mpm_common.html#threadsperchild">ThreadsPerChild</a></code> で割った
+    ものになります。</p>
+    
+    <p>活動中の子プロセスの数と子プロセス中のサーバスレッドの数の越えられない
+    上限を設定するディレクティブが二つあります。これらはサーバを
+    完全に停止して、再起動することでしか変更することはできません。
+    <code class="directive"><a href="../mod/mpm_common.html#serverlimit">ServerLimit
+    </a></code> は活動中の子プロセスの越えられない上限を設定し、
+    <code class="directive"><a href="../mod/mpm_common.html#maxclients">MaxClients</a></code> ディレクティブ
+    の値を <code class="directive"><a href="../mod/mpm_common.html#threadsperchild">
+    ThreadsPerChild</a></code> の値で割った値以上である
+    必要があります。<code class="directive"><a href="../mod/mpm_common.html#threadlimit">ThreadLimit</a></code> は
+    サーバスレッドの越えられない上限で、<code class="directive"><a href="../mod/mpm_common.html#threadsperchild">ThreadsPerChild</a></code> ディレクティブの
+    値以上である必要があります。</p>
+
+    <p>活動中の子プロセス群に加えて、少なくとも一つのサーバスレッドが
+    既存のクライアントからの接続を扱っている終了しようとしている
+    子プロセスがある可能性があります。終了中のプロセスは <code class="directive"><a href="../mod/mpm_common.html#maxclients">MaxClients</a></code> で指定された数まで
+    存在できますが、実際に期待される数はずっと少なくなります。この
+    振舞いは各子プロセスを終了させないようにすることで回避できます。
+    これは以下の様にして実現できます。</p>
+     
+    <ul>
+      <li><code class="directive"><a href="../mod/mpm_common.html#maxrequestsperchild">
+      MaxRequestsPerChild</a></code> の値を 0 に設定する</li>
+
+      <li><code class="directive"><a href="../mod/mpm_common.html#maxsparethreads">
+      MaxSpareThreads</a></code> の値を
+      <code class="directive"><a href="../mod/mpm_common.html#maxclients">MaxClients</a></code>
+      と同じ値にする</li>
+    </ul>
+
+    <p><code class="module"><a href="../mod/worker.html">worker</a></code> MPM の典型的なプロセス・スレッド制御の
+    設定では、次のようになります。</p>
+
+    <div class="example"><p><code>
+      ServerLimit         16<br />
+      StartServers         2<br />
+      MaxClients         150<br />
+      MinSpareThreads     25<br />
+      MaxSpareThreads     75<br />
+      ThreadsPerChild     25
+    </code></p></div>
+
+    <p>通常 Unix では親プロセスは 80 番ポートにバインドするために
+    <code>root</code> で起動されますが、子プロセスやスレッドは
+    もっと低い権限のユーザで Apache によって起動されます。
+    <code class="directive"><a href="../mod/mpm_common.html#user">User</a></code> と
+    <code class="directive"><a href="../mod/mpm_common.html#group">Group</a></code> ディレクティブは
+    Apache の子プロセスの権限を設定するのに用いられます。
+    子プロセスはクライアントに送るコンテンツ全てを読めないといけませんが、
+    可能な限り必要最小限の権限のみを持っているようにするべきです。
+    さらに、<code class="program"><a href="../programs/suexec.html">suexec</a></code>
+    が使用されていない限り、これらのディレクティブは
+    CGI スクリプトで継承される権限も設定します。</p>
+
+    <p><code class="directive"><a href="../mod/mpm_common.html#maxrequestsperchild">MaxRequestsPerChild</a></code>
+    は、古いプロセスを停止して新しいプロセスを起動することによって、
+    どの程度の頻度でサーバがプロセスをリサイクルするかを制御します。</p>
+</div>
+</div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="../de/mod/worker.html" hreflang="de" rel="alternate" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="../en/mod/worker.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/worker.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/worker.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../tr/mod/worker.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/worker.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

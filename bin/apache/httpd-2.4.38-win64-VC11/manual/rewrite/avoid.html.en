@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>When not to use mod_rewrite - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Rewrite</a></div><div id="page-content"><div id="preamble"><h1>When not to use mod_rewrite</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/rewrite/avoid.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/rewrite/avoid.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a></p>
+</div>
+
+
+<p>This document supplements the <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>
+<a href="../mod/mod_rewrite.html">reference documentation</a>. It describes
+perhaps one of the most important concepts about <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> - namely,
+when to avoid using it.</p>
+
+<p><code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> should be considered a last resort, when other
+alternatives are found wanting. Using it when there are simpler
+alternatives leads to configurations which are confusing, fragile, and
+hard to maintain. Understanding what other alternatives are available is
+a very important step towards <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> mastery.</p>
+
+<p>Note that many of these examples won't work unchanged in your
+particular server configuration, so it's important that you understand
+them, rather than merely cutting and pasting the examples into your
+configuration.</p>
+
+<p>The most common situation in which <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> is
+the right tool is when the very best solution requires access to the
+server configuration files, and you don't have that access. Some
+configuration directives are only available in the server configuration
+file. So if you are in a hosting situation where you only have .htaccess
+files to work with, you may need to resort to
+<code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>.</p>
+
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#redirect">Simple Redirection</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#alias">URL Aliasing</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#vhosts">Virtual Hosting</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxy">Simple Proxying</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#setenv">Environment Variable Testing</a></li>
+</ul><h3>See also</h3><ul class="seealso"><li><a href="../mod/mod_rewrite.html">Module documentation</a></li><li><a href="intro.html">mod_rewrite introduction</a></li><li><a href="remapping.html">Redirection and remapping</a></li><li><a href="access.html">Controlling access</a></li><li><a href="vhosts.html">Virtual hosts</a></li><li><a href="proxy.html">Proxying</a></li><li><a href="rewritemap.html">Using RewriteMap</a></li><li><a href="advanced.html">Advanced techniques</a></li><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="redirect" id="redirect">Simple Redirection</a></h2>
+
+
+<p><code class="module"><a href="../mod/mod_alias.html">mod_alias</a></code> provides the <code class="directive"><a href="../mod/mod_alias.html#redirect">Redirect</a></code> and <code class="directive"><a href="../mod/mod_alias.html#redirectmatch">RedirectMatch</a></code> directives, which provide a
+means to redirect one URL to another. This kind of simple redirection of
+one URL, or a class of URLs, to somewhere else, should be accomplished
+using these directives rather than <code class="directive"><a href="../mod/mod_rewrite.html#rewriterule">RewriteRule</a></code>. <code>RedirectMatch</code>
+allows you to include a regular expression in your redirection criteria,
+providing many of the benefits of using <code>RewriteRule</code>.</p>
+
+<p>A common use for <code>RewriteRule</code> is to redirect an entire
+class of URLs. For example, all URLs in the <code>/one</code> directory
+must be redirected to <code>http://one.example.com/</code>, or perhaps
+all <code>http</code> requests must be redirected to
+<code>https</code>.</p>
+
+<p>These situations are better handled by the <code>Redirect</code>
+directive. Remember that <code>Redirect</code> preserves path
+information. That is to say, a redirect for a URL <code>/one</code> will
+also redirect all URLs under that, such as <code>/one/two.html</code>
+and <code>/one/three/four.html</code>.</p>
+
+<p>To redirect URLs under <code>/one</code> to
+<code>http://one.example.com</code>, do the following:</p>
+
+<pre class="prettyprint lang-config">Redirect "/one/" "http://one.example.com/"</pre>
+
+
+<p>To redirect one hostname to another, for example
+<code>example.com</code> to <code>www.example.com</code>, see the
+<a href="remapping.html#canonicalhost">Canonical Hostnames</a>
+recipe.</p>
+
+<p>To redirect <code>http</code> URLs to <code>https</code>, do the
+following:</p>
+
+<pre class="prettyprint lang-config">&lt;VirtualHost *:80&gt;
+    ServerName www.example.com
+    Redirect "/" "https://www.example.com/"
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost *:443&gt;
+    ServerName www.example.com
+    # ... SSL configuration goes here
+&lt;/VirtualHost&gt;</pre>
+
+
+<p>The use of <code>RewriteRule</code> to perform this task may be
+appropriate if there are other <code>RewriteRule</code> directives in
+the same scope. This is because, when there are <code>Redirect</code>
+and <code>RewriteRule</code> directives in the same scope, the
+<code>RewriteRule</code> directives will run first, regardless of the
+order of appearance in the configuration file.</p>
+
+<p>In the case of the <em>http-to-https</em> redirection, the use of
+<code>RewriteRule</code> would be appropriate if you don't have access
+to the main server configuration file, and are obliged to perform this
+task in a <code>.htaccess</code> file instead.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="alias" id="alias">URL Aliasing</a></h2>
+<p>The <code class="directive"><a href="../mod/mod_alias.html#alias">Alias</a></code> directive
+provides mapping from a URI to a directory - usually a directory outside
+of your <code class="directive"><a href="../mod/core.html#documentroot">DocumentRoot</a></code>. Although it
+is possible to perform this mapping with <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>,
+<code class="directive"><a href="../mod/mod_alias.html#alias">Alias</a></code> is the preferred method, for
+reasons of simplicity and performance.</p>
+
+<div class="example"><h3>Using Alias</h3><pre class="prettyprint lang-config">Alias "/cats" "/var/www/virtualhosts/felines/htdocs"</pre>
+</div>
+
+<p>
+The use of <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> to perform this mapping may be
+appropriate when you do not have access to the server configuration
+files. Alias may only be used in server or virtualhost context, and not
+in a <code>.htaccess</code> file.
+</p>
+
+<p>Symbolic links would be another way to accomplish the same thing, if
+you have <code>Options FollowSymLinks</code> enabled on your
+server.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="vhosts" id="vhosts">Virtual Hosting</a></h2>
+<p>Although it is possible to handle <a href="vhosts.html">virtual hosts
+with mod_rewrite</a>, it is seldom the right way. Creating individual
+<code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> blocks is
+almost always the right way to go. In the
+event that you have an enormous number of virtual hosts, consider using
+<code class="module"><a href="../mod/mod_vhost_alias.html">mod_vhost_alias</a></code> to create these hosts automatically.</p>
+
+<p>Modules such as <code class="module"><a href="../mod/mod_macro.html">mod_macro</a></code> are
+also useful for creating a large number of virtual hosts dynamically.</p>
+
+<p>Using <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> for vitualhost creation may be
+appropriate if you are using a hosting service that does not provide
+you access to the server configuration files, and you are therefore
+restricted to configuration using <code>.htaccess</code> files.</p>
+
+<p>See the <a href="vhosts.html">virtual hosts with mod_rewrite</a>
+document for more details on how you might accomplish this if it still
+seems like the right approach.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="proxy" id="proxy">Simple Proxying</a></h2>
+
+<p><code class="directive"><a href="../mod/mod_rewrite.html#rewriterule">RewriteRule</a></code> provides the <a href="flags.html#flag_p">[P]</a> flag to pass rewritten URIs through
+<code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code>.</p>
+
+<pre class="prettyprint lang-config">RewriteRule "^/?images(.*)" "http://imageserver.local/images$1" [P]</pre>
+
+
+<p>However, in many cases, when there is no actual pattern matching
+needed, as in the example shown above, the <code class="directive"><a href="../mod/mod_proxy.html#proxypass">ProxyPass</a></code> directive is a better choice.
+The example here could be rendered as:</p>
+
+<pre class="prettyprint lang-config">ProxyPass "/images/" "http://imageserver.local/images/"</pre>
+
+
+<p>Note that whether you use <code class="directive"><a href="../mod/mod_rewrite.html#rewriterule">RewriteRule</a></code> or <code class="directive"><a href="../mod/mod_proxy.html#proxypass">ProxyPass</a></code>, you'll still need to use the
+<code class="directive"><a href="../mod/mod_proxy.html#proxypassreverse">ProxyPassReverse</a></code> directive to
+catch redirects issued from the back-end server:</p>
+
+<pre class="prettyprint lang-config">ProxyPassReverse "/images/" "http://imageserver.local/images/"</pre>
+
+
+<p>You may need to use <code>RewriteRule</code> instead when there are
+other <code>RewriteRule</code>s in effect in the same scope, as a
+<code>RewriteRule</code> will usually take effect before a
+<code>ProxyPass</code>, and so may preempt what you're trying to
+accomplish.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="setenv" id="setenv">Environment Variable Testing</a></h2>
+
+<p><code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> is frequently used to take a particular
+action based on the presence or absence of a particular environment
+variable or request header. This can be done more efficiently using the
+<code class="directive"><a href="../mod/core.html#if">&lt;If&gt;</a></code>.</p>
+
+<p>Consider, for example, the common scenario where
+<code class="directive">RewriteRule</code> is used to enforce a canonical
+hostname, such as <code>www.example.com</code> instead of
+<code>example.com</code>. This can be done using the <code class="directive"><a href="../mod/core.html#if">&lt;If&gt;</a></code> directive, as shown here:</p>
+
+<pre class="prettyprint lang-config">&lt;If "req('Host') != 'www.example.com'"&gt;
+    Redirect "/" "http://www.example.com/"
+&lt;/If&gt;</pre>
+
+
+<p>This technique can be used to take actions based on any request
+header, response header, or environment variable, replacing
+<code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> in many common scenarios.</p>
+
+<p>See especially the <a href="../expr.html">expression evaluation
+documentation</a> for a overview of what types of expressions you can
+use in <code class="directive"><a href="../mod/core.html#if">&lt;If&gt;</a></code> sections,
+and in certain other directives.</p>
+
+</div></div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/rewrite/avoid.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/rewrite/avoid.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/rewrite/avoid.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

@@ -1,0 +1,658 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_md - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Modules</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache Module mod_md</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_md.html" title="English">&nbsp;en&nbsp;</a></p>
+</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">Description:</a></th><td>Managing domains across virtual hosts, certificate provisioning 
+        via the ACME protocol
+    </td></tr>
+<tr><th><a href="module-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">Module Identifier:</a></th><td>md_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">Source File:</a></th><td>mod_md.c</td></tr>
+<tr><th><a href="module-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.4.30 and later</td></tr></table>
+<h3>Summary</h3>
+
+        <p>
+        This module manages common properties of domains for one or more virtual hosts. 
+        Specifically it can use the ACME protocol
+        (<a href="https://datatracker.ietf.org/doc/draft-ietf-acme-acme/">RFC Draft</a>) 
+        to automate certificate provisioning. These will be configured for managed domains and
+        their virtual hosts automatically. This includes renewal of certificates before they
+        expire. The most famous Certificate Authority currently implementing the ACME protocol
+        is <a href="https://letsencrypt.org/">Let's Encrypt</a>.</p>
+        
+        <div class="warning"><h3>Warning</h3>
+            <p>This module is experimental. Its behaviors, directives, and 
+                defaults are subject to more change from release to 
+                release relative to other standard modules. Users are encouraged to 
+                consult the "CHANGES" file for potential updates.</p>
+        </div>
+
+        <p>Simple configuration example:</p>
+        
+        <div class="note"><h3>TLS in a VirtualHost context</h3>
+        <pre class="prettyprint lang-config">MDomain example.org
+
+&lt;VirtualHost *:443&gt;
+    ServerName example.org
+    DocumentRoot htdocs/a
+
+    SSLEngine on
+    # no certificates specification
+&lt;/VirtualHost&gt;</pre>
+
+        <p>
+            This setup will, on server start, contact
+            <a href="https://letsencrypt.org/">Let's Encrypt</a>
+            to request a certificate for the domain. If Let's Encrypt can verify the ownership
+            of the domain, the module will retrieve the certificate and its chain, store it
+            in the local file system (see <code class="directive"><a href="#mdstoredir">MDStoreDir</a></code>)
+            and provide it, on next restart, to <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code>.
+        </p><p>
+            This happens while the server is already running. All other hosts will continue
+            to work as before. While a certificate is not available, requests for the managed
+            domain will be answered with a '503 Service Unavailable'. 
+        </p>
+        </div>
+
+        <div class="note"><h3>Prerequisites</h3>
+        <p>
+            This module requires <code class="module"><a href="../mod/mod_watchdog.html">mod_watchdog</a></code> to be loaded as well.
+        </p><p>
+            Certificate signup and renewal with Let's Encrypt requires your server to be
+            reachable on port 80 (http:) from the outside. The alternative method over
+            port 443 (https:) is currently disabled for security reasons (status from
+            2018-01-14).
+        </p><p>
+            The module will select from the methods offered by Let's Encrypt. If LE decides
+            at one point in the future, to re-enable it again, <code class="module"><a href="../mod/mod_md.html">mod_md</a></code> will
+            use it when suitable.
+        </p><p>
+            But for now, only the port 80 variant is available (termed "http-01"). Only
+            when LE can reach your server on port 80 will <code class="module"><a href="../mod/mod_md.html">mod_md</a></code> work for
+            you. For now, at least.
+        </p><p>
+            If you do not want to offer any sites on port 80 any more, you may leave it open
+            and redirect all requests to your https: sites instead. Use the
+            <code class="directive"><a href="#mdrequirehttps">MDRequireHttps</a></code> described below to do
+            that in a convenient fashion. This will continue to answer http: challenges
+            from Let's Encrypt. 
+        </p>
+        </div>
+    </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3 class="directives">Directives</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#mdbaseserver">MDBaseServer</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mdcachallenges">MDCAChallenges</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mdcertificateagreement">MDCertificateAgreement</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mdcertificateauthority">MDCertificateAuthority</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mdcertificateprotocol">MDCertificateProtocol</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mddrivemode">MDDriveMode</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mdhttpproxy">MDHttpProxy</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mdmember">MDMember</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mdmembers">MDMembers</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mdmuststaple">MDMustStaple</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mdnotifycmd">MDNotifyCmd</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mdomain">MDomain</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mdomainsetsection">&lt;MDomainSet&gt;</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mdportmap">MDPortMap</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mdprivatekeys">MDPrivateKeys</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mdrenewwindow">MDRenewWindow</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mdrequirehttps">MDRequireHttps</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mdstoredir">MDStoreDir</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_md">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_md">Report a bug</a></li></ul><h3>See also</h3>
+<ul class="seealso">
+<li><a href="#comments_section">Comments</a></li></ul></div>
+
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MDBaseServer" id="MDBaseServer">MDBaseServer</a> <a name="mdbaseserver" id="mdbaseserver">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Control if base server may be managed or only virtual hosts.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MDBaseServer on|off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>MDBaseServer off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_md</td></tr>
+</table>
+            <p>
+            Controls if the base server, the one outside all VirtualHosts should be managed by 
+            <code class="module"><a href="../mod/mod_md.html">mod_md</a></code> or not. Default is to not do this, for the very reason that 
+            it may have confusing side-effects. It is recommended that you have virtual hosts 
+            for all managed domains and do not rely on the global, fallback server configuration.
+            </p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MDCAChallenges" id="MDCAChallenges">MDCAChallenges</a> <a name="mdcachallenges" id="mdcachallenges">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Type of ACME challenge used to prove domain ownership.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MDCAChallenges <var>name</var> [ <var>name</var> ... ]</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>MDCAChallenges tls-sni-01 http-01</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_md</td></tr>
+</table>
+            <p>
+                Sets challenge types and their execution order when proving domain ownership.
+                The names are protocol specific.
+                The current ACME protocol version implemented by Let's Encrypt defines two challenge
+                types that are supported by <code class="module"><a href="../mod/mod_md.html">mod_md</a></code>. By default, it will try
+                the one on port 443 when available.
+            </p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MDCertificateAgreement" id="MDCertificateAgreement">MDCertificateAgreement</a> <a name="mdcertificateagreement" id="mdcertificateagreement">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>The URL of the Terms-of-Service document, that the CA server requires you to accept.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MDCertificateAgreement <var>url-of-terms-of-service</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_md</td></tr>
+</table>
+            <p>When you use <code class="module"><a href="../mod/mod_md.html">mod_md</a></code> to obtain a certificate, you become a customer of the CA (e.g. Let's Encrypt). That means you need to read and agree to their Terms of Service, 
+            so that you understand what they offer and what they might exclude or require from you. 
+            <code class="module"><a href="../mod/mod_md.html">mod_md</a></code> cannot, by itself, agree to such a thing. 
+            </p>
+            <p>In case of Let's Encrypt, their current <a href="https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf">Terms of Service are here</a>. 
+            Those terms might (and probably will) change over time. So, the certificate renewal might require you to update this agreement URL.</p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">MDCertificateAgreement https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf
+MDomain example.org www.example.org mail.example.org</pre>
+</div>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MDCertificateAuthority" id="MDCertificateAuthority">MDCertificateAuthority</a> <a name="mdcertificateauthority" id="mdcertificateauthority">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>The URL of the ACME Certificate Authority service.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MDCertificateAuthority <var>url</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>MDCertificateAuthority https://acme-v01.api.letsencrypt.org/directory</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_md</td></tr>
+</table>
+            <p>
+                The URL where the CA offers its service.
+            </p><p>
+                Let's Encrypt offers, right now, two such URLs. One for the real certificates and
+                one for testing (their staging area, at https://acme-staging.api.letsencrypt.org/directory).
+                In order to have <code class="module"><a href="../mod/mod_md.html">mod_md</a></code> use this testing service, configure your
+                server like this: 
+            </p>
+            <div class="example"><h3>LE Staging Setup</h3><pre class="prettyprint lang-config">MDCertificateAuthority https://acme-staging.api.letsencrypt.org/directory
+MDCertificateAgreement https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf</pre>
+</div>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MDCertificateProtocol" id="MDCertificateProtocol">MDCertificateProtocol</a> <a name="mdcertificateprotocol" id="mdcertificateprotocol">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>The protocol to use with the Certificate Authority.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MDCertificateProtocol <var>protocol</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>MDCertificateProtocol ACME</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_md</td></tr>
+</table>
+            <p>Specifies the protocol to use. Currently, only <code>ACME</code> is supported.</p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MDDriveMode" id="MDDriveMode">MDDriveMode</a> <a name="mddrivemode" id="mddrivemode">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Control when it is allowed to obtain/renew certificates.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MDDriveMode always|auto|manual</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>MDDriveMode auto</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_md</td></tr>
+</table>
+            <p>In 'auto' mode, <code class="module"><a href="../mod/mod_md.html">mod_md</a></code> will <em>drive</em> a Managed Domain's
+            properties (e.g. certificate management) whenever necessary. When a MD is not used
+            in any virtual host, the module will do nothing. When a certificate is missing, it
+            will try to get one. When a certificate expires soon (see 
+            <code class="directive"><a href="#mdrenewwindow">MDRenewWindow</a></code>), it will
+            renew it.
+            </p><p>
+            In 'manual' mode, it is your duty to do all this. The module will provide the existing
+            certificate to <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code>, if available. But it will not contact the CA for signup/renewal.
+            This can be useful in clustered setups where you want just one node to perform
+            the driving.
+            </p><p>
+            The third mode 'always' is like 'auto', with the difference that
+            <code class="module"><a href="../mod/mod_md.html">mod_md</a></code> will not check if the MD is actually used. 
+            </p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MDHttpProxy" id="MDHttpProxy">MDHttpProxy</a> <a name="mdhttpproxy" id="mdhttpproxy">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Define a proxy for outgoing connections.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MDHttpProxy <var>url</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_md</td></tr>
+</table>
+            <p>Use a http proxy to connect to the MDCertificateAuthority. Define this
+            if your webserver can only reach the internet with a forward proxy.
+            </p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MDMember" id="MDMember">MDMember</a> <a name="mdmember" id="mdmember">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Additional hostname for the managed domain.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MDMember <var>hostname</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_md</td></tr>
+</table>
+            <p>
+            Instead of listing all dns names on the same line, you may use
+            <code class="directive">MDMember</code> to add such names
+            to a managed domain.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">&lt;MDomainSet example.org&gt;
+    MDMember www.example.org
+    MDMember mail.example.org
+&lt;/MDomainSet example.org&gt;</pre>
+</div>
+            <p>
+               If you use it in the global context, outside a specific MD, you can only
+               specify one value, 'auto' or 'manual' as the default for all other MDs. See
+               <code class="directive"><a href="#mdomain">MDomain</a></code> for a
+               description of these special values.
+            </p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MDMembers" id="MDMembers">MDMembers</a> <a name="mdmembers" id="mdmembers">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Control if the alias domain names are automatically added.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MDMembers auto|manual</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>MDMembers auto</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_md</td></tr>
+</table>
+            <p>Defines if the <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code> and
+               <code class="directive"><a href="../mod/core.html#serveralias">ServerAlias</a></code> values of a VirtualHost
+               are automatically added to the members of a Managed Domain or not.
+            </p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MDMustStaple" id="MDMustStaple">MDMustStaple</a> <a name="mdmuststaple" id="mdmuststaple">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Control if new certificates carry the OCSP Must Staple flag.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MDMustStaple on|off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>MDMustStaple off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_md</td></tr>
+</table>
+            <p>Defines if newly requested certificate should have the OCSP Must Staple flag 
+            set or not. If a certificate has this flag, the server is required to send a 
+            OCSP stapling response to every client. This only works if you configure 
+            <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> to generate this (see <code class="directive"><a href="../mod/mod_ssl.html#sslusestapling">SSLUseStapling</a></code>
+            and friends).
+            </p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MDNotifyCmd" id="MDNotifyCmd">MDNotifyCmd</a> <a name="mdnotifycmd" id="mdnotifycmd">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Run a program when Managed Domain are ready.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MDNotifyCmd <var>path</var> [ <var>args</var> ]</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_md</td></tr>
+</table>
+            <p>The configured executable is run when Managed Domains have signed up or
+            renewed their certificates. It is given the names of the processed MDs as
+            additional arguments (after the parameters specified here). It should 
+            return status code 0 to indicate that it has run successfully.
+            </p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MDomain" id="MDomain">MDomain</a> <a name="mdomain" id="mdomain">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Define list of domain names that belong to one group.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MDomain <var>dns-name</var> [ <var>other-dns-name</var>... ] [auto|manual]</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_md</td></tr>
+</table>
+            <p>
+                All the names in the list are managed as one Managed Domain (MD). 
+                <code class="module"><a href="../mod/mod_md.html">mod_md</a></code> will request one single certificate that is valid for all these names. This
+                directive uses the global settings (see other MD directives below). If you
+                need specific settings for one MD, use
+                the <code class="directive"><a href="#mdomainset">&lt;MDomainSet&gt;</a></code>.
+            </p><p>
+                There are 2 additional settings that are necessary for a Managed Domain:
+                <code class="directive"><a href="../mod/core.html#serveradmin">ServerAdmin</a></code>
+                and <code class="directive"><a href="#mdcertificateagreement">MDCertificateAgreement</a></code>.
+                The mail address of <code class="directive"><a href="../mod/core.html#serveradmin">ServerAdmin</a></code>
+                is used to register at the CA (Let's Encrypt by default).
+                The CA may use it to notify you about
+                changes in its service or status of your certificates.
+            </p><p>
+                The second setting, <code class="directive"><a href="#mdcertificateagreement">MDCertificateAgreement</a></code>, 
+                is the URL of the Terms of Service of the CA. When you configure the URL, 
+                you confirm that you have read and agree to the terms described in the linked 
+                document. Before you do that, the CA will  not hand out certificates to you.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">ServerAdmin mailto:admin@example.org
+MDCertificateAgreement https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf
+MDomain example.org www.example.org
+
+&lt;VirtualHost *:443&gt;
+    ServerName example.org
+    DocumentRoot htdocs/root
+
+    SSLEngine on
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost *:443&gt;
+    ServerName www.example.org
+    DocumentRoot htdocs/www
+
+    SSLEngine on
+&lt;/VirtualHost&gt;</pre>
+</div>
+            <p>
+                There are two special names that you may use in this directive: 'manual'
+                and 'auto'. This determines if a Managed Domain shall have exactly the 
+                name list as is configured ('manual') or offer more convenience. With 'auto'
+                all names of a virtual host are added to a MD. Conventiently, 'auto' is also
+                the default.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">MDomain example.org
+
+&lt;VirtualHost *:443&gt;
+    ServerName example.org
+    ServerAlias www.example.org
+    DocumentRoot htdocs/root
+
+    SSLEngine on
+&lt;/VirtualHost&gt;
+
+MDomain example2.org auto
+
+&lt;VirtualHost *:443&gt;
+    ServerName example2.org
+    ServerAlias www.example2.org
+    ...
+&lt;/VirtualHost&gt;</pre>
+</div>
+            <p>
+                In this example, the domain 'www.example.org' is automatically added to
+                the MD 'example.org'. Similarly for 'example2.org' where 'auto' is configured
+                explicitly. Whenever you add more ServerAlias names to this
+                virtual host, they will be added as well to the Managed Domain.
+            </p><p>
+                If you prefer to explicitly declare all the domain names, use 'manual' mode. 
+                An error will be logged if the names do not match with the expected ones.
+            </p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MDomainSetsection" id="MDomainSetsection">&lt;MDomainSet&gt;</a> <a name="mdomainsetsection" id="mdomainsetsection">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Container for directives applied to the same managed domains.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>&lt;MDomainSet <var>dns-name</var> [ <var>other-dns-name</var>... ]&gt;...&lt;/MDomainSet&gt;</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_md</td></tr>
+</table>
+            <p>
+                This directive allows you to define a Managed Domain (MD) with specific
+                settings, different from the global MD* ones. For example, you can have
+                such an MD use another CA then Let's Encrypt, have its unique renewal duration
+                etc.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">&lt;MDomainSet sandbox.example.org&gt;
+    MDCertificateAuthority   https://someotherca.com/ACME
+    MDCertificateAgreement   https://someotherca.com/terms/v_1.02.pdf
+&lt;/MDomainSet&gt;</pre>
+</div>
+        <p>This is a specialized version of <code class="directive"><a href="#mdomain">MDomain</a></code>,
+        it should be used only when a fine grained configuration is required.
+        <code class="directive"><a href="#mdomain">MDomain</a></code> is the suggested choice
+        for the general use case.</p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MDPortMap" id="MDPortMap">MDPortMap</a> <a name="mdportmap" id="mdportmap">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Map external to internal ports for domain ownership verification.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MDPortMap <var>map1</var> [ <var>map2</var> ]</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>MDPortMap 80:80 443:443</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_md</td></tr>
+</table>
+            <p>
+                The ACME protocol provides two methods to verify domain ownership: one that uses
+                port 80 and one for port 443. If your server is not reachable by at least one
+                of the two, ACME will not work for you.
+            </p><p>
+                <code class="module"><a href="../mod/mod_md.html">mod_md</a></code> will look at your server configuration and try to figure
+                out which of those are available. Then it can select the proper ACME challenge
+                to create a certificate for your site.
+            </p><p>
+                However if you have some fancy port forwarding in place, your server may be
+                reachable from the Internet on port 443, but the local port that httpd uses is
+                another one. Your server might only listen on ports 5001 and 5002, but be reached
+                on ports 443 and 80. How should <code class="module"><a href="../mod/mod_md.html">mod_md</a></code> figure that one out?
+            </p><p>
+                With <code class="directive">MDPortMap</code> you can tell it which 'Internet port'
+                corresponds to which local port.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">MDPortMap 80:- 443:5002</pre>
+</div>
+            <p>
+                This example says that the server is not reachable on port 80 from the outside, but
+                local port 5002 is the one responding to https: requests.
+            </p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MDPrivateKeys" id="MDPrivateKeys">MDPrivateKeys</a> <a name="mdprivatekeys" id="mdprivatekeys">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Set type and size of the private keys generated.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MDPrivateKeys <var>type</var> [ <var>params</var>... ]</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>MDPrivateKeys RSA 2048</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_md</td></tr>
+</table>
+            <p>
+                Defines what kind of private keys are generated for a managed domain and with
+                what parameters. The only supported type right now is 'RSA' and the only parameter
+                it takes is the number of bits used for the key.
+            </p><p>
+                The current (2017) recommendation is at least 2048 bits and a smaller number is
+                not accepted here. Higher numbers offer longer security, but are computationally more 
+                expensive, e.g. increase the load on your server. That might or might not be an
+                issue for you.
+            </p><p>
+                Other key types will be defined in the future.
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">MDPrivateKeys RSA 3072</pre>
+</div>
+            <p>
+                Please note that this setting only has an effect on new keys. Any existing
+                private key you have remains unaffected. Also, this only affects private keys
+                generated for certificates. ACME account keys are unaffected by this.
+            </p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MDRenewWindow" id="MDRenewWindow">MDRenewWindow</a> <a name="mdrenewwindow" id="mdrenewwindow">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Control when a certificate will be renewed.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MDRenewWindow <var>duration</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>MDRenewWindow 33%</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_md</td></tr>
+</table>
+            <p>
+            If the validity of the certificate falls below duration, <code class="module"><a href="../mod/mod_md.html">mod_md</a></code>
+            will get a new signed certificate.
+            </p><p>
+            Normally, certificates are valid for around 90 days and <code class="module"><a href="../mod/mod_md.html">mod_md</a></code> will renew 
+            them the earliest 33% of their complete lifetime before they expire (so for 
+            90 days validity, 30 days before it expires). If you think this is not what 
+            you need, you can specify either the exact time, as in:
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config"># 21 days before expiry
+MDRenewWindow 21d 
+# 30 seconds (might be close)
+MDRenewWindow 30s
+# 10% of the cert lifetime
+MDRenewWindow 10%</pre>
+</div>
+            <p>When in auto drive mode, the module will check every 12 hours at least 
+            what the status of the managed domains is and if it needs to do something. 
+            On errors, for example when the CA is unreachable, it will initially retry 
+            after some seconds. Should that continue to fail, it will back off to a 
+            maximum interval of hourly checks.
+            </p>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MDRequireHttps" id="MDRequireHttps">MDRequireHttps</a> <a name="mdrequirehttps" id="mdrequirehttps">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Redirects http: traffic to https: for Managed Domains.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MDRequireHttps off|temporary|permanent</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>MDRequireHttps off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_md</td></tr>
+</table>
+            <p>This is a convenience directive to ease http: to https: migration of 
+            your Managed Domains. With:
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">MDRequireHttps temporary</pre>
+</div>
+            <p>you announce that you want all traffic via http: URLs to be redirected 
+            to the https: ones, for now. This is safe and you can remove this again at
+            any time.
+            </p><p>
+                <strong>The following has consequences: </strong>if you want client to <strong>no longer</strong> use the
+             http: URLs, configure:
+            </p>
+            <div class="example"><h3>Permanent (for at least half a year!)</h3><pre class="prettyprint lang-config">MDRequireHttps permanent</pre>
+</div>
+            <p>This does two things:
+            </p>
+            <ol>
+                <li>All request to the <code>http:</code> resources are redirected to the
+                    same url with the <code>https:</code> scheme using the <code>301</code>
+                status code. This tells clients that this is intended to be forever and
+                the should update any links they have accordingly.
+                </li>
+                <li>All answers to <code>https:</code> requests will carry the header
+                    <code>Strict-Transport-Security</code> with a life time of half a year.
+                    This tells the browser that it <strong>never</strong> (for half a year) shall use <code>http:</code>
+                    when talking to this domain name. Browsers will, after having seen this, refuse
+                    to contact your unencrypted site. This prevents malicious middleware to
+                    downgrade connections and listen/manipulate the traffic. Which is good. But
+                    you cannot simply take it back again.
+                </li>
+            </ol>
+            <p>You can achieve the same with <code class="module"><a href="../mod/mod_alias.html">mod_alias</a></code> and some
+            <code class="directive"><a href="../mod/mod_alias.html#redirect">Redirect</a></code> configuration,
+            basically. If you do it yourself, please make sure to exclude the paths 
+            /.well-known/* from your redirection, otherwise <code class="module"><a href="../mod/mod_md.html">mod_md</a></code> 
+            might have trouble signing on new certificates.
+            </p>
+            <p>If you set this globally, it applies to all managed domains. If you want 
+            it for a specific domain only, use:
+            </p>
+            <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">&lt;MDomainSet xxx.yyy&gt;
+  MDRequireHttps temporary
+&lt;/MDomainSet&gt;</pre>
+</div>
+        
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MDStoreDir" id="MDStoreDir">MDStoreDir</a> <a name="mdstoredir" id="mdstoredir">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Path on the local file system to store the Managed Domains data.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MDStoreDir path</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>MDStoreDir md</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_md</td></tr>
+</table>
+            <p>
+                Defines where on the local file system the Managed Domain data is stored. This is
+                an absolute path or interpreted relative to the server root. The default will create
+                a directory 'md' in your server root.
+            </p><p>
+                If you move this and have already data, be sure to move/copy the data first to
+                the new location, reconfigure and then restart the server. If you reconfigure
+                and restart first, the server will try to get new certificates that it thinks
+                are missing.
+            </p>
+        
+</div>
+</div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_md.html" title="English">&nbsp;en&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_md.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

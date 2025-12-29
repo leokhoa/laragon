@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="tr" xml:lang="tr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Apache HTTP Sunucusu ve DNS ile ilgili Konular - Apache HTTP Sunucusu Sürüm 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">Modüller</a> | <a href="./mod/directives.html">Yönergeler</a> | <a href="http://wiki.apache.org/httpd/FAQ">SSS</a> | <a href="./glossary.html">Terimler</a> | <a href="./sitemap.html">Site Haritası</a></p>
+<p class="apache">Apache HTTP Sunucusu Sürüm 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Sunucusu</a> &gt; <a href="http://httpd.apache.org/docs/">Belgeleme</a> &gt; <a href="./">Sürüm 2.4</a></div><div id="page-content"><div id="preamble"><h1>Apache HTTP Sunucusu ve DNS ile ilgili Konular</h1>
+<div class="toplang">
+<p><span>Mevcut Diller: </span><a href="./en/dns-caveats.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/dns-caveats.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/dns-caveats.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/dns-caveats.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/dns-caveats.html" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+    <p>Bu sayfanın konusu şöyle özetlenebilirdi: Yapılandırma dosyalarınızda
+      DNS sorguları yapılmasını gerektirecek ayarlamalardan kaçınınız. Eğer
+      yapılandırma dosyalarınızda DNS sorgusu yapılarak çözümlenebilecek
+      adresler bulunursa sunucunuz beklenmedik davranışlar (hiç
+      başlamayabilir) gösterebileceği gibi hizmet reddi veya hizmet
+      hırsızlığı (bazı sanal konakların diğerlerine giden sayfaları çalma
+      olasılığı dahil) saldırılarına açık hale gelebilir.</p>
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#example">Basit Bir Örnek</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#denial">Hizmet Reddi</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#main">"Ana Sunucu" Adresi</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#tips">Bu Sorunlardan Kaçınmak için İpuçları</a></li>
+</ul><h3>Ayrıca bakınız:</h3><ul class="seealso"><li><a href="#comments_section">Yorum</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="example" id="example">Basit Bir Örnek</a></h2>
+    
+
+    <pre class="prettyprint lang-config"># Bu yetersiz bir yapılandırma örneğidir, sunucunuzda kullanmayın.
+&lt;VirtualHost falan.fesmekan.dom&gt;
+  ServerAdmin filanca@fesmekan.dom
+  DocumentRoot "/siteler/fesmekan"
+&lt;/VirtualHost&gt;</pre>
+
+
+    <p>httpd’nin beklendiği gibi işlemesi için her sanal konak için iki
+      veriye mutlaka ihtiyacı vardır: <code class="directive"><a href="./mod/core.html#servername">ServerName</a></code> ve sunucunun bağlantı kabul edip hizmet
+      sunacağı en az bir IP adresi. Yukarıdaki örnekte IP adresi
+      bulunmamaktadır, dolayısıyla Apache, <code>falan.fesmekan.dom</code>
+      adresi için bir DNS sorgusu yapmak zorundadır. Eğer sunucu,
+      yapılandırma dosyasını çözümlediği sırada bir sebeple DNS sunucusuna
+      erişemezse bu sanal konak <em>yapılandırılmayacak</em> ve bu sanal konağa
+      yapılan isteklere yanıt verilemeyecektir.</p>
+
+    <p><code>falan.fesmekan.dom</code>’un 192.168.2.1 IP adresine sahip
+      olduğunu varsayarsak yapılandırma şöyle olurdu:</p>
+
+    <pre class="prettyprint lang-config"># Bu yetersiz bir yapılandırma örneğidir, sunucunuzda kullanmayın.
+&lt;VirtualHost 192.168.2.1&gt;
+  ServerAdmin filanca@fesmekan.dom
+  DocumentRoot "/siteler/fesmekan"
+&lt;/VirtualHost&gt;</pre>
+
+
+    <p>Ancak, bu sefer de bu sanal konağın sunucu ismini öğrenmek için
+      httpd’nin bir ters DNS sorgusu yapması gerekecektir. Eğer bu sorgu
+      başarısız olursa kısmi bir yapılandırmaya gidilir.
+      Eğer sanal konak isme dayalı ise sanal konak
+      kısmen bile yapılandırılmaz. IP’ye dayalı sanal konaklar büyük oranda
+      çalışır, fakat (örneğin, bir Redirect varlığında olduğu gibi) sunucu ismini
+      içeren tam bir adres üretilmesini gerektiren bir durumda, sunucu geçerli
+      bir adres üretemez.</p>
+
+    <p>Her iki sorunu da çözen yapılandırma şöyle olurdu:</p>
+
+    <pre class="prettyprint lang-config">&lt;VirtualHost 192.168.2.1&gt;
+  ServerName falan.fesmekan.dom
+  ServerAdmin filanca@fesmekan.dom
+  DocumentRoot "/siteler/fesmekan"
+&lt;/VirtualHost&gt;</pre>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="denial" id="denial">Hizmet Reddi</a></h2>
+    
+
+    <p>Şöyle bir yapılandırmanız olsun:</p>
+
+    <pre class="prettyprint lang-config">&lt;VirtualHost falan.fesmekan.dom&gt;
+  ServerAdmin filanca@fesmekan.dom
+  DocumentRoot "/siteler/fesmekan"
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost misal.mesela.dom&gt;
+  ServerAdmin falanca@mesela.dom
+  DocumentRoot "/siteler/mesela"
+&lt;/VirtualHost&gt;</pre>
+
+
+    <p><code>falan.fesmekan.dom</code>’a 192.168.2.1,
+      <code>misal.mesela.dom</code>’a 192.168.2.2 atadığınızı fakat,
+      <code>mesela.dom</code>’un DNS kaydının sizin denetiminizde olmadığını
+      varsayalım. Bu yapılandırmayla, <code>mesela.dom</code>’u
+      <code>fesmekan.dom</code>’a giden tüm trafiği çalabilecek duruma
+      getirirsiniz. Bunu gerçekleştirmek için DNS kaydında
+      <code>misal.mesela.dom</code>’a 192.168.2.1 adresinin atanması
+      yeterlidir. Kendi DNS’lerine sahip olduklarından dolayı
+      <code>misal.mesela.dom</code>’a istedikleri IP adresini atamaktan
+      onları alıkoyamazsınız.</p>
+
+    <p>192.168.2.1’e gelen isteklerin hepsine
+      (<code>http://falan.fesmekan.dom/biryer</code> şeklinde yazılan
+      adresler dahil) <code>mesela.dom</code> sanal konağınca hizmet
+      sunulacaktır. Apache’nin gelen istekleri sunduğu sanal konaklarla nasıl
+      eşleştirdiğini bilirseniz bunun sebebini kolayca anlarsınız. Bunu
+      kabataslak açıklayan  <a href="vhosts/details.html">bir belgemiz
+      mevcuttur</a>.</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="main" id="main">"Ana Sunucu" Adresi</a></h2>
+    
+
+    <p><a href="vhosts/name-based.html">İsme dayalı sanal konak
+      desteği</a>, httpd’nin çalıştığı makinenin IP adres(ler)ini de bilmesini
+      gerektirir. Bu adresi elde etmek için sunucu, ya sunucu genelinde geçerli
+      <code class="directive"><a href="./mod/core.html#servername">ServerName</a></code> yönergesine bakar ya da bir
+      C işlevi olan <code>gethostname</code>’i kullanır (işlev, komut
+      isteminden <code>hostname</code> komutuna dönen yanıtın aynısını
+      döndürür) ve ardından bu adresle ilgili olarak bir DNS sorgusu yapar.
+      Bu sorgudan kaçınmanın henüz bir yolu yoktur.</p>
+
+    <p>Eğer bu sorgunun (DNS sunucusunun çökmüş olması gibi bir nedenle)
+      başarısız olabileceğinden korkuyorsanız, makine ismini ve IP adresini
+      <code>/etc/hosts</code> dosyanıza yazabilirsiniz (Makinenizin düzgün
+      olarak açılabilmesi için zaten bu kaydı yapmış olmanız gerekir).
+      Kullandığınız işletim sistemine bağlı olarak bu kaydın
+      <code>/etc/resolv.conf</code> veya <code>/etc/nsswitch.conf</code>
+      dosyasında bulunması gerekebilir.</p>
+
+    <p>Herhangi bir nedenle sunucunuz bir DNS sorgusu yapmıyorsa veya
+      yapmamalıysa, httpd’yi <code>HOSTRESORDER</code> ortam değişkenine
+      "<code>local</code>" değerini atadıktan sonra çalıştırabilirsiniz. Bu
+      tamamen işletim sistemine ve kullandığınız çözümleyici kütüphanelere
+      bağlıdır. Ayrıca, ortamı denetlemek için <code class="module"><a href="./mod/mod_env.html">mod_env</a></code>
+      kullanmıyorsanız, CGI’ler de bundan etkilenir. En iyisi işletim
+      sisteminizin SSS belgelerini ve kılavuz sayfalarını okumaktır.</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="tips" id="tips">Bu Sorunlardan Kaçınmak için İpuçları</a></h2>
+    
+
+    <ul>
+      <li><code class="directive"><a href="./mod/core.html#virtualhost">VirtualHost</a></code> yönergelerinizde
+        IP adresleri kullanınız.</li>
+
+      <li><code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code> yönergelerinizde
+        IP adresleri kullanınız.</li>
+
+      <li>Tüm sanal konakların ayrı birer <code class="directive"><a href="./mod/core.html#servername">ServerName</a></code> yönergesi olsun.</li>
+
+      <li>Hiçbir sayfa sunulmayan bir <code>&lt;VirtualHost
+        _default_:*&gt;</code> sanal konağınız olsun.</li>
+    </ul>
+  </div></div>
+<div class="bottomlang">
+<p><span>Mevcut Diller: </span><a href="./en/dns-caveats.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/dns-caveats.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/dns-caveats.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/dns-caveats.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/dns-caveats.html" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Yorum</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/dns-caveats.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br /><a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> altında lisanslıdır.</p>
+<p class="menu"><a href="./mod/">Modüller</a> | <a href="./mod/directives.html">Yönergeler</a> | <a href="http://wiki.apache.org/httpd/FAQ">SSS</a> | <a href="./glossary.html">Terimler</a> | <a href="./sitemap.html">Site Haritası</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

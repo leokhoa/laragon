@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_mime_magic - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Modules</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache Module mod_mime_magic</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_mime_magic.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_mime_magic.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a></p>
+</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">Description:</a></th><td>Determines the MIME type of a file
+    by looking at a few bytes of its contents</td></tr>
+<tr><th><a href="module-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">Module Identifier:</a></th><td>mime_magic_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">Source File:</a></th><td>mod_mime_magic.c</td></tr></table>
+<h3>Summary</h3>
+
+    <p>This module determines the <a class="glossarylink" href="../glossary.html#mime-type" title="see glossary">MIME
+    type</a> of files in the same way the Unix
+    <code>file(1)</code> command works: it looks at the first few
+    bytes of the file. It is intended as a "second line of defense"
+    for cases that <code class="module"><a href="../mod/mod_mime.html">mod_mime</a></code> can't resolve.</p>
+
+    <p>This module is derived from a free version of the
+    <code>file(1)</code> command for Unix, which uses "magic
+    numbers" and other hints from a file's contents to figure out
+    what the contents are. This module is active only if the magic
+    file is specified by the <code class="directive"><a href="#mimemagicfile">MimeMagicFile</a></code> directive.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>Topics</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#format">Format of the Magic File</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#performance">Performance Issues</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#notes">Notes</a></li>
+</ul><h3 class="directives">Directives</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#mimemagicfile">MimeMagicFile</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_mime_magic">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_mime_magic">Report a bug</a></li></ul><h3>See also</h3>
+<ul class="seealso">
+<li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="format" id="format">Format of the Magic File</a></h2>
+
+    <p>The contents of the file are plain ASCII text in 4-5
+    columns. Blank lines are allowed but ignored. Commented lines
+    use a hash mark (<code>#</code>). The remaining lines are parsed for
+    the following columns:</p>
+
+    <table class="bordered"><tr class="header"><th>Column</th><th>Description</th></tr>
+<tr><td>1</td>
+        <td>byte number to begin checking from<br />
+         "<code>&gt;</code>" indicates a dependency upon the previous
+         non-"<code>&gt;</code>" line</td></tr>
+<tr class="odd"><td>2</td>
+        <td><p>type of data to match</p>
+        <table class="bordered">
+        
+        <tr><td><code>byte</code></td>
+            <td>single character</td></tr>
+        <tr><td><code>short</code></td>
+            <td>machine-order 16-bit integer</td></tr>
+        <tr><td><code>long</code></td>
+            <td>machine-order 32-bit integer</td></tr>
+        <tr><td><code>string</code></td>
+            <td>arbitrary-length string</td></tr>
+        <tr><td><code>date</code></td>
+            <td>long integer date (seconds since Unix epoch/1970)</td></tr>
+        <tr><td><code>beshort</code></td>
+            <td>big-endian 16-bit integer</td></tr>
+        <tr><td><code>belong</code></td>
+            <td>big-endian 32-bit integer</td></tr>
+        <tr><td><code>bedate</code></td>
+            <td>big-endian 32-bit integer date</td></tr>
+        <tr><td><code>leshort</code></td>
+            <td>little-endian 16-bit integer</td></tr>
+        <tr><td><code>lelong</code></td>
+            <td>little-endian 32-bit integer</td></tr>
+        <tr><td><code>ledate</code></td>
+            <td>little-endian 32-bit integer date</td></tr>
+        </table></td></tr>
+<tr><td>3</td>
+        <td>contents of data to match</td></tr>
+<tr class="odd"><td>4</td>
+        <td>MIME type if matched</td></tr>
+<tr><td>5</td>
+        <td>MIME encoding if matched (optional)</td></tr>
+</table>
+
+    <p>For example, the following magic file lines would recognize
+    some audio formats:</p>
+
+    <div class="example"><pre># Sun/NeXT audio data
+0      string      .snd
+&gt;12    belong      1       audio/basic
+&gt;12    belong      2       audio/basic
+&gt;12    belong      3       audio/basic
+&gt;12    belong      4       audio/basic
+&gt;12    belong      5       audio/basic
+&gt;12    belong      6       audio/basic
+&gt;12    belong      7       audio/basic
+&gt;12    belong     23       audio/x-adpcm</pre></div>
+
+    <p>Or these would recognize the difference between <code>*.doc</code>
+    files containing Microsoft Word or FrameMaker documents. (These are
+    incompatible file formats which use the same file suffix.)</p>
+
+    <div class="example"><pre># Frame
+0  string  \&lt;MakerFile        application/x-frame
+0  string  \&lt;MIFFile          application/x-frame
+0  string  \&lt;MakerDictionary  application/x-frame
+0  string  \&lt;MakerScreenFon   application/x-frame
+0  string  \&lt;MML              application/x-frame
+0  string  \&lt;Book             application/x-frame
+0  string  \&lt;Maker            application/x-frame
+
+# MS-Word
+0  string  \376\067\0\043            application/msword
+0  string  \320\317\021\340\241\261  application/msword
+0  string  \333\245-\0\0\0           application/msword</pre></div>
+
+    <p>An optional MIME encoding can be included as a fifth column.
+    For example, this can recognize gzipped files and set the
+    encoding for them.</p>
+
+    <div class="example"><pre># gzip (GNU zip, not to be confused with
+#       [Info-ZIP/PKWARE] zip archiver)
+
+0  string  \037\213  application/octet-stream  x-gzip</pre></div>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="performance" id="performance">Performance Issues</a></h2>
+    <p>This module is not for every system. If your system is barely
+    keeping up with its load or if you're performing a web server
+    benchmark, you may not want to enable this because the
+    processing is not free.</p>
+
+    <p>However, an effort was made to improve the performance of
+    the original <code>file(1)</code> code to make it fit in a busy web
+    server. It was designed for a server where there are thousands of users
+    who publish their own documents. This is probably very common
+    on intranets. Many times, it's helpful if the server can make
+    more intelligent decisions about a file's contents than the
+    file name allows ...even if just to reduce the "why doesn't my
+    page work" calls when users improperly name their own files.
+    You have to decide if the extra work suits your
+    environment.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="notes" id="notes">Notes</a></h2>
+    <p>The following notes apply to the <code class="module"><a href="../mod/mod_mime_magic.html">mod_mime_magic</a></code>
+    module and are included here for compliance with contributors'
+    copyright restrictions that require their acknowledgment.</p>
+
+    <div class="note">
+      <p>mod_mime_magic: MIME type lookup via file magic numbers<br />
+      Copyright (c) 1996-1997 Cisco Systems, Inc.</p>
+
+      <p>This software was submitted by Cisco Systems to the Apache Group
+      in July 1997. Future revisions and derivatives of this source code
+      must acknowledge Cisco Systems as the original contributor of this
+      module. All other licensing and usage conditions are those of the
+      Apache Group.</p>
+
+      <p>Some of this code is derived from the free version of the file
+      command originally posted to comp.sources.unix. Copyright info for
+      that program is included below as required.</p>
+    </div>
+
+    <div class="note">
+      <p> - Copyright (c) Ian F. Darwin, 1987. Written by Ian F. Darwin.</p>
+
+      <p>This software is not subject to any license of the American
+      Telephone and Telegraph Company or of the Regents of the University
+      of California.</p>
+
+      <p>Permission is granted to anyone to use this software for any
+      purpose on any computer system, and to alter it and redistribute it
+      freely, subject to the following restrictions:</p>
+
+      <ol>
+        <li>The author is not responsible for the consequences of use of
+        this software, no matter how awful, even if they arise from flaws
+        in it.</li>
+
+        <li>The origin of this software must not be misrepresented, either
+        by explicit claim or by omission. Since few users ever read
+        sources, credits must appear in the documentation.</li>
+
+        <li>Altered versions must be plainly marked as such, and must not
+        be misrepresented as being the original software. Since few users
+        ever read sources, credits must appear in the documentation.</li>
+
+        <li>This notice may not be removed or altered.</li>
+      </ol>
+    </div>
+
+    <div class="note">
+      <p>For compliance with Mr Darwin's terms: this has been very
+      significantly modified from the free "file" command.</p>
+
+      <ul>
+        <li>all-in-one file for compilation convenience when moving from
+        one version of Apache to the next.</li>
+
+        <li>Memory allocation is done through the Apache API's pool
+        structure.</li>
+
+        <li>All functions have had necessary Apache API request or server
+        structures passed to them where necessary to call other Apache API
+        routines. (<em>i.e.</em>, usually for logging, files, or memory
+        allocation in itself or a called function.)</li>
+
+        <li>struct magic has been converted from an array to a single-ended
+        linked list because it only grows one record at a time, it's only
+        accessed sequentially, and the Apache API has no equivalent of
+        <code>realloc()</code>.</li>
+
+        <li>Functions have been changed to get their parameters from the
+        server configuration instead of globals.  (It should be reentrant
+        now but has not been tested in a threaded environment.)</li>
+
+        <li>Places where it used to print results to stdout now saves them
+        in a list where they're used to set the MIME type in the Apache
+        request record.</li>
+
+        <li>Command-line flags have been removed since they will never be
+        used here.</li>
+      </ul>
+    </div>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="MimeMagicFile" id="MimeMagicFile">MimeMagicFile</a> <a name="mimemagicfile" id="mimemagicfile">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Enable MIME-type determination based on file contents
+using the specified magic file</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>MimeMagicFile <var>file-path</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_mime_magic</td></tr>
+</table>
+    <p>The <code class="directive">MimeMagicFile</code> directive can be used to
+    enable this module, the default file is distributed at
+    <code>conf/magic</code>. Non-rooted paths are relative to the
+    <code class="directive"><a href="../mod/core.html#serverroot">ServerRoot</a></code>. Virtual hosts will use
+    the same file as the main server unless a more specific setting is
+    used, in which case the more specific setting overrides the main
+    server's file.</p>
+
+    <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">MimeMagicFile conf/magic</pre>
+</div>
+
+</div>
+</div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_mime_magic.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_mime_magic.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_mime_magic.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_ext_filter - Apache HTTP サーバ バージョン 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="../">バージョン 2.4</a> &gt; <a href="./">モジュール</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache モジュール mod_ext_filter</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="../en/mod/mod_ext_filter.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_ext_filter.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_ext_filter.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_ext_filter.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+<table class="module"><tr><th><a href="module-dict.html#Description">説明:</a></th><td>レスポンスのボディをクライアントに送る前に外部プログラムで処理する</td></tr>
+<tr><th><a href="module-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">モジュール識別子:</a></th><td>ext_filter_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">ソースファイル:</a></th><td>mod_ext_filter.c</td></tr></table>
+<h3>概要</h3>
+
+    <p><code class="module"><a href="../mod/mod_ext_filter.html">mod_ext_filter</a></code> では <a href="../filter.html">フィルタ</a>
+    の慣れ親しんだ単純なプログラミングモデルが提供されます。このモジュールを
+    使えば、標準入力から読み込んで、標準出力に書き出すプログラム
+    (すなわち Unix 形式のフィルタコマンド) を Apache のフィルタにすることが
+    できます。このフィルタの機構は、Apache API 向けに書かれた Apache
+    サーバプロセス内で実行される専用のフィルタよりもずっと遅いですが、
+    以下のような利点もあります。</p>
+
+    <ul>
+      <li>ずっとシンプルなプログラミングモデル</li>
+
+      <li>プログラムが標準入力から読んで標準出力に書くものである限り、
+      どんなプログラム言語やスクリプト言語でも使うことができる</li>
+
+      <li>既存のプログラムを変更することなく Apache のフィルタとして
+      使うことができる</li>
+    </ul>
+
+    <p>性能の問題により実運用に適さないとしても、フィルタのプロトタイプ用の
+    環境としては <code class="module"><a href="../mod/mod_ext_filter.html">mod_ext_filter</a></code> は使えます。</p>
+
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>トピック</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#examples">例</a></li>
+</ul><h3 class="directives">ディレクティブ</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#extfilterdefine">ExtFilterDefine</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#extfilteroptions">ExtFilterOptions</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_ext_filter">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_ext_filter">Report a bug</a></li></ul><h3>参照</h3>
+<ul class="seealso">
+<li><a href="../filter.html">フィルタ</a></li>
+<li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="examples" id="examples">例</a></h2>
+
+    <h3>他のタイプのレスポンスから HTML を生成する</h3>
+      <div class="example"><p><code>
+        # mod_ext_filter directive to define a filter<br />
+        # to HTML-ize text/c files using the external<br />
+        # program /usr/bin/enscript, with the type of<br />
+        # the result set to text/html<br />
+        ExtFilterDefine c-to-html mode=output \<br />
+        <span class="indent">
+          intype=text/c outtype=text/html \<br />
+          cmd="/usr/bin/enscript --color -W html -Ec -o - -"<br />
+        </span>
+        <br />
+        &lt;Directory "/export/home/trawick/apacheinst/htdocs/c"&gt;<br />
+        <span class="indent">
+          # core directive to cause the new filter to<br />
+          # be run on output<br />
+          SetOutputFilter c-to-html<br />
+          <br />
+          # mod_mime directive to set the type of .c<br />
+          # files to text/c<br />
+          AddType text/c .c<br />
+          <br />
+          # mod_ext_filter directive to set the debug<br />
+          # level just high enough to see a log message<br />
+          # per request showing the configuration in force<br />
+          ExtFilterOptions DebugLevel=1<br />
+        </span>
+        &lt;/Directory&gt;
+      </code></p></div>
+    
+
+    <h3>コンテントエンコーディングのフィルタを実装する</h3>
+      <p>注: この gzip の例はデモ用です。実用的な実装は
+      <code class="module"><a href="../mod/mod_deflate.html">mod_deflate</a></code> を参照してください。</p>
+
+      <div class="example"><p><code>
+        # mod_ext_filter directive to define the external filter<br />
+        ExtFilterDefine gzip mode=output cmd=/bin/gzip<br />
+        <br />
+        &lt;Location /gzipped&gt;<br />
+        <span class="indent">
+          # core directive to cause the gzip filter to be<br />
+          # run on output<br />
+          SetOutputFilter gzip<br />
+          <br />
+          # mod_header directive to add<br />
+          # "Content-Encoding: gzip" header field<br />
+          Header set Content-Encoding gzip<br />
+        </span>
+        &lt;/Location&gt;
+      </code></p></div>
+    
+
+    <h3>サーバを遅くする</h3>
+      <div class="example"><p><code>
+        # mod_ext_filter directive to define a filter<br />
+        # which runs everything through cat; cat doesn't<br />
+        # modify anything; it just introduces extra pathlength<br />
+        # and consumes more resources<br />
+        ExtFilterDefine slowdown mode=output cmd=/bin/cat \<br />
+        <span class="indent">
+          preservescontentlength<br />
+        </span>
+        <br />
+        &lt;Location /&gt;<br />
+        <span class="indent">
+          # core directive to cause the slowdown filter to<br />
+          # be run several times on output<br />
+          #<br />
+          SetOutputFilter slowdown;slowdown;slowdown<br />
+        </span>
+        &lt;/Location&gt;
+      </code></p></div>
+    
+
+    <h3>sed を使って応答中のテキストを置換する</h3>
+      <div class="example"><p><code>
+        # mod_ext_filter directive to define a filter which<br />
+        # replaces text in the response<br />
+        #<br />
+        ExtFilterDefine fixtext mode=output intype=text/html \<br />
+        <span class="indent">
+          cmd="/bin/sed s/verdana/arial/g"<br />
+        </span>
+        <br />
+        &lt;Location /&gt;<br />
+        <span class="indent">
+          # core directive to cause the fixtext filter to<br />
+          # be run on output<br />
+          SetOutputFilter fixtext<br />
+        </span>
+        &lt;/Location&gt;
+      </code></p></div>
+    
+
+    <h3>別のフィルタのトレース</h3>
+      <div class="example"><p><code>
+        # Trace the data read and written by mod_deflate<br />
+        # for a particular client (IP 192.168.1.31)<br />
+        # experiencing compression problems.<br />
+        # This filter will trace what goes into mod_deflate.<br />
+        ExtFilterDefine tracebefore \<br />
+        <span class="indent">
+          cmd="/bin/tracefilter.pl /tmp/tracebefore" \<br />
+          EnableEnv=trace_this_client<br />
+        </span>
+        <br />
+        # This filter will trace what goes after mod_deflate.<br />
+        # Note that without the ftype parameter, the default<br />
+        # filter type of AP_FTYPE_RESOURCE would cause the<br />
+        # filter to be placed *before* mod_deflate in the filter<br />
+        # chain.  Giving it a numeric value slightly higher than<br />
+        # AP_FTYPE_CONTENT_SET will ensure that it is placed<br />
+        # after mod_deflate.<br />
+        ExtFilterDefine traceafter \<br />
+        <span class="indent">
+          cmd="/bin/tracefilter.pl /tmp/traceafter" \<br />
+          EnableEnv=trace_this_client ftype=21<br />
+        </span>
+        <br />
+        &lt;Directory /usr/local/docs&gt;<br />
+        <span class="indent">
+          SetEnvIf Remote_Addr 192.168.1.31 trace_this_client<br />
+          SetOutputFilter tracebefore;deflate;traceafter<br />
+        </span>
+        &lt;/Directory&gt;
+      </code></p></div>
+
+      <div class="example"><h3>データをトレースするフィルタ:</h3><p><code>
+        #!/usr/local/bin/perl -w<br />
+        use strict;<br />
+        <br />
+        open(SAVE, "&gt;$ARGV[0]")<br />
+        <span class="indent">
+          or die "can't open $ARGV[0]: $?";<br />
+        </span>
+        <br />
+        while (&lt;STDIN&gt;) {<br />
+        <span class="indent">
+          print SAVE $_;<br />
+          print $_;<br />
+        </span>
+        }<br />
+        <br />
+        close(SAVE);
+      </code></p></div>
+    
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ExtFilterDefine" id="ExtFilterDefine">ExtFilterDefine</a> <a name="extfilterdefine" id="extfilterdefine">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>外部フィルタを定義</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>ExtFilterDefine <var>filtername</var> <var>parameters</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_ext_filter</td></tr>
+</table>
+    <p><code class="directive">ExtFilterDefine</code> は、実行するプログラムや
+    引数など、外部フィルタの特性を定義します。</p>
+
+    <p><var>filtername</var> は定義するフィルタの名前を指定します。
+    この名前は後で <code class="directive"><a href="../mod/core.html#setoutputfilter">SetOutputFilter</a></code>
+    ディレクティブで指定できます。名前は登録されるすべてのフィルタで
+    一意でなくてはなりません。<em>現時点では、フィルタの登録 API からは
+    エラーは報告されません。ですから、重複する名前を使ってしまったときでも
+    ユーザにはそのことは報告されません。</em></p>
+
+    <p>続くパラメータの順番は関係無く、それらは実行する外部コマンドと、
+    他の特性を定義します。<code>cmd=</code> だけが必須のパラメータです。
+    指定可能なパラメータは:</p>
+
+    <dl>
+      <dt><code>cmd=<var>cmdline</var></code></dt>
+
+      <dd><code>cmd=</code> キーワードは実行する外部コマンドを指定します。
+      プログラム名の後に引数がある場合は、コマンド行は引用符で囲む
+      必要があります (<em>例えば</em>、<code>cmd="<var>/bin/mypgm</var>
+      <var>arg1</var> <var>arg2</var>"</code> のように)。プログラムは
+      シェル経由でなく、直接実行されますので、通常のシェル用の
+      エスケープは必要ありません。プログラムの引数は空白で区切られます。
+      プログラムの引数の一部となる必要のある空白はバックスペースでエスケープ
+      できます。引数の一部になるバックスラッシュはバックスラッシュで
+      エスケープする必要があります。標準の CGI 環境変数に加えて、
+      環境変数 DOCUMENT_URI, DOCUMENT_PATH_INFO, and 
+      QUERY_STRING_UNESCAPED がプログラムのために設定されます。</dd>
+
+      <dt><code>mode=<var>mode</var></code></dt>
+
+      <dd>応答を処理するフィルタには <code>mode=output</code> (デフォルト)
+      を使います。リクエストを処理するフィルタには <code>mode=input</code>
+      を使います。<code>mode=input</code> は Apache 2.1 以降で利用可能です。</dd>
+
+      <dt><code>intype=<var>imt</var></code></dt>
+
+      <dd>このパラメータはフィルタされるべきドキュメントの
+      インターネットメディアタイプ (<em>すなわち</em>、MIME タイプ) を
+      指定します。デフォルトではすべてのドキュメントがフィルタされます。
+      <code>intype=</code> が指定されていれば、フィルタは指定されていない
+      ドキュメントには適用されなくなります。</dd>
+
+      <dt><code>outtype=<var>imt</var></code></dt>
+
+      <dd>このパラメータはフィルタされたドキュメントの
+      インターネットメディアタイプ (<em>すなわち</em>、MIME タイプ) を
+      指定します。フィルタ動作にともなってインターネットメディアタイプが
+      変わる場合に有用です。デフォルトではインターネットメディアタイプは
+      変更されません。</dd>
+
+      <dt><code>PreservesContentLength</code></dt>
+
+      <dd><code>PreservesContentLength</code> キーワードはフィルタが
+      content length <span class="transnote">(<em>訳注:</em> コンテントの長さ)</span>
+      を変更しないということを指定します。ほとんどのフィルタは
+      content length を変更するため、これはデフォルトではありません。
+      フィルタが長さを変えないときは、このキーワードを指定すると
+      よいでしょう。</dd>
+
+      <dt><code>ftype=<var>filtertype</var></code></dt>
+
+      <dd>このパラメータはフィルタが登録されるべきフィルタタイプの
+      数値を指定します。ほとんどの場合は、デフォルトの AP_FTYPE_RESOURCE で
+      十分です。フィルタがフィルタチェーンの別の場所で動作する必要がある
+      場合は、このパラメータを指定する必要があります。指定可能な値は
+      util_filter.h の AP_FTYPE_foo 定義を参照してください。</dd>
+
+      <dt><code>disableenv=<var>env</var></code></dt>
+
+      <dd>設定されていた場合にフィルタを無効にするための環境変数を
+      指定します。</dd>
+
+      <dt><code>enableenv=<var>env</var></code></dt>
+
+      <dd>このパラメータはフィルタが有効になるために設定されていなければ
+      ならない環境変数を指定します。</dd>
+    </dl>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ExtFilterOptions" id="ExtFilterOptions">ExtFilterOptions</a> <a name="extfilteroptions" id="extfilteroptions">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td><code class="module"><a href="../mod/mod_ext_filter.html">mod_ext_filter</a></code> のオプションを設定</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>ExtFilterOptions <var>option</var> [<var>option</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>ExtFilterOptions DebugLevel=0 NoLogStderr</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>ディレクトリ</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_ext_filter</td></tr>
+</table>
+    <p><code class="directive">ExtFilterOptions</code> ディレクティブは
+    <code class="module"><a href="../mod/mod_ext_filter.html">mod_ext_filter</a></code> の特別な処理用のオプションを
+    指定します。<var>Option</var> には以下のどれかを指定します。</p>
+
+    <dl>
+      <dt><code>DebugLevel=<var>n</var></code></dt>
+
+      <dd>
+        <code>DebugLevel</code> で <code class="module"><a href="../mod/mod_ext_filter.html">mod_ext_filter</a></code> 
+        の生成するデバッグメッセージのレベルを設定できます。
+        デフォルトでは、デバッグメッセージは生成されません。
+        これは <code>DebugLevel=0</code> と設定するのと同じです。
+        数字が大きくなればなるほど、より多くのデバッグメッセージが
+        生成され、サーバの性能は落ちます。数値の実際の意味は
+        <code>mod_ext_filter.c</code> の先頭近くの DBGLVL_ 定数の
+        定義で説明されています。
+
+        <p>注: デバッグメッセージを Apache のエラーログに
+        保存するようにするためには、core のディレクティブ 
+        <code class="directive"><a href="../mod/core.html#loglevel">LogLevel</a></code> 
+        を使う必要があります。</p>
+      </dd>
+
+      <dt><code>LogStderr | NoLogStderr</code></dt>
+
+      <dd><code>LogStderr</code> キーワードは外部フィルタプログラムにより
+      標準エラー <span class="transnote">(<em>訳注:</em> stderr)</span> に書かれたメッセージを
+      Apache のエラーログに保存するようにします。<code>NoLogStderr</code> は
+      逆に保存しないようにします。</dd>
+    </dl>
+
+    <div class="example"><h3>例</h3><p><code>
+      ExtFilterOptions LogStderr DebugLevel=0
+    </code></p></div>
+
+    <p>この例では、フィルタの標準出力に書かれたメッセージは
+    Apache のエラーログに保存されます。<code class="module"><a href="../mod/mod_ext_filter.html">mod_ext_filter</a></code> からは
+    デバッグメッセージは生成されません。</p>
+
+</div>
+</div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="../en/mod/mod_ext_filter.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_ext_filter.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_ext_filter.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_ext_filter.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_ext_filter.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

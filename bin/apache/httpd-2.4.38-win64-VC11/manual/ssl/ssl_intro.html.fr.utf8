@@ -1,0 +1,727 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Chiffrement SSL/TLS fort :  Introduction - Serveur HTTP Apache Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p>
+<p class="apache">Serveur HTTP Apache Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">Serveur HTTP</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">SSL/TLS</a></div><div id="page-content"><div id="preamble"><h1>Chiffrement SSL/TLS fort :  Introduction</h1>
+<div class="toplang">
+<p><span>Langues Disponibles: </span><a href="../en/ssl/ssl_intro.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/ssl/ssl_intro.html" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/ssl/ssl_intro.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a></p>
+</div>
+
+
+<p>Ce chapitre en guise d'introduction est destiné aux lecteurs pour lesquels
+le Web, HTTP et Apache sont familiers, mais ne sont pas des experts en matière
+de sécurité. Il n'a pas la prétention d'être un guide détaillé sur le
+protocole SSL, il ne traitera pas non plus des techniques spécifiques de gestion
+des certificats dans une organisation, ni des importants problèmes légaux de
+brevets ou des restrictions d'importation ou d'exportation. Il se veut plutôt
+une base de travail pour les utilisateurs de <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> en
+rassemblant différents concepts, définitions et exemples comme point de départ
+pour une exploration plus détaillée.</p>
+
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#cryptographictech">Techniques de chiffrement</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#certificates">Certificats</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ssl">Couche Points d'Accès Sécurisés - Secure Sockets Layer (SSL)</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#references">Références</a></li>
+</ul><h3>Voir aussi</h3><ul class="seealso"><li><a href="#comments_section">Commentaires</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="cryptographictech" id="cryptographictech">Techniques de chiffrement</a></h2>
+
+<p>La maîtrise de SSL nécessite la compréhension des algorithmes de
+chiffrement, des fonctions relatives aux empreintes de messages (comme les
+fonctions de type hash ou non réversibles), et des signatures numériques. Ces
+techniques pourraient faire l'objet d'un ouvrage à elles seules (voir par
+exemple [<a href="#AC96">AC96</a>]) et constituent les bases de la
+confidentialité, de l'intégrité et de l'authentification.</p>
+
+<h3><a name="cryptographicalgo" id="cryptographicalgo">Algorithmes de chiffrement</a></h3>
+
+    <p>Supposons qu'Alice veuille envoyer un message à sa banque pour
+    transférer une certaine somme. Alice souhaiterait que le message soit
+    privé, car il contient des informations comme son numéro de compte et le
+    montant du transfert. Une solution consisterait à utiliser un algorithme de
+    chiffrement, technique qui permet de remplacer un message par sa version
+    chiffrée, illisible jusqu'à ce qu'elle soit déchiffrée.
+    Sous sa forme chiffrée,
+    le message ne peut être déchiffré qu'en utilisant une clé secrète. Sans la
+    clé, le message est inutilisable : les bons algorithmes de chiffrement
+    rendent si difficile la restitution du texte original par des intrus que
+    ceux-ci y gaspilleraient leurs efforts.</p>
+
+    <p>Il existe deux catégories d'algorithmes de chiffrement : conventionnel
+    ou à clé publique.</p>
+
+    <dl>
+    <dt>Chiffrement conventionnel</dt>
+    <dd>aussi connu sous le nom de chiffrement symétrique, il nécessite le
+    partage d'une clé entre l'expéditeur et le destinataire : une portion
+    d'information secrète permettant de chiffrer et déchiffrer un message.
+    Tant que cette clé reste secrète, personne à part l'expéditeur et le
+    destinataire ne peut lire le message. Si Alice et sa banque partagent une
+    clé secrète, ils peuvent donc s'envoyer l'un à l'autre des messages privés.
+    Le fait de partager une clé entre l'expéditeur et le destinataire avant
+    de communiquer, tout en la maintenant secrète vis à vis des autres, peut
+    toutefois poser des problèmes.</dd>
+
+    <dt>Chiffrement à clé publique</dt>
+    <dd>aussi connu sous le nom de chiffrement asymétrique, il résoud le
+    problème d'échange de clé en définissant un algorithme qui utilise deux
+    clés, chacune d'entre elles pouvant être utilisée pour chiffrer un message.
+    Si une des clés a été utilisée pour chiffrer le message, on doit utiliser
+    l'autre clé pour le déchiffrer. Il est ainsi possible de recevoir des
+    messages sécurisés simplement en rendant publique une des clés (la clé
+    publique), et en gardant l'autre clé secrète (la clé privée).</dd>
+    </dl>
+
+    <p>Tout le monde peut chiffrer un message en utilisant la clé publique,
+    mais seul le propriétaire de la clé privée sera en mesure de le lire. De
+    cette façon, Alice peut envoyer des messages privés au propriétaire d'une
+    paire de clés (sa banque), en les chiffrant à l'aide de la clé publique.
+    Seule la banque sera en mesure de les déchiffrer.</p>
+
+
+<h3><a name="messagedigests" id="messagedigests">Empreinte d'un message</a></h3>
+
+    <p>Bien qu'Alice puisse chiffrer son message pour le rendre privé, il
+    subsiste toujours le risque que quelqu'un puisse modifier le message
+    original ou le remplacer par un autre, afin d'effectuer le transfert de
+    fonds à son profit, par exemple. Une solution pour garantir l'intégrité du
+    message consisterait pour Alice à créer un résumé concentré de son message
+    qu'elle enverrait à sa banque avec ce dernier. A la réception du message,
+    la banque crée son propre résumé et le compare avec celui qu'Alice a
+    envoyé. Si les deux résumés sont identiques, le message reçu n'a pas
+    été modifié.</p>
+
+    <p>Un résumé tel que celui-ci est appelé
+    <dfn>empreinte numérique de message</dfn> (message digest),
+    <em>fonction irréversible</em> (one-way function) ou
+    <em>fonction de hashage</em> (hash function). Une empreinte de message
+    constitue une représentation courte et de longueur fixe, d'un message plus
+    long et de longueur variable. Les algorithmes de création d'empreintes sont
+    conçus pour produire une empreinte unique pour chaque message. Les
+    empreintes de messages sont conçues pour que la restitution du message
+    à partir de l'empreinte soit d'une difficulté insurmontable, et qu'il soit
+    (en théorie) impossible de trouver deux messages différents qui produisent
+    la même empreinte -- ce qui élimine la possibilité de remplacer un message
+    par un autre en conservant la même empreinte.</p>
+
+    <p>Trouver le moyen d'envoyer l'empreinte de manière sécurisée à la banque
+    constitue un autre défit auquel Alice doit faire face ; si l'empreinte
+    n'est pas envoyée de manière sécurisée, son intégrité peut être compromise,
+    et avec elle, la possibilité pour la banque de vérifier l'intégrité du
+    message original. L'intégrité du message ne peut être vérifiée que si
+    l'empreinte qui lui est associée est envoyée de manière sécurisée.</p>
+
+    <p>Une solution pour envoyer l'empreinte de manière sécurisée consiste à
+    l'inclure dans une signature numérique.</p>
+
+
+<h3><a name="digitalsignatures" id="digitalsignatures">Signatures numériques</a></h3>
+<p>Quand Alice envoie un message à sa banque, cette dernière doit s'assurer
+que le message a bien été envoyé par elle, pour éviter qu'un intrus puisse
+effectuer une transaction sur son compte. Une <em>signature numérique</em>,
+créée par Alice et incluse dans le message, permet d'atteindre cet
+objectif.</p>
+
+<p>Les signatures numériques peuvent être créées en chiffrant une empreinte de
+message, ainsi que d'autres informations (comme un numéro d'ordre) avec la clé
+privée de l'expéditeur. Bien que tout le monde puisse <em>déchiffrer</em> la
+signature à l'aide de la clé publique, seul l'expéditeur connait la clé privée.
+Ce qui implique que seul l'expéditeur peut avoir signé le message. Inclure
+l'empreinte dans la signature entraîne que cette dernière n'est valable que
+pour ce message ; ceci assure aussi l'intégrité du message car personne ne
+peut modifier l'empreinte et ensuite signer le message.</p>
+<p>Afin de se prémunir contre l'interception et la réutilisation de la
+signature par un intrus quelques jours plus tard, la signature contient un
+numéro d'ordre unique. Ceci protège la banque contre une plainte frauduleuse
+de la part d'Alice alléguant qu'elle n'a pas envoyé le message --
+elle seule peut l'avoir signé (non-répudiation).</p>
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="certificates" id="certificates">Certificats</a></h2>
+
+<p>Bien qu'Alice soit parvenue à envoyer un message privé à sa banque, après
+l'avoir signé et avoir ainsi assuré l'intégrité du message, elle doit encore vérifier
+qu'elle communique réellement avec la banque. C'est à dire qu'elle doit
+s'assurer que la clé publique qu'elle utilise appartient bien à la paire de
+clés de la banque, et non à celle d'un intrus.
+De même, la banque doit vérifier que la
+signature du message a bien été construite avec la clé privée d'Alice.</p>
+
+<p>Si chaque partie possède un certificat qui valide l'identité de l'autre,
+confirme la clé publique, et est signé par un organisme de confiance, alors
+les deux protagonistes peuvent être sûrs que la personne avec laquelle ils
+communiquent est bien celle avec laquelle ils désirent le faire. Un tel
+organisme de confiance s'appelle une <em>Autorité de Certification</em>, et
+on utilise les certificats à des fins d'authentification.</p>
+
+<h3><a name="certificatecontents" id="certificatecontents">Contenu d'un certificat</a></h3>
+
+    <p>Un certificat associe une clé publique avec l'identité réelle d'un
+    individu, d'un serveur, ou d'une autre entité plus connue sous le nom de
+    sujet. Comme on le voit dans le <a href="#table1">Tableau 1</a>, les
+    information concernant le sujet comprennent des informations
+    d'identification (le nom distinctif ou distinguished name - dn), ainsi que
+    la clé publique. Il comporte aussi l'identification et la signature de
+    l'autorité de certification qui a délivré le certificat, ainsi que la
+    période de validité de ce dernier. Il peut aussi contenir des informations
+    supplémentaires (ou extensions) telles que des informations de gestion
+    destinées à l'autorité de certification, comme un numéro de série.</p>
+
+    <h4><a name="table1" id="table1">Tableau 1: Information contenues dans un certificat</a></h4>
+    
+    <table>
+    
+    <tr><th>Sujet</th>
+        <td>Nom distinctif, Clé publique</td></tr>
+    <tr><th>Fournisseur</th>
+        <td>Nom distinctif, Signature</td></tr>
+    <tr><th>Période de validité</th>
+        <td>Pas avant, Pas après</td></tr>
+    <tr><th>Informations de gestion</th>
+        <td>Version, Numéro de série</td></tr>
+    <tr><th>Extensions</th>
+        <td>Contraintes de base, Drapeaux Netscape, etc.</td></tr>
+    </table>
+    
+
+    <p>Un nom distinctif sert à fournir une identité dans un contexte
+    spécifique -- par exemple, un individu peut posséder un certificat
+    personnel, et aussi un certificat en tant qu'employé. Les noms distinctifs
+    doivent respecter le standard X509 [<a href="#X509">X509</a>], qui définit
+    les champs, les noms de champs, et les abréviations utilisées pour faire
+    référence aux champs (voir <a href="#table2">Tableau 2</a>).</p>
+
+    <h4><a name="table2" id="table2">Tableau 2: Informations contenues dans le nom distinctif</a></h4>
+    
+    <table class="bordered">
+    
+    <tr><th>Champ du DN</th>
+        <th>Abrév.</th>
+        <th>Description</th>
+        <th>Exemple</th></tr>
+    <tr><td>Nom complet (Common Name)</td>
+        <td>CN</td>
+        <td>Nom certifié</td>
+        <td>CN=Joe Average</td></tr>
+    <tr><td>Organisation or Entreprise</td>
+        <td>O</td>
+        <td>Nom est associé à cette<br />organisation</td>
+        <td>O=Snake Oil, Ltd.</td></tr>
+    <tr><td>Unité organisationnelle (Organizational Unit)</td>
+        <td>OU</td>
+        <td>Nom est associé avec cette <br />unité organisationnelle,
+	par exemple un département</td>
+        <td>OU=Research Institute</td></tr>
+    <tr><td>Ville/Localisation</td>
+        <td>L</td>
+        <td>Nom est localisé dans cette ville</td>
+        <td>L=Snake City</td></tr>
+    <tr><td>Etat/Province</td>
+        <td>ST</td>
+        <td>Nom est localisé dans cet état/province</td>
+        <td>ST=Desert</td></tr>
+    <tr><td>Pays</td>
+        <td>C</td>
+        <td>Nom est localisé dans ce pays (code ISO)</td>
+        <td>C=XZ</td></tr>
+    </table>
+    
+
+    <p>Une autorité de certification peut définir une contrainte spécifiant
+    quels champs du nom distinctif sont optionnels et lesquels sont
+    obligatoires. Elle peut aussi imposer des contraintes sur le contenu des
+    champs, ce que peuvent aussi faire les utilisateurs de certificats. Par
+    exemple, un navigateur Netscape peut exiger, dans le cas d'un certificat
+    de serveur, que le nom complet (Common Name) corresponde à un nom générique
+    contenant le nom de domaine du serveur, comme
+    <code>*.snakeoil.com</code>.</p>
+
+    <p>Le format binaire d'un certificat est défini en utilisant la
+    notation ASN.1 [<a href="#ASN1">ASN1</a>] [<a href="#PKCS">PKCS</a>].
+    Cette notation definit la manière de spécifier les contenus, et les règles
+    d'encodage définissent la manière dont ces information sont converties au
+    format binaire. L'encodage binaire du certificat est défini par les Règles
+    d'Encodage Distinctives (Distinguished Encoding Rules - DER), qui se basent
+    d'une manière plus générale sur les Règles d'Encodage de Base (Basic
+    Encoding Rules - BER). Pour les transmissions qui ne supportent pas le
+    format binaire, ce dernier peut être converti au format ASCII en utilisant
+    le codage Base64 [<a href="#MIME">MIME</a>]. Lorsqu'il est placé entre des
+    délimiteurs de début et de fin (comme ci-dessous), on dit que le certificat
+    est encodé au format PEM ("Privacy Enhanced Mail").</p>
+
+    <div class="example"><h3>Exemple de certificat encodé au format PEM (snakeoil.crt)</h3><pre>-----BEGIN CERTIFICATE-----
+MIIC7jCCAlegAwIBAgIBATANBgkqhkiG9w0BAQQFADCBqTELMAkGA1UEBhMCWFkx
+FTATBgNVBAgTDFNuYWtlIERlc2VydDETMBEGA1UEBxMKU25ha2UgVG93bjEXMBUG
+A1UEChMOU25ha2UgT2lsLCBMdGQxHjAcBgNVBAsTFUNlcnRpZmljYXRlIEF1dGhv
+cml0eTEVMBMGA1UEAxMMU25ha2UgT2lsIENBMR4wHAYJKoZIhvcNAQkBFg9jYUBz
+bmFrZW9pbC5kb20wHhcNOTgxMDIxMDg1ODM2WhcNOTkxMDIxMDg1ODM2WjCBpzEL
+MAkGA1UEBhMCWFkxFTATBgNVBAgTDFNuYWtlIERlc2VydDETMBEGA1UEBxMKU25h
+a2UgVG93bjEXMBUGA1UEChMOU25ha2UgT2lsLCBMdGQxFzAVBgNVBAsTDldlYnNl
+cnZlciBUZWFtMRkwFwYDVQQDExB3d3cuc25ha2VvaWwuZG9tMR8wHQYJKoZIhvcN
+AQkBFhB3d3dAc25ha2VvaWwuZG9tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKB
+gQDH9Ge/s2zcH+da+rPTx/DPRp3xGjHZ4GG6pCmvADIEtBtKBFAcZ64n+Dy7Np8b
+vKR+yy5DGQiijsH1D/j8HlGE+q4TZ8OFk7BNBFazHxFbYI4OKMiCxdKzdif1yfaa
+lWoANFlAzlSdbxeGVHoT0K+gT5w3UxwZKv2DLbCTzLZyPwIDAQABoyYwJDAPBgNV
+HRMECDAGAQH/AgEAMBEGCWCGSAGG+EIBAQQEAwIAQDANBgkqhkiG9w0BAQQFAAOB
+gQAZUIHAL4D09oE6Lv2k56Gp38OBDuILvwLg1v1KL8mQR+KFjghCrtpqaztZqcDt
+2q2QoyulCgSzHbEGmi0EsdkPfg6mp0penssIFePYNI+/8u9HT4LuKMJX15hxBam7
+dUHzICxBVC1lnHyYGjDuAMhe396lYAn8bCld1/L4NMGBCQ==
+-----END CERTIFICATE-----</pre></div>
+
+
+<h3><a name="certificateauthorities" id="certificateauthorities">Autorités de certification</a></h3>
+
+    <p>En vérifiant les informations contenues dans une demande de certificat
+    avant de l'accorder, l'autorité de certification s'assure de l'identité du
+    propriétaire de la clé privée issue de sa paire de clés. Par exemple, Si
+    Alice demande un certificat personnel, l'autorité de certification doit
+    d'abord s'assurer qu'elle correspond vraiment à la personne à laquelle
+    la demande de certificat fait référence.</p>
+
+    <h4><a name="certificatechains" id="certificatechains">Chaînes de certification</a></h4>
+    
+        <p>Une autorité de certification peut aussi émettre un certificat à
+	destination d'une
+	autre autorité de certification. Pour vérifier un certificat, Alice
+	peut être amenée à vérifier le certificat de l'émetteur pour chaque
+	autorité de certification parente, jusqu'à ce qu'elle en atteigne une
+	en qui elle a confiance. Elle peut aussi ne faire confiance qu'aux
+	certificats faisant l'objet d'une chaîne limitée d'émetteurs, afin
+	de réduire le risque de rencontrer un "mauvais" certificat dans la
+	chaîne.</p>
+    
+
+    <h4><a name="rootlevelca" id="rootlevelca">Création d'une autorité de certification racine</a></h4>
+    
+        <p>Comme indiqué plus haut, chaque certificat nécessite la validation
+	de l'identité du sujet par un émetteur de certificats
+	de niveau supérieur, et ceci en
+	remontant jusqu'à l'Autorité de Certification (CA) racine. Ceci pose un
+	problème : qui va se porter garant du certificat de l'autorité racine
+	qui ne possède pas d'émetteur de certificat ? C'est uniquement dans ce
+	cas que le certificat est auto-signé, l'émetteur du certificat et son
+	sujet étant confondus. Les navigateurs sont préconfigurés avec une
+	liste d'autorités de certification de confiance, mais il est important
+	d'être extrèmement prudent avant de faire confiance à un certificat
+	auto-signé. La large publication d'une clé publique par l'autorité
+	racine réduit cependant les risques encourus
+	en faisant confiance à cette clé --
+	si quelqu'un publiait une clé en se faisant passer pour l'autorité, il
+	serait vite démasqué.</p>
+
+        <p>Quelques compagnies, comme <a href="http://www.thawte.com/">Thawte</a> et <a href="http://www.verisign.com/">VeriSign</a>,
+	se sont proclamées elles-mêmes Autorités de Certification. Ces
+	compagnies proposent les services suivant :</p>
+
+        <ul>
+        <li>Vérification des demandes de certificats</li>
+        <li>Traitement des demandes de certificats</li>
+        <li>Emission et gestion des certificats</li>
+        </ul>
+
+        <p>Vous pouvez aussi créer votre propre autorité de certification. Bien
+	que risqué dans l'environnement de l'Internet, ceci peut s'avérer utile
+	dans un Intranet, où l'organisme peut vérifier facilement les identités
+	des individus et des serveurs.</p>
+    
+
+    <h4><a name="certificatemanagement" id="certificatemanagement">Gestion des certificats</a></h4>
+    
+        <p>Constituer une autorité de certification représente une
+	responsabilité qui nécessite une solide infrastructure administrative,
+	technique et gestionnaire. Les autorités de certification ne se
+	contentent pas d'émettre des certificats, elles doivent aussi les gérer
+	-- à savoir elles déterminent leur durée de validité, elles les
+	renouvellent, et elles maintiennent des listes de certificats qui ont
+	été émis dans le passé mais ne sont plus valides (Listes de révocations
+	de certificats, ou CRLs).</p>
+
+        <p>Par exemple, si Alice est titulaire d'un certificat en tant
+	qu'employée d'une compagnie, mais vient de quitter cette compagnie,
+	son certificat doit être révoqué. Comme les certificats ne sont émis
+	qu'après vérification de l'identité du sujet, et peuvent être envoyés
+	à tous ceux avec lesquels le sujet peut communiquer, il est impossible
+	de discerner à partir du seul certificat s'il a été révoqué. Pour
+	vérifier la validité d'un certificat, il est donc nécessaire de
+	contacter l'autorité de certification qui l'a émis afin de pouvoir
+	consulter ses listes de révocations de certificats -- ce qui n'est
+	en général pas une partie automatique du processus.</p>
+
+        <div class="note"><h3>Note</h3>
+        <p>Si votre autorité de certification ne fait pas partie de la liste
+	des autorités de confiance de votre navigateur, il faut enregistrer le
+	certificat de l'autorité de certification dans ce dernier, ce qui lui
+	permettra de valider les certificats de serveurs signés par cette
+	autorité de certification. Ceci peut être dangereux, car une fois le
+	certificat enregistré, le navigateur acceptera tous les certificats
+	signés par cette autorité de certification.</p>
+        </div>
+    
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="ssl" id="ssl">Couche Points d'Accès Sécurisés - Secure Sockets Layer (SSL)</a></h2>
+
+<p>Le protocole Couche Points d'Accès Sécurisés est une couche protocolaire
+qui pourrait s'intercaler entre un protocole d'une couche réseau orientée
+connexion (comme TCP/IP) et une couche protocolaire d'application (comme HTTP).
+SSL fournit une communication sécurisée entre client et serveur en permettant
+l'authentification mutuelle, l'utilisation des signatures numériques pour la
+vérification de l'intégrité des données, et le chiffrement pour la
+confidentialité.</p>
+
+<p>Ce protocole est conçu pour supporter un grand choix d'algorithmes
+spécifiques utilisés pour la cryptographie, les empreintes et les signatures.
+Ceci permet la sélection d'un algorithme pour des serveurs spécifiques en
+respectant la légalité, les règles d'exportation ou autres contraintes, et
+permet aussi au protocole de tirer parti des nouveaux algorithmes. Ces choix
+font l'objet d'une négociation entre client et serveur lors de
+l'établissement de la session protocolaire.</p>
+
+<h3><a name="table4" id="table4">Tableau 4: Versions du protocole SSL</a></h3>
+
+    <table class="bordered">
+    
+    <tr><th>Version</th>
+        <th>Source</th>
+        <th>Description</th>
+    </tr>
+    <tr><td>SSL v2.0</td>
+        <td>Standard du fournisseur (de Netscape Corp.)</td>
+        <td>Premier protocole SSL pour lequel il existe des implémentations</td>
+    </tr>
+    <tr><td>SSL v3.0</td>
+        <td>Projet Internet arrivé à expiration (de Netscape Corp.) [<a href="#SSL3">SSL3</a>]</td>
+        <td>Comporte des révisions permettant de prévenir certaines attaques de
+	sécurité spécifiques, ajout de chiffrements non RSA, et support des
+	chaînes de certification</td>
+    </tr>
+    <tr><td>TLS v1.0</td>
+        <td>Standard proposé pour l'Internet (de l'IETF) [<a href="#TLS1">TLS1</a>]</td>
+        <td>Révision de SSL 3.0 pour mettre à jour la couche MAC vers HMAC,
+	ajout du bourrage de bloc pour le chiffrement de bloc, standardisation
+	de l'ordonnancement des messages et plus de messages d'alerte.</td>
+    </tr>
+	<tr><td>TLS v1.1</td>
+        <td>Standard proposé pour l'Internet (de l'IETF) [<a href="#TLS11">TLS11</a>]</td>
+        <td>Mise à jour de TLS 1.0 pour la protection contre les
+	attaques de type Cipher block chaining (CBC).</td>
+    </tr>
+    <tr><td>TLS v1.2</td>
+        <td>Standard proposé pour l'Internet (de l'IETF) [<a href="#TLS12">TLS12</a>]</td>
+        <td>Mise à jour de TLS 1.1 rendant les condensés MD5 obsolètes,
+	et introduisant une incompatibilité avec SSL ce qui interdit toute
+	négociation en vue d'une utilisation de SSLv2.</td>
+    </tr>
+    </table>
+
+
+<p>Il existe plusieurs versions du protocole SSL, comme le montre le
+<a href="#table4">Tableau 4</a>. Comme indiqué dans ce dernier, un des apports
+de SSL 3.0 est le support du chargement des chaînes de certification. Cette
+fonctionnalité permet à un serveur de passer au navigateur un certificat de
+serveur accompagné du certificat de l'émetteur. Le chargement de la
+chaîne permet aussi au navigateur de valider le certificat du serveur, même si
+les certificats de l'autorité de certification ne sont pas installés pour les
+émetteurs intermédiaires, car ils sont inclus dans la chaîne de certification.
+SSL 3.0 sert de base au standard du protocole Sécurité de la Couche Transport
+ou Transport Layer Security
+[<a href="#TLS1">TLS</a>], actuellement en développement au sein de
+l'Internet Engineering Task Force (IETF).</p>
+
+<h3><a name="session" id="session">Etablissement d'une session</a></h3>
+
+    <p>La session SSL est établie en suivant une séquence d'échanges
+    d'informations entre client et serveur, comme le montre la
+    <a href="#figure1">Figure 1</a>. Cette séquence peut varier, selon que
+    le serveur est configuré pour fournir un certificat de serveur ou
+    réclame un certificat client. Bien que dans certains cas, des étapes
+    d'échanges d'informations supplémentaires soient nécessaires pour la
+    gestion des informations de chiffrement, cet article résume un scénario
+    courant. Se reporter aux spécifications SSL pour avoir la liste de
+    toutes les possibilités.</p>
+
+    <div class="note"><h3>Note</h3>
+    <p>Une fois la session SSL établie, elle peut être réutilisée. Ceci
+    permet d'éviter la perte de performances due à la répétition des nombreuses
+    étapes nécessaires à l'établissement d'une session. Pour parvenir à ceci,
+    le serveur assigne un identifiant de session unique à chaque session SSL ;
+    cet identifiant est mis en cache dans le serveur et le client peut
+    l'utiliser pour des connexions ultérieures afin de réduire la durée des
+    échanges d'informations (et ceci jusqu'à ce que l'identifiant de session
+    arrive à expiration dans le cache du serveur).</p>
+    </div>
+
+    <p class="figure">
+    <img src="../images/ssl_intro_fig1.gif" alt="" width="423" height="327" /><br />
+    <a id="figure1" name="figure1"><dfn>Figure 1</dfn></a> : Séquence
+    simplifiée d'échanges d'informations SSL</p>
+
+    <p>Les éléments de la séquence d'échanges d'informations, tels qu'ils
+    sont utilisés par le client et le serveur, sont énumérés ci-après :</p>
+
+    <ol>
+    <li>Négociation de la suite de chiffrement à utiliser durant le transfert des données</li>
+    <li>Elaboration et échange d'une clé de session entre le client et le serveur</li>
+    <li>Authentification éventuelle du serveur par le client</li>
+    <li>Authentification éventuelle du client par le serveur</li>
+    </ol>
+
+    <p>La première étape, la négociation de la suite de chiffrement, permet au
+    client et au serveur de choisir une suite de chiffrement qu'ils supportent
+    tous les deux. La spécification du protocole SSL 3.0 définit 31 suites de
+    chiffrement. Une suite de chiffrement se compose des éléments
+    suivants :</p>
+
+    <ul>
+    <li>Méthode d'échange de la clé</li>
+    <li>Chiffrement du transfert des données</li>
+    <li>Empreinte du message servant à créer le code d'authentification du
+    message (MAC)</li>
+    </ul>
+
+    <p>Ces trois éléments sont décrits dans les sections suivantes.</p>
+
+
+<h3><a name="keyexchange" id="keyexchange">Méthode d'échange de la clé</a></h3>
+
+    <p>La méthode d'échange de la clé définit la manière
+    dont la clé de chiffrement
+    symétrique secrète et partagée utilisée pour le transfert des données de
+    l'application sera acceptée par le client et le serveur. SSL 2.0 utilise
+    l'échange de clé RSA seulement, tandis que SSL 3.0 supporte tout un choix
+    d'algorithmes d'échange de clé incluant l'échange de clé RSA (quand les
+    certificats sont utilisés), et l'échange de clés Diffie-Hellman (pour
+    échanger des clés sans certificat, ou en l'absence de communication
+    préalable entre le client et le serveur).</p>
+
+    <p>Les signatures numériques constituent une variante dans le choix des
+    méthodes d'échange de clé -- utiliser les signatures ou pas, et dans
+    l'affirmative, quel genre de signatures utiliser. La signature à l'aide
+    d'une clé privée fournit une protection contre une attaque
+    "man-in-the-middle" au cours de laquelle
+    l'échange d'informations destiné à générer la
+    clé partagée peut être intercepté [<a href="#AC96">AC96</a>, p516].</p>
+
+
+<h3><a name="ciphertransfer" id="ciphertransfer">Chiffrement du transfert de données</a></h3>
+
+    <p>Comme décrit plus haut, SSL utilise le chiffrement symétrique
+    conventionnel pour chiffrer les messages au cours d'une session. Il existe
+    neuf choix possibles pour le chiffrement, y compris l'option du transfert
+    non chiffré :</p>
+
+    <ul>
+    <li>Pas de chiffrement</li>
+    <li>Chiffrement en continu (Stream Ciphers)
+        <ul>
+        <li>RC4 avec clés de 40 bits</li>
+        <li>RC4 avec clés de 128 bits</li>
+        </ul></li>
+    <li>Chiffrement par blocs CBC (CBC Block Ciphers)
+        <ul><li>RC2 avec clé de 40 bits</li>
+        <li>DES avec clé de 40 bits</li>
+        <li>DES avec clé de 56 bits</li>
+        <li>Triple-DES avec clé de 168 bits</li>
+        <li>Idea (clé de 128 bits)</li>
+        <li>Fortezza (clé de 96 bits)</li>
+        </ul></li>
+    </ul>
+
+    <p>"CBC" signifie Cipher Block Chaining (Chaînage de blocs chiffrés),
+    c'est à dire qu'une portion du bloc de texte chiffré précédent est utilisée
+    pour le chiffrement du bloc courant. "DES" signifie Data Encryption
+    Standard (Standard de Chiffrement des Données)
+    [<a href="#AC96">AC96</a>, ch12], et possède de nombreuses variantes
+    (telles que DES40 et 3DES_EDE). Parmi les algorithmes disponibles, "Idea"
+    est actuellement un des meilleurs et des plus puissants sur le plan
+    cryptographique, et "RC2" est un algorithme propriétaire de RSA DSI
+    [<a href="#AC96">AC96</a>, ch13].</p>
+
+
+<h3><a name="digestfunction" id="digestfunction">Fonction de création d'empreinte</a></h3>
+
+    <p>Le choix d'une fonction de création d'empreinte détermine la manière
+    dont une empreinte est créée à partir d'une unité de données. SSL supporte
+    les fonctions suivantes :</p>
+
+    <ul>
+    <li>Pas d'empreinte (choix Null)</li>
+    <li>MD5, une empreinte de 128 bits</li>
+    <li>Algorithme d'Empreinte Sécurisée (Secure Hash Algorithm - SHA-1), une
+    empreinte de 160 bits</li>
+    </ul>
+
+    <p>On utilise l'empreinte de message pour créer un Code d'Authentification
+    de Message (Message Authentication Code - MAC) qui est chiffré avec le
+    message afin de vérifier son intégrité et de se protéger contre les
+    attaques de type "rejeu".</p>
+
+
+<h3><a name="handshake" id="handshake">Protocole de la séquence d'échanges d'informations</a></h3>
+
+    <p>La séquence d'échanges d'informations utilise trois protocoles :</p>
+
+    <ul>
+    <li>Le <dfn>Protocole d'échanges d'informations SSL</dfn> pour établir
+    la session SSl entre le client et le serveur.</li>
+    <li>Le <dfn>Protocole de spécification du chiffrement SSL</dfn> pour
+    l'agrément effectif de la suite de chiffrement à utiliser
+    pour la session.</li>
+    <li>Le <dfn>Protocole d'alertes SSL</dfn> pour la transmission de
+    messages d'erreur SSL entre le client et le serveur.</li>
+    </ul>
+
+    <p>Ces protocoles, ainsi que les données du protocole de l'application,
+    sont encapsulés dans le <dfn>Protocole d'enregistrement SSL
+    (SSL Record Protocol)</dfn>, comme
+    le montre la <a href="#figure2">Figure 2</a>. Un protocole encapsulé est
+    tranféré en tant que données par le protocole de la couche de niveau
+    inférieur, qui ne se préoccupe pas du contenu des données. Le protocole
+    encapsulé n'a aucune connaissance du protocole sous-jacent.</p>
+
+    <p class="figure">
+    <img src="../images/ssl_intro_fig2.gif" alt="" width="428" height="217" /><br />
+    <a id="figure2" name="figure2"><dfn>Figure 2</dfn></a>:
+    Pile du protocole SSL</p>
+
+    <p>L'encapsulation des protocoles de contrôle SSL dans le protocole
+    d'enregistrement signifie que si une session active est renégociée, les
+    protocoles de contrôle seront transmis de manière sécurisée. S'il n'y
+    avait pas de session préalable, la suite de chiffrement Null est utilisée,
+    ce qui signifie que les messages ne seront pas chiffrés et ne possèderont
+    pas d'empreinte d'intégrité, jusqu'à ce que la session ait été établie.</p>
+
+
+<h3><a name="datatransfer" id="datatransfer">Transmission des données</a></h3>
+
+    <p>Le protocole d'enregistrement SSL, comme le montre la
+    <a href="#figure3">Figure 3</a>, est utilisé pour transmettre les données
+    de l'application et les données de contrôle SSL entre le client et le
+    serveur, les données étant nécessairement fragmentées en éléments plus
+    petits, ou plusieurs messages de données avec protocole de niveau
+    supérieur pouvant être combinés en un seul élément. Ce protocole peut
+    joindre des signatures d'empreintes, compresser et chiffrer ces éléments
+    avant de les transmettre en utilisant le protocole fiable de transport
+    sous-jacent (Note : actuellement, aucune implémentation majeure de SSL
+    n'inclut le support de la compression).</p>
+
+    <p class="figure">
+    <img src="../images/ssl_intro_fig3.gif" alt="" width="423" height="323" /><br />
+    <a id="figure3" name="figure3"><dfn>Figure 3</dfn></a>:
+    Protocole d'enregistrement SSL</p>
+
+
+<h3><a name="securehttp" id="securehttp">Sécurisation des communications HTTP</a></h3>
+
+    <p>Une des utilisations courantes de SSL est la sécurisation des
+    communication HTTP sur le Web entre un navigateur et un serveur web. Ceci
+    n'exclut pas l'utilisation de HTTP non sécurisé - la version sécurisée
+    (appelée HTTPS) est identique à du vrai HTTP sur SSL,
+    mais utilise le préfixe
+    d'URL <code>https</code> au lieu de <code>http</code>, et un port
+    de serveur différent (par défaut le port 443).
+    Ceci constitue pour une large part
+    ce qu'apporte <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> au serveur web Apache.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="references" id="references">Références</a></h2>
+
+<dl>
+<dt><a id="AC96" name="AC96">[AC96]</a></dt>
+<dd>Bruce Schneier, <q>Applied Cryptography</q>, 2nd Edition, Wiley,
+1996. Voir <a href="http://www.counterpane.com/">http://www.counterpane.com/</a> pour diverses autres productions de Bruce
+Schneier.</dd>
+
+<dt><a id="ASN1" name="ASN1">[ASN1]</a></dt>
+<dd>ITU-T Recommendation X.208, <q>Specification of Abstract Syntax Notation
+One (ASN.1)</q>, dernière mise à jour en 2008. Voir <a href="http://www.itu.int/ITU-T/asn1/">http://www.itu.int/ITU-T/asn1/</a>.
+</dd>
+
+<dt><a id="X509" name="X509">[X509]</a></dt>
+<dd>ITU-T Recommendation X.509, <q>The Directory - Authentication
+Framework</q>. A titre de référence, voir <a href="http://en.wikipedia.org/wiki/X.509">http://en.wikipedia.org/wiki/X.509</a>.
+</dd>
+
+<dt><a id="PKCS" name="PKCS">[PKCS]</a></dt>
+<dd><q>Public Key Cryptography Standards (PKCS)</q>,
+RSA Laboratories Technical Notes, Voir <a href="http://www.rsasecurity.com/rsalabs/pkcs/">http://www.rsasecurity.com/rsalabs/pkcs/</a>.</dd>
+
+<dt><a id="MIME" name="MIME">[MIME]</a></dt>
+<dd>N. Freed, N. Borenstein, <q>Multipurpose Internet Mail Extensions
+(MIME) Part One: Format of Internet Message Bodies</q>, RFC2045.
+Voir par exemple <a href="http://tools.ietf.org/html/rfc2045">http://tools.ietf.org/html/rfc2045</a>.</dd>
+
+<dt><a id="SSL3" name="SSL3">[SSL3]</a></dt>
+<dd>Alan O. Freier, Philip Karlton, Paul C. Kocher, <q>The SSL Protocol
+Version 3.0</q>, 1996. Voir <a href="http://www.netscape.com/eng/ssl3/draft302.txt">http://www.netscape.com/eng/ssl3/draft302.txt</a>.</dd>
+
+<dt><a id="TLS1" name="TLS1">[TLS1]</a></dt>
+<dd>Tim Dierks, Christopher Allen, <q>The TLS Protocol Version 1.0</q>,
+1999. Voir <a href="http://ietf.org/rfc/rfc2246.txt">http://ietf.org/rfc/rfc2246.txt</a>.</dd>
+
+<dt><a id="TLS11" name="TLS11">[TLS11]</a></dt>
+<dd><q>Le protocole TLS Version 1.1</q>,
+2006. Voir <a href="http://tools.ietf.org/html/rfc4346">http://tools.ietf.org/html/rfc4346</a>.</dd>
+
+<dt><a id="TLS12" name="TLS12">[TLS12]</a></dt>
+<dd><q>Le protocole TLS Version 1.2</q>,
+2008. Voir <a href="http://tools.ietf.org/html/rfc5246">http://tools.ietf.org/html/rfc5246</a>.</dd>
+</dl>
+</div></div>
+<div class="bottomlang">
+<p><span>Langues Disponibles: </span><a href="../en/ssl/ssl_intro.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/ssl/ssl_intro.html" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/ssl/ssl_intro.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Commentaires</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/ssl/ssl_intro.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Autorisé sous <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

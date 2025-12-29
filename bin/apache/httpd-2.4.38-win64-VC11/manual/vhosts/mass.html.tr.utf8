@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="tr" xml:lang="tr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Devingen olarak Yapılandırılan Kitlesel Sanal Barındırma - Apache HTTP Sunucusu Sürüm 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modüller</a> | <a href="../mod/directives.html">Yönergeler</a> | <a href="http://wiki.apache.org/httpd/FAQ">SSS</a> | <a href="../glossary.html">Terimler</a> | <a href="../sitemap.html">Site Haritası</a></p>
+<p class="apache">Apache HTTP Sunucusu Sürüm 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Sunucusu</a> &gt; <a href="http://httpd.apache.org/docs/">Belgeleme</a> &gt; <a href="../">Sürüm 2.4</a> &gt; <a href="./">Sanal Konaklar</a></div><div id="page-content"><div id="preamble"><h1>Devingen olarak Yapılandırılan Kitlesel Sanal Barındırma</h1>
+<div class="toplang">
+<p><span>Mevcut Diller: </span><a href="../en/vhosts/mass.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/mass.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ko/vhosts/mass.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/mass.html" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+
+    <p>Bu belgede sanal konakların sonu belirsiz bir şekilde artışı karşısında
+      Apache HTTP Sunucusunun nasıl daha verimli kullanılacağı açıklanmıştır.
+      Devingen kitlesel konakları oluşturmak için <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>
+      modülünün kullanımını açıklayan <a href="../rewrite/vhosts.html">ayrı bir
+      belge</a> de mevcuttur.
+    </p>
+
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#motivation">Amaç</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#overview">Genel Bakış</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#simple">mod_vhost_alias ile Kitlesel Sanal Konaklar</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#homepages">Basitleştirilmiş Kitlesel Sanal Konaklar</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#combinations">Aynı Sunucuda Kişisel ve Kurumsal Sanal Konaklar</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ipbased">IP’ye dayalı sanal konakları daha verimli kılmak</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#simple.rewrite"><code>mod_rewrite</code> ile Kitlesel Sanal Konaklar</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#macro"><code>mod_macro</code> ile Kitlesel Sanal Konaklar</a></li>
+</ul><h3>Ayrıca bakınız:</h3><ul class="seealso"><li><a href="#comments_section">Yorum</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="motivation" id="motivation">Amaç</a></h2>
+
+    <p>Burada açıklanan teknikler, <code>httpd.conf</code> dosyanızın
+      örnekteki gibi, aslında hemen hemen birbirinin aynı çok sayıda
+      <code>&lt;VirtualHost&gt;</code> bölümü içereceği zaman yapılacaklar ile
+      ilgilidir.</p>
+
+<pre class="prettyprint lang-config">&lt;VirtualHost 111.22.33.44&gt;
+    ServerName                 musteri-1.example.com
+    DocumentRoot        "/siteler/musteri-1/belgeler"
+    ScriptAlias  "/cgi-bin/"  "/siteler/musteri-1/cgi-bin"
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost 111.22.33.44&gt;
+    ServerName                 musteri-2.example.com
+    DocumentRoot        "/siteler/musteri-2/belgeler"
+    ScriptAlias   "/cgi-bin/"   "/siteler/musteri-2/cgi-bin"
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost 111.22.33.44&gt;
+    ServerName                 musteri-N.example.com
+    DocumentRoot          "/siteler/musteri-N/belgeler"
+    ScriptAlias   "/cgi-bin/"  "/siteler/musteri-N/cgi-bin"
+&lt;/VirtualHost&gt;</pre>
+
+
+    <p>İsteğimiz çok sayıda <code>&lt;VirtualHost&gt;</code> bölümünü devingen
+      olarak çalışan tek bir <code>&lt;VirtualHost&gt;</code> bölümüyle
+      değiştirmektir. Bunun elbette bazı getirileri olacaktır:</p>
+
+    <ol>
+      <li>Yapılandırma dosyanız küçüleceği için Apache daha çabuk
+        başlatılabilecek ve daha az bellek harcayacaktır. Muhtemelen daha da
+        önemlisi, küçülmüş bir yapılandırmanın bakımı da kolaylaşacağı için
+        hatalar da azalacaktır.</li>
+
+      <li>Yeni sanal konakların eklenmesi, DNS’de yeni girdiler oluşturmak ve
+        dosya sisteminde bununla ilgili dizinleri açmak dışında biraz daha
+        basit olacaktır; en azından Apache’yi yeniden yapılandırmak ve yeniden
+        başlatmak zorunda kalmayacaksınız.</li>
+    </ol>
+
+    <p>Ana götürüsü ise her sanal konak için ayrı birer günlük dosyasına sahip
+      olamayacak olmanızdır. Öte yandan, <a href="fd-limits.html">dosya
+      tanıtıcılarının sınırlı olması</a>  nedeniyle bunu yapmayı zaten
+      istemezsiniz. Günlük kayıtları için bir <a href="../logs.html#piped">fifo
+      veya bir boru hattı</a> oluşturmak ve diğer uçta çalışan bir süreç
+      vasıtasıyla günlükleri müşterilere paylaştırmak daha iyidir. Böyle bir
+      işlemle ilgili bir örneği <a href="../programs/split-logfile.html">split-logfile</a> aracının belgesinde bulabilirsiniz.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="overview" id="overview">Genel Bakış</a></h2>
+
+    <p>Bir sanal konak iki bilgiye bakarak belirlenir: IP adresi ve HTTP
+      isteğindeki <code>Host:</code> başlığının içeriği. Devingen sanal
+      barındırma tekniği, isteği yerine getirmek için kullanılacak dosya
+      yoluna bu bilgiyi kendiliğinden girmek esasına dayanır. Bu, Apache httpd
+      ile <code class="module"><a href="../mod/mod_vhost_alias.html">mod_vhost_alias</a></code> modülünü kullanarak oldukça kolay
+      yapılabileceği gibi <a href="../rewrite/vhosts.html">mod_rewrite modülü
+      de kullanılabilir</a>.</p>
+
+    <p>Bu modüllerin her ikisi de öntanımlı olarak devre dışıdır. Bu tekniği
+      kullanmak isterseniz  Apache httpd'yi yeniden yapılandırıp derleyerek bu
+      iki modülü etkin duruma getirmeniz gerekir.</p>
+
+    <p>Devingen sanal konağı normal bir sanal konak gibi göstermek için
+      bazı bilgileri istekten saptamak gerekir. Bunlardan en önemlisi,
+      httpd tarafından göreli URL’lerden normal URL’leri ve benzerlerini
+      üretmek için kullanılan sunucu ismidir. Sunucu ismi
+      <code>ServerName</code> yönergesi ile yapılandırılır ve CGI’ler
+      tarafından <code>SERVER_NAME</code> ortam değişkeni üzerinden
+      kullanılır. Çalışma anındaki asıl değer <code class="directive"><a href="../mod/core.html#usecanonicalname">UseCanonicalName</a></code> yönergesi tarafından denetlenir.
+      <code>UseCanonicalName Off</code> olduğunda sunucu ismi isteğin
+      <code>Host:</code> başlık alanından elde edilir. <code>UseCanonicalName
+      DNS</code> belirtilmişse, sunucu ismi, sanal konağın IP adresinden
+      tersine DNS sorgusu yapılarak elde edilir. Birincisi isme dayalı sanal
+      konaklar tarafından ikincisi ise IP’ye dayalı sanal konaklar tarafından
+      kullanılır. Eğer httpd, istekte <code>Host:</code> başlığının olmayışı
+      veya DNS sorgusunun başarısız olması sebebiyle sunucu ismini elde
+      edemezse son çare olarak <code>ServerName</code> yönergesinde yazılı
+      değeri kullanır.</p>
+
+    <p>Saptanan bilgilerden biri de <code>DocumentRoot</code>
+      yönergesi ile yapılandırılan belge kök dizini olup CGI’ler tarafından
+      <code>DOCUMENT_ROOT</code> ortam değişkeni üzerinden kullanılır. Normal
+      yapılandırmada <code class="module"><a href="../mod/core.html">core</a></code> modülü tarafından dosya isimlerini
+      URI’lere eşlerken kullanılır. Fakat sunucu devingen sanal konakları
+      kullanmak üzere yapılandırıldığında, eşleştirmeyi farklı yollardan yapan
+      başka bir modül devreye girer (<code class="module"><a href="../mod/mod_vhost_alias.html">mod_vhost_alias</a></code> veya
+      <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>). <code>DOCUMENT_ROOT</code> ortam
+      değişkenine değerini atamaktan sorumlu olan bu iki modülden biri
+      kullanılmazsa CGI veya SSI belgeleri yanlış değerlerle üretilirler.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="simple" id="simple">mod_vhost_alias ile Kitlesel Sanal Konaklar</a></h2>
+
+    <p>Yukarıda <a href="#motivation">Amaç</a> bölümünde özetlenen sanal konak
+      düzenlemesinin <code>mod_vhost_alias</code> kullanarak gerçekleştirilmiş
+      halini içeren <code>httpd.conf</code> bölümü aşağıdadır.</p>
+
+<pre class="prettyprint lang-config"># sunucu ismini Host: başlığından elde edelim
+UseCanonicalName Off
+
+# Bu günlükleme biçiminde split-logfile aracı kullanılarak
+# sanal konak günlükleri ilk alana göre ayrıştırılabilir
+LogFormat "%V %h %l %u %t \"%r\" %s %b" vcommon
+CustomLog "logs/access_log vcommon"
+
+# istekleri yerine getirmek için kullanılacak
+# dosya isimlerine sunucu ismini ekleyelim
+VirtualDocumentRoot "/siteler/%0/belgeler"
+VirtualScriptAlias  "/siteler/%0/cgi-bin"</pre>
+
+
+    <p>Bu yapılandırmayı IP’ye dayalı sanal konaklar için kullanmak isterseniz
+      <code>UseCanonicalName Off</code> yerine <code>UseCanonicalName
+      DNS</code> yazmanız yeterlidir. Böylece dosya ismine eklenecek konak
+      ismi sanal konağın IP adresinden türetilir. <code>%0</code> değişkeni,
+      <code>Host:</code> başlığı ile belirlenen istekteki sunucu isminin
+      ifadesidir.</p>
+
+    <p>Kullanım örnekleri için <code class="module"><a href="../mod/mod_vhost_alias.html">mod_vhost_alias</a></code>modülünün
+      belgesine bakınız.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="homepages" id="homepages">Basitleştirilmiş Kitlesel Sanal Konaklar</a></h2>
+
+    <p>Bu sistem, yukarıdaki yapılandırmanın bir ISS’nin sunucusuna
+      uyarlanmasından başka bir şey değildir. <code>%2</code> değişkenini
+      kullanarak, dosya isminde kullanmak üzere sunucu isminin alt dizgelerini
+      seçebiliriz, böylece, örneğin <code>www.user.example.com</code> belgeleri
+      <code>/home/user/www</code> dizininde bulunabilir. Farklı olarak her
+      sanal konak için bir tane değil hepsi için bir tane <code>cgi-bin</code>
+      olacaktır.</p>
+
+    <pre class="prettyprint lang-config">UseCanonicalName Off
+
+LogFormat "%V %h %l %u %t \"%r\" %s %b" vcommon
+CustomLog "logs/access_log" vcommon
+
+# sunucu ismini içerecek dosya isimlerini oluşturalım
+VirtualDocumentRoot "/home/%2/www"
+
+# ortak cgi-bin dizini
+ScriptAlias  "/cgi-bin/"  "/siteler/std-cgi/"</pre>
+
+
+    <p><code class="module"><a href="../mod/mod_vhost_alias.html">mod_vhost_alias</a></code> belgesinde daha karmaşık
+      <code>VirtualDocumentRoot</code> örnekleri vardır.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="combinations" id="combinations">Aynı Sunucuda Kişisel ve Kurumsal Sanal Konaklar</a></h2>
+
+    <p>Daha karmaşık ayarlamalar yaparak httpd’nin normal
+      <code>&lt;VirtualHost&gt;</code> bölümlerini farklı kitlesel sanal konak
+      yapılandırmaları için kullanabilirsiniz. Örneğin, bireysel
+      müşterileriniz için bir IP adresiniz, kurumsal müşterileriniz için de
+      başka bir IP adresiniz olsun. Her biri için ayrı ayrı sanal konaklar
+      ayarlamak yerine aşağıdaki gibi bir yapılandırma kullanabilirsiniz:</p>
+
+<pre class="prettyprint lang-config">UseCanonicalName Off
+
+LogFormat "%V %h %l %u %t \"%r\" %s %b" vcommon
+
+&lt;Directory "/siteler/kurumsal"&gt;
+    Options FollowSymLinks
+    AllowOverride All
+&lt;/Directory&gt;
+
+&lt;Directory "/siteler/bireysel"&gt;
+    Options FollowSymLinks
+    AllowOverride None
+&lt;/Directory&gt;
+
+&lt;VirtualHost 111.22.33.44&gt;
+    ServerName kurumsal.example.com
+
+    CustomLog "logs/access_log.kurumsal" vcommon
+
+    VirtualDocumentRoot "/siteler/kurumsal/%0/belgeler"
+    VirtualScriptAlias  "/siteler/kurumsal/%0/cgi-bin"
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost 111.22.33.45&gt;
+    ServerName bireysel.example.com
+
+    CustomLog "logs/access_log.bireysel" vcommon
+
+    VirtualDocumentRoot "/siteler/bireysel/%0/belgeler"
+    ScriptAlias         "/cgi-bin/" "/siteler/std-cgi/"
+&lt;/VirtualHost&gt;</pre>
+
+
+    <div class="note"><h3>Bilginize</h3>
+      <p>Eğer ilk <code>&lt;VirtualHost&gt;</code> bölümü bir <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code> yönergesi içermezse ilgili IP
+        için ters DNS sorgusu yapılır. Eğer sorgudan elde edilen isim
+        sunucunun ismi değilse bu istenmeyen duruma bir çözüm olarak bir
+        bilgilendirme bölümü (örn, <code>ServerName bilgi.example.com</code>)
+        eklenebilir.</p>
+    </div>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="ipbased" id="ipbased">IP’ye dayalı sanal konakları daha verimli kılmak</a></h2>
+    
+
+    <p><a href="#simple">İlk örnekte</a> IP’ye dayalı sanal konaklar için
+      kullanılmak istenirse yapılandırmada neyin nasıl değiştirileceği
+      belirtilmişti. Her istek için ayrı bir DNS sorgusu gerekeceğinden bu
+      başarım düşmesine yol açar. DNS sorgusu ihtiyacını ortadan kaldırmak
+      için, bir çözüm olarak dosya sistemi, konak isimleri yerine IP
+      adreslerine göre düzenlenebilir. Günlük kayıtları da IP adreslerine göre
+      ayrıştırılacak şekilde ayarlanabilir.</p>
+
+<pre class="prettyprint lang-config"># Sunucu ismini IP adresinden ters DNS sorgusu ile elde edelim
+UseCanonicalName DNS
+
+# Günlük kayıtları IP adreslerine göre ayrıştırılabilsin
+LogFormat "%A %h %l %u %t \"%r\" %s %b" vcommon
+CustomLog "logs/access_log" vcommon
+
+# dosya isimleri IP adreslerini içersin
+VirtualDocumentRootIP "/siteler/%0/belgeler"
+VirtualScriptAliasIP  "/siteler/%0/cgi-bin"</pre>
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="simple.rewrite" id="simple.rewrite"><code>mod_rewrite</code> ile Kitlesel Sanal Konaklar</a></h2>
+    
+
+    <p>Kitlesel sanal barındırma <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> modülü kullanarak
+      da gerçeklenebilir. Ya basitçe <code class="directive"><a href="../mod/mod_rewrite.html#rewriterule">RewriteRule</a></code> yönergelerini kullanırsınız ya da daha karmaşık
+      olarak sanal konak tanımlarınızı harici bir yerde tutar ve bunlara
+      <code class="directive"><a href="../mod/mod_rewrite.html#rewritemap">RewriteMap</a></code> yönergesini
+      kullanarak erişirsiniz. Bu teknikler ayrıntılı olarak
+      <a href="../rewrite/vhosts.html">rewrite belgelerinde</a>
+      açıklanmıştır.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="macro" id="macro"><code>mod_macro</code> ile Kitlesel Sanal Konaklar</a></h2>
+    
+
+    <p>Devingen olarak üretilen sanal konaklar için diğer bir seçenek 
+      <code class="module"><a href="../mod/mod_macro.html">mod_macro</a></code> modülüdür. Bir sanal konak şablonu oluşturup 
+      bunu çok sayıda konak ismi için çağırabilirsiniz. Modül belgelerinin 
+      <strong>Kullanım</strong> bölümünde böyle bir örneğe yer verilmiştir.</p>
+</div></div>
+<div class="bottomlang">
+<p><span>Mevcut Diller: </span><a href="../en/vhosts/mass.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/mass.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ko/vhosts/mass.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/mass.html" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Yorum</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/vhosts/mass.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br /><a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> altında lisanslıdır.</p>
+<p class="menu"><a href="../mod/">Modüller</a> | <a href="../mod/directives.html">Yönergeler</a> | <a href="http://wiki.apache.org/httpd/FAQ">SSS</a> | <a href="../glossary.html">Terimler</a> | <a href="../sitemap.html">Site Haritası</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

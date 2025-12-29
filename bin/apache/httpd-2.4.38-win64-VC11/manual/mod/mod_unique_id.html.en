@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_unique_id - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Modules</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache Module mod_unique_id</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_unique_id.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_unique_id.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_unique_id.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_unique_id.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">Description:</a></th><td>Provides an environment variable with a unique
+identifier for each request</td></tr>
+<tr><th><a href="module-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">Module Identifier:</a></th><td>unique_id_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">Source File:</a></th><td>mod_unique_id.c</td></tr></table>
+<h3>Summary</h3>
+
+
+    <p>This module provides a magic token for each request which is
+    guaranteed to be unique across "all" requests under very
+    specific conditions. The unique identifier is even unique
+    across multiple machines in a properly configured cluster of
+    machines. The environment variable <code>UNIQUE_ID</code> is
+    set to the identifier for each request. Unique identifiers are
+    useful for various reasons which are beyond the scope of this
+    document.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>Topics</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#theory">Theory</a></li>
+</ul><h3 class="directives">Directives</h3>
+<p>This module provides no
+            directives.</p>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_unique_id">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_unique_id">Report a bug</a></li></ul><h3>See also</h3>
+<ul class="seealso">
+<li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="theory" id="theory">Theory</a></h2>
+    
+
+    <p>First a brief recap of how the Apache server works on Unix
+    machines. This feature currently isn't supported on Windows NT.
+    On Unix machines, Apache creates several children, the children
+    process requests one at a time. Each child can serve multiple
+    requests in its lifetime. For the purpose of this discussion,
+    the children don't share any data with each other. We'll refer
+    to the children as <dfn>httpd processes</dfn>.</p>
+
+    <p>Your website has one or more machines under your
+    administrative control, together we'll call them a cluster of
+    machines. Each machine can possibly run multiple instances of
+    Apache. All of these collectively are considered "the
+    universe", and with certain assumptions we'll show that in this
+    universe we can generate unique identifiers for each request,
+    without extensive communication between machines in the
+    cluster.</p>
+
+    <p>The machines in your cluster should satisfy these
+    requirements. (Even if you have only one machine you should
+    synchronize its clock with NTP.)</p>
+
+    <ul>
+      <li>The machines' times are synchronized via NTP or other
+      network time protocol.</li>
+
+      <li>The machines' hostnames all differ, such that the module
+      can do a hostname lookup on the hostname and receive a
+      different IP address for each machine in the cluster.</li>
+    </ul>
+
+    <p>As far as operating system assumptions go, we assume that
+    pids (process ids) fit in 32-bits. If the operating system uses
+    more than 32-bits for a pid, the fix is trivial but must be
+    performed in the code.</p>
+
+    <p>Given those assumptions, at a single point in time we can
+    identify any httpd process on any machine in the cluster from
+    all other httpd processes. The machine's IP address and the pid
+    of the httpd process are sufficient to do this. A httpd process
+    can handle multiple requests simultaneously if you use a
+    multi-threaded MPM. In order to identify threads, we use a thread
+    index Apache httpd uses internally. So in order to
+    generate unique identifiers for requests we need only
+    distinguish between different points in time.</p>
+
+    <p>To distinguish time we will use a Unix timestamp (seconds
+    since January 1, 1970 UTC), and a 16-bit counter. The timestamp
+    has only one second granularity, so the counter is used to
+    represent up to 65536 values during a single second. The
+    quadruple <em>( ip_addr, pid, time_stamp, counter )</em> is
+    sufficient to enumerate 65536 requests per second per httpd
+    process. There are issues however with pid reuse over time, and
+    the counter is used to alleviate this issue.</p>
+
+    <p>When an httpd child is created, the counter is initialized
+    with ( current microseconds divided by 10 ) modulo 65536 (this
+    formula was chosen to eliminate some variance problems with the
+    low order bits of the microsecond timers on some systems). When
+    a unique identifier is generated, the time stamp used is the
+    time the request arrived at the web server. The counter is
+    incremented every time an identifier is generated (and allowed
+    to roll over).</p>
+
+    <p>The kernel generates a pid for each process as it forks the
+    process, and pids are allowed to roll over (they're 16-bits on
+    many Unixes, but newer systems have expanded to 32-bits). So
+    over time the same pid will be reused. However unless it is
+    reused within the same second, it does not destroy the
+    uniqueness of our quadruple. That is, we assume the system does
+    not spawn 65536 processes in a one second interval (it may even
+    be 32768 processes on some Unixes, but even this isn't likely
+    to happen).</p>
+
+    <p>Suppose that time repeats itself for some reason. That is,
+    suppose that the system's clock is screwed up and it revisits a
+    past time (or it is too far forward, is reset correctly, and
+    then revisits the future time). In this case we can easily show
+    that we can get pid and time stamp reuse. The choice of
+    initializer for the counter is intended to help defeat this.
+    Note that we really want a random number to initialize the
+    counter, but there aren't any readily available numbers on most
+    systems (<em>i.e.</em>, you can't use rand() because you need
+    to seed the generator, and can't seed it with the time because
+    time, at least at one second resolution, has repeated itself).
+    This is not a perfect defense.</p>
+
+    <p>How good a defense is it? Suppose that one of your machines
+    serves at most 500 requests per second (which is a very
+    reasonable upper bound at this writing, because systems
+    generally do more than just shovel out static files). To do
+    that it will require a number of children which depends on how
+    many concurrent clients you have. But we'll be pessimistic and
+    suppose that a single child is able to serve 500 requests per
+    second. There are 1000 possible starting counter values such
+    that two sequences of 500 requests overlap. So there is a 1.5%
+    chance that if time (at one second resolution) repeats itself
+    this child will repeat a counter value, and uniqueness will be
+    broken. This was a very pessimistic example, and with real
+    world values it's even less likely to occur. If your system is
+    such that it's still likely to occur, then perhaps you should
+    make the counter 32 bits (by editing the code).</p>
+
+    <p>You may be concerned about the clock being "set back" during
+    summer daylight savings. However this isn't an issue because
+    the times used here are UTC, which "always" go forward. Note
+    that x86 based Unixes may need proper configuration for this to
+    be true -- they should be configured to assume that the
+    motherboard clock is on UTC and compensate appropriately. But
+    even still, if you're running NTP then your UTC time will be
+    correct very shortly after reboot.</p>
+
+    
+    <p>The <code>UNIQUE_ID</code> environment variable is
+    constructed by encoding the 144-bit (32-bit IP address, 32 bit
+    pid, 32 bit time stamp, 16 bit counter, 32 bit thread index)
+    quadruple using the
+    alphabet <code>[A-Za-z0-9@-]</code> in a manner similar to MIME
+    base64 encoding, producing 24 characters. The MIME base64
+    alphabet is actually <code>[A-Za-z0-9+/]</code> however
+    <code>+</code> and <code>/</code> need to be specially encoded
+    in URLs, which makes them less desirable. All values are
+    encoded in network byte ordering so that the encoding is
+    comparable across architectures of different byte ordering. The
+    actual ordering of the encoding is: time stamp, IP address,
+    pid, counter. This ordering has a purpose, but it should be
+    emphasized that applications should not dissect the encoding.
+    Applications should treat the entire encoded
+    <code>UNIQUE_ID</code> as an opaque token, which can be
+    compared against other <code>UNIQUE_ID</code>s for equality
+    only.</p>
+
+    <p>The ordering was chosen such that it's possible to change
+    the encoding in the future without worrying about collision
+    with an existing database of <code>UNIQUE_ID</code>s. The new
+    encodings should also keep the time stamp as the first element,
+    and can otherwise use the same alphabet and bit length. Since
+    the time stamps are essentially an increasing sequence, it's
+    sufficient to have a <em>flag second</em> in which all machines
+    in the cluster stop serving any request, and stop using the old
+    encoding format. Afterwards they can resume requests and begin
+    issuing the new encodings.</p>
+
+    <p>This we believe is a relatively portable solution to this
+    problem. The identifiers
+    generated have essentially an infinite life-time because future
+    identifiers can be made longer as required. Essentially no
+    communication is required between machines in the cluster (only
+    NTP synchronization is required, which is low overhead), and no
+    communication between httpd processes is required (the
+    communication is implicit in the pid value assigned by the
+    kernel). In very specific situations the identifier can be
+    shortened, but more information needs to be assumed (for
+    example the 32-bit IP address is overkill for any site, but
+    there is no portable shorter replacement for it). </p>
+</div>
+</div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_unique_id.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_unique_id.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_unique_id.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_unique_id.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_unique_id.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

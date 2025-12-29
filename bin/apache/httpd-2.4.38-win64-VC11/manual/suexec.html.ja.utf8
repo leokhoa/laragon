@@ -1,0 +1,643 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>suEXEC サポート - Apache HTTP サーバ バージョン 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">モジュール</a> | <a href="./mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">用語</a> | <a href="./sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="./">バージョン 2.4</a></div><div id="page-content"><div id="preamble"><h1>suEXEC サポート</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="./en/suexec.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/suexec.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/suexec.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/suexec.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/suexec.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+
+    <p><strong>suEXEC</strong>
+    機能により、Apache ユーザは Web サーバを実行しているユーザ ID とは
+    異なるユーザ ID で <strong>CGI</strong> プログラムや <strong>SSI</strong> 
+    プログラムを実行することができます。CGI プログラムまたは SSI
+    プログラムを実行する場合、通常は web サーバと同じユーザで実行されます。
+    </p>
+
+    <p>適切に使用すると、この機能によりユーザが個別の CGI
+    や SSI プログラムを開発し実行することで生じるセキュリティ上の危険を、
+    かなり減らすことができます。しかし、suEXEC の設定が不適切だと、
+    多くの問題が生じ、あなたのコンピュータに新しいセキュリティホールを
+    作ってしまう可能性があります。あなたが <em>setuid root</em>
+    されたプログラムと、それらから生じるセキュリティ上の問題の管理に
+    詳しくないようなら、suEXEC の使用を検討しないように強く推奨します。
+    </p>
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#before">始める前に</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#model">suEXEC セキュリティモデル</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#install">suEXEC
+    の設定とインストール</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#enable">suEXEC
+    の有効化と無効化</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#usage">suEXEC の使用</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#debug">suEXEC のデバッグ</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#jabberwock">とかげに注意: 警告と事例</a></li>
+</ul><h3>参照</h3><ul class="seealso"><li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="before" id="before">始める前に</a></h2>
+
+    <p>この文書の先頭に飛ぶ前に、Apache
+    グループとこの文書での仮定を知っておくべきでしょう。
+    </p>
+
+    <p>第 1 に、あなたが <strong>setuid</strong> と
+    <strong>setgid</strong> 操作が可能な UNIX
+    由来のオペレーティングシステムを使っていることを想定しています。
+    これは、すべてのコマンド例にあてはまります。
+    その他のプラットホームでは、もし suEXEC
+    がサポートされていたとしても設定は異なるかもしれません。</p>
+
+    <p>第 2 に、あなたが使用中のコンピュータの
+    セキュリティに関する基本的な概念と、それらの管理について詳しいことを
+    想定しています。これは、<strong>setuid/setgid</strong>
+    操作、あなたのシステム上でのその操作による様々な効果、
+    セキュリティレベルについてあなたが理解しているということを含みます。
+    </p>
+
+    <p>第 3 に、<strong>改造されていない</strong> suEXEC
+    コードの使用を想定しています。suEXEC のコードは、
+    多くのベータテスタだけでなく、開発者によっても注意深く精査され
+    テストされています。それらの注意により、簡潔で信頼できる安全な
+    コードの基盤が保証されます。このコードを改変することで、
+    予期されない問題や新しいセキュリティ上の危険が生じることがあります。
+    セキュリティプログラミングの詳細に通じていて、
+    今後の検討のために成果を Apache
+    グループと共有しようと思うのでなければ、suEXEC
+    コードは変えないことを <strong>強く</strong>推奨します。</p>
+
+    <p>第 4 に、これが最後ですが、suEXEC を Apache
+    のデフォルトインストールには<strong>含めない</strong>ことが
+    Apache グループで決定されています。これは、suEXEC
+    の設定には管理者の詳細にわたる慎重な注意が必要だからです。
+    suEXEC の様々な設定について検討が終われば、管理者は suEXEC
+    を通常のインストール方法でインストールすることができます。
+    これらの設定値は、suEXEC
+    機能の使用中にシステムセキュリティを適切に保つために、
+    管理者によって慎重に決定され指定されることが必要です。
+    この詳細な手順により、Apache グループは、suEXEC
+    のインストールについて、注意深く十分に検討してそれを使用することを
+    決定した場合に限っていただきたいと考えています。
+    </p>
+
+    <p>それでも進みますか? よろしい。では、先へ進みましょう!</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="model" id="model">suEXEC セキュリティモデル</a></h2>
+
+    <p>suEXEC の設定とインストールを始める前に、
+    まず実装しようとしているセキュリティモデルについて論じておきます。
+    それには、suEXEC の内部で行なわれていること、
+    システムのセキュリティを保証するために警告されることを
+    よく理解しておいた方がよいでしょう。</p>
+
+    <p><strong>suEXEC</strong> は、Apache web
+    サーバから呼び出される setuid された "wrapper"
+    プログラムが基本となっています。設計した CGI、または SSI
+    プログラムへの HTTP リクエストがあると、この wrapper
+    が呼び出されます。このようなリクエストがあると、Apache
+    はそのプログラムが実行される際のプログラム名とユーザ ID とグループ
+    ID を指定して suEXEC wrapper を実行します。
+    </p>
+
+    <p>それから、wrapper は成功または失敗を決定するため
+    以下の処理を行ないます。これらの状態のうち一つでも失敗した場合、
+    プログラムは失敗をログに記録してエラーで終了します。
+    そうでなければ、後の処理が続けられます。</p>
+
+    <ol>
+      <li>
+        <strong>wrapper
+        を実行しているユーザはこのシステムの正当なユーザか?</strong>
+
+        <p class="indent">
+          これは、wrapper を実行しているユーザが
+          本当にシステムの利用者であることを保証するためです。
+        </p>
+      </li>
+
+
+     <li>
+        <strong>wrapper が適切な数の引数で呼び出されたか?</strong>
+
+
+        <p class="indent">
+          wrapper は適切な数の引数が与えられた場合にのみ実行されます。
+          適切な引数のフォーマットは Apache Web サーバに解釈されます。
+          適切な数の引数を受け取らなければ、攻撃をされたか
+          あなたの Apache バイナリの suEXEC の部分が
+          どこかおかしい可能性があります。
+        </p>
+      </li>
+
+      <li>
+        <strong>この正当なユーザは wrapper
+        の実行を許可されているか?</strong>
+
+        <p class="indent">
+          このユーザは wrapper 実行を許可されたユーザですか?
+          ただ一人のユーザ (Apache ユーザ) だけが、
+          このプログラムの実行を許可されます。
+        </p>
+      </li>
+
+      <li>
+        <strong>対象の CGI, SSI プログラムが安全でない階層の参照をしているか?
+        </strong>
+
+        <p class="indent">
+          対象の CGI, SSI プログラムが '/' から始まる、または
+          '..' による参照を行なっていますか? これらは許可されません。
+          対象のプログラムは suEXEC のドキュメントルート
+          (下記の <code>--with-suexec-docroot=<em>DIR</em></code> を参照)
+          内に存在しなければなりません。
+        </p>
+      </li>
+
+      <li>
+        <strong>対象となるユーザ名は正当なものか?</strong>
+
+        <p class="indent">
+          対象となるユーザ名は存在していますか?
+        </p>
+      </li>
+
+      <li>
+        <strong>対象となるグループ名は正当なものか?</strong>
+
+        <p class="indent">
+          対象となるグループ名は存在していますか?
+        </p>
+      </li>
+
+      <li>
+        <strong>目的のユーザはスーパーユーザでは<em>ない</em>か?
+        </strong>
+
+        <p class="indent">
+          今のところ、suEXEC は <code><em>root</em></code> による CGI/SSI
+          プログラムの実行を許可していません。
+        </p>
+      </li>
+
+      <li>
+        <strong>対象となるユーザ ID は、最小の ID
+        番号よりも<em>大きい</em>か?  </strong>
+
+        <p class="indent">
+          最小ユーザ ID 番号は設定時に指定されます。これは、
+          CGI/SSI プログラム実行を許可されるユーザ ID
+          のとりうる最小値です。これは
+          "system" 用のアカウントを閉め出すのに有効です。
+        </p>
+      </li>
+
+      <li>
+        <strong>対象となるグループはスーパーユーザのグループでは
+        <em>ない</em>か?</strong>
+
+        <p class="indent">
+         今のところ、suEXEC は 'root' グループによる CGI/SSI
+         プログラムの実行を許可していません。
+        </p>
+      </li>
+
+      <li>
+        <strong>対象となるグループ ID は最小の ID
+          番号よりも<em>大きい</em>か?</strong>
+
+        <p class="indent">
+          最小グループ ID 番号は設定時に指定されます。これは、
+          CGI/SSI プログラム実行を許可されるグループ
+          ID のとりうる最小値です。
+          これは "system" 用のグループを閉め出すのに有効です。
+        </p>
+      </li>
+
+      <li>
+        <strong>wrapper が正常に対象となるユーザとグループになれるか?
+        </strong>
+
+        <p class="indent">
+          ここで、setuid と setgid
+          の起動によりプログラムは対象となるユーザとグループになります。
+          グループアクセスリストは、
+          ユーザが属しているすべてのグループで初期化されます。
+        </p>
+      </li>
+
+      <li>
+        <strong>CGI/SSI プログラムが置かれているディレクトリに移動
+        (change directory) できるか?</strong>
+
+        <p class="indent">
+          ディレクトリが存在しないなら、そのファイルも存在しないかもしれません。
+          ディレクトリに移動できないのであれば、おそらく存在もしないでしょう。
+        </p>
+      </li>
+
+      <li>
+        <strong>ディレクトリが Apache のドキュメントツリー内にあるか?
+        </strong>
+
+        <p class="indent">
+          リクエストがサーバ内のものであれば、
+          要求されたディレクトリが suEXEC のドキュメントルート配下にありますか?
+          リクエストが UserDir のものであれば、要求されたディレクトリが suEXEC 
+          のユーザのドキュメントルート配下にありますか?
+          (<a href="#install">suEXEC 設定オプション</a> 参照)
+        </p>
+      </li>
+
+      <li>
+        <strong>ディレクトリを他のユーザが書き込めるようになって
+        <em>いない</em>か?</strong>
+
+        <p class="indent">
+          ディレクトリを他ユーザに開放しないようにします。
+          所有ユーザだけがこのディレクトリの内容を改変できるようにします。
+        </p>
+      </li>
+
+
+      <li>
+        <strong>対象となる CGI/SSI プログラムは存在するか?</strong>
+
+        <p class="indent">
+          存在しなければ実行できません。
+        </p>
+      </li>
+
+      <li>
+        <strong>対象となる CGI/SSI プログラムファイルが他アカウントから
+        書き込めるようになって<em>いない</em>か?</strong>
+
+        <p class="indent">
+          所有者以外には CGI/SSI プログラムを変更する権限は与えられません。
+        </p>
+      </li>
+
+
+      <li>
+        <strong>対象となる CGI/SSI プログラムが setuid または setgid 
+        されて<em>いない</em>か?</strong>
+
+        <p class="indent">
+          UID/GID を再度変更してのプログラム実行はしません
+        </p>
+      </li>
+
+
+      <li>
+        <strong>対象となるユーザ/グループがプログラムの
+        ユーザ/グループと同じか?</strong>
+
+        <p class="indent">
+          ユーザがそのファイルの所有者ですか?
+        </p>
+      </li>
+
+      <li>
+        <strong>安全な動作を保証するための環境変数クリアが可能か?
+        </strong>
+
+        <p class="indent">
+          suEXEC は、安全な環境変数のリスト
+          (これらは設定時に作成されます) 内の変数として渡される安全な
+          PATH 変数 (設定時に指定されます) を設定することで、
+          プロセスの環境変数をクリアします。
+        </p>
+      </li>
+
+
+      <li>
+        <strong>対象となる CGI/SSI プログラムを exec して実行できるか?</strong>
+
+
+        <p class="indent">
+          ここで suEXEC が終了し、対象となるプログラムが開始されます。
+        </p>
+      </li>
+    </ol>
+
+    <p>ここまでが suEXEC の wrapper
+    におけるセキュリティモデルの標準的な動作です。もう少し厳重に
+    CGI/SSI 設計についての新しい制限や規定を取り入れることもできますが、
+    suEXEC はセキュリティに注意して慎重に少しずつ開発されてきました。
+    </p>
+
+    <p>このセキュリティモデルを用いて
+    サーバ設定時にどのように許すことを制限するか、また、suEXEC
+    を適切に設定するとどのようなセキュリティ上の危険を避けられるかに
+    関するより詳しい情報については、<a href="#jabberwock">"とかげに注意"
+    (Beware the Jabberwock)</a> の章を参照してください。
+    </p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="install" id="install">suEXEC
+    の設定とインストール</a></h2>
+
+    <p>ここから楽しくなります。</p>
+
+    <p><strong>suEXEC
+    設定オプション</strong><br />
+    </p>
+
+    <dl>
+      <dt><code>--enable-suexec</code></dt>
+
+      <dd>このオプションは、デフォルトではインストールされず、
+      有効にはならない suEXEC 機能を有効にします。
+      suEXEC を使うように APACI に要求するには、<code>--enable-suexec</code>
+      オプションにあわせて少なくとも一つは <code>--with-suexec-xxxxx</code>
+      オプションが指定されなければなりません。</dd>
+
+      <dt><code>--with-suexec-bin=<em>PATH</em></code></dt>
+
+      <dd>セキュリティ上の理由により、<code>suexec</code> バイナリのパスはサーバに
+      ハードコードされている必要があります。デフォルトのパスを
+      変えたいときはこのオプションを使ってください。<em>例えば</em>、
+      <code>--with-suexec-bin=/usr/sbin/suexec</code> のように。</dd>
+
+      <dt><code>--with-suexec-caller=<em>UID</em></code></dt>
+
+      <dd>Apache を通常動作させる<a href="mod/mpm_common.html#user">ユーザ名</a>を指定します。
+      このユーザだけが suexec の実行を許可されたユーザになります。</dd>
+
+      <dt><code>--with-suexec-userdir=<em>DIR</em></code></dt>
+
+      <dd>suEXEC がアクセスを許されるユーザホームディレクトリ配下の
+      サブディレクトリを指定します。
+      このディレクトリ以下の全実行ファイルは、"安全な"プログラムになるよう、
+      suEXEC がそのユーザとして実行できるようにします。
+      "単純な" UserDir ディレクティブを使っている場合 
+      (すなわち "*" を含まないもの)、これと同じ値を設定すべきです。
+      Userdir ディレクティブがそのユーザのパスワードファイル内の
+      ホームディレクトリと同じ場所を指していなければ、
+      suEXEC は適切に動作しません。デフォルトは "public_html" です。
+      <br />
+      各 UserDir が異なった仮想ホストを設定している場合、
+      それらを全て一つの親ディレクトリに含めて、
+      その親ディレクトリの名前をここで指定する必要があります。
+      <strong>このように指定されなければ "~userdir" cgi
+      へのリクエストが動作しません。</strong></dd>
+
+      <dt><code>--with-suexec-docroot=<em>DIR</em></code></dt>
+
+      <dd>Apache のドキュメントルートを設定します。これが suEXEC
+      の動作で使用する唯一のディレクトリ階層になります (UserDir
+      の指定は別)。デフォルトでは <code>--datedir</code> に "/htdocs"
+      というサフィックスをつけたものです。
+      "<code>--datadir=/home/apache</code>" として設定すると、
+      suEXEC wrapper にとって "/home/apache/htdocs"
+      がドキュメントルートとして使われます。</dd>
+
+      <dt><code>--with-suexec-uidmin=<em>UID</em></code></dt>
+
+      <dd>suEXEC の対象ユーザとして許される UID の最小値を指定します。
+      大抵のシステムでは 500 か 100 が一般的です。
+      デフォルト値は 100 です。</dd>
+
+      <dt><code>--with-suexec-gidmin=<em>GID</em></code></dt>
+
+      <dd>suEXEC の対象グループとして許される GID
+      の最小値を指定します。大抵のシステムでは 100 が一般的なので、
+      デフォルト値としても 100 が使われています。</dd>
+
+      <dt><code>--with-suexec-logfile=<em>FILE</em></code></dt>
+
+      <dd>suEXEC の処理とエラーが記録されるファイル名を指定します。
+      (監査やデバッグ目的に有用)
+      デフォルトではログファイルは "suexec_log" という名前で、
+      標準のログファイルディレクトリ (<code>--logfiledir</code>) に置かれます。
+      </dd>
+
+      <dt><code>--with-suexec-safepath=<em>PATH</em></code></dt>
+
+      <dd>CGI 実行ファイルに渡される安全な PATH 環境変数です。
+      デフォルト値は "/usr/local/bin:/usr/bin:/bin" です。
+      </dd>
+    </dl>
+
+    <p><strong>suEXEC wrapper
+    のコンパイルとインストール</strong><br />
+    <code>--enable-suexec</code> オプションで suEXEC 機能を有効にすると、
+    "make" コマンドを実行した時に <code>suexec</code> のバイナリ (Apache 自体も)
+    が自動的に作成されます。
+    <br />
+    すべての構成要素が作成されると、それらのインストールには
+    <code>make install</code> コマンドが実行できます。バイナリイメージの <code>suexec</code>
+    は <code>--sbindir</code> オプションで指定されたディレクトリにインストールされます。
+    デフォルトの場所は "/usr/local/apache/bin/suexec" です。<br />
+    インストール時には <strong><em>root</em></strong>
+    権限が必要なので注意してください。wrapper がユーザ ID
+    を設定するために、所有者 <code><em>root</em></code>
+    でのセットユーザ ID
+    ビットをそのファイルのモードに設定しなければなりません。
+    </p>
+
+    <p><strong>安全なパーミッションを設定する</strong><br />
+    suEXEC ラッパーは、<code>--with-suexec-caller</code> <code class="program"><a href="./programs/configure.html">configure</a></code> 
+    オプションで指定した正しいユーザで起動されていることを確認しますが、
+    システム上でこのチェックが行なわれる前に、
+    suEXEC が呼ぶシステムやライブラリが脆弱である可能性は残ります。対抗策として、
+    一般に良い習慣ともされいますが、
+    ファイルシステムパーミッションを使って
+    Apache の実行時のグループのみが suEXEC を実行できるように
+    するのが良いでしょう。</p>
+
+    <p>たとえば、次のようにサーバが設定されていたとします。</p>
+
+<div class="example"><p><code>
+    User www<br />
+    Group webgroup<br />
+</code></p></div>
+
+    <p><code class="program"><a href="./programs/suexec.html">suexec</a></code> が "/usr/local/apache2/bin/suexec" 
+    にインストールされていた場合、次のように設定する必要があります。</p>
+
+<div class="example"><p><code>
+    chgrp webgroup /usr/local/apache2/bin/suexec<br />
+    chmod 4750 /usr/local/apache2/bin/suexec<br />
+</code></p></div>
+
+    <p>これで Apache が実行されるグループのみが 
+    suEXEC ラッパーを実行できるということを
+    確証します。</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="enable" id="enable">suEXEC
+    の有効化と無効化</a></h2>
+
+    <p>起動時に、Apache は <code>--sbindir</code>
+    オプションで設定されたディレクトリで
+    <code>suexec</code> を探します
+    (デフォルトは "/usr/local/apache/sbin/suexec") 。
+    適切に設定された suEXEC がみつかると、
+    エラーログに以下のメッセージが出力されます。</p>
+
+<div class="example"><p><code>
+    [notice] suEXEC mechanism enabled (wrapper: <var>/path/to/suexec</var>)
+</code></p></div>
+
+    <p>サーバ起動時にこのメッセージが出ない場合、
+    大抵はサーバが想定した場所で wrapper プログラムが見つからなかったか、
+    <em>setuid root</em> としてインストールされていないかです。</p>
+
+    <p>suEXEC の仕組みを使用するのが初めてで、Apache が既に動作中であれば、
+    Apache を kill して、再起動しなければなりません。HUP シグナルや
+    USR1 シグナルによる単純な再起動では不十分です。</p>
+    <p>suEXEC を無効にする場合は、<code>suexec</code> ファイルを削除してから
+    Apache を kill して再起動します。
+    </p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="usage" id="usage">suEXEC の使用</a></h2>
+
+    <p>CGI プログラムへのリクエストが suEXEC ラッパーを呼ぶのは、
+    <code class="directive"><a href="./mod/mod_suexec.html#suexecusergroup">SuexecUserGroup</a></code> ディレクティブを
+    含むバーチャルホストへのリクエストか、<code class="module"><a href="./mod/mod_userdir.html">mod_userdir</a></code> により
+    処理されたリクエストの場合に限ります。</p>
+
+    <p><strong>仮想ホスト:</strong><br />
+    suEXEC wrapper の使い方として、
+    <code class="directive"><a href="./mod/core.html#virtualhost">VirtualHost</a></code> 設定での
+    <code class="directive"><a href="./mod/mod_suexec.html#suexecusergroup">SuexecUserGroup</a></code>
+    ディレクティブを通したものがあります。
+    このディレクティブをメインサーバのユーザ ID
+    と異なるものにすると、CGI リソースへのすべてのリクエストは、その
+    <code class="directive"><a href="./mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> で指定された <em>User</em> と
+    <em>Group</em> として実行されます。<code class="directive"><a href="./mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code>
+    でこのディレクティブが指定されていない場合、
+    メインサーバのユーザ ID が想定されます。</p>
+
+    <p><strong>ユーザディレクトリ:</strong><br />
+    <code class="module"><a href="./mod/mod_userdir.html">mod_userdir</a></code> により処理されたリクエストは
+    リクエストされたユーザディレクトリのユーザ ID で CGI プログラムを
+    実行するために suEXEC ラッパーを呼びます。
+    この機能を動作させるために必要なことは、CGI
+    をそのユーザで実行できること、そのスクリプトが上記の<a href="#model">セキュリティ検査</a>をパスできることです。
+    <a href="#install">コンパイル
+     時のオプション</a> <code>--with-suexec-userdir</code> も参照してください。</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="debug" id="debug">suEXEC のデバッグ</a></h2>
+
+    <p>suEXEC wrapper は、上記で述べた <code>--with-suexec-logfile</code>
+    オプションで指定されたファイルにログ情報を記録します。
+    wrapper を適切に設定、インストールできていると思う場合、
+    どこで迷っているか見ようとするならこのログとサーバの
+    エラーログを見るとよいでしょう。</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="jabberwock" id="jabberwock">とかげに注意: 警告と事例</a></h2>
+
+    <p><strong>注意!</strong>
+    この章は完全ではありません。この章の最新改訂版については、
+    Apache グループの<a href="http://httpd.apache.org/docs/2.4/suexec.html">
+    オンラインドキュメント</a>版を参照してください。
+    </p>
+
+    <p>サーバの設定に制限をもうける wrapper について、
+    いくつか興味深い点があります。suEXEC に関する "バグ"
+    を報告する前にこれらを確認してください。</p>
+
+    <ul>
+      <li><strong>suEXEC の興味深い点</strong></li>
+
+      <li>階層構造の制限
+
+
+        <p class="indent">
+          セキュリティと効率の理由から、<code>suEXEC</code> の全てのリクエストは
+          仮想ホストへのリクエストにおける最上位のドキュメントルート内か、
+          ユーザディレクトリへのリクエストにおける個々のユーザの最上位の
+          ドキュメントルート内に残らなければなりません。
+          例えば、四つの仮想ホストを設定している場合、
+          仮想ホストの suEXEC に有利なように、メインの Apache
+          ドキュメント階層の外側に全ての仮想ホストのドキュメントルートを
+          構築する必要があります。(例は後日記載)
+        </p>
+      </li>
+
+      <li>suEXEC の PATH 環境変数
+
+
+        <p class="indent">
+          これを変更するのは危険です。この指定に含まれる各パスが
+          <strong>信頼できる</strong>
+          ディレクトリであることを確認してください。
+          世界からのアクセスにより、誰かがホスト上でトロイの木馬
+          を実行できるようにはしたくないでしょう。
+        </p>
+      </li>
+
+      <li>suEXEC コードの改造
+
+
+        <p class="indent">
+          繰り返しますが、何をやろうとしているか把握せずにこれをやると
+          <strong>大きな問題</strong>を引き起こしかねません。
+          可能な限り避けてください。
+        </p>
+      </li>
+    </ul>
+</div></div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="./en/suexec.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/suexec.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/suexec.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/suexec.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/suexec.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/suexec.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="./mod/">モジュール</a> | <a href="./mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">用語</a> | <a href="./sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

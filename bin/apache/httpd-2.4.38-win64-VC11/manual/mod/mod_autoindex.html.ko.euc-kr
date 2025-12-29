@@ -1,0 +1,893 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+<meta content="text/html; charset=EUC-KR" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_autoindex - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">모듈</a></div>
+<div id="page-content">
+<div id="preamble"><h1>아파치 모듈 mod_autoindex</h1>
+<div class="toplang">
+<p><span>가능한 언어: </span><a href="../en/mod/mod_autoindex.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_autoindex.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_autoindex.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_autoindex.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/mod/mod_autoindex.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">이 문서는 최신판 번역이 아닙니다.
+            최근에 변경된 내용은 영어 문서를 참고하세요.</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">설명:</a></th><td>자동으로 유닉스의 <code>ls</code> 명령어나 Win32의
+    <code>dir</code> 쉘명령어와 유사한 디렉토리 목록을 만든다</td></tr>
+<tr><th><a href="module-dict.html#Status">상태:</a></th><td>Base</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">모듈명:</a></th><td>autoindex_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">소스파일:</a></th><td>mod_autoindex.c</td></tr></table>
+<h3>요약</h3>
+ 
+      <p>디렉토리 목록은 얻는 방법은 두가지다:</p>
+
+    <ul>
+      <li>보통 <code>index.html</code>이란 이름으로 사용자가
+      작성한 파일. 이 파일의 이름은 <code class="directive"><a href="../mod/mod_dir.html#directoryindex">DirectoryIndex</a></code> 지시어로
+      지정한다. 이 작업은 <code class="module"><a href="../mod/mod_dir.html">mod_dir</a></code>이 한다.</li>
+
+      <li>아니면 서버가 목록을 만든다. 이 목록의 형식을 지정하는
+      지시어들이 있다. <code class="directive"><a href="#addicon">AddIcon</a></code>, <code class="directive"><a href="#addiconbyencoding">AddIconByEncoding</a></code>,
+      <code class="directive"><a href="#addiconbytype">AddIconByType</a></code>은
+      여러 파일종류마다 보여줄 아이콘들을 지정한다. 각 파일에
+      대응하는 첫번째 아이콘을 보인다. 이 작업을
+      <code class="module"><a href="../mod/mod_autoindex.html">mod_autoindex</a></code>가 한다.</li>
+    </ul>
+    <p>이 두 기능은 서로 별개로, 원한다면 자동 목록 생성을 완전히
+    제외할 (혹은 대체할) 수 있다.</p>
+
+    <p>자동 목록 생성은 <code>Options +Indexes</code>로 가능하다.
+    자세한 내용은 <code class="directive"><a href="../mod/core.html#options">Options</a></code>
+    지시어를 참고하라.</p>
+
+    <p><code class="directive"><a href="#indexoptions">IndexOptions</a></code>
+    지시어에 <code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code> 옵션을 주면, 열 이름을 출력할
+    순서를 바꾸는 링크로 만든다. 이름 링크를 선택하면 그 열의
+    값 순서로 목록을 다시 만든다. 같은 이름을 반복해서 선택하면
+    오름차순과 내림차순 사이를 오간다. <code class="directive"><a href="#indexoptions">IndexOptions</a></code> 지시어의
+    <code>SuppressColumnSorting</code> 옵션은 이런 열 이름 링크를
+    만들지 않는다.</p>
+
+    <p>"Size(크기)" 순으로 볼때 출력되는 값 순서가 아니라 <em>실제</em>
+    파일크기 순서임을 주의하라. 즉, 1010 바이트 파일과 1011
+    바이트 파일은 둘다 "1K"로 보이더라도 항상 1010 바이트 파일이
+    앞에 나온다.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>주제</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#query">Autoindex 요청 아규먼트</a></li>
+</ul><h3 class="directives">지시어들</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#addalt">AddAlt</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#addaltbyencoding">AddAltByEncoding</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#addaltbytype">AddAltByType</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#adddescription">AddDescription</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#addicon">AddIcon</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#addiconbyencoding">AddIconByEncoding</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#addiconbytype">AddIconByType</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#defaulticon">DefaultIcon</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#headername">HeaderName</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#indexheadinsert">IndexHeadInsert</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#indexignore">IndexIgnore</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#indexignorereset">IndexIgnoreReset</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#indexoptions">IndexOptions</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#indexorderdefault">IndexOrderDefault</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#indexstylesheet">IndexStyleSheet</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#readmename">ReadmeName</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_autoindex">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_autoindex">Report a bug</a></li></ul><h3>참고</h3>
+<ul class="seealso">
+<li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="query" id="query">Autoindex 요청 아규먼트</a></h2>
+    
+
+    <p>아파치 2.0.23는 열순서에 대한 요청 아규먼트를 정리하고,
+    새로운 옵션들을 추가했다. 출력을 클라이언트가 조절할 수
+    없도록 만드는 <code><a href="#indexoptions.ignoreclient">IndexOptions
+    IgnoreClient</a></code> 옵션이 추가되었다.</p>
+
+    <p>열순서 이름은 아래 나온 순서 요청 옵션을 더한 자기참조
+    링크다. 아래 옵션은 디렉토리 자원에 대한 어떤 요청에도
+    사용할 수 있다.</p>
+
+    <ul>
+      <li><code>C=N</code>은 파일명 순이다</li>
+
+      <li><code>C=M</code>은 최근 수정일 순, 그리고 파일명 순이다</li>
+
+      <li><code>C=S</code>는 크기 순, 그리고 파일명 순이다</li>
+
+      <li class="separate"><code>C=D</code>는 설명 순, 그리고 파일명
+      순이다</li>
+
+      <li><code>O=A</code>는 오름차순으로 목록을 정렬한다</li>
+
+      <li class="separate"><code>O=D</code>는 내림차순으로 목록을 정렬한다</li>
+
+      <li><code>F=0</code>은 (FancyIndexed가 아닌) 간단한 목록 형식이다</li>
+
+      <li><code>F=1</code>은 FancyIndexed 목록 형식이다</li>
+
+      <li class="separate"><code>F=2</code>는 HTMLTable FancyIndexed 목록
+      형식이다</li>
+
+      <li><code>V=0</code>은 버전 순으로 정렬하지 않는다</li>
+
+      <li class="separate"><code>V=1</code>은 버전 순으로 정렬한다</li>
+
+      <li><code>P=<var>pattern</var></code>은 주어진 <var>pattern</var>에
+      해당하는 파일만을 목록으로 만든다</li>
+    </ul>
+
+    <p>'P'attern 아규먼트는 일반적인 <code class="directive"><a href="#indexignore">IndexIgnore</a></code> 지시어를 처리한 <em>후에</em>
+    검사하기때문에, 목록은 다른 autoindex 조건을 따름을 주의하라.
+    <code class="module"><a href="../mod/mod_autoindex.html">mod_autoindex</a></code>의 요청 아규먼트를 읽어들일때
+    알 수 없는 옵션을 발견하면 더 이상 읽지않는다. 요청 아규먼트는
+    위의 표에 따라 만들어야 한다.</p>
+
+    <p>header.html 파일에 사용할 수 있는 아래 간단한 예제는
+    이 옵션들을 설명한다. submit 버턴의 알 수 없는 "X" 아규먼트는
+    mod_autoindex가 X=Go 전까지 모든 아규먼트를 읽어들임을
+    확인하기위해 마지막에 사용했다.</p>
+
+    <div class="example"><p><code>
+      &lt;form action="" method="get"&gt;<br />
+      <span class="indent">
+        Show me a &lt;select name="F"&gt;<br />
+        <span class="indent">
+          &lt;option value="0"&gt; Plain list&lt;/option&gt;<br />
+          &lt;option value="1" selected="selected"&gt; Fancy list&lt;/option&gt;<br />
+          &lt;option value="2"&gt; Table list&lt;/option&gt;<br />
+        </span>
+        &lt;/select&gt;<br />
+        Sorted by &lt;select name="C"&gt;<br />
+        <span class="indent">
+          &lt;option value="N" selected="selected"&gt; Name&lt;/option&gt;<br />
+          &lt;option value="M"&gt; Date Modified&lt;/option&gt;<br />
+          &lt;option value="S"&gt; Size&lt;/option&gt;<br />
+          &lt;option value="D"&gt; Description&lt;/option&gt;<br />
+        </span>
+        &lt;/select&gt;<br />
+        &lt;select name="O"&gt;<br />
+        <span class="indent">
+          &lt;option value="A" selected="selected"&gt; Ascending&lt;/option&gt;<br />
+          &lt;option value="D"&gt; Descending&lt;/option&gt;<br />
+        </span>
+        &lt;/select&gt;<br />
+        &lt;select name="V"&gt;<br />
+        <span class="indent">
+          &lt;option value="0" selected="selected"&gt; in Normal order&lt;/option&gt;<br />
+          &lt;option value="1"&gt; in Version order&lt;/option&gt;<br />
+        </span>
+        &lt;/select&gt;<br />
+        Matching &lt;input type="text" name="P" value="*" /&gt;<br />
+        &lt;input type="submit" name="X" value="Go" /&gt;<br />
+      </span>
+      &lt;/form&gt;
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="AddAlt" id="AddAlt">AddAlt</a> <a name="addalt" id="addalt">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>파일명으로 선택한 아이콘대신 사용할 파일 설명글</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>AddAlt <var>string</var> <var>file</var> [<var>file</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override 옵션:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">AddAlt</code>는 <code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>에서
+    파일에 대한 아이콘대신 보일 글을 지정한다. <var>File</var>에는
+    설명할 파일의 파일 확장자, 파일명 일부, 와일드카드 표현,
+    전체 파일명을 사용할 수 있다. <var>String</var>에 공백이
+    들어간다면 따옴표(<code>"</code> 혹은 <code>'</code>)로
+    묶어야 한다. 클라이언트가 이미지를 볼 수 없거나, 이미지를
+    읽지않거나, 아이콘을 못 얻은 경우 이 추가 글이 보이게 된다.</p>
+
+    <div class="example"><h3>예제</h3><p><code>
+      AddAlt "PDF file" *.pdf<br />
+      AddAlt Compressed *.gz *.zip *.Z
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="AddAltByEncoding" id="AddAltByEncoding">AddAltByEncoding</a> <a name="addaltbyencoding" id="addaltbyencoding">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>MIME-encoding으로 선택한 아이콘대신 사용할 파일
+설명글</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>AddAltByEncoding <var>string</var> <var>MIME-encoding</var>
+[<var>MIME-encoding</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override 옵션:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">AddAltByEncoding</code>은 <code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>에서
+    파일에 대한 아이콘대신 보일 글을 지정한다. <var>MIME-encoding</var>은
+    <code>x-compress</code>와 같은 유효한 content-encoding이다.
+    <var>String</var>에 공백이 들어간다면 따옴표(<code>"</code>
+    혹은 <code>'</code>)로 묶어야 한다. 클라이언트가 이미지를
+    볼 수 없거나, 이미지를 읽지않거나, 아이콘을 못 얻은 경우
+    이 추가 글이 보이게 된다.</p>
+
+    <div class="example"><h3>예제</h3><p><code>
+      AddAltByEncoding gzip x-gzip
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="AddAltByType" id="AddAltByType">AddAltByType</a> <a name="addaltbytype" id="addaltbytype">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>MIME content-type으로 선택한 아이콘대신 사용할 파일
+설명글</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>AddAltByType <var>string</var> <var>MIME-type</var>
+[<var>MIME-type</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override 옵션:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">AddAltByType</code>은 <code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>에서
+    파일에 대한 아이콘대신 보일 글을 지정한다. <var>MIME-type</var>은
+    <code>text/html</code>과 같은 유효한 content-type이다.
+    <var>String</var>에 공백이 들어간다면 따옴표(<code>"</code>
+    혹은 <code>'</code>)로 묶어야 한다. 클라이언트가 이미지를
+    볼 수 없거나, 이미지를 읽지않거나, 아이콘을 못 얻은 경우
+    이 추가 글이 보이게 된다.</p>
+
+    <div class="example"><h3>예제</h3><p><code>
+      AddAltByType 'plain text' text/plain
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="AddDescription" id="AddDescription">AddDescription</a> <a name="adddescription" id="adddescription">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>파일에 대한 설명</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>AddDescription <var>string file</var> [<var>file</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override 옵션:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p>이 지시어는 <code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>에서 파일에 대한 설명을 지정한다.
+    <var>File</var>에는 설명할 파일의 파일 확장자, 파일명 일부,
+    와일드카드 표현, 전체 파일명을 사용할 수 있다. <var>String</var>은
+    따옴표(<code>"</code>)로 묶어야 한다.</p>
+
+    <div class="example"><h3>예제</h3><p><code>
+      AddDescription "The planet Mars" /web/pics/mars.gif
+    </code></p></div>
+
+    <p>전형적인 기본 설명 필드폭은 23 바이트다. <code><a href="#indexoptions.suppressicon">IndexOptions
+    SuppressIcon</a></code> 옵션을 사용하면 기본폭에 6 바이트를
+    더 추가하고, <code><a href="#indexoptions.suppresssize">IndexOptions SuppressSize</a></code> 옵션은 7 바이트를,
+    <code><a href="#indexoptions.suppresslastmodified">IndexOptions SuppressLastModified</a></code> 옵션은 19
+    바이트를 더 추가한다. 그러므로 가장 넓은 설명폭은 55 바이트다.</p>
+
+    <p>이 필드의 폭를 바꾸거나 설명의 길이를 무한대로 만드려면
+    <a href="#indexoptions.descriptionwidth">DescriptionWidth</a> <code class="directive"><a href="#indexoptions">IndexOptions</a></code> 키워드를 참고하라.</p>
+
+    <div class="note"><h3>조심</h3>
+      <p><code class="directive">AddDescription</code>으로 지정한 설명글에
+      태그나 character entity<span class="transnote">(<em>역주;</em> &amp;lt;, &amp;amp; 등을
+      지칭)</span>같은 HTML을 사용할 수 있다. 그러나 폭때문에
+      태그가 있는 부분이 짤리게되면 (예를 들어 굵은체 부분 끝이
+      짤리면) 나머지 디렉토리 목록에 영향을 줄 수 있다.</p>
+    </div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="AddIcon" id="AddIcon">AddIcon</a> <a name="addicon" id="addicon">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>이름으로 선택한 파일에 사용할 아이콘</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>AddIcon <var>icon</var> <var>name</var> [<var>name</var>]
+...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override 옵션:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p>이 지시어는 <code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>에서 <var>name</var>으로 끝나는
+    파일 옆에 보여줄 아이콘을 지정한다. <var>Icon</var>은
+    아이콘의 (%-escaped) 상대 URL 혹은
+    <code>(<var>alttext</var>,<var>url</var>)</code> 형식이다.
+    여기서 <var>alttext</var>는 그림을 보여줄 수 없는 브라우저가
+    아이콘대신 사용할 문구이다.</p>
+
+    <p><var>Name</var>에는 디렉토리를 나타내는 <code>^^DIRECTORY^^</code>,
+    (목록 형식을 올바로 맞추기위해) 빈줄을 나타내는
+    <code>^^BLANKICON^^</code>, 파일 확장자, 와일드카드 표현,
+    파일명 일부 혹은 전체를 사용할 수 있다.</p>
+
+    <div class="example"><h3>예제</h3><p><code>
+      AddIcon (IMG,/icons/image.xbm) .gif .jpg .xbm<br />
+      AddIcon /icons/dir.xbm ^^DIRECTORY^^<br />
+      AddIcon /icons/backup.xbm *~
+    </code></p></div>
+    
+    <p>가능하면 <code class="directive">AddIcon</code>보다는 <code class="directive"><a href="#addiconbytype">AddIconByType</a></code>을 사용해야 한다.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="AddIconByEncoding" id="AddIconByEncoding">AddIconByEncoding</a> <a name="addiconbyencoding" id="addiconbyencoding">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>MIME content-encoding으로 선택한 파일에 사용할 아이콘</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>AddIconByEncoding <var>icon</var> <var>MIME-encoding</var>
+[<var>MIME-encoding</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override 옵션:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p>이 지시어는 <code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>에서
+    파일 옆에 보여줄 아이콘을 지정한다. <var>Icon</var>은
+    아이콘의 (%-escaped) 상대 URL 혹은
+    <code>(<var>alttext</var>,<var>url</var>)</code> 형식이다.
+    여기서 <var>alttext</var>는 그림을 보여줄 수 없는 브라우저가
+    아이콘대신 사용할 문구이다.</p>
+
+    <p><var>MIME-encoding</var>는 content-encoding에 해당하는
+    와일드카드 표현이다.</p>
+
+    <div class="example"><h3>예제</h3><p><code>
+      AddIconByEncoding /icons/compress.xbm x-compress
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="AddIconByType" id="AddIconByType">AddIconByType</a> <a name="addiconbytype" id="addiconbytype">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>MIME content-type으로 선택한 파일에 사용할 아이콘</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>AddIconByType <var>icon</var> <var>MIME-type</var>
+[<var>MIME-type</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override 옵션:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p>이 지시어는 <code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>에서
+    <var>MIME-type</var>의 파일 옆에 보여줄 아이콘을 지정한다.
+    <var>Icon</var>은 아이콘의 (%-escaped) 상대 URL 혹은
+    <code>(<var>alttext</var>,<var>url</var>)</code> 형식이다.
+    여기서 <var>alttext</var>는 그림을 보여줄 수 없는 브라우저가
+    아이콘대신 사용할 문구이다.</p>
+
+    <p><var>MIME-type</var>은 mime type에 해당하는 와일드카드
+    표현이다.</p>
+
+    <div class="example"><h3>예제</h3><p><code>
+      AddIconByType (IMG,/icons/image.xbm) image/*
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="DefaultIcon" id="DefaultIcon">DefaultIcon</a> <a name="defaulticon" id="defaulticon">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>특정 아이콘을 설정하지않은 파일에 사용할 아이콘</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>DefaultIcon <var>url-path</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override 옵션:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">DefaultIcon</code> 지시어는 <code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>에서
+    특정 아이콘을 설정하지않은 파일 옆에 나올 아이콘이다.
+    <var>Icon</var>은 아이콘의 (%-escaped) 상대 URL이다.</p>
+
+    <div class="example"><h3>예제</h3><p><code>
+      DefaultIcon /icon/unknown.xbm
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="HeaderName" id="HeaderName">HeaderName</a> <a name="headername" id="headername">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>파일목록 위에 삽입할 파일의 이름</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>HeaderName <var>filename</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override 옵션:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">HeaderName</code> 지시어는 파일목록 앞에
+    삽입할 파일의 이름을 지정한다. <var>Filename</var>은 삽입할
+    파일명이다.</p>
+
+    <div class="example"><h3>예제</h3><p><code>
+      HeaderName HEADER.html
+    </code></p></div>
+
+    <div class="note">
+      <p>현재 HeaderName과 <code class="directive"><a href="#readmename">ReadmeName</a></code> 둘 모두
+      <var>Filename</var>을 접근하려는 디렉토리의 상대 URI 경로로
+      받아들인다. <var>Filename</var>이 슬래쉬로 시작하면 <code class="directive"><a href="../mod/core.html#documentroot">DocumentRoot</a></code>에 상대적인 경로로
+      받아들인다.</p>
+
+      <div class="example"><h3>예제</h3><p><code>
+        HeaderName /include/HEADER.html
+      </code></p></div>
+      
+      <p><var>Filename</var>에는 major content type이 <code>text/*</code>인
+      (<em>예를 들어</em>, <code>text/html</code>, <code>text/plain</code>,
+      등) 문서를 사용해야 한다. 즉, 스크립트의 (출력이 아닌) 실제 파일
+      type을 다음과 같이 <code>text/html</code>로 지정한다면
+      <var>filename</var>으로 CGI 스크립트를 지정할 수도 있다:</p>
+
+      <div class="example"><p><code>
+        AddType text/html .cgi
+      </code></p></div>
+
+      <p><code class="directive"><a href="../mod/core.html#options">Options</a></code>
+      <code>MultiViews</code>을 사용하면 <a href="../content-negotiation.html">내용협상</a>을 한다.
+      <var>filename</var>이 (CGI 스크립트가 아닌) 고정된
+      <code>text/html</code> 문서이고 <code class="directive"><a href="../mod/core.html#options">options</a></code> <code>Includes</code>나
+      <code>IncludesNOEXEC</code> 중 하나를 사용한다면 파일을
+      server-side includes로 처리한다. (<code class="module"><a href="../mod/mod_include.html">mod_include</a></code>
+      문서 참고)</p>
+    </div>
+
+    <p><code class="directive">HeaderName</code>으로 지정한 파일에
+    (&lt;html&gt;, &lt;head&gt;, 등) HTML 문서 시작부분이 포함되있다면
+    <a href="#indexoptions.suppresshtmlpreamble"><code>IndexOptions
+    +SuppressHTMLPreamble</code></a>을 사용하여 이 부분을 추가하지않는
+    것이 좋다.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="IndexHeadInsert" id="IndexHeadInsert">IndexHeadInsert</a> <a name="indexheadinsert" id="indexheadinsert">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>Inserts text in the HEAD section of an index page.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code /></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_autoindex</td></tr>
+</table><p>Documentation not yet translated. Please see English version of document.</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="IndexIgnore" id="IndexIgnore">IndexIgnore</a> <a name="indexignore" id="indexignore">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>디렉토리 목록에서 숨길 파일목록을 추가한다</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>IndexIgnore <var>file</var> [<var>file</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override 옵션:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">IndexIgnore</code> 지시어는 디렉토리
+    목록에서 감출 파일목록을 추가한다. <var>File</var>에는 감출
+    (쉘에서 사용하는) 화일드카드 표현이나 전체 파일명을
+    사용할 수 있다. 여러 IndexIgnore 지시어를 사용하면 기존의
+    감출 파일목록을 대체하지않고 목록에 지정한 파일들을 추가한다.
+    기본적으로 목록은 <code>.</code>을 (현재 디렉토리) 포함한다.</p>
+
+    <div class="example"><p><code>
+      IndexIgnore README .htaccess *.bak *~
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="IndexIgnoreReset" id="IndexIgnoreReset">IndexIgnoreReset</a> <a name="indexignorereset" id="indexignorereset">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>Empties the list of files to hide when listing
+a directory</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>IndexIgnoreReset ON|OFF</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override 옵션:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_autoindex</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">지원:</a></th><td>2.3.10 and later</td></tr>
+</table><p>The documentation for this directive has
+            not been translated yet. Please have a look at the English
+            version.</p></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="IndexOptions" id="IndexOptions">IndexOptions</a> <a name="indexoptions" id="indexoptions">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>디렉토리 목록의 여러 설정들</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>IndexOptions  [+|-]<var>option</var> [[+|-]<var>option</var>]
+...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override 옵션:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">IndexOptions</code> 지시어는 디렉토리
+    목록을 설정한다. <var>Option</var>은 다음 중 하나이다</p>
+
+    <dl>
+      <dt><a name="indexoptions.descriptionwidth" id="indexoptions.descriptionwidth">DescriptionWidth=[<var>n</var> | *]</a> (<em>아파치
+      2.0.23 이후</em>)</dt>
+
+      <dd><code>DescriptionWidth</code> 키워드를 사용하여 문자단위로
+      설명열의 폭을 지정할 수 있다.</dd>
+
+      <dd><code>-DescriptionWidth</code>를 지정하면 (혹은 아무것도
+      지정하지않으면) <code class="module"><a href="../mod/mod_autoindex.html">mod_autoindex</a></code>가 최적의
+      폭을 계산한다.</dd>
+
+      <dd><code>DescriptionWidth=<var>n</var></code>은 열의
+      폭을 <var>n</var> 바이트로 고정한다.</dd>
+
+      <dd><code>DescriptionWidth=*</code>은 열의 폭을 가장 긴
+      설명글을 담을 수 있는만큼 늘린다.</dd>
+
+      <dd><strong>설정이 짤릴 수 있는 문제는 <code class="directive"><a href="#adddescription">AddDescription</a></code>
+      절을 참고하라.</strong></dd>
+
+      <dt><a name="indexoptions.fancyindexing" id="indexoptions.fancyindexing">FancyIndexing</a></dt>
+
+      <dd>디렉토리의 fancy 목록을 만든다.</dd>
+
+      <dt><a name="indexoptions.foldersfirst" id="indexoptions.foldersfirst">FoldersFirst</a>
+               (<em>아파치 2.0.23 이후</em>)</dt>
+
+      <dd>이 옵션을 사용하면 하위디렉토리 목록이 <em>항상</em>
+      먼저 나오고, 디렉토리에 있는 일반 파일이 뒤에 나온다.
+      기본적으로 목록은 파일과 하위디렉토리로 나뉘고, 따로
+      각각의 순서를 정리하여 하위디렉토리들을 먼저 보인다.
+      예를 들어, 이름 역순으로 정렬하고 <code>FoldersFirst</code>를
+      사용한다면 하위디렉토리 <code>Zed</code>가 하위디렉토리
+      <code>Beta</code> 앞에 나오고, 하위디렉토리 <code>Beta</code>는
+      일반 파일 <code>Gamma</code>와 <code>Alpha</code> 앞에
+      나온다. <strong>이 옵션은 <a href="#indexoptions.fancyindexing"><code>FancyIndexing</code></a>을 함께 사용할때만 효과가
+      있다.</strong></dd>
+
+      <dt><a name="indexoptions.htmltable" id="indexoptions.htmltable">HTMLTable</a> (<em>실험적,
+      아파치 2.0.23 이후</em>)</dt>
+
+      <dd>이 실험적인 FancyIndexing 옵션은 간단한 HTML 표로
+      fancy 디렉토리 목록을 만든다. 이 옵션은 오래된 브라우저를
+      혼란스럽게 할 수 있음을 주의하라. 이 옵션은 WinNT나 다른
+      utf-8 사용 플래폼에서 파일명이나 설명문의 읽기 순서(왼쪽에서
+      오른쪽 혹은 오른쪽에서 왼쪽으로)가 다를때 특별히 유용하다.</dd>
+
+      <dt><a name="indexoptions.iconsarelinks" id="indexoptions.iconsarelinks">IconsAreLinks</a></dt>
+
+      <dd>fancy 목록에서 파일명 링크에 아이콘을 포함한다.</dd>
+
+      <dt><a name="indexoptions.iconheight" id="indexoptions.iconheight">IconHeight[=<var>pixels</var>]</a></dt>
+
+      <dd>이 옵션을 IconWidth와 같이 사용하면 서버는 파일 아이콘의
+      <code>img</code> 태그에 <code>height</code>와 <code>width</code>
+      속성을 포함한다. 그러면 브라우저는 모든 이미지를 받지않은
+      상황에서도 페이지 구성을 미리 계산할 수 있다. 옵션에 값을
+      주지않으면 아파치가 제공하는 아이콘의 표준 높이를 사용한다.</dd>
+
+      <dt><a name="indexoptions.iconwidth" id="indexoptions.iconwidth">IconWidth[=<var>pixels</var>]</a></dt>
+
+      <dd>이 옵션을 <code>IconHeight</code>와 같이 사용하면
+      서버는 파일 아이콘의 <code>img</code> 태그에
+      <code>height</code>와 <code>width</code> 속성을 포함한다.
+      그러면 브라우저는 모든 이미지를 박지않은 상황에서도 페이지
+      구성을 미리 계산할 수 있다. 옵션에 값을 주지않으면 아파치가
+      제공하는 아이콘의 표준 폭을 사용한다.</dd>
+
+      <dt><a name="indexoptions.ignorecase" id="indexoptions.ignorecase">IgnoreCase</a></dt>
+
+      <dd>이 옵션을 사용하면 대소문자 구별하지않고 이름을 정렬한다.
+      예를 들어, 이름으로 오름차순이고 IgnoreCase를 사용하면
+      파일 Zeta는 파일 alfa 뒤에 나온다 (주의: 파일 GAMMA는
+      항상 파일 gamma 앞에 나온다). </dd>
+
+      <dt><a name="indexoptions.ignoreclient" id="indexoptions.ignoreclient">IgnoreClient</a></dt>
+
+      <dd>이 옵션을 사용하면 <code class="module"><a href="../mod/mod_autoindex.html">mod_autoindex</a></code>는
+      순서를 포함하여 클라이언트가 보내는 모든 질의변수를 무시한다.
+      (<code><a href="#indexoptions.suppresscolumnsorting">SuppressColumnSorting</a></code>을 가정한다.)</dd>
+
+      <dt><a name="indexoptions.namewidth" id="indexoptions.namewidth">NameWidth=[<var>n</var>
+               | *]</a></dt>
+
+      <dd><code>NameWidth</code> 키워드는 바이트단위로 파일명
+      열의 폭을 지정한다.</dd>
+
+      <dd><code>-NameWidth</code>을 지정하면 (혹은 아무것도
+      지정하지않으면) <code class="module"><a href="../mod/mod_autoindex.html">mod_autoindex</a></code>가 최적의
+      폭을 계산한다.</dd>
+
+      <dd><code>NameWidth=<var>n</var></code>는 열의 폭을 <var>n</var>
+      바이트로 고정한다.</dd>
+
+      <dd><code>NameWidth=*</code>은 열의 폭을 필요한만큼 늘린다.</dd>
+
+      <dt><a name="indexoptions.scanhtmltitles" id="indexoptions.scanhtmltitles">ScanHTMLTitles</a></dt>
+
+      <dd>fancy 목록에서 HTML 문서의 title을 뽑는다. 파일에
+      <code class="directive"><a href="#adddescription">AddDescription</a></code>로
+      지정한 설명이 없다면 웹서버는 문서의 <code>title</code>
+      요소값을 읽어들인다. 이 작업은 CPU와 디스크를 많이 사용한다.</dd>
+
+      <dt><a name="indexoptions.suppresscolumnsorting" id="indexoptions.suppresscolumnsorting">SuppressColumnSorting</a></dt>
+
+      <dd>이 옵션을 사용하면 아파치는 FancyIndexed 디렉토리
+      목록에서 열 이름을 순서를 바꾸는 링크로 만들지 않는다.
+      보통은 열 이름을 링크로 만들어서, 열 이름을 선택하면 그
+      열에 있는 값순서로 디렉토리 목록을 만든다. <strong>아파치
+      2.0.23 이전에는 순서 아규먼트도 읽지 않았다.</strong>
+      아파치 2.0.23에서는 <a href="#indexoptions.ignoreclient">IndexOptions
+      IgnoreClient</a>를 사용하여 순서 아규먼트를 읽지 않는다.</dd>
+
+      <dt><a name="indexoptions.suppressdescription" id="indexoptions.suppressdescription">SuppressDescription</a></dt>
+
+      <dd>fancy 목록에서 파일 설명을 포함하지 않는다. 기본적으로
+      어떤 파일 설명도 정의되있지않고, 이 옵션을 사용하면 23
+      문자 공간을 다른 용도로 사용한다. 파일 설명을 지정하는
+      방법은 <code class="directive"><a href="#adddescription">AddDescription</a></code>을 참고하라. 설명열의 크기를
+      지정하는 <code><a href="#indexoptions.descriptionwidth">DescriptionWidth</a></code>
+      옵션도 참고하라.</dd>
+
+      <dt><a name="indexoptions.suppresshtmlpreamble" id="indexoptions.suppresshtmlpreamble">SuppressHTMLPreamble</a></dt>
+
+      <dd>디렉토리에 <code class="directive"><a href="#headername">HeaderName</a></code> 지시어로
+      지정한 파일이 있는 경우 모듈은 보통 표준 HTML 시작부분
+      (<code>&lt;html&gt;</code>, <code>&lt;head&gt;</code>,
+      <em>et cetera</em>) 뒤에 파일 내용을 첨가한다. 그러나
+      <code>SuppressHTMLPreamble</code> 옵션을 사용하면 처음부터
+      header 파일 내용을 포함한다. 이 경우 header 파일에는 적절한
+      HTML 명령이 있어야 한다. header 파일이 없다면 일반적인
+      시작부분이 만들어진다.</dd>
+
+      <dt><a name="indexoptions.suppressicon" id="indexoptions.suppressicon">SuppressIcon</a>
+               (<em>아파치 2.0.23 이후</em>)</dt>
+
+      <dd>fancy 목록에서 아이콘을 뺀다. <code>SuppressIcon</code>과
+      <code>SuppressRules</code>를 같이 사용하면, (FancyIndexed
+      목록이 사용한) <code>pre</code> 안에 <code>img</code>와
+      <code>hr</code> 요소 사용을 금지한 마지막 표준인 HTML 3.2에
+      알맞은 출력이 된다.</dd>
+
+      <dt><a name="indexoptions.suppresslastmodified" id="indexoptions.suppresslastmodified">SuppressLastModified</a></dt>
+
+      <dd>fancy 목록에서 마지막 수정일을 표시하지 않는다.</dd>
+
+      <dt><a name="indexoptions.suppressrules" id="indexoptions.suppressrules">SuppressRules</a>
+      (<em>아파치 2.0.23 이후</em>)</dt>
+
+      <dd>디렉토리 목록에서 수평줄을 (<code>hr</code> 요소)
+      사용하지 않는다. <code>SuppressIcon</code>과
+      <code>SuppressRules</code>를 같이 사용하면, (FancyIndexed
+      목록이 사용한) <code>pre</code> 안에 <code>img</code>와
+      <code>hr</code> 요소 사용을 금지한 마지막 표준인 HTML 3.2에
+      알맞은 출력이 된다.</dd>
+
+      <dt><a name="indexoptions.suppresssize" id="indexoptions.suppresssize">SuppressSize</a></dt>
+
+      <dd>fancy 목록에서 파일크기를 표시하지 않는다.</dd>
+
+      <dt><a name="indexoptions.trackmodified" id="indexoptions.trackmodified">TrackModified</a>
+               (<em>아파치 2.0.23 이후</em>)</dt>
+
+      <dd>디렉토리 목록의 HTTP 헤더에 Last-Modified와 ETag 값을
+      포함한다. 이 옵션은 운영체제와 파일시스템에서 적절한 stat()
+      결과를 얻을 수 있을때만 유효하다. 유닉스 시스템과 OS2의
+      JFS, Win32의 NTFS에서는 가능하다. 예를 들어, OS2와 Win32의
+      FAT은 불가능하다. 이 기능을 사용하면 클라이언트나 프록시는
+      <code>HEAD</code> 요청을 사용하여 파일목록의 변화를 추적할
+      수 있다. 어떤 운영체제는 새로운 파일과 삭제한 파일을 올바로
+      추적하지만, 디렉토리에 있는 파일의 크기나 날짜 변화를
+      추적하지 못함을 주의하라. <strong>모든 유닉스 플래폼에서
+      기존 파일의 크기나 날짜 변화시 Last-Modified 헤더가
+      바뀌지않는다.</strong> 이런 변화가 중요하다면 이 옵션을
+      사용하지 마라.</dd>
+
+      <dt><a name="indexoptions.versionsort" id="indexoptions.versionsort">VersionSort</a>
+               (<em>아파치 2.0a3 이후</em>)</dt>
+
+      <dd><code>VersionSort</code> 키워드는 버전 번호를 포함한
+      파일명을 자연스럽게 정렬한다. 문자 부분은 정상적인 순서를
+      정렬하지만, 파일과 설명에 있는 숫자 부분은 숫자값으로
+      비교한다.
+
+      <div class="example"><h3>예제:</h3><p><code>
+        foo-1.7<br />
+        foo-1.7.2<br />
+        foo-1.7.12<br />
+        foo-1.8.2<br />
+        foo-1.8.2a<br />
+        foo-1.12
+      </code></p></div>
+
+      <p>수가 0으로 시작하면, 그 수를 분수로 취급한다:</p>
+
+      <div class="example"><p><code>
+        foo-1.001<br />
+        foo-1.002<br />
+        foo-1.030<br />
+        foo-1.04
+      </code></p></div>
+      </dd>
+
+      <dt><a name="indexoptions.xhtml" id="indexoptions.xhtml">XHTML</a>
+      (<em>아파치 2.0.49 이후</em>)</dt>
+
+      <dd><code>XHTML</code> 키워드를 사용하면
+      <code class="module"><a href="../mod/mod_autoindex.html">mod_autoindex</a></code>는 HTML 3.2 대신 XHTML 1.0
+      코드를 생성한다.</dd>
+    </dl>
+
+   
+   <dl><dt>점진적인 IndexOptions</dt>
+   <dd>
+     <p>아파치 1.3.3에서 <code class="directive">IndexOptions</code>
+     지시어 처리방식이 크게 변화되었다. 특별히:</p>
+
+     <ul>
+     <li>이제 한 디렉토리에 대한 여러
+     <code class="directive">IndexOptions</code> 지시어들을 서로 결합한다.
+     다음의 결과는:
+
+     <div class="example"><p><code>
+       &lt;Directory /foo&gt;
+       <span class="indent">
+         IndexOptions HTMLTable<br />
+         IndexOptions SuppressColumnsorting
+       </span>
+       &lt;/Directory&gt;
+     </code></p></div>
+
+     <p>다음과 같다</p>
+
+     <div class="example"><p><code>
+       IndexOptions HTMLTable SuppressColumnsorting
+     </code></p></div>
+     </li>
+
+     <li>(<em>예를 들어</em>, 키워드 앞에 <code>+</code>나
+     <code>-</code>를 붙이는) 점진적인 문법이 추가되었다.</li>
+     </ul>
+
+     <p>키워드 앞에 '+'나 '-'가 붙을때마다 해당 키워드가 현재
+     (상위 디렉토리에서 상속되었을) <code class="directive">IndexOptions</code>
+     설정에 반영된다. 그러나 앞에 아무것도 없는 키워드를 만나면
+     아직까지 상속되거나 점진적으로 변경된 설정을 모두 지운다.
+     다음 예제를 살펴보자:</p>
+
+     <div class="example"><p><code>
+       IndexOptions +ScanHTMLTitles -IconsAreLinks FancyIndexing<br />
+       IndexOptions +SuppressSize
+     </code></p></div>
+
+     <p>앞에 아무것도 없는 <code>FancyIndexing</code>이 이전의
+     점진적인 설정을 지워버렸지만 설정이 다시 추가되여 결과는
+     <code>IndexOptions FancyIndexing +SuppressSize</code>와 같다.</p>
+
+     <p>특정 디렉토리에 대해 무조건적인
+     <code class="directive">IndexOptions</code>를 설정하려면 키워드
+     앞에 <code>+</code>나 <code>-</code>를 사용하지말고
+     상속된 설정을 지운다.</p>
+   </dd>
+   </dl>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="IndexOrderDefault" id="IndexOrderDefault">IndexOrderDefault</a> <a name="indexorderdefault" id="indexorderdefault">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>디렉토리 목록의 기본 순서를 설정한다</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>IndexOrderDefault Ascending|Descending
+Name|Date|Size|Description</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">기본값:</a></th><td><code>IndexOrderDefault Ascending Name</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override 옵션:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">IndexOrderDefault</code> 지시어는 <code><a href="#indexoptions.fancyindexing">FancyIndexing</a></code>
+    목록 옵션과 함께 사용한다. 기본적으로 fancyindexed 디렉토리
+    목록은 파일명 오름차순이다. <code class="directive">IndexOrderDefault</code>는
+    이 초기 순서를 변경할 수 있다.</p>
+
+    <p><code class="directive">IndexOrderDefault</code>는 두 아규먼트를
+    받는다. 첫번째는 순서의 방향을 지시하는 <code>Ascending</code>
+    (오른차순) 이나 <code>Descending</code> (내림차순) 중 하나다.
+    두번째 아규먼트는 일차 순서를 나타내는 키워드 <code>Name</code>,
+    <code>Date</code>, <code>Size</code>, <code>Description</code>
+    중 하나다. 이차 순서는 <em>항상</em> 파일명 오름차순이다.</p>
+
+    <p>이 지시어와 <code><a href="#indexoptions.suppresscolumnsorting">SuppressColumnSorting</a></code> 목록 옵션을 같이 사용하면
+    특정 순서로만 디렉토리 목록을 만든다. 이 경우 클라이언트는
+    다른 순서로 디렉토리 목록을 요청하지 못한다.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="IndexStyleSheet" id="IndexStyleSheet">IndexStyleSheet</a> <a name="indexstylesheet" id="indexstylesheet">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>디렉토리 목록에 CSS 스타일쉬트를 추가한다</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>IndexStyleSheet <var>url-path</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override 옵션:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">IndexStyleSheet</code> 지시어는 디렉토리
+    목록에서 CSS로 사용할 파일명을 지정한다.
+    </p>
+    <div class="example"><h3>Example</h3><p><code>
+      
+      IndexStyleSheet "/css/style.css"
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ReadmeName" id="ReadmeName">ReadmeName</a> <a name="readmename" id="readmename">지시어</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">설명:</a></th><td>파일목록 마지막에 삽입할 파일의 이름</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">문법:</a></th><td><code>ReadmeName <var>filename</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">사용장소:</a></th><td>주서버설정, 가상호스트, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override 옵션:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">상태:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">모듈:</a></th><td>mod_autoindex</td></tr>
+</table>
+    <p><code class="directive">ReadmeName</code> 지시어는 파일목록 끝에
+    삽입할 파일의 이름을 지정한다. <var>Filename</var>은 포함할
+    파일명이고, 목록을 만들려는 위치의 상대경로로 받아들인다.
+    <var>Filename</var>이 슬래쉬로 시작하면 <code class="directive"><a href="../mod/core.html#documentroot">DocumentRoot</a></code>에 상대경로로 받아들인다.
+    </p>
+
+    <div class="example"><h3>예제</h3><p><code>
+      ReadmeName FOOTER.html
+    </code></p></div>
+
+    <div class="example"><h3>예제 2</h3><p><code>
+      ReadmeName /include/FOOTER.html
+    </code></p></div>
+
+    <p>이 동작을 자세히 설명한 <code class="directive"><a href="#headername">HeaderName</a></code>도 참고하라.</p>
+
+</div>
+</div>
+<div class="bottomlang">
+<p><span>가능한 언어: </span><a href="../en/mod/mod_autoindex.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_autoindex.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_autoindex.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_autoindex.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/mod/mod_autoindex.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_autoindex.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

@@ -1,0 +1,616 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>The Apache EBCDIC Port - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Platform Specific Notes</a></div><div id="page-content"><div id="preamble"><h1>The Apache EBCDIC Port</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/platform/ebcdic.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../ko/platform/ebcdic.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div>
+
+
+    <div class="warning"><strong>Warning:</strong> This document
+    has not been updated to take into account changes made in
+    the 2.0 version of the Apache HTTP Server. Some of the
+    information may still be relevant, but please use it with care.
+    </div>
+
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#overview">Overview of the Apache EBCDIC Port</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#design">Design Goals</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#technical">Technical Solution</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#porting">Porting Notes</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#document">Document Storage Notes</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#modules">Apache Modules' Status</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#third-party">Third Party Modules' Status</a></li>
+</ul><h3>See also</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="overview" id="overview">Overview of the Apache EBCDIC Port</a></h2>
+
+    
+
+    <p>Version 1.3 of the Apache HTTP Server was the first version
+    which included a port to a (non-ASCII) mainframe machine which
+    uses the EBCDIC character set as its native codeset.</p>
+
+    <p>(It is the SIEMENS family of mainframes running the <a href="http://www.siemens.de/servers/bs2osd/osdbc_us.htm">BS2000/OSD
+    operating system</a>. This mainframe OS nowadays features a
+    SVR4-derived POSIX subsystem).</p>
+
+    <p>The port was started initially to</p>
+
+    <ul>
+      <li>prove the feasibility of porting <a href="http://httpd.apache.org/">the Apache HTTP server</a> to
+      this platform</li>
+
+      <li>find a "worthy and capable" successor for the venerable
+      <a href="http://www.w3.org/Daemon/">CERN-3.0</a> daemon
+      (which was ported a couple of years ago), and to</li>
+
+      <li>prove that Apache's preforking process model can on this
+      platform easily outperform the accept-fork-serve model used
+      by CERN by a factor of 5 or more.</li>
+    </ul>
+
+    <p>This document serves as a rationale to describe some of the
+    design decisions of the port to this machine.</p>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="design" id="design">Design Goals</a></h2>
+
+    
+
+    <p>One objective of the EBCDIC port was to maintain enough
+    backwards compatibility with the (EBCDIC) CERN server to make
+    the transition to the new server attractive and easy. This
+    required the addition of a configurable method to define
+    whether a HTML document was stored in ASCII (the only format
+    accepted by the old server) or in EBCDIC (the native document
+    format in the POSIX subsystem, and therefore the only realistic
+    format in which the other POSIX tools like <code>grep</code> or
+    <code>sed</code> could operate on the documents). The current
+    solution to this is a "pseudo-MIME-format" which is intercepted
+    and interpreted by the Apache server (see below). Future versions
+    might solve the problem by defining an "ebcdic-handler" for all
+    documents which must be converted.</p>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="technical" id="technical">Technical Solution</a></h2>
+
+    
+
+    <p>Since all Apache input and output is based upon the BUFF
+    data type and its methods, the easiest solution was to add the
+    conversion to the BUFF handling routines. The conversion must
+    be settable at any time, so a BUFF flag was added which defines
+    whether a BUFF object has currently enabled conversion or not.
+    This flag is modified at several points in the HTTP
+    protocol:</p>
+
+    <ul>
+      <li><strong>set</strong> before a request is received
+      (because the request and the request header lines are always
+      in ASCII format)</li>
+
+      <li><strong>set/unset</strong> when the request body is
+      received - depending on the content type of the request body
+      (because the request body may contain ASCII text or a binary
+      file)</li>
+
+      <li><strong>set</strong> before a reply header is sent
+      (because the response header lines are always in ASCII
+      format)</li>
+
+      <li><strong>set/unset</strong> when the response body is sent
+      - depending on the content type of the response body (because
+      the response body may contain text or a binary file)</li>
+    </ul>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="porting" id="porting">Porting Notes</a></h2>
+
+    
+
+    <ol>
+      <li>
+        <p>The relevant changes in the source are <code>#ifdef</code>'ed
+        into two categories:</p>
+
+        <dl>
+          <dt><code><strong>#ifdef
+          CHARSET_EBCDIC</strong></code></dt>
+
+          <dd>
+            <p>Code which is needed for any EBCDIC based machine.
+            This includes character translations, differences in
+            contiguity of the two character sets, flags which
+            indicate which part of the HTTP protocol has to be
+            converted and which part doesn't <em>etc.</em></p>
+          </dd>
+
+          <dt><code><strong>#ifdef _OSD_POSIX</strong></code></dt>
+
+          <dd>
+            <p>Code which is needed for the SIEMENS BS2000/OSD
+            mainframe platform only. This deals with include file
+            differences and socket implementation topics which are
+            only required on the BS2000/OSD platform.</p>
+          </dd>
+        </dl>
+      </li>
+
+      <li>
+        <p>The possibility to translate between ASCII and EBCDIC at
+        the socket level (on BS2000 POSIX, there is a socket option
+        which supports this) was intentionally <em>not</em> chosen,
+        because the byte stream at the HTTP protocol level consists
+        of a mixture of protocol related strings and non-protocol
+        related raw file data. HTTP protocol strings are always
+        encoded in ASCII (the <code>GET</code> request, any Header: lines,
+        the chunking information <em>etc.</em>) whereas the file transfer
+        parts (<em>i.e.</em>, GIF images, CGI output <em>etc.</em>)
+        should usually be just "passed through" by the server. This
+        separation between "protocol string" and "raw data" is
+        reflected in the server code by functions like <code>bgets()</code>
+        or <code>rvputs()</code> for strings, and functions like
+        <code>bwrite()</code> for binary data. A global translation
+        of everything would therefore be inadequate.</p>
+
+        <p>(In the case of text files of course, provisions must be
+        made so that EBCDIC documents are always served in
+        ASCII)</p>
+      </li>
+
+      <li>
+        <p>This port therefore features a built-in protocol level
+        conversion for the server-internal strings (which the
+        compiler translated to EBCDIC strings) and thus for all
+        server-generated documents. The hard coded ASCII escapes
+        <code>\012</code> and <code>\015</code> which are ubiquitous
+        in the server code are an exception: they are already the binary
+        encoding of the ASCII <code>\n</code> and <code>\r</code> and
+        must not be converted to ASCII a second time.
+        This exception is only relevant for server-generated strings;
+        and <em>external</em> EBCDIC documents are not expected to
+        contain ASCII newline characters.</p>
+      </li>
+
+      <li>
+        <p>By examining the call hierarchy for the BUFF management
+        routines, I added an "ebcdic/ascii conversion layer" which
+        would be crossed on every puts/write/get/gets, and a
+        conversion flag which allowed enabling/disabling the
+        conversions on-the-fly. Usually, a document crosses this
+        layer twice from its origin source (a file or CGI output) to
+        its destination (the requesting client): <code>file -&gt;
+        Apache</code>, and <code>Apache -&gt; client</code>.</p>
+
+        <p>The server can now read the header lines of a CGI-script
+        output in EBCDIC format, and then find out that the remainder
+        of the script's output is in ASCII (like in the case of the
+        output of a WWW Counter program: the document body contains a
+        GIF image). All header processing is done in the native
+        EBCDIC format; the server then determines, based on the type
+        of document being served, whether the document body (except
+        for the chunking information, of course) is in ASCII already
+        or must be converted from EBCDIC.</p>
+      </li>
+
+      <li>
+        <p>For Text documents (MIME types text/plain, text/html
+        <em>etc.</em>), an implicit translation to ASCII can be
+        used, or (if the users prefer to store some documents in
+        raw ASCII form for faster serving, or because the files
+        reside on a NFS-mounted directory tree) can be served
+        without conversion.</p>
+
+        <p><strong>Example:</strong></p>
+
+        <p>to serve files with the suffix <code>.ahtml</code> as a
+        raw ASCII <code>text/html</code> document without implicit
+        conversion (and suffix <code>.ascii</code> as ASCII
+        <code>text/plain</code>), use the directives:</p>
+
+        <div class="example"><p><code>
+          AddType  text/x-ascii-html  .ahtml <br />
+          AddType  text/x-ascii-plain .ascii
+        </code></p></div>
+
+        <p>Similarly, any <code>text/foo</code> MIME type can be
+        served as "raw ASCII" by configuring a MIME type
+        "<code>text/x-ascii-foo</code>" for it using
+        <code>AddType</code>.</p>
+      </li>
+
+      <li>
+        <p>Non-text documents are always served "binary" without
+        conversion. This seems to be the most sensible choice for,
+        .<em>e.g.</em>, GIF/ZIP/AU file types. This of course
+        requires the user to copy them to the mainframe host using
+        the "<code>rcp -b</code>" binary switch.</p>
+      </li>
+
+      <li>
+        <p>Server parsed files are always assumed to be in native
+        (<em>i.e.</em>, EBCDIC) format as used on the machine, and
+        are converted after processing.</p>
+      </li>
+
+      <li>
+        <p>For CGI output, the CGI script determines whether a
+        conversion is needed or not: by setting the appropriate
+        Content-Type, text files can be converted, or GIF output can
+        be passed through unmodified. An example for the latter case
+        is the wwwcount program which we ported as well.</p>
+      </li>
+
+    </ol>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="document" id="document">Document Storage Notes</a></h2>
+
+    
+
+    <h3><a name="binary" id="binary">Binary Files</a></h3>
+
+      
+
+      <p>All files with a <code>Content-Type:</code> which does not
+      start with <code>text/</code> are regarded as <em>binary
+      files</em> by the server and are not subject to any conversion.
+      Examples for binary files are GIF images, gzip-compressed files
+      and the like.</p>
+
+      <p>When exchanging binary files between the mainframe host and
+      a Unix machine or Windows PC, be sure to use the ftp "binary"
+      (<code>TYPE I</code>) command, or use the
+      <code>rcp -b</code> command from the mainframe host (the
+      <code>-b</code> switch is not supported in unix
+      <code>rcp</code>'s).</p>
+
+    
+
+    <h3><a name="text" id="text">Text Documents</a></h3>
+
+      
+
+      <p>The default assumption of the server is that Text Files
+      (<em>i.e.</em>, all files whose <code>Content-Type:</code>
+      starts with <code>text/</code>) are stored in the native
+      character set of the host, EBCDIC.</p>
+
+    
+
+    <h3><a name="ssi" id="ssi">Server Side Included Documents</a></h3>
+
+      
+
+      <p>SSI documents must currently be stored in EBCDIC only.
+      No provision is made to convert it from ASCII before
+      processing.</p>
+
+    
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="modules" id="modules">Apache Modules' Status</a></h2>
+
+    
+
+    <table class="bordered">
+      <tr>
+        <th>Module</th>
+        <th>Status</th>
+        <th>Notes</th>
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/core.html">core</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module">mod_access</code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_actions.html">mod_actions</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_alias.html">mod_alias</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_asis.html">mod_asis</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module">mod_auth</code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_authn_anon.html">mod_authn_anon</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_authn_dbm.html">mod_authn_dbm</a></code></td>
+        <td class="centered">?</td>
+        <td>with own <code>libdb.a</code></td>
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_authz_dbm.html">mod_authz_dbm</a></code></td>
+        <td class="centered">?</td>
+        <td>with own <code>libdb.a</code></td>
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_autoindex.html">mod_autoindex</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_cern_meta.html">mod_cern_meta</a></code></td>
+        <td class="centered">?</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_cgi.html">mod_cgi</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code>mod_digest</code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_dir.html">mod_dir</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_so.html">mod_so</a></code></td>
+        <td class="centered">-</td>
+        <td>no shared libs</td>
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_env.html">mod_env</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_example.html">mod_example</a></code></td>
+        <td class="centered">-</td>
+        <td>(test bed only)</td>
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_expires.html">mod_expires</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_headers.html">mod_headers</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_imagemap.html">mod_imagemap</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_include.html">mod_include</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_info.html">mod_info</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code>mod_log_agent</code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code>mod_log_config</code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module">mod_log_referer</code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_mime.html">mod_mime</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_mime_magic.html">mod_mime_magic</a></code></td>
+        <td class="centered">?</td>
+        <td>not ported yet</td>
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_negotiation.html">mod_negotiation</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code></td>
+        <td class="centered">+</td>
+        <td>untested</td>
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_setenvif.html">mod_setenvif</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_speling.html">mod_speling</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_status.html">mod_status</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_unique_id.html">mod_unique_id</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_userdir.html">mod_userdir</a></code></td>
+        <td class="centered">+</td>
+        <td />
+      </tr>
+
+      <tr>
+        <td><code class="module"><a href="../mod/mod_usertrack.html">mod_usertrack</a></code></td>
+        <td class="centered">?</td>
+        <td>untested</td>
+      </tr>
+    </table>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="third-party" id="third-party">Third Party Modules' Status</a></h2>
+
+    
+
+    <table class="bordered">
+      <tr>
+        <th>Module</th>
+        <th>Status</th>
+        <th>Notes</th>
+      </tr>
+
+      <tr>
+        <td><code><a href="https://tomcat.apache.org/connectors-doc-archive/jk2/">JK</a> (Formerly mod_jserv)
+        </code></td>
+        <td class="centered">-</td>
+        <td>JAVA still being ported.</td>
+      </tr>
+
+      <tr>
+        <td><code><a href="http://www.php.net/">mod_php3</a></code></td>
+        <td class="centered">+</td>
+        <td><code>mod_php3</code> runs fine, with LDAP and GD
+        and FreeType libraries.</td>
+      </tr>
+
+      <tr>
+        <td><code><a href="http://hpwww.ec-lyon.fr/~vincent/apache/mod_put.html">mod_put</a></code></td>
+        <td class="centered">?</td>
+        <td>untested</td>
+      </tr>
+
+      <tr>
+        <td><code><a href="ftp://hachiman.vidya.com/pub/apache/">mod_session</a></code></td>
+        <td class="centered">-</td>
+        <td>untested</td>
+      </tr>
+    </table>
+
+  </div></div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/platform/ebcdic.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../ko/platform/ebcdic.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/platform/ebcdic.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

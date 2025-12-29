@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Binding to Addresses and Ports - Apache HTTP Server Version 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">Modules</a> | <a href="./mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">Glossary</a> | <a href="./sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="./">Version 2.4</a></div><div id="page-content"><div id="preamble"><h1>Binding to Addresses and Ports</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="./de/bind.html" hreflang="de" rel="alternate" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="./en/bind.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/bind.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/bind.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/bind.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/bind.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+    <p>Configuring Apache HTTP Server to listen on specific addresses and ports.</p>
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#overview">Overview</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#reload">Changing Listen configuration on restart</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#ipv6">Special IPv6 Considerations</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#protocol">Specifying the protocol with Listen</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#virtualhost">How This Works With Virtual Hosts</a></li>
+</ul><h3>See also</h3><ul class="seealso"><li><a href="vhosts/">Virtual Hosts</a></li><li><a href="dns-caveats.html">DNS Issues</a></li><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="overview" id="overview">Overview</a></h2>
+    
+
+    <table class="related"><tr><th>Related Modules</th><th>Related Directives</th></tr><tr><td><ul><li><code class="module"><a href="./mod/core.html">core</a></code></li><li><code class="module"><a href="./mod/mpm_common.html">mpm_common</a></code></li></ul></td><td><ul><li><code class="directive"><a href="./mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code></li><li><code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code></li></ul></td></tr></table>
+
+
+    <p>When httpd starts, it binds to some port and address on
+    the local machine and waits for incoming requests. By default,
+    it listens to all addresses on the machine. However, it may need to
+    be told to listen on specific ports, or only on selected
+    addresses, or a combination of both. This is often combined with the
+    <a href="vhosts/">Virtual Host</a> feature, which determines how
+    <code>httpd</code> responds to different IP addresses, hostnames and
+    ports.</p>
+
+    <p>The <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code>
+    directive tells the server to accept
+    incoming requests only on the specified port(s) or
+    address-and-port combinations. If only a port number is
+    specified in the <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code>
+    directive, the server listens to the given port on all interfaces.
+    If an IP address is given as well as a port, the server will listen
+    on the given port and interface. Multiple <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code> directives may be used to
+    specify a number of addresses and ports to listen on. The
+    server will respond to requests from any of the listed
+    addresses and ports.</p>
+
+    <p>For example, to make the server accept connections on both
+    port 80 and port 8000, on all interfaces, use:</p>
+
+    <div class="example"><pre class="prettyprint lang-config">Listen 80
+Listen 8000</pre>
+</div>
+
+    <p>To make the server accept connections on port 80 for one interface,
+       and port 8000 on another, use</p>
+
+    <div class="example"><pre class="prettyprint lang-config">Listen 192.0.2.1:80
+Listen 192.0.2.5:8000</pre>
+</div>
+
+    <p>IPv6 addresses must be enclosed in square brackets, as in the
+    following example:</p>
+
+    <div class="example"><pre class="prettyprint lang-config">Listen [2001:db8::a00:20ff:fea7:ccea]:80</pre>
+</div>
+
+    <div class="warning"><p>Overlapping <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code> directives will result in a
+    fatal error which will prevent the server from starting up.</p>
+
+    <div class="example"><p><code>
+      (48)Address already in use: make_sock: could not bind to address [::]:80
+    </code></p></div>
+
+    <p>See <a href="http://wiki.apache.org/httpd/CouldNotBindToAddress">the
+    discussion in the wiki</a> for further troubleshooting tips.</p>
+
+</div>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="reload" id="reload">Changing Listen configuration on restart</a></h2>
+    
+
+    <p>When httpd is restarted, special consideration must be made for
+    changes to <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code> directives.  During a restart, httpd keeps ports
+    bound (as in the original configuration) to avoid generating
+    "Connection refused" errors for any new attempts to connect to the
+    server. If changes are made to the set of <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code> directives used
+    which conflict with the old configuration, configuration will fail
+    and the server will terminate.</p>
+
+    <p>For example, changing from configuration:</p>
+    
+    <div class="example"><pre class="prettyprint lang-config">Listen 127.0.0.1:80</pre>
+</div>
+
+    <p>to the following may fail, because binding to port 80 across
+    all addresses conflicts with binding to port 80 on just
+    127.0.0.1.</p>
+    
+    <div class="example"><pre class="prettyprint lang-config">Listen 80</pre>
+</div>
+
+    <p>To have such configuration changes take effect, it is necessary
+    to stop and then start the server.</p>
+    
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="ipv6" id="ipv6">Special IPv6 Considerations</a></h2>
+    
+
+    <p>A growing number of platforms implement IPv6, and
+    <a class="glossarylink" href="./glossary.html#apr" title="see glossary">APR</a> supports IPv6 on most of these platforms,
+    allowing httpd to allocate IPv6 sockets, and to handle requests sent
+    over IPv6.</p>
+
+    <p>One complicating factor for httpd administrators is whether or
+    not an IPv6 socket can handle both IPv4 connections and IPv6
+    connections. Handling IPv4 connections with an IPv6 socket uses
+    IPv4-mapped IPv6 addresses, which are allowed by default on most
+    platforms, but are disallowed by default on FreeBSD, NetBSD, and
+    OpenBSD, in order to match the system-wide policy on those
+    platforms. On systems where it is disallowed by default, a
+    special <code class="program"><a href="./programs/configure.html">configure</a></code> parameter can change this behavior
+    for httpd.</p>
+
+    <p>On the other hand, on some platforms, such as Linux and Tru64, the
+    <strong>only</strong> way to handle both IPv6 and IPv4 is to use
+    mapped addresses. If you want <code>httpd</code> to handle IPv4 and IPv6 connections
+    with a minimum of sockets, which requires using IPv4-mapped IPv6
+    addresses, specify the <code>--enable-v4-mapped</code> <code class="program"><a href="./programs/configure.html">configure</a></code> option.</p>
+
+    <p><code>--enable-v4-mapped</code> is the default on all platforms except
+    FreeBSD, NetBSD, and OpenBSD, so this is probably how your httpd was
+    built.</p>
+
+    <p>If you want httpd to handle IPv4 connections only, regardless of
+    what your platform and APR will support, specify an IPv4 address on all
+    <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code> directives, as in the
+    following examples:</p>
+
+    <div class="example"><pre class="prettyprint lang-config">Listen 0.0.0.0:80
+Listen 192.0.2.1:80</pre>
+</div>
+
+    <p>If your platform supports it and you want httpd to handle IPv4 and
+    IPv6 connections on separate sockets (i.e., to disable IPv4-mapped
+    addresses), specify the <code>--disable-v4-mapped</code> <code class="program"><a href="./programs/configure.html">configure</a></code> option. <code>--disable-v4-mapped</code> is the
+    default on FreeBSD, NetBSD, and OpenBSD.</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="protocol" id="protocol">Specifying the protocol with Listen</a></h2>
+    
+    <p>The optional second <var>protocol</var> argument of
+       <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code>
+       is not required for most
+       configurations. If not specified, <code>https</code> is the default for
+       port 443 and <code>http</code> the default for all other ports.  The
+       protocol is used to determine which module should handle a request, and
+       to apply protocol specific optimizations with the
+       <code class="directive"><a href="./mod/core.html#acceptfilter">AcceptFilter</a></code> directive.</p>
+
+    <p>You only need to set the protocol if you are running on non-standard
+       ports.  For example, running an <code>https</code> site on port 8443:</p>
+
+    <div class="example"><pre class="prettyprint lang-config">Listen 192.170.2.1:8443 https</pre>
+</div>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="virtualhost" id="virtualhost">How This Works With Virtual Hosts</a></h2>
+    
+
+    <p> The <code class="directive"><a href="./mod/mpm_common.html#listen">Listen</a></code> directive does not implement
+    Virtual Hosts - it only tells the
+    main server what addresses and ports to listen on. If no
+    <code class="directive"><a href="./mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code>
+    directives are used, the server will behave
+    in the same way for all accepted requests. However,
+    <code class="directive"><a href="./mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code>
+    can be used to specify a different behavior
+    for one or more of the addresses or ports. To implement a
+    VirtualHost, the server must first be told to listen to the
+    address and port to be used. Then a
+    <code class="directive"><a href="./mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code> section
+    should be created for the specified address and port to set the
+    behavior of this virtual host. Note that if the
+    <code class="directive"><a href="./mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code>
+    is set for an address and port that the
+    server is not listening to, it cannot be accessed.</p>
+  </div></div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="./de/bind.html" hreflang="de" rel="alternate" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="./en/bind.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/bind.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/bind.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/bind.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/bind.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/bind.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="./mod/">Modules</a> | <a href="./mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">Glossary</a> | <a href="./sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

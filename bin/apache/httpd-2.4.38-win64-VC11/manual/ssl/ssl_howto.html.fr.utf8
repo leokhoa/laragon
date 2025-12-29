@@ -1,0 +1,489 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Chiffrement fort SSL/TLS : Mode d'emploi - Serveur HTTP Apache Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p>
+<p class="apache">Serveur HTTP Apache Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">Serveur HTTP</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">SSL/TLS</a></div><div id="page-content"><div id="preamble"><h1>Chiffrement fort SSL/TLS : Mode d'emploi</h1>
+<div class="toplang">
+<p><span>Langues Disponibles: </span><a href="../en/ssl/ssl_howto.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/ssl/ssl_howto.html" title="Français">&nbsp;fr&nbsp;</a></p>
+</div>
+
+
+<p>Ce document doit vous permettre de démarrer et de faire fonctionner
+une configuration de base. Avant de vous lancer dans l'application de
+techniques avancées, il est fortement recommandé de lire le reste
+de la documentation SSL afin d'en comprendre le fonctionnement de
+manière plus approfondie.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#configexample">Exemple de configuration basique</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ciphersuites">Suites de chiffrement et mise en application de la sécurité
+de haut niveau</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ocspstapling">Agrafage OCSP</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#accesscontrol">Authentification du client et contrôle d'accès</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#logging">Journalisation</a></li>
+</ul><h3>Voir aussi</h3><ul class="seealso"><li><a href="#comments_section">Commentaires</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="configexample" id="configexample">Exemple de configuration basique</a></h2>
+
+
+<p>Votre configuration SSL doit comporter au moins les directives
+suivantes :</p>
+
+<pre class="prettyprint lang-config">LoadModule ssl_module modules/mod_ssl.so
+
+Listen 443
+&lt;VirtualHost *:443&gt;
+    ServerName www.example.com
+    SSLEngine on
+    SSLCertificateFile "/path/to/www.example.com.cert"
+    SSLCertificateKeyFile "/path/to/www.example.com.key"
+&lt;/VirtualHost&gt;</pre>
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="ciphersuites" id="ciphersuites">Suites de chiffrement et mise en application de la sécurité
+de haut niveau</a></h2>
+
+<ul>
+<li><a href="#onlystrong">Comment créer un serveur SSL
+qui n'accepte que le chiffrement fort ?</a></li>
+<li><a href="#strongurl">Comment créer un serveur qui accepte tous les types de
+chiffrement en général, mais exige un chiffrement fort pour pouvoir
+accéder à une URL particulière ?</a></li>
+</ul>
+
+
+<h3><a name="onlystrong" id="onlystrong">Comment créer un serveur SSL qui n'accepte
+que le chiffrement fort ?</a></h3>
+
+    <p>Les directives suivantes ne permettent que les
+    chiffrements de plus haut niveau :</p>
+    <pre class="prettyprint lang-config">SSLCipherSuite HIGH:!aNULL:!MD5</pre>
+
+
+ <p>Avec la configuration qui suit, vous indiquez une préférence pour
+ des algorityhmes de chiffrement spécifiques optimisés en matière de
+ rapidité (le choix final sera opéré par mod_ssl, dans la mesure ou le
+ client les supporte) :</p>
+
+    <pre class="prettyprint lang-config">SSLCipherSuite RC4-SHA:AES128-SHA:HIGH:!aNULL:!MD5
+SSLHonorCipherOrder on</pre>
+
+
+
+<h3><a name="strongurl" id="strongurl">Comment créer un serveur qui accepte tous les types de
+chiffrement en général, mais exige un chiffrement fort pour pouvoir
+accéder à une URL particulière ?</a></h3>
+
+    <p>Dans ce cas bien évidemment, une directive <code class="directive"><a href="../mod/mod_ssl.html#sslciphersuite">SSLCipherSuite</a></code> au niveau du serveur principal
+    qui restreint le choix des suites de chiffrement aux versions les plus
+    fortes ne conviendra pas. <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> peut cependant être
+    reconfiguré au sein de blocs <code>Location</code> qui permettent
+    d'adapter la configuration générale à un répertoire spécifique ;
+    <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> peut alors forcer automatiquement une
+    renégociation des paramètres SSL pour parvenir au but recherché.
+    Cette configuration peut se présenter comme suit :</p>
+    <pre class="prettyprint lang-config"># soyons très tolérant a priori
+SSLCipherSuite ALL:!aNULL:RC4+RSA:+HIGH:+MEDIUM:+LOW:+EXP:+eNULL
+
+&lt;Location "/strong/area"&gt;
+# sauf pour https://hostname/strong/area/ et ses sous-répertoires
+# qui exigent des chiffrements forts
+SSLCipherSuite HIGH:!aNULL:!MD5
+&lt;/Location&gt;</pre>
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="ocspstapling" id="ocspstapling">Agrafage OCSP</a></h2>
+
+
+<p>Le protocole de contrôle du statut des certificats en ligne (Online
+Certificate Status Protocol - OCSP) est un mécanisme permettant de
+déterminer si un certificat a été révoqué ou non, et l'agrafage OCSP en
+est une fonctionnalité particulière par laquelle le serveur, par exemple
+httpd et mod_ssl, maintient une liste des réponses OCSP actuelles pour
+ses certificats et l'envoie aux clients qui communiquent avec lui. La
+plupart des certificats contiennent l'adresse d'un répondeur OCSP maintenu
+par l'Autorité de Certification (CA) spécifiée, et mod_ssl peut requérir
+ce répondeur pour obtenir une réponse signée qui peut être envoyée aux
+clients qui communiquent avec le serveur.</p>
+
+<p>L'agrafage OCSP est la méthode la plus performante pour obtenir le
+statut d'un certificat car il est disponible au niveau du serveur, et le
+client n'a donc pas besoin d'ouvrir une nouvelle connexion vers
+l'autorité de certification. Autres avantages de l'absence de
+communication entre le client et l'autorité de certification :
+l'autorité de certification n'a pas accès à l'historique de navigation
+du client, et l'obtention du statut du certificat est plus efficace car
+elle n'est plus assujettie à une surcharge éventuelle des serveurs de
+l'autorité de certification.</p>
+
+<p>La charge du serveur est moindre car la réponse qu'il a obtenu du
+répondeur OCSP peut être réutilisée par tous les clients qui utilisent
+le même certificat dans la limite du temps de validité de la réponse.</p>
+
+<p>Une fois le support général SSL correctement configuré, l'activation
+de l'agrafage OCSP ne requiert que des modifications mineures
+à la configuration de httpd et il suffit en général de l'ajout de ces
+deux directives :</p>
+
+    <pre class="prettyprint lang-config">SSLUseStapling On
+SSLStaplingCache "shmcb:ssl_stapling(32768)"</pre>
+
+
+<p>Ces directives sont placées de façon à ce qu'elles aient une portée
+globale (et particulièrement en dehors de toute section VirtualHost), le
+plus souvent où sont placées les autres directives de configuration
+globales SSL, comme <code>conf/extra/httpd-ssl.conf</code> pour les
+installations de httpd à partir des sources, ou
+<code>/etc/apache2/mods-enabled/ssl.conf</code> pour Ubuntu ou Debian,
+etc...</p>
+
+<p>Le chemin spécifié par la directive
+<code class="directive">SSLStaplingCache</code> (par exemple <code>logs/</code>)
+doit être le même que celui spécifié par la directive
+<code class="directive">SSLSessionCache</code>. Ce chemin est relatif au chemin
+spécifié par la directive <code class="directive">ServerRoot</code>.</p>
+
+<p>Cette directive <code class="directive">SSLStaplingCache</code> particulière
+nécessite le chargement du module <code class="module"><a href="../mod/mod_socache_shmcb.html">mod_socache_shmcb</a></code> (à
+cause du préfixe <code>shmcb</code> de son argument). Ce module est en
+général déjà activé pour la directive
+<code class="directive">SSLSessionCache</code>, ou pour des modules autres que
+<code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code>. Si vous activez un cache de session SSL
+utilisant un mécanisme autre que <code class="module"><a href="../mod/mod_socache_shmcb.html">mod_socache_shmcb</a></code>,
+utilisez aussi ce mécanisme alternatif pour la directive
+<code class="directive">SSLStaplingCache</code>. Par exemple :</p>
+
+    <pre class="prettyprint lang-config">SSLSessionCache "dbm:ssl_scache"
+SSLStaplingCache "dbm:ssl_stapling"</pre>
+
+
+<p>Vous pouvez utiliser la commande openssl pour vérifier que votre
+serveur envoie bien une réponse OCSP :</p>
+
+<pre>$ openssl s_client -connect www.example.com:443 -status -servername www.example.com
+...
+OCSP response: 
+======================================
+OCSP Response Data:
+    OCSP Response Status: successful (0x0)
+    Response Type: Basic OCSP Response
+...
+    Cert Status: Good
+...</pre>
+
+<p>Les sections suivantes explicitent les situations courantes qui
+requièrent des modifications supplémentaires de la configuration. Vous
+pouvez aussi vous référer au manuel de référence de
+<code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code>.</p>
+
+<h3>Si l'on utilise plus que quelques certificats SSL pour le serveur</h3>
+
+<p>Les réponses OCSP sont stockées dans le cache d'agrafage SSL. Alors
+que les réponses ont une taille de quelques centaines à quelques
+milliers d'octets, mod_ssl supporte des réponses d'une taille jusqu'à
+environ 10 ko. Dans notre cas, le nombre de certificats est conséquent
+et la taille du cache (32768 octets dans l'exemple ci-dessus) doit être
+augmentée. En cas d'erreur lors du stockage d'une réponse, le
+message AH01929 sera enregistré dans le journal.</p>
+
+
+<h3>Si le certificat ne spécifie pas de répondeur OCSP, ou si une
+adresse différente doit être utilisée</h3>
+
+<p>Veuillez vous référer à la documentation de la directive <code class="directive"><a href="../mod/mod_ssl.html#sslstaplingforceurl">SSLStaplingForceURL</a></code>.</p>
+
+<p>Vous pouvez vérifier si un certificat spécifie un répondeur OCSP en
+utilisant la commande openssl comme suit :</p>
+
+<pre>$ openssl x509 -in ./www.example.com.crt -text | grep 'OCSP.*http'
+OCSP - URI:http://ocsp.example.com</pre>
+
+<p>Si un URI OCSP est fourni et si le serveur web peut communiquer
+directement avec lui sans passer par un mandataire, aucune modification
+supplémentaire de la configuration n'est requise. Notez que les règles
+du pare-feu qui contrôlent les connexions sortantes en provenance du
+serveur web devront peut-être subir quelques ajustements.</p>
+
+<p>Si aucun URI OCSP n'est fourni, contactez votre autorité de
+certification pour savoir s'il en existe une ; si c'est le
+cas, utilisez la directive <code class="directive"><a href="../mod/mod_ssl.html#sslstaplingforceurl">SSLStaplingForceURL</a></code> pour la spécifier dans
+la configuration du serveur virtuel qui utilise le certificat.</p>
+
+
+<h3>Si plusieurs serveurs virtuels sont configurés pour utiliser SSL
+et si l'agrafage OCSP doit être désactivé pour certains d'entre eux</h3>
+
+
+<p>Ajoutez la directive <code>SSLUseStapling Off</code> à la
+configuration des serveurs virtuels pour lesquels l'agrafage OCSP doit
+être désactivé.</p>
+
+
+<h3>Si le répondeur OCSP est lent ou instable</h3>
+
+<p>De nombreuses directives permettent de gérer les temps de réponse et
+les erreurs. Référez-vous à la documentation de <code class="directive"><a href="../mod/mod_ssl.html#sslstaplingfaketrylater">SSLStaplingFakeTryLater</a></code>, <code class="directive"><a href="../mod/mod_ssl.html#sslstaplingrespondertimeout">SSLStaplingResponderTimeout</a></code>, et <code class="directive"><a href="../mod/mod_ssl.html#sslstaplingreturnrespondererrors">SSLStaplingReturnResponderErrors</a></code>.</p>
+
+
+<h3>Si mod_ssl enregistre l'erreur AH02217 dans le journal</h3>
+
+<pre>AH02217: ssl_stapling_init_cert: Can't retrieve issuer certificate!</pre>
+<p>Afin de pouvoir supporter l'agrafage OCSP lorsqu'un certificat de
+serveur particulier est utilisé, une chaîne de certification pour ce
+certificat doit être spécifiée. Si cela n'a pas été fait lors de
+l'activation de SSL, l'erreur AH02217 sera enregistrée lorsque
+l'agrafage OCSP sera activé, et les clients qui utilisent le certificat
+considéré ne recevront pas de réponse OCSP.</p>
+
+<p>Veuillez vous référer à la documentation des directives <code class="directive"><a href="../mod/mod_ssl.html#sslcertificatechainfile">SSLCertificateChainFile</a></code> et <code class="directive"><a href="../mod/mod_ssl.html#sslcertificatefile">SSLCertificateFile</a></code> pour spécifier une
+chaîne de certification.</p>
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="accesscontrol" id="accesscontrol">Authentification du client et contrôle d'accès</a></h2>
+
+<ul>
+<li><a href="#allclients">Comment forcer les clients
+à s'authentifier à l'aide de certificats ?</a></li>
+<li><a href="#arbitraryclients">Comment forcer les clients
+à s'authentifier à l'aide de certificats pour une URL particulière,
+mais autoriser quand-même tout client anonyme
+à accéder au reste du serveur ?</a></li>
+<li><a href="#certauthenticate">Comment n'autoriser l'accès à une URL
+particulière qu'aux clients qui possèdent des certificats, mais autoriser
+l'accès au reste du serveur à tous les clients ?</a></li>
+<li><a href="#intranet">Comment imposer HTTPS avec chiffrements forts,
+et soit authentification de base, soit possession de certificats clients,
+pour l'accès à une partie de l'Intranet, pour les clients en
+provenance de l'Internet ?</a></li>
+</ul>
+
+<h3><a name="allclients" id="allclients">Comment forcer les clients
+à s'authentifier à l'aide de certificats ?
+</a></h3>
+
+
+    <p>Lorsque vous connaissez tous vos clients (comme c'est en général le cas
+    au sein d'un intranet d'entreprise), vous pouvez imposer une
+    authentification basée uniquement sur les certificats. Tout ce dont vous
+    avez besoin pour y parvenir est de créer des certificats clients signés par
+    le certificat de votre propre autorité de certification
+    (<code>ca.crt</code>), et d'authentifier les clients à l'aide de ces
+    certificats.</p>
+    <pre class="prettyprint lang-config"># exige un certificat client signé par le certificat de votre CA
+# contenu dans ca.crt
+SSLVerifyClient require
+SSLVerifyDepth 1
+SSLCACertificateFile "conf/ssl.crt/ca.crt"</pre>
+
+
+
+<h3><a name="arbitraryclients" id="arbitraryclients">Comment forcer les clients
+à s'authentifier à l'aide de certificats pour une URL particulière,
+mais autoriser quand-même tout client anonyme
+à accéder au reste du serveur ?</a></h3>
+
+
+<p>Pour forcer les clients à s'authentifier à l'aide de certificats pour une
+URL particulière, vous pouvez utiliser les fonctionnalités de reconfiguration
+de <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> en fonction du répertoire :</p>
+
+    <pre class="prettyprint lang-config">SSLVerifyClient none
+SSLCACertificateFile "conf/ssl.crt/ca.crt"
+
+&lt;Location "/secure/area"&gt;
+SSLVerifyClient require
+SSLVerifyDepth 1
+&lt;/Location&gt;</pre>
+
+
+
+<h3><a name="certauthenticate" id="certauthenticate">Comment n'autoriser l'accès à une URL
+particulière qu'aux clients qui possèdent des certificats, mais autoriser
+l'accès au reste du serveur à tous les clients ?</a></h3>
+
+
+    <p>La clé du problème consiste à vérifier si une partie du certificat
+    client correspond à ce que vous attendez. Cela signifie en général
+    consulter tout ou partie du nom distinctif (DN), afin de vérifier s'il
+    contient une chaîne connue. Il existe deux méthodes pour y parvenir ;
+    on utilise soit le module <code class="module"><a href="../mod/mod_auth_basic.html">mod_auth_basic</a></code>, soit la
+    directive <code class="directive"><a href="../mod/mod_ssl.html#sslrequire">SSLRequire</a></code>.</p>
+
+    <p>La méthode du module <code class="module"><a href="../mod/mod_auth_basic.html">mod_auth_basic</a></code> est en général
+    incontournable lorsque les certificats ont un contenu arbitraire, ou
+    lorsque leur DN ne contient aucun champ connu
+    (comme l'organisation, etc...). Dans ce cas, vous devez construire une base
+    de données de mots de passe contenant <em>tous</em> les clients
+    autorisés, comme suit :</p>
+
+    <pre class="prettyprint lang-config">SSLVerifyClient      none
+SSLCACertificateFile "conf/ssl.crt/ca.crt"
+SSLCACertificatePath "conf/ssl.crt"
+
+&lt;Directory "/usr/local/apache2/htdocs/secure/area"&gt;
+SSLVerifyClient      require
+    SSLVerifyDepth       5
+    SSLOptions           +FakeBasicAuth
+    SSLRequireSSL
+    AuthName             "Snake Oil Authentication"
+    AuthType             Basic
+    AuthBasicProvider    file
+    AuthUserFile         "/usr/local/apache2/conf/httpd.passwd"
+    Require              valid-user
+&lt;/Directory&gt;</pre>
+
+    
+
+    <p>Le mot de passe utilisé dans cet exemple correspond à la chaîne de
+    caractères "password" chiffrée en DES. Voir la documentation de la
+    directive <code class="directive"><a href="../mod/mod_ssl.html#ssloptions">SSLOptions</a></code> pour
+    plus de détails.</p>
+
+    <div class="example"><h3>httpd.passwd</h3><pre>/C=DE/L=Munich/O=Snake Oil, Ltd./OU=Staff/CN=Foo:xxj31ZMTZzkVA
+/C=US/L=S.F./O=Snake Oil, Ltd./OU=CA/CN=Bar:xxj31ZMTZzkVA
+/C=US/L=L.A./O=Snake Oil, Ltd./OU=Dev/CN=Quux:xxj31ZMTZzkVA</pre></div>
+
+    <p>Lorsque vos clients font tous partie d'une même hiérarchie, ce qui
+    apparaît dans le DN, vous pouvez les authentifier plus facilement en
+    utilisant la directive <code class="directive"><a href="../mod/mod_ssl.html#sslrequire">SSLRequire</a></code>, comme suit :</p>
+
+
+    <pre class="prettyprint lang-config">SSLVerifyClient      none
+SSLCACertificateFile "conf/ssl.crt/ca.crt"
+SSLCACertificatePath "conf/ssl.crt"
+
+&lt;Directory "/usr/local/apache2/htdocs/secure/area"&gt;
+  SSLVerifyClient      require
+  SSLVerifyDepth       5
+  SSLOptions           +FakeBasicAuth
+  SSLRequireSSL
+  SSLRequire       %{SSL_CLIENT_S_DN_O}  eq "Snake Oil, Ltd." \
+               and %{SSL_CLIENT_S_DN_OU} in {"Staff", "CA", "Dev"}
+&lt;/Directory&gt;</pre>
+
+
+
+<h3><a name="intranet" id="intranet">Comment imposer HTTPS avec chiffrements forts,
+et soit authentification de base, soit possession de certificats clients,
+pour l'accès à une partie de l'Intranet, pour les clients en
+provenance de l'Internet ? Je souhaite quand-même autoriser l'accès en HTTP
+aux clients de l'intranet.</a></h3>
+
+
+   <p>On suppose dans ces exemples que les clients de l'intranet ont des
+   adresses IP dans la gamme 192.168.1.0/24, et que la partie de l'intranet
+   à laquelle vous voulez autoriser l'accès depuis l'Internet est
+   <code>/usr/local/apache2/htdocs/subarea</code>. Ces lignes de configuration
+   doivent se trouver en dehors de votre hôte virtuel HTTPS, afin qu'elles
+   s'appliquent à la fois à HTTP et HTTPS.</p>
+
+    <pre class="prettyprint lang-config">SSLCACertificateFile "conf/ssl.crt/company-ca.crt"
+
+&lt;Directory "/usr/local/apache2/htdocs"&gt;
+#   En dehors de subarea, seul l'accès depuis l'intranet est
+#   autorisé
+    Require              ip 192.168.1.0/24
+&lt;/Directory&gt;
+
+&lt;Directory "/usr/local/apache2/htdocs/subarea"&gt;
+#   Dans subarea, tout accès depuis l'intranet est autorisé
+#   mais depuis l'Internet, seul l'accès par HTTPS + chiffrement fort + Mot de passe
+#   ou HTTPS + chiffrement fort + certificat client n'est autorisé.
+
+#   Si HTTPS est utilisé, on s'assure que le niveau de chiffrement est fort.
+#   Autorise en plus les certificats clients comme une alternative à
+#   l'authentification basique.
+    SSLVerifyClient      optional
+    SSLVerifyDepth       1
+    SSLOptions           +FakeBasicAuth +StrictRequire
+    SSLRequire           %{SSL_CIPHER_USEKEYSIZE} &gt;= 128
+    
+    #   ON oblige les clients venant d'Internet à utiliser HTTPS
+    RewriteEngine        on
+    RewriteCond          "%{REMOTE_ADDR}" "!^192\.168\.1\.[0-9]+$"
+    RewriteCond          "%{HTTPS}" "!=on"
+    RewriteRule          "." "-" [F]
+    
+    #   On permet l'accès soit sur les critères réseaux, soit par authentification Basique
+    Satisfy              any
+    
+    #   Contrôle d'accès réseau
+    Require              ip 192.168.1.0/24
+    
+    #   Configuration de l'authentification HTTP Basique
+    AuthType             basic
+    AuthName             "Protected Intranet Area"
+    AuthBasicProvider    file
+    AuthUserFile         "conf/protected.passwd"
+    Require              valid-user
+&lt;/Directory&gt;</pre>
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="logging" id="logging">Journalisation</a></h2>
+    
+
+    <p><code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> peut enregistrer des informations de
+    débogage très verbeuses dans le journal des erreurs, lorsque sa
+    directive <code class="directive"><a href="../mod/core.html#loglevel">LogLevel</a></code> est définie
+    à des niveaux de trace élevés. Par contre, sur un serveur très
+    sollicité, le niveau <code>info</code> sera probablement déjà trop
+    élevé. Souvenez-vous que vous pouvez configurer la directive
+    <code class="directive"><a href="../mod/core.html#loglevel">LogLevel</a></code> par module afin de
+    pourvoir à vos besoins.</p>
+</div></div>
+<div class="bottomlang">
+<p><span>Langues Disponibles: </span><a href="../en/ssl/ssl_howto.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/ssl/ssl_howto.html" title="Français">&nbsp;fr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Commentaires</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/ssl/ssl_howto.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Autorisé sous <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

@@ -1,0 +1,1148 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_include - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Modules</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache Module mod_include</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_include.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_include.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_include.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a></p>
+</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">Description:</a></th><td>Server-parsed html documents (Server Side Includes)</td></tr>
+<tr><th><a href="module-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">Module Identifier:</a></th><td>include_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">Source File:</a></th><td>mod_include.c</td></tr></table>
+<h3>Summary</h3>
+
+    <p>This module provides a filter which will process files
+    before they are sent to the client. The processing is
+    controlled by specially formatted SGML comments, referred to as
+    <dfn>elements</dfn>. These elements allow conditional text, the
+    inclusion of other files or programs, as well as the setting and
+    printing of environment variables.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>Topics</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#enabling">Enabling Server-Side Includes</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#pathinfo">PATH_INFO with Server Side Includes</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#elements">Available Elements</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#includevars">Include Variables</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#substitution">Variable Substitution</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#flowctrl">Flow Control Elements</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#legacyexpr">Legacy expression syntax</a></li>
+</ul><h3 class="directives">Directives</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#ssiendtag">SSIEndTag</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ssierrormsg">SSIErrorMsg</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ssietag">SSIETag</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ssilastmodified">SSILastModified</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ssilegacyexprparser">SSILegacyExprParser</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ssistarttag">SSIStartTag</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ssitimeformat">SSITimeFormat</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ssiundefinedecho">SSIUndefinedEcho</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#xbithack">XBitHack</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_include">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_include">Report a bug</a></li></ul><h3>See also</h3>
+<ul class="seealso">
+<li><code class="directive"><a href="../mod/core.html#options">Options</a></code></li>
+<li><code class="directive"><a href="../mod/core.html#acceptpathinfo">AcceptPathInfo</a></code></li>
+<li><a href="../filter.html">Filters</a></li>
+<li><a href="../howto/ssi.html">SSI Tutorial</a></li>
+<li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="enabling" id="enabling">Enabling Server-Side Includes</a></h2>
+    
+
+    <p>Server Side Includes are implemented by the
+    <code>INCLUDES</code> <a href="../filter.html">filter</a>. If
+    documents containing server-side include directives are given
+    the extension .shtml, the following directives will make Apache
+    parse them and assign the resulting document the mime type of
+    <code>text/html</code>:</p>
+
+    <pre class="prettyprint lang-config">AddType text/html .shtml
+AddOutputFilter INCLUDES .shtml</pre>
+
+
+    <p>The following directive must be given for the directories
+    containing the shtml files (typically in a
+    <code class="directive"><a href="../mod/core.html#directory">&lt;Directory&gt;</a></code> section,
+    but this directive is also valid in <code>.htaccess</code> files if
+    <code class="directive"><a href="../mod/core.html#allowoverride">AllowOverride</a></code> <code>Options</code>
+    is set):</p>
+
+    <pre class="prettyprint lang-config">Options +Includes</pre>
+
+
+    <p>For backwards compatibility, the <code>server-parsed</code>
+    <a href="../handler.html">handler</a> also activates the
+    INCLUDES filter. As well, Apache will activate the INCLUDES
+    filter for any document with mime type
+    <code>text/x-server-parsed-html</code> or
+    <code>text/x-server-parsed-html3</code> (and the resulting
+    output will have the mime type <code>text/html</code>).</p>
+
+    <p>For more information, see our <a href="../howto/ssi.html">Tutorial on Server Side Includes</a>.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="pathinfo" id="pathinfo">PATH_INFO with Server Side Includes</a></h2>
+    
+
+    <p>Files processed for server-side includes no longer accept
+    requests with <code>PATH_INFO</code> (trailing pathname information)
+    by default.  You can use the <code class="directive"><a href="../mod/core.html#acceptpathinfo">AcceptPathInfo</a></code> directive to
+    configure the server to accept requests with <code>PATH_INFO</code>.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="elements" id="elements">Available Elements</a></h2>
+    <p>The document is parsed as an HTML document, with special
+    commands embedded as SGML comments. A command has the syntax: </p>
+
+    <div class="example"><p><code>
+      &lt;!--#<var>element</var> <var>attribute</var>=<var>value</var>
+      <var>attribute</var>=<var>value</var> ... --&gt;
+    </code></p></div>
+
+    <p>The value will often be enclosed in double quotes, but single
+    quotes (<code>'</code>) and backticks (<code>`</code>) are also
+    possible. Many commands only allow a single attribute-value pair.
+    Note that the comment terminator (<code>--&gt;</code>) should be
+    preceded by whitespace to ensure that it isn't considered part of
+    an SSI token. Note that the leading <code>&lt;!--#</code> is <em>one</em>
+    token and may not contain any whitespaces.</p>
+
+    <p>The allowed elements are listed in the following table:</p>
+
+    <table class="bordered">
+    <tr><th>Element</th><th>Description</th></tr>
+    <tr><td><code><a href="#element.comment">comment</a></code></td>
+        <td>SSI comment</td></tr>
+    <tr><td><code><a href="#element.config">config</a></code></td>
+        <td>configure output formats</td></tr>
+    <tr><td><code><a href="#element.echo">echo</a></code></td>
+        <td>print variables</td></tr>
+    <tr><td><code><a href="#element.exec">exec</a></code></td>
+        <td>execute external programs</td></tr>
+    <tr><td><code><a href="#element.fsize">fsize</a></code></td>
+        <td>print size of a file</td></tr>
+    <tr><td><code><a href="#element.flastmod">flastmod</a></code></td>
+        <td>print last modification time of a file</td></tr>
+    <tr><td><code><a href="#element.include">include</a></code></td>
+        <td>include a file</td></tr>
+    <tr><td><code><a href="#element.printenv">printenv</a></code></td>
+        <td>print all available variables</td></tr>
+    <tr><td><code><a href="#element.set">set</a></code></td>
+        <td>set a value of a variable</td></tr>
+    </table>
+
+    <p>SSI elements may be defined by modules other than
+    <code class="module"><a href="../mod/mod_include.html">mod_include</a></code>. In fact, the <code><a href="#element.exec">exec</a></code> element is provided by
+    <code class="module"><a href="../mod/mod_cgi.html">mod_cgi</a></code>, and will only be available if this
+    module is loaded.</p>
+
+    <h3><a name="element.comment" id="element.comment">The comment Element</a></h3>
+      <p>This command doesn't output anything. Its only use is to
+      add comments within a file. These comments are not printed.</p>
+
+      <p>This syntax is available in version 2.4.21 and later.</p>
+
+      <div class="example"><p><code>
+      &lt;!--#comment Blah Blah Blah --&gt;
+      </code></p></div>
+     
+
+    <h3><a name="element.config" id="element.config">The config Element</a></h3>
+      <p>This command controls various aspects of the parsing. The
+      valid attributes are:</p>
+
+      <dl>
+      <dt><code>echomsg</code> (<em>Apache 2.1 and later</em>)</dt>
+      <dd><p>The value is a message that is sent back to the
+      client if the <code><a href="#element.echo">echo</a></code> element
+      attempts to echo an undefined variable. This overrides any <code class="directive"><a href="#ssiundefinedecho">SSIUndefinedEcho</a></code> directives.</p>
+
+      <div class="example"><p><code>
+        &lt;!--#config echomsg="[Value Undefined]" --&gt;
+      </code></p></div>
+      </dd>
+
+      <dt><code>errmsg</code></dt>
+      <dd><p>The value is a message that is sent back to the
+      client if an error occurs while parsing the
+      document. This overrides any <code class="directive"><a href="#ssierrormsg">SSIErrorMsg</a></code> directives.</p>
+
+      <div class="example"><p><code>
+       &lt;!--#config errmsg="[Oops, something broke.]" --&gt;
+      </code></p></div>
+      </dd>
+
+      <dt><code>sizefmt</code></dt>
+      <dd><p>The value sets the format to be used when displaying
+      the size of a file. Valid values are <code>bytes</code>
+      for a count in bytes, or <code>abbrev</code> for a count
+      in Kb or Mb as appropriate, for example a size of 1024 bytes
+      will be printed as "1K".</p>
+
+      <div class="example"><p><code>
+      &lt;!--#config sizefmt="abbrev" --&gt;
+      </code></p></div>
+
+      </dd>
+
+      <dt><code>timefmt</code></dt>
+      <dd><p>The value is a string to be used by the
+      <code>strftime(3)</code> library routine when printing
+      dates.</p>
+
+      <div class="example"><p><code>
+      &lt;!--#config timefmt=""%R, %B %d, %Y"" --&gt;
+      </code></p></div>
+
+      </dd>
+      </dl>
+     
+
+    <h3><a name="element.echo" id="element.echo">The echo Element</a></h3>
+      <p>This command prints one of the <a href="#includevars">include
+      variables</a> defined below. If the variable is unset, the result is
+      determined by the <code class="directive"><a href="#ssiundefinedecho">SSIUndefinedEcho</a></code> directive. Any dates printed are
+      subject to the currently configured <code>timefmt</code>.</p>
+
+      <p>Attributes:</p>
+
+      <dl>
+      <dt><code>var</code></dt>
+      <dd>The value is the name of the variable to print.</dd>
+
+      <dt><code>decoding</code></dt>
+      <dd><p>Specifies whether Apache should strip an encoding from
+      the variable before processing the variable further. The default
+      is <code>none</code>, where no decoding will be done. If set to
+      <code>url</code>, then URL decoding (also known as %-encoding;
+      this is appropriate for use within URLs in links, etc.) will be
+      performed. If set to <code>urlencoded</code>,
+      application/x-www-form-urlencoded compatible encoding (found in
+      query strings) will be stripped. If set to <code>base64</code>,
+      base64 will be decoded, and if set to <code>entity</code>, HTML
+      entity encoding will be stripped. Decoding is done prior to any
+      further encoding on the variable. Multiple encodings can be
+      stripped by specifying more than one comma separated encoding.
+      The decoding setting will remain in effect until the next decoding
+      attribute is encountered, or the element ends.</p>
+
+      <p>The <code>decoding</code> attribute must <em>precede</em> the
+      corresponding <code>var</code> attribute to be effective.</p>
+      </dd>
+
+      <dt><code>encoding</code></dt>
+      <dd><p>Specifies how Apache should encode special characters
+      contained in the variable before outputting them. If set
+      to <code>none</code>, no encoding will be done. If set to
+      <code>url</code>, then URL encoding (also known as %-encoding;
+      this is appropriate for use within URLs in links, etc.) will be
+      performed. If set to <code>urlencoded</code>,
+      application/x-www-form-urlencoded compatible encoding will be
+      performed instead, and should be used with query strings. If set
+      to <code>base64</code>, base64 encoding will be performed. At
+      the start of an <code>echo</code> element, the default is set to
+      <code>entity</code>, resulting in entity encoding (which is
+      appropriate in the context of a block-level HTML element,
+      <em>e.g.</em> a paragraph of text). This can be changed by adding
+      an <code>encoding</code> attribute, which will remain in effect
+      until the next <code>encoding</code> attribute is encountered or
+      the element ends, whichever comes first.</p>
+
+      <p>The <code>encoding</code> attribute must <em>precede</em> the
+      corresponding <code>var</code> attribute to be effective.</p>
+
+      <div class="warning">
+        In order to avoid cross-site scripting issues, you should
+        <em>always</em> encode user supplied data.
+      </div>
+
+      <div class="example"><h3>Example</h3><p><code>
+        &lt;!--#echo encoding="entity" var="QUERY_STRING" --&gt;
+      </code></p></div>
+      </dd>
+      </dl>
+     
+
+    <h3><a name="element.exec" id="element.exec">The exec Element</a></h3>
+      <p>The <code>exec</code> command executes a given shell command or
+      CGI script. It requires <code class="module"><a href="../mod/mod_cgi.html">mod_cgi</a></code> to be present
+      in the server. If <code class="directive"><a href="../mod/core.html#options">Options</a></code>
+      <code>IncludesNOEXEC</code> is set, this command is completely
+      disabled. The valid attributes are:</p>
+
+      <dl>
+      <dt><code>cgi</code></dt>
+      <dd><p>The value specifies a (%-encoded) URL-path to
+      the CGI script. If the path does not begin with a slash (/),
+      then it is taken to be relative to the current
+      document. The document referenced by this path is
+      invoked as a CGI script, even if the server would not
+      normally recognize it as such. However, the directory
+      containing the script must be enabled for CGI scripts
+      (with <code class="directive"><a href="../mod/mod_alias.html#scriptalias">ScriptAlias</a></code>
+      or <code class="directive"><a href="../mod/core.html#options">Options</a></code>
+      <code>ExecCGI</code>).</p>
+
+      <p>The CGI script is given the <code>PATH_INFO</code> and query
+      string (<code>QUERY_STRING</code>) of the original request from the
+      client; these <em>cannot</em> be specified in the URL path. The
+      include variables will be available to the script in addition to
+      the standard <a href="mod_cgi.html">CGI</a> environment.</p>
+
+      <div class="example"><h3>Example</h3><p><code>
+        &lt;!--#exec cgi="/cgi-bin/example.cgi" --&gt;
+      </code></p></div>
+
+      <p>If the script returns a <code>Location:</code> header instead of
+      output, then this will be translated into an HTML anchor.</p>
+
+      <p>The <code><a href="#includevirtual">include virtual</a></code>
+      element should be used in preference to <code>exec cgi</code>. In
+      particular, if you need to pass additional arguments to a CGI program,
+      using the query string, this cannot be done with <code>exec
+      cgi</code>, but can be done with <code>include virtual</code>, as
+      shown here:</p>
+
+      <div class="example"><p><code>
+        &lt;!--#include virtual="/cgi-bin/example.cgi?argument=value" --&gt;
+      </code></p></div>
+      </dd>
+
+      <dt><code>cmd</code></dt>
+      <dd><p>The server will execute the given string using
+      <code>/bin/sh</code>. The <a href="#includevars">include variables</a> are available to the command, in addition
+      to the usual set of CGI variables.</p>
+
+      <p>The use of <code><a href="#includevirtual">#include virtual</a></code> is almost always prefered to using
+      either <code>#exec cgi</code> or <code>#exec cmd</code>. The former
+      (<code>#include virtual</code>) uses the standard Apache sub-request
+      mechanism to include files or scripts. It is much better tested and
+      maintained.</p>
+
+      <p>In addition, on some platforms, like Win32, and on unix when
+      using <a href="../suexec.html">suexec</a>, you cannot pass arguments
+      to a command in an <code>exec</code> directive, or otherwise include
+      spaces in the command. Thus, while the following will work under a
+      non-suexec configuration on unix, it will not produce the desired
+      result under Win32, or when running suexec:</p>
+
+      <div class="example"><p><code>
+        &lt;!--#exec cmd="perl /path/to/perlscript arg1 arg2" --&gt;
+      </code></p></div>
+      </dd>
+      </dl>
+     
+
+    <h3><a name="element.fsize" id="element.fsize">The fsize Element</a></h3>
+      <p>This command prints the size of the specified file, subject
+      to the <code>sizefmt</code> format specification. Attributes:</p>
+
+      <dl>
+      <dt><code>file</code></dt>
+      <dd>The value is a path relative to the directory
+      containing the current document being parsed.
+
+    <div class="example"><p><code>
+        This file is &lt;!--#fsize file="mod_include.html" --&gt; bytes.
+    </code></p></div>
+
+    The value of <code>file</code> cannot start with a slash
+    (<code>/</code>), nor can it contain <code>../</code> so as to
+    refer to a file above the current directory or outside of the
+    document root. Attempting to so will result in the error message:
+    <code>The given path was above the root path</code>.
+      </dd>
+
+      <dt><code>virtual</code></dt>
+      <dd>The value is a (%-encoded) URL-path. If it does not begin with
+      a slash (/) then it is taken to be relative to the current document.
+      Note, that this does <em>not</em> print the size of any CGI output,
+      but the size of the CGI script itself.</dd>
+      </dl>
+
+    <div class="example"><p><code>
+        This file is &lt;!--#fsize virtual="/docs/mod/mod_include.html" --&gt; bytes.
+    </code></p></div>
+
+      <p>Note that in many cases these two are exactly the same thing.
+      However, the <code>file</code> attribute doesn't respect URL-space
+      aliases.</p>
+     
+
+    <h3><a name="element.flastmod" id="element.flastmod">The flastmod Element</a></h3>
+      <p>This command prints the last modification date of the
+      specified file, subject to the <code>timefmt</code> format
+      specification. The attributes are the same as for the
+      <code><a href="#element.fsize">fsize</a></code> command.</p>
+     
+
+    <h3><a name="element.include" id="element.include">The include Element</a></h3>
+      <p>This command inserts the text of another document or file
+      into the parsed file. Any included file is subject to the usual
+      access control. If the directory containing the parsed file has
+      <a href="core.html#options">Options</a>
+      <code>IncludesNOEXEC</code> set, then only documents with a text
+      <a class="glossarylink" href="../glossary.html#mime-type" title="see glossary">MIME-type</a> (<code>text/plain</code>,
+      <code>text/html</code> etc.) will be included. Otherwise CGI
+      scripts are invoked as normal using the complete URL given in
+      the command, including any query string.</p>
+
+      <p>An attribute defines the location of the document, and may
+      appear more than once in an include element; an inclusion is
+      done for each attribute given to the include command in turn.
+      The valid attributes are:</p>
+
+      <dl>
+      <dt><code>file</code></dt>
+      <dd>The value is a path relative to the directory
+      containing the current document being parsed. It cannot
+      contain <code>../</code>, nor can it be an absolute path.
+      Therefore, you cannot include files that are outside of the
+      document root, or above the current document in the directory
+      structure. The <code>virtual</code> attribute should always be
+      used in preference to this one.</dd>
+
+      <dt><code><a id="includevirtual" name="includevirtual">virtual</a></code></dt>
+      <dd><p>The value is a (%-encoded) URL-path. The URL cannot contain a
+      scheme or hostname, only a path and an optional query string. If it
+      does not begin with a slash (/) then it is taken to be relative to the
+      current document.</p>
+
+      <p>A URL is constructed from the attribute, and the output the
+      server would return if the URL were accessed by the client is
+      included in the parsed output. Thus included files can be nested.</p>
+
+      <p>If the specified URL is a CGI program, the program will be
+      executed and its output inserted in place of the directive in the
+      parsed file. You may include a query string in a CGI url:</p>
+
+      <div class="example"><p><code>
+        &lt;!--#include virtual="/cgi-bin/example.cgi?argument=value" --&gt;
+      </code></p></div>
+
+      <p><code>include virtual</code> should be used in preference
+      to <code>exec cgi</code> to include the output of CGI programs
+      into an HTML document.</p>
+
+      <p>If the <code class="directive"><a href="../mod/mod_request.html#keptbodysize">KeptBodySize</a></code>
+      directive is correctly configured and valid for this included
+      file, attempts to POST requests to the enclosing HTML document
+      will be passed through to subrequests as POST requests as well.
+      Without the directive, all subrequests are processed as GET
+      requests.</p>
+
+      </dd>
+
+      <dt><code>onerror</code></dt>
+      <dd><p>The value is a (%-encoded) URL-path which is shown should a
+      previous attempt to include a file or virtual attribute failed.
+      To be effective, this attribute must be specified after the
+      file or virtual attributes being covered. If the attempt to
+      include the onerror path fails, or if onerror is not specified, the
+      default error message will be included.</p>
+
+      <div class="example"><p><code>
+        # Simple example<br />
+        &lt;!--#include virtual="/not-exist.html" onerror="/error.html" --&gt;
+      </code></p></div>
+
+      <div class="example"><p><code>
+        # Dedicated onerror paths<br />
+        &lt;!--#include virtual="/path-a.html" onerror="/error-a.html" virtual="/path-b.html" onerror="/error-b.html" --&gt;
+      </code></p></div>
+
+      </dd>
+      </dl>
+     
+
+    <h3><a name="element.printenv" id="element.printenv">The printenv Element</a></h3>
+      <p>This prints out a plain text listing of all existing variables and
+      their values. Special characters are entity encoded (see the <code><a href="#element.echo">echo</a></code> element for details)
+      before being output. There are no attributes.</p>
+
+      <div class="example"><h3>Example</h3><p><code>
+        &lt;pre&gt;
+          &lt;!--#printenv --&gt;
+        &lt;/pre&gt;
+      </code></p></div>
+     
+
+    <h3><a name="element.set" id="element.set">The set Element</a></h3>
+      <p>This sets the value of a variable. Attributes:</p>
+
+      <dl>
+      <dt><code>var</code></dt>
+      <dd>The name of the variable to set.</dd>
+
+      <dt><code>value</code></dt>
+      <dd>The value to give a variable.</dd>
+
+      <dt><code>decoding</code></dt>
+      <dd><p>Specifies whether Apache should strip an encoding from
+      the variable before processing the variable further. The default
+      is <code>none</code>, where no decoding will be done. If set to
+      <code>url</code>, <code>urlencoded</code>, <code>base64</code>
+      or <code>entity</code>, URL decoding,
+      application/x-www-form-urlencoded decoding, base64 decoding or HTML
+      entity decoding will be performed respectively. More than one
+      decoding can be specified by separating with commas. The decoding
+      setting will remain in effect until the next decoding attribute
+      is encountered, or the element ends. The <code>decoding</code>
+      attribute must <em>precede</em> the corresponding
+      <code>var</code> attribute to be effective.</p>
+      </dd>
+
+      <dt><code>encoding</code></dt>
+      <dd><p>Specifies how Apache should encode special characters
+      contained in the variable before setting them. The default is
+      <code>none</code>, where no encoding will be done. If set to
+      <code>url</code>, <code>urlencoding</code>, <code>base64</code>
+      or <code>entity</code>, URL encoding,
+      application/x-www-form-urlencoded encoding, base64 encoding or
+      HTML entity encoding will be performed respectively. More than
+      one encoding can be specified by separating with commas. The
+      encoding setting will remain in effect until the next encoding
+      attribute is encountered, or the element ends. The
+      <code>encoding</code> attribute must <em>precede</em> the
+      corresponding <code>var</code> attribute to be effective.
+      Encodings are applied after all decodings have been
+      stripped.</p>
+      </dd>
+      </dl>
+
+      <div class="example"><h3>Example</h3><p><code>
+        &lt;!--#set var="category" value="help" --&gt;
+      </code></p></div>
+     
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="includevars" id="includevars">Include Variables</a></h2>
+    
+
+    <p>In addition to the variables in the standard CGI environment,
+    these are available for the <code>echo</code> command, for
+    <code>if</code> and <code>elif</code>, and to any program
+    invoked by the document.</p>
+
+    <dl>
+      <dt><code>DATE_GMT</code></dt>
+      <dd>The current date in Greenwich Mean Time.</dd>
+
+      <dt><code>DATE_LOCAL</code></dt>
+      <dd>The current date in the local time zone.</dd>
+
+      <dt><code>DOCUMENT_ARGS</code></dt>
+      <dd>This variable contains the query string of the active SSI
+      document, or the empty string if a query string is not
+      included.  For subrequests invoked through the
+      <code>include</code> SSI directive, <code>QUERY_STRING</code>
+      will represent the query string of the subrequest and
+      <code>DOCUMENT_ARGS</code> will represent the query string of
+      the SSI document.  (Available in Apache HTTP Server 2.4.19 and
+      later.)</dd>
+
+      <dt><code>DOCUMENT_NAME</code></dt>
+      <dd>The filename (excluding directories) of the document
+      requested by the user.</dd>
+
+      <dt><code>DOCUMENT_PATH_INFO</code></dt>
+      <dd>The trailing pathname information. See directive <code class="directive"><a href="../mod/core.html#acceptpathinfo">AcceptPathInfo</a></code> for more information
+      about <code>PATH_INFO</code>.</dd>
+
+      <dt><code>DOCUMENT_URI</code></dt>
+      <dd>The (%-decoded) URL path of the document requested by the
+      user. Note that in the case of nested include files, this is
+      <em>not</em> the URL for the current document.  Note also that
+      if the URL is modified internally (e.g. by an <code class="directive"><a href="../mod/mod_alias.html#alias">alias</a></code> or <code class="directive"><a href="../mod/mod_dir.html#directoryindex">directoryindex</a></code>), the modified
+      URL is shown.</dd>
+
+      <dt><code>LAST_MODIFIED</code></dt>
+      <dd>The last modification date of the document requested by
+      the user.</dd>
+
+      <dt><code>QUERY_STRING_UNESCAPED</code></dt>
+      <dd>If a query string is present in the request for the active
+      SSI document, this variable contains the (%-decoded) query
+      string, which is <em>escaped</em> for shell usage (special
+      characters like <code>&amp;</code> etc. are preceded by
+      backslashes).  It is not set if a query string is not
+      present.  Use <code>DOCUMENT_ARGS</code> if shell escaping
+      is not desired.</dd>
+
+      <dt><code>USER_NAME</code></dt>
+      <dd>The user name of the owner of the file.</dd>
+    </dl>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="substitution" id="substitution">Variable Substitution</a></h2>
+
+    <p>Variable substitution is done within quoted strings in most
+    cases where they may reasonably occur as an argument to an SSI
+    directive. This includes the <code>config</code>,
+    <code>exec</code>, <code>flastmod</code>, <code>fsize</code>,
+    <code>include</code>, <code>echo</code>, and <code>set</code>
+    directives. If <code class="directive"><a href="#ssilegacyexprparser">SSILegacyExprParser</a></code> is set to <code>on</code>,
+    substitution also occurs in the arguments to conditional operators.
+    You can insert a literal dollar sign into the string using backslash
+    quoting:</p>
+
+    <div class="example"><p><code>
+      &lt;!--#set var="cur" value="\$test" --&gt;
+    </code></p></div>
+
+    <p>If a variable reference needs to be substituted in the
+    middle of a character sequence that might otherwise be
+    considered a valid identifier in its own right, it can be
+    disambiguated by enclosing the reference in braces,
+    <em>a la</em> shell substitution:</p>
+
+    <div class="example"><p><code>
+      &lt;!--#set var="Zed" value="${REMOTE_HOST}_${REQUEST_METHOD}" --&gt;
+    </code></p></div>
+
+    <p>This will result in the <code>Zed</code> variable being set
+    to "<code>X_Y</code>" if <code>REMOTE_HOST</code> is
+    "<code>X</code>" and <code>REQUEST_METHOD</code> is
+    "<code>Y</code>".</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="flowctrl" id="flowctrl">Flow Control Elements</a></h2>
+    
+
+    <p>The basic flow control elements are:</p>
+
+    <div class="example"><p><code>
+      &lt;!--#if expr="<var>test_condition</var>" --&gt;<br />
+      &lt;!--#elif expr="<var>test_condition</var>" --&gt;<br />
+      &lt;!--#else --&gt;<br />
+      &lt;!--#endif --&gt;
+    </code></p></div>
+
+    <p>The <code>if</code> element works like an if statement in a
+    programming language. The test condition is evaluated and if
+    the result is true, then the text until the next <code>elif</code>,
+    <code>else</code> or <code>endif</code> element is included in the
+    output stream.</p>
+
+    <p>The <code>elif</code> or <code>else</code> statements are used
+    to put text into the output stream if the original
+    <var>test_condition</var> was false. These elements are optional.</p>
+
+    <p>The <code>endif</code> element ends the <code>if</code> element
+    and is required.</p>
+
+    <p><var>test_condition</var> is a boolean expression which follows the
+    <a href="../expr.html">ap_expr</a> syntax. The syntax can be changed
+    to be compatible with Apache HTTPD 2.2.x using <code class="directive"><a href="#ssilegacyexprparser">SSILegacyExprParser</a></code>.</p>
+
+    <p>The SSI variables set with the <code>var</code> element are exported
+    into the request environment and can be accessed with the
+    <code>reqenv</code> function. As a short-cut, the function name
+    <code>v</code> is also available inside <code class="module"><a href="../mod/mod_include.html">mod_include</a></code>.</p>
+
+    <p>The below example will print "from local net" if client IP address
+    belongs to the 10.0.0.0/8 subnet.</p>
+
+    <div class="example"><p><code>
+      &lt;!--#if expr='-R "10.0.0.0/8"' --&gt;<br />
+      <span class="indent">
+        from local net<br />
+      </span>
+      &lt;!--#else --&gt;<br />
+      <span class="indent">
+        from somewhere else<br />
+      </span>
+      &lt;!--#endif --&gt;
+    </code></p></div>
+
+    <p>The below example will print "foo is bar" if the variable
+    <code>foo</code> is set to the value "bar".</p>
+
+    <div class="example"><p><code>
+      &lt;!--#if expr='v("foo") = "bar"' --&gt;<br />
+      <span class="indent">
+        foo is bar<br />
+      </span>
+      &lt;!--#endif --&gt;
+    </code></p></div>
+
+    <div class="note"><h3>Reference Documentation</h3>
+    <p>See also: <a href="../expr.html">Expressions in Apache HTTP Server</a>,
+    for a complete reference and examples. The <em>restricted</em> functions
+    are not available inside <code class="module"><a href="../mod/mod_include.html">mod_include</a></code></p>
+    </div>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="legacyexpr" id="legacyexpr">Legacy expression syntax</a></h2>
+    
+
+    <p>This section describes the syntax of the <code>#if expr</code>
+    element if <code class="directive"><a href="#ssilegacyexprparser">SSILegacyExprParser</a></code>
+    is set to <code>on</code>.</p>
+
+    <dl>
+      <dt><code><var>string</var></code></dt>
+      <dd>true if <var>string</var> is not empty</dd>
+
+      <dt><code><var>-A string</var></code></dt>
+      <dd><p>true if the URL represented by the string is accessible by
+      configuration, false otherwise. This is useful where content on a
+      page is to be hidden from users who are not authorized to view the
+      URL, such as a link to that URL. Note that the URL is only tested
+      for whether access would be granted, not whether the URL exists.</p>
+
+      <div class="example"><h3>Example</h3><p><code>
+        &lt;!--#if expr="-A /private" --&gt;<br />
+        <span class="indent">
+          Click &lt;a href="/private"&gt;here&lt;/a&gt; to access private
+          information.<br />
+        </span>
+        &lt;!--#endif --&gt;
+      </code></p></div>
+      </dd>
+
+      <dt><code><var>string1</var> = <var>string2</var><br />
+      <var>string1</var> == <var>string2</var><br />
+      <var>string1</var> != <var>string2</var></code></dt>
+
+      <dd><p>Compare <var>string1</var> with <var>string2</var>. If
+      <var>string2</var> has the form <code>/<var>string2</var>/</code>
+      then it is treated as a regular expression. Regular expressions are
+      implemented by the <a href="http://www.pcre.org">PCRE</a> engine and
+      have the same syntax as those in <a href="http://www.perl.com">perl
+      5</a>. Note that <code>==</code> is just an alias for <code>=</code>
+      and behaves exactly the same way.</p>
+
+      <p>If you are matching positive (<code>=</code> or <code>==</code>), you
+      can capture grouped parts of the regular expression. The captured parts
+      are stored in the special variables <code>$1</code> ..
+      <code>$9</code>. The whole string matched by the regular expression is
+      stored in the special variable <code>$0</code></p>
+
+      <div class="example"><h3>Example</h3><p><code>
+        &lt;!--#if expr="$QUERY_STRING = /^sid=([a-zA-Z0-9]+)/" --&gt;<br />
+        <span class="indent">
+          &lt;!--#set var="session" value="$1" --&gt;<br />
+        </span>
+        &lt;!--#endif --&gt;
+      </code></p></div>
+      </dd>
+
+      <dt><code><var>string1</var> &lt; <var>string2</var><br />
+       <var>string1</var> &lt;= <var>string2</var><br />
+       <var>string1</var> &gt; <var>string2</var><br />
+       <var>string1</var> &gt;= <var>string2</var></code></dt>
+
+      <dd>Compare <var>string1</var> with <var>string2</var>. Note, that
+      strings are compared <em>literally</em> (using
+      <code>strcmp(3)</code>). Therefore the string "100" is less than
+      "20".</dd>
+
+      <dt><code>( <var>test_condition</var> )</code></dt>
+      <dd>true if <var>test_condition</var> is true</dd>
+
+      <dt><code>! <var>test_condition</var></code></dt>
+      <dd>true if <var>test_condition</var> is false</dd>
+
+      <dt><code><var>test_condition1</var> &amp;&amp;
+        <var>test_condition2</var></code></dt>
+      <dd>true if both <var>test_condition1</var> and
+      <var>test_condition2</var> are true</dd>
+
+      <dt><code><var>test_condition1</var> ||
+        <var>test_condition2</var></code></dt>
+      <dd>true if either <var>test_condition1</var> or
+      <var>test_condition2</var> is true</dd>
+    </dl>
+
+    <p>"<code>=</code>" and "<code>!=</code>" bind more tightly than
+    "<code>&amp;&amp;</code>" and "<code>||</code>". "<code>!</code>" binds
+    most tightly. Thus, the following are equivalent:</p>
+
+    <div class="example"><p><code>
+      &lt;!--#if expr="$a = test1 &amp;&amp; $b = test2" --&gt;<br />
+      &lt;!--#if expr="($a = test1) &amp;&amp; ($b = test2)" --&gt;
+    </code></p></div>
+
+    <p>The boolean operators <code>&amp;&amp;</code> and <code>||</code>
+    share the same priority. So if you want to bind such an operator more
+    tightly, you should use parentheses.</p>
+
+    <p>Anything that's not recognized as a variable or an operator
+    is treated as a string. Strings can also be quoted:
+    <code>'string'</code>. Unquoted strings can't contain whitespace
+    (blanks and tabs) because it is used to separate tokens such as
+    variables. If multiple strings are found in a row, they are
+    concatenated using blanks. So,</p>
+
+    <div class="example"><p><code><var>string1</var>&nbsp;&nbsp;&nbsp;&nbsp;<var>string2</var></code> results in <code><var>string1</var>&nbsp;<var>string2</var></code><br />
+      <br />
+      and<br />
+      <br />
+      <code>'<var>string1</var>&nbsp;&nbsp;&nbsp;&nbsp;<var>string2</var>'</code> results in <code><var>string1</var>&nbsp;&nbsp;&nbsp;&nbsp;<var>string2</var></code>.</p></div>
+
+    <div class="note"><h3>Optimization of Boolean Expressions</h3>
+      <p>If the expressions become more complex and slow down processing
+      significantly, you can try to optimize them according to the
+      evaluation rules:</p>
+      <ul>
+      <li>Expressions are evaluated from left to right</li>
+      <li>Binary boolean operators (<code>&amp;&amp;</code> and <code>||</code>)
+          are short circuited wherever possible. In conclusion with the rule
+          above that means, <code class="module"><a href="../mod/mod_include.html">mod_include</a></code> evaluates at first
+          the left expression. If the left result is sufficient to determine
+          the end result, processing stops here. Otherwise it evaluates the
+          right side and computes the end result from both left and right
+          results.</li>
+      <li>Short circuit evaluation is turned off as long as there are regular
+          expressions to deal with. These must be evaluated to fill in the
+          backreference variables (<code>$1</code> .. <code>$9</code>).</li>
+      </ul>
+      <p>If you want to look how a particular expression is handled, you can
+      recompile <code class="module"><a href="../mod/mod_include.html">mod_include</a></code> using the
+      <code>-DDEBUG_INCLUDE</code> compiler option. This inserts for every
+      parsed expression tokenizer information, the parse tree and how it is
+      evaluated into the output sent to the client.</p>
+    </div>
+
+    <div class="note"><h3>Escaping slashes in regex strings</h3>
+     <p>All slashes which are not intended to act as delimiters in your regex must
+     be escaped.  This is regardless of their meaning to the regex engine.</p>
+    </div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SSIEndTag" id="SSIEndTag">SSIEndTag</a> <a name="ssiendtag" id="ssiendtag">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>String that ends an include element</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>SSIEndTag <var>tag</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>SSIEndTag "--&gt;"</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_include</td></tr>
+</table>
+    <p>This directive changes the string that <code class="module"><a href="../mod/mod_include.html">mod_include</a></code>
+    looks for to mark the end of an include element.</p>
+
+    <pre class="prettyprint lang-config">SSIEndTag "%&gt;"</pre>
+
+
+
+<h3>See also</h3>
+<ul>
+<li><code class="directive"><a href="#ssistarttag">SSIStartTag</a></code></li>
+</ul>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SSIErrorMsg" id="SSIErrorMsg">SSIErrorMsg</a> <a name="ssierrormsg" id="ssierrormsg">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Error message displayed when there is an SSI
+error</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>SSIErrorMsg <var>message</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>SSIErrorMsg "[an error occurred while processing this
+directive]"</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override:</a></th><td>All</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_include</td></tr>
+</table>
+    <p>The <code class="directive">SSIErrorMsg</code> directive changes the error
+    message displayed when <code class="module"><a href="../mod/mod_include.html">mod_include</a></code> encounters an
+    error. For production servers you may consider changing the default
+    error message to <code>"&lt;!-- Error --&gt;"</code> so that
+    the message is not presented to the user.</p>
+
+    <p>This directive has the same effect as the <code>&lt;!--#config
+    errmsg=<var>message</var> --&gt;</code> element.</p>
+
+    <pre class="prettyprint lang-config">SSIErrorMsg "&lt;!-- Error --&gt;"</pre>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SSIETag" id="SSIETag">SSIETag</a> <a name="ssietag" id="ssietag">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Controls whether ETags are generated by the server.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>SSIETag on|off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>SSIETag off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_include</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.2.15 and later.</td></tr>
+</table>
+      <p>Under normal circumstances, a file filtered by <code class="module"><a href="../mod/mod_include.html">mod_include</a></code>
+        may contain elements that are either dynamically generated, or that may
+        have changed independently of the original file. As a result, by default
+        the server is asked not to generate an <code>ETag</code> header for the
+        response by adding <code>no-etag</code> to the request notes.</p>
+
+      <p>The <code class="directive">SSIETag</code> directive suppresses this
+        behaviour, and allows the server to generate an <code>ETag</code> header.
+        This can be used to enable caching of the output. Note that a backend server
+        or dynamic content generator may generate an ETag of its own, ignoring
+        <code>no-etag</code>, and this ETag will be passed by
+        <code class="module"><a href="../mod/mod_include.html">mod_include</a></code> regardless of the value of this setting.
+        <code class="directive">SSIETag</code> can take on the following values:</p>
+
+      <dl>
+
+        <dt><code>off</code></dt>
+        <dd><code>no-etag</code> will be added to the request notes, and the server
+          is asked not to generate an ETag. Where a server ignores the value of
+          <code>no-etag</code> and generates an ETag anyway, the ETag will be
+          respected.</dd>
+
+        <dt><code>on</code></dt>
+        <dd>Existing ETags will be respected, and ETags generated by the server will
+          be passed on in the response.</dd>
+
+      </dl>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SSILastModified" id="SSILastModified">SSILastModified</a> <a name="ssilastmodified" id="ssilastmodified">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Controls whether <code>Last-Modified</code> headers are generated by the
+server.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>SSILastModified on|off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>SSILastModified off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_include</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.2.15 and later.</td></tr>
+</table>
+      <p>Under normal circumstances, a file filtered by <code class="module"><a href="../mod/mod_include.html">mod_include</a></code>
+        may contain elements that are either dynamically generated, or that may
+        have changed independently of the original file. As a result, by default
+        the <code>Last-Modified</code> header is stripped from the response.</p>
+
+      <p>The <code class="directive">SSILastModified</code> directive overrides this
+        behaviour, and allows the <code>Last-Modified</code> header to be respected
+        if already present, or set if the header is not already present. This can
+        be used to enable caching of the output. <code class="directive">SSILastModified</code>
+        can take on the following values:</p>
+
+      <dl>
+
+        <dt><code>off</code></dt>
+        <dd>The <code>Last-Modified</code> header will be stripped from responses,
+          unless the <code class="directive"><a href="#xbithack">XBitHack</a></code> directive
+          is set to <code>full</code> as described below.</dd>
+
+        <dt><code>on</code></dt>
+        <dd>The <code>Last-Modified</code> header will be respected if already
+          present in a response, and added to the response if the response is a
+          file and the header is missing. The
+          <code class="directive"><a href="#ssilastmodified">SSILastModified</a></code> directive
+          takes precedence over <code class="directive"><a href="#xbithack">XBitHack</a></code>.</dd>
+
+      </dl>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SSILegacyExprParser" id="SSILegacyExprParser">SSILegacyExprParser</a> <a name="ssilegacyexprparser" id="ssilegacyexprparser">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Enable compatibility mode for conditional expressions.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>SSILegacyExprParser on|off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>SSILegacyExprParser off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_include</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.3.13 and later.</td></tr>
+</table>
+    <p>As of version 2.3.13, <code class="module"><a href="../mod/mod_include.html">mod_include</a></code> has switched to the
+    new <a href="../expr.html">ap_expr</a> syntax for conditional expressions
+    in <code>#if</code> flow control elements.  This directive allows to
+    switch to the <a href="#legacyexpr">old syntax</a> which is compatible
+    with Apache HTTPD version 2.2.x and earlier.
+    </p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SSIStartTag" id="SSIStartTag">SSIStartTag</a> <a name="ssistarttag" id="ssistarttag">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>String that starts an include element</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>SSIStartTag <var>tag</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>SSIStartTag "&lt;!--#"</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_include</td></tr>
+</table>
+    <p>This directive changes the string that <code class="module"><a href="../mod/mod_include.html">mod_include</a></code>
+    looks for to mark an include element to process.</p>
+
+    <p>You may want to use this option if you have 2 servers parsing the
+    output of a file each processing different commands (possibly at
+    different times).</p>
+
+    <pre class="prettyprint lang-config">SSIStartTag "&lt;%"
+SSIEndTag   "%&gt;"</pre>
+
+
+    <p>The example given above, which also specifies a matching
+    <code class="directive"><a href="#ssiendtag">SSIEndTag</a></code>, will
+    allow you to use SSI directives as shown in the example
+    below:</p>
+
+    <div class="example"><h3>SSI directives with alternate start and end tags</h3><p><code>
+      &lt;%printenv %&gt;
+    </code></p></div>
+
+<h3>See also</h3>
+<ul>
+<li><code class="directive"><a href="#ssiendtag">SSIEndTag</a></code></li>
+</ul>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SSITimeFormat" id="SSITimeFormat">SSITimeFormat</a> <a name="ssitimeformat" id="ssitimeformat">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Configures the format in which date strings are
+displayed</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>SSITimeFormat <var>formatstring</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>SSITimeFormat "%A, %d-%b-%Y %H:%M:%S %Z"</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override:</a></th><td>All</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_include</td></tr>
+</table>
+<p>This directive changes the format in which date strings are displayed
+    when echoing <code>DATE</code> environment variables. The
+    <var>formatstring</var> is as in <code>strftime(3)</code> from the
+    C standard library.</p>
+
+    <p>This directive has the same effect as the <code>&lt;!--#config
+    timefmt=<var>formatstring</var> --&gt;</code> element.</p>
+
+    <pre class="prettyprint lang-config">SSITimeFormat "%R, %B %d, %Y"</pre>
+
+
+    <p>The above directive would cause times to be displayed in the
+    format "22:26, June 14, 2002".</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SSIUndefinedEcho" id="SSIUndefinedEcho">SSIUndefinedEcho</a> <a name="ssiundefinedecho" id="ssiundefinedecho">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>String displayed when an unset variable is echoed</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>SSIUndefinedEcho <var>string</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>SSIUndefinedEcho "(none)"</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override:</a></th><td>All</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_include</td></tr>
+</table>
+    <p>This directive changes the string that <code class="module"><a href="../mod/mod_include.html">mod_include</a></code>
+    displays when a variable is not set and "echoed".</p>
+
+    <pre class="prettyprint lang-config">SSIUndefinedEcho "&lt;!-- undef --&gt;"</pre>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="XBitHack" id="XBitHack">XBitHack</a> <a name="xbithack" id="xbithack">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Parse SSI directives in files with the execute bit
+set</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>XBitHack on|off|full</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>XBitHack off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override:</a></th><td>Options</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_include</td></tr>
+</table>
+    <p>The <code class="directive">XBitHack</code> directive controls the parsing
+    of ordinary html documents. This directive only affects files associated
+    with the <a class="glossarylink" href="../glossary.html#mime-type" title="see glossary">MIME-type</a> <code>text/html</code>. <code class="directive">XBitHack</code> can take on the following values:</p>
+
+    <dl>
+      <dt><code>off</code></dt>
+      <dd>No special treatment of executable files.</dd>
+
+      <dt><code>on</code></dt>
+      <dd>Any <code>text/html</code> file that has the user-execute bit
+      set will be treated as a server-parsed html document.</dd>
+
+      <dt><code>full</code></dt>
+      <dd>As for <code>on</code> but also test the group-execute bit.
+      If it is set, then set the <code>Last-modified</code> date of the
+      returned file to be the last modified time of the file. If
+      it is not set, then no last-modified date is sent. Setting
+      this bit allows clients and proxies to cache the result of
+      the request.
+
+      <div class="note"><h3>Note</h3>
+      <p>You would not want to use the full option, unless you assure the
+      group-execute bit is unset for every SSI script which might <code>#include</code> a CGI or otherwise produces different output on
+      each hit (or could potentially change on subsequent requests).</p>
+
+      <p>The <code class="directive"><a href="#ssilastmodified">SSILastModified</a></code>
+      directive takes precedence over the
+      <code class="directive"><a href="#xbithack">XBitHack</a></code> directive when
+      <code class="directive"><a href="#ssilastmodified">SSILastModified</a></code> is set to
+      <code>on</code>.</p>
+      </div>
+
+      </dd>
+    </dl>
+
+
+</div>
+</div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_include.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_include.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_include.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_include.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

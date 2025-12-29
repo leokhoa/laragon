@@ -1,0 +1,1003 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Guide de la mise en cache - Serveur HTTP Apache Version 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">Modules</a> | <a href="./mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">Glossaire</a> | <a href="./sitemap.html">Plan du site</a></p>
+<p class="apache">Serveur HTTP Apache Version 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">Serveur HTTP</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="./">Version 2.4</a></div><div id="page-content"><div id="preamble"><h1>Guide de la mise en cache</h1>
+<div class="toplang">
+<p><span>Langues Disponibles: </span><a href="./en/caching.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/caching.html" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./tr/caching.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+    <p>Ce document complète la documentation de référence des modules
+    <code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code>, <code class="module"><a href="./mod/mod_cache_disk.html">mod_cache_disk</a></code>,
+    <code class="module"><a href="./mod/mod_file_cache.html">mod_file_cache</a></code> et du programme <a href="programs/htcacheclean.html">htcacheclean</a>.
+    Il décrit l'utilisation des fonctionnalités de mise en
+    cache du serveur HTTP Apache
+    pour accélérer les services web et proxy, tout en évitant les problèmes
+    courants et les erreurs de configuration.</p>
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#introduction">Introduction</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#http-caching">Mise en cache HTTP à trois états RFC2616</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#examples">Exemples de configuration du cache</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#socache-caching">Mise en cache générale d'objets partagés à deux états de forme
+    clé/valeur</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#file-caching">Mise en cache à base de fichiers spécialisés</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#security">Considérations sur la sécurité</a></li>
+</ul><h3>Voir aussi</h3><ul class="seealso"><li><a href="#comments_section">Commentaires</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="introduction" id="introduction">Introduction</a></h2>
+    
+
+    <p>Le serveur HTTP Apache offre tout un ensemble de fonctionnalités
+    de mise en cache qui ont été conçues pour améliorer les performances
+    du serveur de différentes manières.</p>
+
+    <dl>
+        <dt>Mise en cache HTTP à trois états RFC2616</dt>
+        <dd><code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> et son module de fournisseur
+	<code class="module"><a href="./mod/mod_cache_disk.html">mod_cache_disk</a></code> proposent une mise en cache
+	intelligente de niveau HTTP. Le contenu proprement dit est
+	stocké dans le cache, et mod_cache vise à respecter tous les
+	en-têtes HTTP, ainsi que les options qui contrôlent la mise en
+	cache du contenu comme décrit dans la <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html">Section
+	13 de la RFC2616</a>. <code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> peut gérer des
+	configurations de mise en cache simples, mais aussi complexes
+	comme dans les cas où vous avez à faire à des contenus mandatés,
+	à des contenus locaux dynamiques, ou lorsque vous avez besoin
+	d'accélérer l'accès aux fichiers locaux situés sur disque
+	supposé lent.
+        </dd>
+
+        <dt>Mise en cache d'objets partagés de forme clé/valeur à deux
+	états</dt>
+        <dd>
+            L'<a href="socache.html">API du cache d'objets partagés</a> (socache)
+	    et ses modules de fournisseurs
+	    proposent une mise en cache d'objets partagés à base de
+	    couples clé/valeur de niveau serveur. Ces modules sont
+	    conçus pour la mise en cache de données de bas niveau comme
+	    les sessions SSL et les données d'authentification. les
+	    serveurs d'arrière-plan permettent le stockage des données
+	    au niveau serveur en mémoire partagée, ou au niveau
+	    datacenter dans un cache comme memcache ou distcache.
+        </dd>
+
+        <dt>Mise en cache de fichiers spécialisée</dt>
+        <dd>
+            <code class="module"><a href="./mod/mod_file_cache.html">mod_file_cache</a></code> offre la possibilité de
+	    précharger des fichiers en mémoire au démarrage du serveur,
+	    et peut améliorer les temps d'accès et sauvegarder les
+	    gestionnaires de fichiers pour les fichiers qui font l'objet
+	    d'accès fréquents, évitant ainsi d'avoir à accéder au disque
+	    à chaque requête.
+        </dd>
+    </dl>
+
+    <p>Pour tirer parti efficacement de ce document, les bases de HTTP doivent
+    vous être familières, et vous devez avoir lu les sections
+    <a href="urlmapping.html">Mise en correspondance des
+    URLs avec le système de fichiers</a> et
+    <a href="content-negotiation.html">Négociation sur le contenu</a>
+    du guide de l'utilisateur.</p>
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="http-caching" id="http-caching">Mise en cache HTTP à trois états RFC2616</a></h2>
+
+    
+
+    <table class="related"><tr><th>Modules Apparentés</th><th>Directives Apparentées</th></tr><tr><td><ul><li><code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code></li><li><code class="module"><a href="./mod/mod_cache_disk.html">mod_cache_disk</a></code></li></ul></td><td><ul><li><code class="directive"><a href="./mod/mod_cache.html#cacheenable">CacheEnable</a></code></li><li><code class="directive"><a href="./mod/mod_cache.html#cachedisable">CacheDisable</a></code></li><li><code class="directive"><a href="./mod/core.html#usecanonicalname">UseCanonicalName</a></code></li><li><code class="directive"><a href="./mod/mod_negotiation.html#cachenegotiateddocs">CacheNegotiatedDocs</a></code></li></ul></td></tr></table>
+
+    <p>Le module <code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> permet de tirer avantage du
+    mécanisme de mise en cache en ligne faisant partie
+    intégrante du protocole HTTP, et décrit dans la <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html">section
+    13 de la RFC2616</a>.</p>
+
+    <p>A la différence d'un cache simple clé/valeur à deux états où le
+    contenu est supprimé lorsqu'il est périmé, un cache HTTP comporte un
+    mécanisme permettant de conserver temporairement un contenu périmé,
+    de demander au serveur original si ce contenu périmé a été modifié,
+    et dans le cas contraire de le rendre à nouveau valide.</p>
+
+    <p>Une entrée d'un cache HTTP peut se présenter sous un de ces trois
+    états :</p>
+
+    <dl>
+    <dt>Frais</dt>
+    <dd>
+        Si un contenu est suffisamment récent (plus jeune que sa
+	<strong>durée de fraîcheur</strong>), il est considéré comme
+	<strong>frais</strong>. Un cache HTTP peut servir un contenu
+	frais sans avoir à demander quoi que ce soit au serveur
+	d'origine.
+    </dd>
+    <dt>Périmé</dt>
+    <dd>
+        <p>Si le contenu est trop ancien (plus vieux que sa
+	<strong>durée de fraîcheur</strong>), il est considéré comme
+	<strong>périmé</strong>. Un cache HTTP doit contacter le serveur
+	original pour vérifier si le contenu, même s'il est périmé, est
+	encore à jour avant de le servir au client. Soit le serveur
+	original va répondre en envoyant un contenu de remplacement si
+	le contenu périmé n'est plus à jour, soit dans le cas idéal il
+	renverra un code pour signaler au cache que le contenu est
+	encore à jour, et qu'il est inutile de le générer ou de
+	l'envoyer à nouveau. Le contenu repasse à l'état "frais" et le
+	cycle continue.</p>
+
+        <p>Le protocole HTTP permet au cache de servir des données
+	périmées dans certaines circonstances, comme lorsqu'une
+	tentative de rafraîchir une entrée depuis un serveur original
+	se solde par un échec avec un code d'erreur 5xx, ou lorsqu'une
+	autre requête est déjà en train d'essayer de rafraîchir la même
+	entrée. Dans ces cas, un en-tête <code>Warning</code> est ajouté
+	à la réponse.</p>
+    </dd>
+    <dt>Non Existent</dt>
+    <dd>
+        Si le cache est plein, il se réserve la possibilité de supprimer
+	des entrées pour faire de la place. Une entrée peut être
+	supprimée à tout moment, qu'elle soit fraîche ou périmée.
+	L'outil <a href="programs/htcacheclean.html">htcacheclean</a>
+	peut être utilisé à la demande, ou lancé en tant que démon afin
+	de conserver la taille du cache ou le nombre d'inodes en deçà de
+	valeurs spécifiées. Cet outil essaie cependant de
+	supprimer les entrées périmées avant les entrées fraîches.
+    </dd>
+    </dl>
+
+    <p>Le fonctionnement détaillé d'un cache HTTP est décrit dans la <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html">Section
+    13 de la RFC2616</a>.</p>
+
+    <h3>Interaction avec le serveur</h3>
+      
+
+      <p>Le module <code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> interagit avec le serveur
+      à deux niveaux possibles en fonction de la directive <code class="directive"><a href="./mod/mod_cache.html#cachequickhandler">CacheQuickHandler</a></code> :
+      </p>
+
+      <dl>
+        <dt>Phase de gestion rapide</dt>
+        <dd>
+          <p>Cette phase se déroule très tôt au cours du traitement de
+	  la requête, juste après l'interprétation de cette dernière. Si
+	  le contenu se trouve dans le cache, il est servi immédiatement
+	  et pratiquement tout le reste du traitement de la requête est
+	  court-circuité.</p>
+
+              <p>Dans ce scénario, le cache se comporte comme s'il avait
+	      été "boulonné" à l'entrée du serveur.</p>
+              
+              <p>Ce mode possède les meilleures performances car la
+	      majorité des traitements au niveau du serveur sont
+	      court-circuités. Cependant, il court-circuite aussi les
+	      phases d'authentification et d'autorisation du traitement
+	      au niveau du serveur, et il doit donc être utilisé avec
+	      prudence lorsque que ces phases sont importantes.</p>
+
+	      <p>Les requêtes comportant un en-tête "Authorization"
+	      (comme par exemple l'authentification HTTP basique) ne
+	      peuvent être ni mises en cache, ni servies depuis ce
+	      dernier lorsque <code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> s'exécute dans
+	      cette phase.</p>
+          </dd>
+          <dt>Phase de gestion normale</dt>
+          <dd>
+              <p>Cette phase se déroule très tard au cours du traitement
+	      de la requête, en fait après toutes les phases de ce
+	      traitement.</p>
+
+              <p>Dans ce scénario, le cache se comporte comme s'il avait
+	      été "boulonné" à la sortie du serveur.</p>
+
+              <p>Ce mode offre la plus grande souplesse, car il permet
+	      de faire intervenir la mise en cache en un point
+	      précisément spécifié de la chaîne de filtrage, et le
+	      contenu issu du cache peut être filtré ou personnalisé
+	      avant d'être servi au client.</p>
+          </dd>
+        </dl>
+
+        <p>Si l'URL ne se trouve pas dans le cache,
+	<code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> ajoutera un <a href="filter.html">filtre</a> à la chaîne de filtrage afin
+	d'enregistrer la réponse dans le cache, puis passera la main
+	pour permettre le déroulement normal de la suite du traitement
+	de la requête. Si la mise en cache du contenu est autorisée, il
+	sera enregistré dans le cache pour pouvoir être servi à nouveau
+	; dans le cas contraire, le contenu sera ignoré.</p>
+
+        <p>Si le contenu trouvé dans le cache est périmé, le module
+	<code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> convertit la requête en
+	<strong>requête conditionnelle</strong>. Si le serveur original
+	renvoie une réponse normale, elle est enregistrée dans le cache
+	en lieu et place du contenu périmé. Si le serveur original
+	renvoie une réponse "304 Not Modified", le contenu repasse à
+	l'état "frais" et est servi par le filtre au lieu d'être
+	sauvegardé.</p>
+    
+
+    <h3>Amélioration du taux de présence dans le cache</h3>
+      
+
+      <p>Lorsqu'un serveur virtuel est connu sous la forme d'un des
+      nombreux alias du serveur, la définition de la directive
+      <code class="directive"><a href="./mod/core.html#usecanonicalname">UseCanonicalName</a></code> à
+      <code>On</code> peut augmenter de manière significative le nombre
+      de correspondances positives dans le cache. Ceci est du au fait
+      que la clé du cache contient le nom d'hôte du serveur virtuel.     
+      Avec <code class="directive"><a href="./mod/core.html#usecanonicalname">UseCanonicalName</a></code> positionnée
+      à <code>On</code>,
+      les hôtes virtuels possédant plusieurs noms de serveur ou alias ne
+      généreront pas d'entités de cache différentes, et le contenu sera mis en
+      cache en faisant référence au nom d'hôte canonique.</p>
+
+    
+
+    <h3>Durée de fraîcheur</h3>
+      
+
+       <p>Un contenu bien formé destiné à être mis en cache doit déclarer
+       explicitement une durée de fraîcheur via les champs
+       <code>max-age</code> ou <code>s-maxage</code> de l'en-tête
+       <code>Cache-Control</code>, ou en incluant un en-tête
+       <code>Expires</code>.</p>
+      
+      <p>De plus, un client peut passer outre la durée de fraîcheur
+      définie pour le serveur original en ajoutant son propre en-tête
+      <code>Cache-Control</code> à la requête. Dans ce cas, c'est la
+      durée de fraîcheur la plus basse entre la requête et la réponse
+      qui l'emporte.</p>
+
+      <p>Lorsque cette durée de fraîcheur est absente de la requête ou
+      de la réponse, une durée de fraîcheur par défaut s'applique. La
+      durée de fraîcheur par défaut des entrées du cache est d'une heure
+      ; elle peut cependant être facilement modifiée à l'aide de
+      la directive <code class="directive"><a href="./mod/mod_cache.html#cachedefaultexpire">CacheDefaultExpire</a></code>.</p>
+
+      <p>Si une réponse ne contient pas d'en-tête <code>Expires</code> mais
+      inclut un en-tête <code>Last-Modified</code>, <code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code>
+      peut déduire une durée de fraîcheur en se basant sur une
+      heuristique, qui peut être contrôlée via la directive <code class="directive"><a href="./mod/mod_cache.html#cachelastmodifiedfactor">CacheLastModifiedFactor</a></code>.</p>
+
+      <p>Pour les contenus locaux, ou les contenus distants qui ne
+      spécifient pas leur propre en-tête <code>Expires</code>,
+      <code class="module"><a href="./mod/mod_expires.html">mod_expires</a></code> permet de régler finement la durée de
+      fraîcheur via les paramètres <code>max-age</code> et
+      <code>Expires</code>.</p>
+
+      <p>On peut aussi contrôler la durée de fraîcheur maximale en utilisant
+      la directive <code class="directive"><a href="./mod/mod_cache.html#cachemaxexpire">CacheMaxExpire</a></code>.</p>
+
+    
+
+    <h3>Guide succinct des requêtes conditionnelles</h3>
+      
+
+     <p>Lorsqu'un contenu du cache est périmé, httpd modifie la requête
+     pour en faire une requête conditionnelle</p>
+
+      <p>Lorsque la réponse originale du cache contient un en-tête
+      <code>ETag</code>, <code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> ajoute un en-tête
+      <code>If-None-Match</code> à la requête envoyée au serveur
+      d'origine. Lorsque la réponse originale du cache contient un en-tête
+      <code>Last-Modified</code>, <code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> ajoute un en-tête
+      <code>If-Modified-Since</code> à la requête envoyée au serveur
+      d'origine. Dans ces deux cas, la requête devient une requête
+      <strong>conditionnelle</strong>.</p>
+
+      <p>Lorsqu'un serveur d'origine reçoit une requête conditionnelle,
+      il vérifie si le paramètre Etag ou Last-Modified a été modifié en
+      fonction des paramètres de la requête. Si ce n'est pas le cas, il
+      répondra avec le message lapidaire "304 Not Modified". Ceci
+      informe le cache que le contenu est périmé mais encore à jour, et
+      peut être utilisé tel quel pour les prochaines requêtes jusqu'à ce
+      qu'il atteigne à nouveau sa date de péremption.</p>
+
+      <p>Si le contenu a été modifié, il est servi comme s'il s'agissait
+      d'une requête normale et non conditionnelle.</p>
+
+      <p>Les requêtes conditionnelles offrent deux avantages. D'une
+      part, il est facile de déterminer si le contenu du serveur
+      d'origine correspond à celui situé
+      dans le cache, et ainsi d'économiser la consommation de ressources
+      nécessaire au transfert du contenu dans son ensemble.</p>
+
+      <p>D'autre part, un serveur d'origine bien conçu sera configuré de
+      telle manière que les requêtes conditionnelles nécessitent pour
+      leur production bien moins de ressources qu'une réponse complète.
+      Dans le cas des fichiers statiques, il suffit en général d'un
+      appel système de type <code>stat()</code> ou similaire pour
+      déterminer si la taille ou la date de modification du fichier a
+      été modifiée. Ainsi, même un contenu local pourra être servi plus
+      rapidement depuis le cache s'il n'a pas été modifié.</p>
+      
+      <p>Il serait souhaitable que tous les serveurs d'origine
+      supportent les requêtes conditionnelles, car dans le cas
+      contraire, ils répondent comme s'il s'agissait d'une requête
+      normale, et le cache répond comme si le contenu avait été
+      modifié et enregistre ce dernier. Le cache se comporte alors
+      comme un simple cache à deux état, où le contenu est servi s'il
+      est à jour, ou supprimé dans le cas contraire.</p>
+    
+
+    <h3>Que peut-on mettre en cache ?</h3>
+      
+
+      <p>La liste complète des conditions nécessaires pour qu'une
+      réponse puisse être enregistrée dans un cache HTTP est fournie
+      dans la <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html#sec13.4">section
+      13.4 Response Cacheability de la RFC2616</a>, et peut se résumer
+      ainsi :</p>
+
+      <ol>
+        <li>La mise en cache doit être activée pour cette URL. Voir les
+	directives <code class="directive"><a href="./mod/mod_cache.html#cacheenable">CacheEnable</a></code> et <code class="directive"><a href="./mod/mod_cache.html#cachedisable">CacheDisable</a></code>.</li>
+
+        <li>Si la reponse possède un code de statut HTTP autre que 200, 203, 300, 301
+	ou 410, elle doit aussi comporter un en-tête "Expires" ou
+	"Cache-Control".</li>
+
+        <li>La requête doit être de type HTTP GET.</li>
+
+        <li>Si la réponse contient un en-tête "Authorization:", elle doit aussi
+	contenir une option "s-maxage", "must-revalidate" ou "public"
+	dans l'en-tête "Cache-Control:".</li>
+
+        <li>Si l'URL contient une chaîne de requête
+	(provenant par exemple d'une méthode GET de formulaire HTML), elle ne
+	sera pas mise en cache, à moins que la réponse ne
+	spécifie explicitement un délai d'expiration via un
+	en-tête "Expires:" ou une directive max-age ou s-maxage de
+	l'en-tête "Cache-Control:" comme indiqué dans les
+	sections 13.2.1. et 13.9 de la RFC2616.</li>
+
+        <li>Si la réponse a un statut de 200 (OK), elle doit aussi contenir
+	au moins un des en-têtes "Etag", "Last-Modified" ou
+        "Expires", ou une directive max-age ou s-maxage de
+	l'en-tête "Cache-Control:", à moins que la directive
+        <code class="directive"><a href="./mod/mod_cache.html#cacheignorenolastmod">CacheIgnoreNoLastMod</a></code>
+        ne précise d'autres contraintes.</li>
+
+        <li>Si la réponse contient l'option "private" dans un en-tête
+	"Cache-Control:", elle ne sera pas mise en cache à moins que la
+	directive
+        <code class="directive"><a href="./mod/mod_cache.html#cachestoreprivate">CacheStorePrivate</a></code>
+	ne précise d'autres contraintes.</li>
+
+        <li>De même, si la réponse contient l'option "no-store" dans un en-tête
+        "Cache-Control:", elle ne sera pas mise en cache à moins que la
+	directive
+        <code class="directive"><a href="./mod/mod_cache.html#cachestorenostore">CacheStoreNoStore</a></code>
+	n'ait été utilisée.</li>
+
+        <li>Une réponse ne sera pas mise en cache si elle comporte un en-tête
+	"Vary:" contenant le caractère "*" qui correspond à toute
+	chaîne de caractères.</li>
+      </ol>
+    
+
+    <h3>Qu'est ce qui ne doit pas être mis en cache ?</h3>
+      
+
+      <p>Le client qui crée la requête ou le serveur d'origine qui
+      génère la réponse doit être à même de déterminer si le contenu
+      doit pouvoir être mis en cache ou non en définissant correctement
+      l'en-tête <code>Cache-Control</code>, et
+      <code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> sera alors en mesure de satisfaire les
+      souhaits du client ou du serveur de manière appropriée.
+      </p>
+
+      <p>Les contenus qui varient au cours du temps, ou en fonction de
+      particularités de la requête non prises en compte par la
+      négociation HTTP ne doivent pas être mis en cache. Ce type de
+      contenu doit se déclarer lui-même "à ne pas mettre en cache" via
+      l'en-tête <code>Cache-Control</code>.</p>
+      
+      <p>Si le contenu change souvent, suite par exemple à une durée de
+      fraîcheur de l'ordre de la minute ou de la seconde, il peut tout
+      de même être mis en cache, mais il est alors fortement souhaitable
+      que le serveur d'origine supporte correctement les
+      <strong>requêtes conditionnelles</strong> afin que des réponses
+      complètes ne soient pas systématiquement générées.</p>
+
+      <p>Un contenu qui varie en fonction d'en-têtes de requête fournis
+      par le client peut être mis en cache, sous réserve d'une
+      utilisation appropriée de l'en-tête de réponse <code>Vary</code>.</p>
+    
+
+    <h3>Contenu variable et/ou négocié</h3>
+      
+
+      <p>Lorsque le serveur d'origine est configuré pour servir des
+      contenus différents en fonction de la valeur de certains en-têtes
+      de la requête, par exemple pour servir une ressource en plusieurs
+      langages à partir d'une seule URL, le mécanisme de mise en cache
+      d'HTTP permet de mettre en cache plusieurs variantes de la même
+      page à partir d'une seule URL.</p>
+      
+      <p>Pour y parvenir, le serveur d'origine ajoute un en-tête
+      <code>Vary</code> pour indiquer quels en-têtes doivent être pris
+      en compte par un cache pour déterminer si deux variantes sont
+      différentes l'une de l'autre.</p>
+
+      <p>Si par exemple, une réponse est reçue avec l'en-tête Vary suivant,</p>
+
+      <div class="example"><p><code>
+Vary: negotiate,accept-language,accept-charset
+      </code></p></div>
+
+      <p><code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> ne servira aux demandeurs que le contenu
+      mis en cache qui correspond au contenu des en-têtes accept-language et
+      accept-charset de la requête originale.</p>
+
+      <p>Plusieurs variantes d'un contenu peuvent être mises en cache
+      simultanément ; <code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> utilise l'en-tête
+      <code>Vary</code> et les valeurs correspondantes des en-têtes de
+      la requête spécifiés dans ce dernier pour
+      déterminer quelle variante doit être servie au client.</p>
+          
+    
+
+    </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="examples" id="examples">Exemples de configuration du cache</a></h2>
+
+    
+
+    <table class="related"><tr><th>Modules Apparentés</th><th>Directives Apparentées</th></tr><tr><td><ul><li><code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code></li><li><code class="module"><a href="./mod/mod_cache_disk.html">mod_cache_disk</a></code></li><li><code class="module"><a href="./mod/mod_cache_socache.html">mod_cache_socache</a></code></li><li><code class="module"><a href="./mod/mod_socache_memcache.html">mod_socache_memcache</a></code></li></ul></td><td><ul><li><code class="directive"><a href="./mod/mod_cache.html#cacheenable">CacheEnable</a></code></li><li><code class="directive"><a href="./mod/mod_cache_disk.html#cacheroot">CacheRoot</a></code></li><li><code class="directive"><a href="./mod/mod_cache_disk.html#cachedirlevels">CacheDirLevels</a></code></li><li><code class="directive"><a href="./mod/mod_cache_disk.html#cachedirlength">CacheDirLength</a></code></li><li><code class="directive"><a href="./mod/mod_cache_socache.html#cachesocache">CacheSocache</a></code></li></ul></td></tr></table>
+
+    <h3><a name="disk" id="disk">Mise en cache sur disque</a></h3>
+      
+
+      <p>Le module <code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> s'appuie sur des
+      implémentations de stockage sous-jacentes spécifiques pour gérer
+      le cache ; à ce titre, <code class="module"><a href="./mod/mod_cache_disk.html">mod_cache_disk</a></code> fournit le
+      support de la mise en cache sur disque.</p>
+
+      <p>En général, le module se configure comme suit :</p>
+
+      <pre class="prettyprint lang-config">CacheRoot   "/var/cache/apache/"
+CacheEnable disk /
+CacheDirLevels 2
+CacheDirLength 1</pre>
+
+
+    <p>Il est important de savoir que, les fichiers mis en cache étant stockés
+    localement, la mise en cache par l'intermédiaire du système d'exploitation
+    sera en général aussi appliquée à leurs accès. Si bien que même si les
+    fichiers sont stockés sur disque, s'il font l'objet d'accès fréquents,
+    il est probable que le système d'exploitation s'appliquera à ce qu'ils
+    soient servis à partir de la mémoire.</p>
+
+    
+
+    <h3>Comprendre le stockage dans le cache</h3>
+      
+
+      <p>Pour stocker des entités dans le cache,
+      le module <code class="module"><a href="./mod/mod_cache_disk.html">mod_cache_disk</a></code> crée une empreinte (hash) de 22
+      caractères de l'URL qui a fait l'objet d'une requête. Cette empreinte
+      comprend le nom d'hôte, le protocole, le port, le chemin et tout argument
+      de type CGI associé à l'URL, ainsi que les éléments
+      spécifiés dans l'en-tête Vary afin d'être sur que plusieurs URLs
+      n'interfèrent pas entre elles.</p>
+
+      <p>Chaque position de l'empreinte peut contenir un caractère
+      choisi parmi 64 caractères différents, il y a donc
+      64^22 possibilités pour une empreinte. Par exemple, une URL peut posséder
+      l'empreinte <code>xyTGxSMO2b68mBCykqkp1w</code>. Cette empreinte est
+      utilisée pour préfixer les noms de fichiers spécifiques à cette URL à
+      l'intérieur du cache; cependant, elle est tout d'abord placée dans les
+      répertoires du cache selon les directives
+      <code class="directive"><a href="./mod/mod_cache_disk.html#cachedirlevels">CacheDirLevels</a></code> et
+      <code class="directive"><a href="./mod/mod_cache_disk.html#cachedirlength">CacheDirLength</a></code>.</p>
+
+      <p>La directive
+      <code class="directive"><a href="./mod/mod_cache_disk.html#cachedirlevels">CacheDirLevels</a></code>
+      définit le nombre de niveaux de sous-répertoires, et
+      <code class="directive"><a href="./mod/mod_cache_disk.html#cachedirlength">CacheDirLength</a></code>
+      le nombre de caractères composant le nom des sous-répertoires. Dans
+      l'exemple donné plus haut, l'empreinte se trouvera à :
+      <code>/var/cache/apache/x/y/TGxSMO2b68mBCykqkp1w</code>.</p>
+
+      <p>Cette technique a pour but principal de réduire le nombre de
+      sous-répertoires ou de fichiers contenus dans un répertoire particulier,
+      car le fonctionnement de la plupart des systèmes de fichiers est ralenti
+      quand ce nombre augmente. Avec la valeur "1" pour la directive
+      <code class="directive"><a href="./mod/mod_cache_disk.html#cachedirlength">CacheDirLength</a></code>,
+      il peut y avoir au plus 64 sous-répertoires à un niveau quelconque.
+      Avec la valeur "2", il peut y en avoir 64 * 64, etc...
+      A moins d'avoir une bonne raison pour ne pas le faire, l'utilisation de
+      la valeur "1" pour la directive
+      <code class="directive"><a href="./mod/mod_cache_disk.html#cachedirlength">CacheDirLength</a></code>
+      est recommandée.</p>
+
+      <p>Le paramétrage de la directive
+      <code class="directive"><a href="./mod/mod_cache_disk.html#cachedirlevels">CacheDirLevels</a></code>
+      dépend du nombre de fichiers que vous pensez stocker dans le cache.
+      Avec une valeur de "2" comme dans l'exemple donné plus haut,
+      4096 sous-répertoires peuvent être créés au total. Avec 1 million de
+      fichiers dans le cache, cela équivaut à environ 245 URLs mises en cache
+      dans chaque répertoire.</p>
+
+      <p>Chaque URL nécessite au moins deux fichiers dans le cache. Ce sont en
+      général un fichier ".header", qui contient des meta-informations à propos
+      de l'URL, comme la date de son arrivée à expiration,
+      et un fichier ".data" qui est la copie exacte du contenu à servir.</p>
+
+      <p>Dans le cas d'un contenu négocié via l'en-tête "Vary", un répertoire
+      ".vary" sera créé pour l'URL en question. Ce répertoire contiendra de
+      multiples fichiers ".data" correspondant aux différents contenus
+      négociés.</p>
+    
+
+    <h3>Maintenance du cache sur disque</h3>
+      
+
+      <p>Le module <code class="module"><a href="./mod/mod_cache_disk.html">mod_cache_disk</a></code> n'effectue aucune
+      régulation de l'espace disque utilisé par le cache, mais s'il
+      s'arrête en douceur en cas d'erreur disque et se comporte alors
+      comme si le cache n'avait jamais existé.</p>
+
+      <p>Par contre l'utilitaire
+      <a href="programs/htcacheclean.html">htcacheclean</a> fourni avec
+      httpd
+      vous permet de nettoyer le cache périodiquement.
+      Déterminer la fréquence à laquelle lancer <a href="programs/htcacheclean.html">htcacheclean</a> et la taille souhaitée
+      pour le cache est une tâche relativement complexe et il vous faudra de
+      nombreux essais et erreurs pour arriver à sélectionner des valeurs
+      optimales.</p>
+
+      <p><a href="programs/htcacheclean.html">htcacheclean</a> opère selon deux
+      modes. Il peut s'exécuter comme démon résident, ou être lancé
+      périodiquement par cron. <a href="programs/htcacheclean.html">htcacheclean</a> peut mettre une heure
+      ou plus pour traiter de très grands caches (plusieurs dizaines de
+      Gigaoctets) et si vous l'exécutez à partir de cron, il vous est
+      conseillé de déterminer la durée typique d'un traitement, afin d'éviter
+      d'exécuter plusieurs instances à la fois.</p>
+
+      <p>Il est aussi conseillé d'attribuer un niveau de priorité "nice"
+      approprié à htcacheclean de façon à ce qu'il n'effectue pas trop
+      d'accès disque pendant le fonctionnement du serveur.</p>
+
+      <p class="figure">
+      <img src="images/caching_fig1.gif" alt="" width="600" height="406" /><br />
+      <a id="figure1" name="figure1"><dfn>Figure 1</dfn></a>: Croissance
+      typique du cache / séquence de nettoyage.</p>
+
+      <p>Comme <code class="module"><a href="./mod/mod_cache_disk.html">mod_cache_disk</a></code> ne tient pas compte de l'espace
+      utilisé dans le cache, vous devez vous assurer que
+      <a href="programs/htcacheclean.html">htcacheclean</a> est configuré de
+      façon à laisser suffisamment d'"espace de croissance"
+      à la suite d'un nettoyage.</p>
+    
+
+    <h3><a name="memcache" id="memcache">Cache en mémoire</a></h3>
+      
+
+      <p>En utilisant le module <code class="module"><a href="./mod/mod_cache_socache.html">mod_cache_socache</a></code>,
+      <code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> peut mettre en cache des données à partir de
+      diverses implémentations aussi nommées "fournisseurs". Par exemple, en
+      utilisant le module <code class="module"><a href="./mod/mod_socache_memcache.html">mod_socache_memcache</a></code>, on peut
+      spécifier que c'est <a href="http://memcached.org">memcached</a> qui doit
+      être utilisé comme mécanisme de stockage sous-jacent.</p>
+
+      <p>Typiquement, le module sera configuré comme suit :</p>
+
+      <pre class="prettyprint lang-config">CacheEnable socache /
+CacheSocache memcache:memcd.example.com:11211</pre>
+
+
+      <p>En outre, il est possible de spécifier plusieurs serveurs
+      <code>memcached</code> en les ajoutant à la fin de la ligne
+      <code>CacheSocache memcache:</code> et en les séparant par des virgules :</p>
+
+      <pre class="prettyprint lang-config">CacheEnable socache /
+CacheSocache memcache:mem1.example.com:11211,mem2.example.com:11212</pre>
+
+
+      <p>Divers autres fournisseurs <code class="module"><a href="./mod/mod_cache_socache.html">mod_cache_socache</a></code> utilisent
+      aussi ce format. Par exemple :</p>
+
+      <pre class="prettyprint lang-config">CacheEnable socache /
+CacheSocache shmcb:/path/to/datafile(512000)</pre>
+
+
+      <pre class="prettyprint lang-config">CacheEnable socache /
+CacheSocache dbm:/path/to/datafile</pre>
+
+
+    
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="socache-caching" id="socache-caching">Mise en cache générale d'objets partagés à deux états de forme
+    clé/valeur</a></h2>
+
+    
+
+    <table class="related"><tr><th>Modules Apparentés</th><th>Directives Apparentées</th></tr><tr><td><ul><li><code class="module"><a href="./mod/mod_authn_socache.html">mod_authn_socache</a></code></li><li><code class="module"><a href="./mod/mod_socache_dbm.html">mod_socache_dbm</a></code></li><li><code class="module"><a href="./mod/mod_socache_dc.html">mod_socache_dc</a></code></li><li><code class="module"><a href="./mod/mod_socache_memcache.html">mod_socache_memcache</a></code></li><li><code class="module"><a href="./mod/mod_socache_shmcb.html">mod_socache_shmcb</a></code></li><li><code class="module"><a href="./mod/mod_ssl.html">mod_ssl</a></code></li></ul></td><td><ul><li><code class="directive"><a href="./mod/mod_authn_socache.html#authncachesocache">AuthnCacheSOCache</a></code></li><li><code class="directive"><a href="./mod/mod_ssl.html#sslsessioncache">SSLSessionCache</a></code></li><li><code class="directive"><a href="./mod/mod_ssl.html#sslstaplingcache">SSLStaplingCache</a></code></li></ul></td></tr></table>
+    
+    <p>Le serveur HTTP Apache fournit un cache d'objets partagés de bas
+    niveau pour la mise en cache d'informations comme les sessions SSL
+    ou les données d'authentification dans l'interface <a href="socache.html">socache</a>.</p>
+
+    <p>Pour chaque implémentation un module supplémentaire est fourni
+    qui offre les services d'arrière-plan suivants :</p>
+
+    <dl>
+    <dt><code class="module"><a href="./mod/mod_socache_dbm.html">mod_socache_dbm</a></code></dt>
+    <dd>Cache d'objets partagés basé sur DBM.</dd>
+    <dt><code class="module"><a href="./mod/mod_socache_dc.html">mod_socache_dc</a></code></dt>
+    <dd>Cache d'objets partagés basé sur Distcache.</dd>
+    <dt><code class="module"><a href="./mod/mod_socache_memcache.html">mod_socache_memcache</a></code></dt>
+    <dd>Cache d'objets partagés basé sur Memcache.</dd>
+    <dt><code class="module"><a href="./mod/mod_socache_shmcb.html">mod_socache_shmcb</a></code></dt>
+    <dd>Cache d'objets partagés basé sur la mémoire partagée.</dd>
+    </dl>
+
+    <h3><a name="mod_authn_socache-caching" id="mod_authn_socache-caching">Mise en cache des données d'authentification</a></h3>
+      
+
+      <table class="related"><tr><th>Modules Apparentés</th><th>Directives Apparentées</th></tr><tr><td><ul><li><code class="module"><a href="./mod/mod_authn_socache.html">mod_authn_socache</a></code></li></ul></td><td><ul><li><code class="directive"><a href="./mod/mod_authn_socache.html#authncachesocache">AuthnCacheSOCache</a></code></li></ul></td></tr></table>
+
+      <p>Le module <code class="module"><a href="./mod/mod_authn_socache.html">mod_authn_socache</a></code> permet la mise en
+      cache des données issues d'une authentification, diminuant ainsi
+      la charge des serveurs d'authentification d'arrière-plan.</p>
+
+    
+
+    <h3><a name="mod_ssl-caching" id="mod_ssl-caching">Mise en cache des sessions SSL</a></h3>
+      
+
+      <table class="related"><tr><th>Modules Apparentés</th><th>Directives Apparentées</th></tr><tr><td><ul><li><code class="module"><a href="./mod/mod_ssl.html">mod_ssl</a></code></li></ul></td><td><ul><li><code class="directive"><a href="./mod/mod_ssl.html#sslsessioncache">SSLSessionCache</a></code></li><li><code class="directive"><a href="./mod/mod_ssl.html#sslstaplingcache">SSLStaplingCache</a></code></li></ul></td></tr></table>
+
+      <p>Le module <code class="module"><a href="./mod/mod_ssl.html">mod_ssl</a></code> utilise l'interface
+      <code>socache</code> pour fournir un cache de session et un cache
+      de base.</p>
+
+    
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="file-caching" id="file-caching">Mise en cache à base de fichiers spécialisés</a></h2>
+
+    
+
+    <table class="related"><tr><th>Modules Apparentés</th><th>Directives Apparentées</th></tr><tr><td><ul><li><code class="module"><a href="./mod/mod_file_cache.html">mod_file_cache</a></code></li></ul></td><td><ul><li><code class="directive"><a href="./mod/mod_file_cache.html#cachefile">CacheFile</a></code></li><li><code class="directive"><a href="./mod/mod_file_cache.html#mmapfile">MMapFile</a></code></li></ul></td></tr></table>
+
+    <p>Sur les plateformes où le système de fichiers peut être lent, ou
+    lorsque les descripteurs de fichiers sont gourmands en ressources,
+    il est possible de précharger des fichiers en mémoire au démarrage
+    du serveur.</p>
+
+    <p>Sur les systèmes où l'ouverture des fichiers est lente, il est
+    possible d'ouvrir le fichier au démarrage du serveur et de mettre en
+    cache le descripteur de fichier. Ces options peuvent vous aider sur
+    les systèmes où l'accès aux fichiers statiques est lent.</p>
+
+    <h3><a name="filehandle" id="filehandle">Mise en cache des descripteurs de fichier</a></h3>
+      
+
+      <p>Le processus d'ouverture d'un fichier peut être en soi une
+      source de ralentissement, en particulier sur les systèmes de
+      fichiers sur le réseau. httpd permet d'éviter ce ralentissement en
+      maintenant un cache des descripteurs de fichiers ouverts pour les
+      fichiers souvent servis. Actuellement, httpd fournit une seule
+      implémentation de mise en cache des descripteurs de fichiers.</p>
+
+      <h4>CacheFile</h4>
+        
+
+        <p>La forme la plus basique de mise en cache que propose httpd
+	est la mise en cache des descripteurs de fichiers fournie par le
+	module <code class="module"><a href="./mod/mod_file_cache.html">mod_file_cache</a></code>. Plutôt que de mettre en
+	cache le contenu des fichiers, ce cache maintient une table des
+	descripteurs de fichiers ouverts. Les fichiers devant faire
+	l'objet d'une mise en cache de ce type sont spécifiés dans le
+	fichier de configuration via la directive <code class="directive"><a href="./mod/mod_file_cache.html#cachefile">CacheFile</a></code>.</p>
+
+        <p>La directive <code class="directive"><a href="./mod/mod_file_cache.html#cachefile">CacheFile</a></code> informe httpd
+	qu'il doit ouvrir le fichier lors de son démarrage et qu'il doit
+	réutiliser le descripteur de fichier mis en cache pour tous les
+	accès futurs à ce fichier.</p>
+
+        <pre class="prettyprint lang-config">CacheFile /usr/local/apache2/htdocs/index.html</pre>
+
+
+        <p>Si vous désirez mettre en cache un grand nombre de fichiers
+	de cette manière, vous devez vous assurer que le nombre maximal
+	de fichiers ouverts pour votre système d'exploitation est défini
+	à une valeur suffisante.</p>
+
+        <p>Bien que l'utilisation de la directive <code class="directive"><a href="./mod/mod_file_cache.html#cachefile">CacheFile</a></code> n'entraîne pas de
+	mise en cache du contenu du fichier proprement dit, elle
+	implique que si le fichier est modifié pendant l'exécution du
+	serveur, ces modifications ne seront pas prises en compte. Le
+	fichier sera toujours servi dans l'état où il se trouvait au
+	moment du démarrage du serveur.</p>
+
+        <p>Si le fichier est supprimé pendant l'exécution du serveur, ce
+	dernier conservera le descripteur de fichier ouvert associé et
+	servira le fichier dans l'état où il se trouvait au
+	moment du démarrage du serveur. Cela signifie aussi que même si
+	le fichier a été supprimé, et n'apparaît donc plus dans le
+	système de fichiers, l'espace disque libéré ne sera disponible
+	qu'une fois le serveur httpd arrêté et donc le descripteur de
+	fichier fermé.</p>
+      
+
+    
+
+    <h3><a name="inmemory" id="inmemory">In-Memory Caching</a></h3>
+      
+
+    <p>Servir un contenu directement depuis la mémoire système est
+    universellement reconnu comme la méthode la plus rapide. Lire des fichiers
+    depuis un contrôleur de disque ou pire, depuis un réseau distant est plus
+    lent de plusieurs ordres de grandeur. Les contrôleurs de disque réalisent
+    en général des opérations mécaniques, et l'accès au réseau est limité par la
+    bande passante dont vous disposez. Par contre, les temps d'accès à la
+    mémoire sont de l'ordre de la nano-seconde.</p>
+
+    <p>Cependant la mémoire système n'est pas bon marché; à capacité égale,
+    c'est de loin le type de stockage le plus coûteux et il est important de
+    s'assurer qu'elle est utilisée efficacement. Le fait de mettre en cache
+    des fichiers en mémoire diminue d'autant la quantité de mémoire système
+    disponible. Comme nous le verrons plus loin, ce n'est pas un problème en
+    soi dans le cas de la mise en cache par l'intermédiaire du système
+    d'exploitation, mais si l'on utilise la mise en cache en mémoire propre à
+    httpd, il faut prendre garde à ne pas allouer trop de mémoire au cache.
+    Sinon le système sera contraint d'utiliser le swap, ce qui dégradera
+    sensiblement les performances.</p>
+
+      <h4>Mise en cache par l'intermédiaire du système d'exploitation</h4>
+      
+
+      <p>Dans la plupart des systèmes d'exploitation modernes, c'est le noyau
+      qui gère directement la mise en cache en mémoire des données relatives
+      aux fichiers. C'est une fonctionnalité puissante, et les systèmes
+      d'exploitation s'en acquittent fort bien pour la plus grande partie.
+      Considérons par exemple, dans le cas de Linux, la différence entre le
+      temps nécessaire à la première lecture d'un fichier et le temps
+      nécessaire à sa deuxième lecture;</p>
+
+        <div class="example"><pre>colm@coroebus:~$ time cat testfile &gt; /dev/null
+real    0m0.065s
+user    0m0.000s
+sys     0m0.001s
+colm@coroebus:~$ time cat testfile &gt; /dev/null
+real    0m0.003s
+user    0m0.003s
+sys     0m0.000s</pre></div>
+
+      <p>Même pour ce petit fichier, il y a une grande différence entre les
+      temps nécessaires pour lire le fichier. Ceci est du au fait que le
+      noyau a mis en cache le contenu du fichier en mémoire.</p>
+
+      <p>Du fait de toujours pouvoir disposer de mémoire système, vous pouvez
+      être assuré qu'il y aura de plus en plus de contenus de fichiers stockés
+      dans ce cache. Ceci peut s'avérer une méthode de mise en cache en mémoire
+      très efficace, et ne nécessite aucune configuration supplémentaire
+      de httpd.</p>
+
+      <p>De plus, comme le système d'exploitation sait si des fichiers
+      ont été
+      supprimés ou modifiés, il peut effacer automatiquement des contenus de
+      fichiers du cache lorsque cela s'avère nécessaire. Ceci constitue un gros
+      avantage par rapport à la mise en cache en mémoire
+      de httpd qui n'a
+      aucune possibilité de savoir si un fichier a été modifié.</p>
+      
+
+    <p>En dépit des performances et des avantages de la mise en cache
+    automatique par le système d'exploitation, la mise en cache en mémoire
+    peut être effectuée plus efficacement par httpd dans certaines
+    circonstances.</p>
+
+    <h4>Mise en cache à l'aide de la directive MMapFile</h4>
+      
+
+      <p>La directive <code class="directive"><a href="./mod/mod_file_cache.html#mmapfile">MMapFile</a></code>
+      fournie par le module <code class="module"><a href="./mod/mod_file_cache.html">mod_file_cache</a></code> vous permet de
+      demander à httpd de charger un contenu de fichier statique en mémoire
+      lors de son démarrage (à l'aide de l'appel
+      système mmap). httpd
+      utilisera le contenu chargé en mémoire pour satisfaire ultérieurement
+      toutes les demandes d'accès à ce fichier.</p>
+
+        <pre class="prettyprint lang-config">MMapFile /usr/local/apache2/htdocs/index.html</pre>
+
+
+      <p>Comme dans le cas de la directive
+      <code class="directive"><a href="./mod/mod_file_cache.html#cachefile">CacheFile</a></code>, toute
+      modification du fichier ne sera plus prise en compte par httpd une fois
+      ce dernier démarré.</p>
+
+      <p> La directive
+      <code class="directive"><a href="./mod/mod_file_cache.html#mmapfile">MMapFile</a></code> ne gardant
+      pas la trace de la quantité de mémoire qu'elle alloue, vous devez prendre
+      garde de ne pas en abuser. Chaque processus enfant de httpd utilisant
+      sa propre réplique de la mémoire allouée, il est donc d'une importance
+      critique de s'assurer que les fichiers chargés ne sont pas d'une taille
+      trop importante afin d'épargner au système l'utilisation du swap.</p>
+      
+    
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="security" id="security">Considérations sur la sécurité</a></h2>
+    
+
+    <h3>Autorisation et contrôle d'accès</h3>
+      
+
+      <p>Utiliser <code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> revient sensiblement à la même
+      chose qu'avoir un mandataire inverse intégré (reverse-proxy). Les requêtes
+      seront servies par le module de mise en cache sauf si ce dernier
+      détermine qu'un processus d'arrière-plan doit être appelé. La mise en
+      cache de ressources locales modifie considérablement le modèle de
+      sécurité de httpd.</p>
+
+      <p>Comme le parcours de la hiérarchie d'un système de fichiers pour
+      examiner le contenu d'éventuels fichiers
+      <code>.htaccess</code> serait une opération très coûteuse en ressources,
+      annulant partiellement de ce fait l'intérêt de la mise en cache
+      (accélérer le traitement des requêtes),
+      <code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> ne se préoccupe pas de savoir s'il a
+      l'autorisation de servir une entité mise en cache. En d'autres termes,
+      si <code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> a mis en cache un certain contenu, ce
+      dernier sera servi à partir du cache tant qu'il ne sera pas arrivé à
+      expiration.</p>
+
+      <p>Si par exemple, votre configuration autorise l'accès à une ressource
+      en fonction de l'adresse IP, vous devez vous assurer que ce contenu n'est
+      pas mis en cache. Ceci est possible en utilisant la directive
+      <code class="directive"><a href="./mod/mod_cache.html#cachedisable">CacheDisable</a></code>, ou le module
+      <code class="module"><a href="./mod/mod_expires.html">mod_expires</a></code>. Livré à lui-même,
+      <code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> - pratiquement comme un mandataire inverse -
+      mettrait en cache le contenu lors de son service, et le servirait ensuite
+      à tout client, vers n'importe quelle adresse IP.</p>
+
+      <p>Lorsque la directive <code class="directive"><a href="./mod/mod_cache.html#cachequickhandler">CacheQuickHandler</a></code> est définie à
+      <code>Off</code>, toutes les phases du traitement de la requête
+      sont exécutées et le modèle de sécurité reste le même.</p>
+
+    
+
+    <h3>Piratages locaux</h3>
+      
+
+      <p>Etant donné que les requêtes des utilisateurs finaux peuvent être
+      servies depuis le cache, ce dernier est une cible potentielle pour ceux
+      qui veulent défigurer un contenu ou interférer avec lui. Il est important
+      de garder à l'esprit que l'utilisateur sous lequel tourne
+      httpd doit
+      toujours avoir l'accès en écriture dans le cache. Ceci est en contraste
+      total avec la recommandation usuelle d'interdire à l'utilisateur sous
+      lequel tourne Apache
+      l'accès en écriture à tout contenu.</p>
+
+      <p>Si l'utilisateur sous lequel tourne Apache est compromis,
+      par exemple à cause d'une
+      faille de sécurité dans un processus CGI, il est possible que le cache
+      fasse l'objet d'une attaque. Il est relativement aisé d'insérer ou de
+      modifier une entité dans le cache en utilisant le module
+      <code class="module"><a href="./mod/mod_cache_disk.html">mod_cache_disk</a></code>.</p>
+
+      <p>Cela représente un risque relativement élévé par rapport aux autres
+      types d'attaques qu'il est possible de mener sous l'utilisateur apache.
+      Si vous utilisez <code class="module"><a href="./mod/mod_cache_disk.html">mod_cache_disk</a></code>, vous devez garder ceci
+      à l'esprit : effectuez toujours les mises à jour de
+      httpdquand des
+      correctifs de sécurité sont annoncés et exécutez les processus CGI sous
+      un utilisateur autre qu'apache en utilisant
+      <a href="suexec.html">suEXEC</a> dans la mesure du possible.</p>
+
+    
+
+    <h3>Empoisonnement du cache (Cache Poisoning)</h3>
+      
+
+      <p>Si vous utilisez httpd comme serveur mandataire avec mise en cache,
+      vous vous exposez aussi à un éventuel "Empoisonnement du
+      cache" (Cache poisoning). L'empoisonnement du cache est un terme général
+      pour désigner les attaques au cours desquelles l'attaquant fait en sorte
+      que le serveur mandataire renvoie à un contenu incorrect (et souvent
+      indésirable) suite à en provenance du serveur d'arrière-plan.
+      </p>
+
+      <p>Par exemple, si les serveur DNS qu'utilise votre système où tourne
+      httpd sont vulnérables à l'empoisonnement du cache des DNS, un attaquant
+      pourra contrôler vers où httpd se connecte lorsqu'il demande un contenu
+      depuis le serveur d'origine.
+      Un autre exemple est constitué par les attaques ainsi nommées
+      "Dissimulation de requêtes HTTP" (HTTP request-smuggling).</p>
+
+      <p>Ce document n'est pas le bon endroit pour une discussion approfondie
+      à propos de la Dissimulation de requêtes HTTP (utilisez plutôt votre
+      moteur de recherche favori); il est cependant important de savoir qu'il
+      est possible d'élaborer une série de requêtes, et d'exploiter une
+      vulnérabilité d'un serveur web d'origine de telle façon que l'attaquant
+      puisse contrôler entièrement le contenu renvoyé par le mandataire.</p>
+    
+
+    <h3>Déni de Service / Cachebusting</h3>
+      
+
+      <p>Le mécanisme utilisé via l'en-tête Vary permet de mettre en
+      cache simultanément plusieurs variantes d'une ressource avec la
+      même URL. Le cache sélectionne la variante correcte à envoyer au
+      client en fonction des valeurs d'en-tête fournies par ce dernier.
+      Ce mécanisme peut devenir un problème lorsqu'on tente d'appliquer
+      le mécanisme des variantes à un en-tête connu pour pouvoir
+      posséder un grand nombre de valeurs
+      possibles en utilisation normal, comme par exemple l'en-tête
+      <code>User-Agent</code>. En fonction de la popularité du site web,
+      des milliers ou même des millions d'entrées de cache dupliquées
+      peuvent être créées pour la même URL, submergeant les autres
+      entrées du cache.</p>
+      
+      <p>Dans d'autres cas, il peut être nécessaire de modifier l'URL
+      d'une ressource particulière à chaque requête, en général en lui
+      ajoutant une chaîne "cachebuster". Si ce contenu est déclaré comme
+      pouvant être mis en cache par un serveur avec une durée de
+      fraîcheur significative, ces entrées peuvent submerger les entrées
+      légitimes du cache. Alors que <code class="module"><a href="./mod/mod_cache.html">mod_cache</a></code> fournit
+      une directive <code class="directive"><a href="./mod/mod_cache.html#cacheignoreurlsessionidentifiers">CacheIgnoreURLSessionIdentifiers</a></code>,
+      cette dernière doit être utilisée avec prudence pour s'assurer que
+      les caches du navigateur ou du mandataire le plus proche
+      (downstream proxy) ne sont pas victimes du même problème de Déni de
+      service.</p>
+    
+  </div></div>
+<div class="bottomlang">
+<p><span>Langues Disponibles: </span><a href="./en/caching.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/caching.html" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./tr/caching.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Commentaires</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/caching.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Autorisé sous <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="./mod/">Modules</a> | <a href="./mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">Glossaire</a> | <a href="./sitemap.html">Plan du site</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

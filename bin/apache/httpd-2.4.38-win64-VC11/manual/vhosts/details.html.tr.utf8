@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="tr" xml:lang="tr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Sanal Konak Eşlemenin Derinliğine İncelenmesi - Apache HTTP Sunucusu Sürüm 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modüller</a> | <a href="../mod/directives.html">Yönergeler</a> | <a href="http://wiki.apache.org/httpd/FAQ">SSS</a> | <a href="../glossary.html">Terimler</a> | <a href="../sitemap.html">Site Haritası</a></p>
+<p class="apache">Apache HTTP Sunucusu Sürüm 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Sunucusu</a> &gt; <a href="http://httpd.apache.org/docs/">Belgeleme</a> &gt; <a href="../">Sürüm 2.4</a> &gt; <a href="./">Sanal Konaklar</a></div><div id="page-content"><div id="preamble"><h1>Sanal Konak Eşlemenin Derinliğine İncelenmesi</h1>
+<div class="toplang">
+<p><span>Mevcut Diller: </span><a href="../en/vhosts/details.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/details.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ko/vhosts/details.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/details.html" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+
+    <p>Bu belgede, bir istek aldığında Apache’nin hangi sanal konak
+      ile hizmet sunacağına nasıl karar verdiği açıklanmaya çalışılmıştır.</p>
+
+    <p>Çoğu kullanıcı hangi türü kullanacağına karar vermek için önce <a href="name-based.html#namevip">İsme dayalı ve IP’ye dayalı Sanal
+      Konak</a> bölümünü, sonra <a href="name-based.html">İsme Dayalı Sanal
+      Konak Desteği</a> veya <a href="ip-based.html">IP’ye Dayalı Sanal Konak
+      Desteği</a> belgesini okumalı ve <a href="examples.html">bazı
+      örneklere</a> göz atmalıdır.</p>
+
+    <p>Bunlardan sonra tüm ayrıntıları anlamak isterseniz tekrar bu sayfaya
+      gelebilirsiniz.</p>
+
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#configparsing">Yapılandırma Dosyası</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#hostmatching">Sanal Konağın Belirlenmesi</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#tips">İpuçları</a></li>
+</ul><h3>Ayrıca bakınız:</h3><ul class="seealso"><li><a href="ip-based.html">IP’ye Dayalı Sanal Konak Desteği</a></li><li><a href="name-based.html">İsme Dayalı Sanal Konak Desteği</a></li><li><a href="examples.html">Çok Kullanılan Sanal Konak Örnekleri</a></li><li><a href="mass.html">Devingen olarak Yapılandırılan Kitlesel Sanal Barındırma</a></li><li><a href="#comments_section">Yorum</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="configparsing" id="configparsing">Yapılandırma Dosyası</a></h2>
+
+    <p>Bu belgede <code>&lt;VirtualHost&gt;</code> bölümleri dışında kalan
+      tanımlardan bahsederken <em>ana_sunucu</em> diyeceğiz.</p>
+
+    <p><code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code>
+      bölümlerindeki tanımlamalardan bahsederken <em>sankonlar</em>
+      diyeceğiz.</p>
+
+    <p>Her <code>VirtualHost</code> bölümü en az bir adres ve isteğe bağlı
+      portlar içerir.</p>
+
+    <p>Sanal konak tanımlarının içindeki IP adreslerinin yerine konak isimleri
+      kullanılabilir, fakat bunlar başlatma sırasında çözümleneceklerinden
+      çözümlemedeki bir başarısızlık bu sanal konak tanımlarının yoksayılması
+      ile sonuçlanacaktır. Bu bakımdan önerilmez.</p>
+
+    <p><code>VirtualHost</code> yönergesinde görünen her adresin seçimlik bir
+      portu olabilir. Eğer bir port belirtilmemişse, port olarak <code>*</code>
+      belirtilmiş gibi bütün portlar dinlenir.</p>
+
+    <p>(<code>VirtualHost</code> yönergesinde belirtilen port numaraları Apache
+      httpd'nin dinleyeceği port numaraları olarak yorumlanmaz, sadece bir
+      isteği işleme sokarken hangi <code>VirtualHost</code> bölümünün
+      seçileceğini belirlerler. Sunucunun dinleyeceği adresleri ve portları
+      belirtmek için <code class="directive"><a href="../mod/mpm_common.html#listen">Listen</a></code>
+      yönergesini kullanın.)</p>
+
+    <p>Adreslerin tamamını (DNS sorgularındaki çoklu sonuçlar dahil) içeren
+      kümeye <em>sankonların adres kümesi</em> denir.</p>
+
+    <p>Apache httpd, bir IP adresi ve port birleşimi için en belirgin
+      eşleşmelerin listelendiği çok sayıdaki sanal konak arasında ayırdedici
+      olarak istemci tarafından sağlanan HTTP <code>Host</code> başlığını
+      kullanır.</p>
+
+    <p><code class="directive"><a href="../mod/core.html#servername">ServerName</a></code> yönergesi sunucu
+      tanımının içinde herhangi bir yerde görünebilirse de her göründüğü yerde
+      bir öncekini iptal eder. Hiç <code>ServerName</code> belirtilmemişse,
+      Apache httpd, sunucu ismini sunucunun IP adresinden saptamaya
+      çalışır.</p>
+
+    <p>Belli bir IP adresi ve port çifti için yapılandırma dosyasındaki ilk
+      isme dayalı sankon önemlidir, çünkü başka hiçbir sankonun ServerName veya
+      ServerAlias yönergesi ile eşleşmeyen bu adres ve port çifti için alınmış
+      tüm isteklerde bu sankon kullanılır. Ayrıca, sunucunun <a class="glossarylink" href="../glossary.html#servernameindication" title="sözlüğe bakınız">Sunucu İsmi Belirtimi</a>ni
+      desteklemediği durumlarda tüm SSL bağlantıları için bu sankon
+      kullanılır.</p>
+
+    <p><code>VirtualHost</code> içindeki isimlerin sırası (jokersiz) bir
+      <code>ServerAlias</code> gibi ele alınır (fakat hiçbir
+      <code>ServerAlias</code> yönergesi ile geçersiz kılınmaz).</p>
+
+    <p>Her sankon için bazı değerler öntanımlı olarak atanır. Bunların
+      başlıcaları:</p>
+
+    <ol>
+      <li>Sankon bir <code class="directive"><a href="../mod/core.html#serveradmin">ServerAdmin</a></code>
+        yönergesi içermiyorsa,
+        <code class="directive"><a href="../mod/core.html#timeout">Timeout</a></code>,
+        <code class="directive"><a href="../mod/core.html#keepalivetimeout">KeepAliveTimeout</a></code>,
+        <code class="directive"><a href="../mod/core.html#keepalive">KeepAlive</a></code>,
+        <code class="directive"><a href="../mod/core.html#maxkeepaliverequests">MaxKeepAliveRequests</a></code>,
+        <code class="directive"><a href="../mod/mpm_common.html#receivebuffersize">ReceiveBufferSize</a></code> ve
+        <code class="directive"><a href="../mod/mpm_common.html#sendbuffersize">SendBufferSize</a></code> yönergeleri için
+        öntanımlı değerler ana_sunucudaki eşdeğerlerinden miras alınır. (Yani,
+        bu yönergeler için ana_sunucudaki son değerler miras alınır.)</li>
+
+      <li>Sankon için öntanımlı dizin erişim izinlerinin tanımlandığı "arama
+        öntanımlıları" ana_sunucununkilere katılır. Buna her modülün dizinlere
+        özgü yapılandırma bilgileri dahildir.</li>
+
+      <li>Her modülün ana_sunucudaki sunuculara özgü yapılandırmaları sankon
+        sunucusununkilerle katıştırılır.</li>
+    </ol>
+
+    <p>Esasen, ana_sunucu, sankon sunucularını oluştururken bir öntanımlılar
+      listesi veya öntanımlı değerlere dayanak noktası olarak ele alınır.
+      Fakat bu ana_sunucu tanımlarının yapılandırma dosyasındaki yerlerinin
+      saptanmasının konumuzla ilgisi yoktur; ana_sunucu yapılandırmasının
+      tamamı son katıştırma yapılacağı zaman çözümlenir. Bu bakımdan,
+      ana_sunucu tanımlarından bir kısmı sankon tanımlarından sonra yer alsa
+      bile sankon tanımlarında etkili olabilir.</p>
+
+    <p>Eğer, bu noktada ana_sunucu hiçbir <code>ServerName</code> satırı
+      içermiyorsa <code class="program"><a href="../programs/httpd.html">httpd</a></code> programının çalıştığı makinenin
+      konak ismi öntanımlıdır. Ana_sunucunun <code>ServerName</code> için
+      yaptığı DNS sorgusundan dönen IP adreslerine <em>ana_sunucu adres
+      kümesi</em> diyoruz.</p>
+
+    <p>Tanımsız <code>ServerName</code> alanları için bir isme dayalı sankon,
+      sankonu tanımlayan <code>VirtualHost</code> yönergesinde belirtilen ilk
+      adresi öntanımlı değer kabul eder.</p>
+
+    <p>Sihirli <code>_default_</code> sankonları için ana_sunucunun
+      <code>ServerName</code> değeri kullanılır.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="hostmatching" id="hostmatching">Sanal Konağın Belirlenmesi</a></h2>
+
+    <p>Sunucu bir istek durumunda hangi sankonun kullanılacağını şöyle
+      belirler:</p>
+
+    <h3><a name="hashtable" id="hashtable">IP adresi aranır</a></h3>
+
+    <p>Bir adres ve port için bağlantı ilk alındığında Apache httpd tüm
+      <code>VirtualHost</code> tanımlarında bu çifti arar.</p>
+
+    <p>Arama başarısız olursa <code>*</code> (herşey) eşleşmelerine
+      bakılır.</p>
+
+    <p>Bir eşleşme bulunamazsa hizmet ana sunucudan sunulur.</p>
+
+    <p>Arama sonucunda bu IP adresi için bulunmuş <code>VirtualHost</code>
+      tanımları varsa sonraki adım hizmetin bir IP’ye dayalı sankondan mı yoksa
+      isme dayalı bir sankondan mı sunulacağına karar vermektir.</p>
+
+    
+
+    <h3><a name="ipbased" id="ipbased">IP’ye dayalı sankon</a></h3>
+
+    <p>Eğer en iyi eşleşme olarak saptanmış IP adresi ve port çiftini içeren
+      sadece bir <code>VirtualHost</code> yönergesi varsa artık karar vermek
+      için başka bir şey yapmaya gerek yoktur ve istek bu sankondan
+      sunulur.</p>
+
+    
+
+    <h3><a name="namebased" id="namebased">İsme dayalı sankon</a></h3>
+
+    <p>Eğer en iyi eşleşme olarak saptanmış IP adresi ve port çiftini içeren
+      birden fazla <code>VirtualHost</code> yönergesi varsa, sonraki
+      adımlardaki "liste" eşleşen sankonların listesi olup sankonlar listede
+      yapılandırma dosyasındaki yerlerine göre sıralanırlar.</p>
+
+    <p>Bağlantı SSL kullanıyorsa, sunucunun <a class="glossarylink" href="../glossary.html#servernameindication" title="sözlüğe bakınız">Sunucu İsmi Belirtimi</a>ni
+      desteklediği durumlarda SSL istemci uzlaşımı, istenen konak ismiyle
+      birlikte TLS eklentisini de içeriyorsa, konak ismi, SSL olmayan
+      bağlantılardaki <code>Host:</code> başlığı kullanımına benzer şekilde
+      aşağıdaki gibi kullanılır. Aksi takdirde, SSL bağlantıları için adresin
+      eşleştiği ilk isme dayalı sankon kullanılır. Sunucunun bağlantı için
+      hangi sertifikayı kullanacağını sankon belirlediği için bu önemlidir.</p>
+
+    <p>İstek bir <code>Host:</code> başlık alanı içeriyorsa, listede
+      <code>ServerName</code> veya <code>ServerAlias</code> alanı başlık alanı
+      ile eşleşen ilk sankona bakılır. <code>Host:</code> alanı bir port
+      içerebilirse de Apache httpd bunu yoksayarak daima istemcinin isteği
+      gönderdiği portu gerçek port kabul eder.</p>
+
+    <p>Yapılandırma dosyasındaki belirtilen IP adresiyle eşleşen ilk sankon en
+      yüksek önceliğe sahiptir ve sunucu ismi bilinmeyen ve (bir HTTP/1.0
+      isteği gibi) <code>Host:</code> başlık alanı içermeyen istekleri de
+      yakalar.</p>
+
+    
+
+    <h3><a name="persistent" id="persistent">Kalıcı bağlantılar</a></h3>
+
+    <p>Yukarıda açıklanan <em>IP araması</em> belli bir TCP/IP oturumunda
+      <em>bir</em> defaya mahsus yapıldığı halde bir kalıcı/KeepAlive bağlantı
+      sırasında <em>her</em> istek için ayrı bir <em>arama</em> yapılır. Başka
+      bir deyişle, bir istemci tek bir kalıcı bağlantı üzerinde farklı isme
+      dayalı sankonlardan sayfa talebinde bulunabilir.</p>
+
+    
+
+    <h3><a name="absoluteURI" id="absoluteURI">Mutlak URI</a></h3>
+
+    <p>Eğer istekte belirtilen URI bir mutlak URI ise ve istek yapılan konak
+      ismi ve port ana sunucuyla veya sankonlardan biriyle eşleşiyorsa,
+      şema/konakadı/port öneki ayrılır ve elde edilen göreli URI ilgili
+      sankondan veya ana sunucudan sunulur. Eğer bir eşleşme sağlanamazsa
+      URI’ye dokunulmaz ve istek bir vekil isteği olarak ele alınır.</p>
+
+
+<h3><a name="observations" id="observations">İzlenimler</a></h3>
+
+    <ul>
+      <li>İsme dayalı sanal konak işlemleri, sunucunun en iyi eşleşen IP'ye
+        dayalı sanal konağı seçmesinin ardından uygulanır.</li>
+
+      <li>İstemcinin hangi IP adresine bağlandığını umursamıyorsanız, sanal
+        konaklarınızda adres olarak "*" kullanın, böylece yapılandırılmış
+        sankonların hepsine isme dayalı sanal konak işlemleri uygulanır.</li>
+
+      <li>Bir IP’ye dayalı sankon için asla <code>ServerAlias</code> ve
+        <code>ServerPath</code> değerine bakılmaz.</li>
+
+      <li>Sıralama sadece aynı IP adresine sahip isme dayalı sankonlar arasında
+        önemlidir. Aynı adres kümesine mensup isme dayalı sankonlardan
+        yapılandırma dosyasında ilk sırada yer alanı en yüksek önceliğe
+        sahiptir.</li>
+
+      <li>Eşleştirme işlemi sırasında <code>Host:</code>
+        başlık alanında belirtilen port asla kullanılmaz. Apache httpd daima
+        istemcinin isteği gönderdiği gerçek portu kullanır.</li>
+
+      <li>Eğer aynı IP adresine sahip IP’ye dayalı iki sankon varsa, bunlara
+        örtük olarak isme dayalı sanal konak işlemleri uygulanır. 2.3.11
+        sürümünden beri yeni davranış şekli budur.</li>
+
+      <li>Ana_sunucunun bir isteğe hizmet sunabilmesi için istemcinin
+        bağlandığı IP adresi ve port hiçbir yerde belirtilmemiş ve
+        hiçbir sankon ile eşleşme sağlanamamış olmalıdır. Başka bir deyişle,
+        istemcinin bağlandığı port ile eşleşen bir <code>_default_</code>
+        sankon olmadıkça adres ve port belirtmeyen bir isteğe ana_sunucu yanıt
+        verecektir.</li>
+
+      <li><code>VirtualHost</code> yönergelerinde asla DNS isimleri
+        belirtmemelisiniz. Aksi takdirde sunucuyu başlatma sırasında DNS
+        sorgusu yapmaya zorlamış olursunuz. Listelenen tüm alanlar için DNS
+        üzerinde tam denetime sahip değilseniz bu ayrıca bir güvenlik
+        tehdidine yol açar. Bu konuda daha ayrıntılı bilgi edinmek için <a href="../dns-caveats.html">DNS ile ilgili konular ve Apache</a>
+        belgesine bakınız.</li>
+
+      <li><code>ServerName</code> her sankon için ayrı ayrı belirlenmiş
+        olmalıdır. Aksi takdirde her sankon için bir DNS sorgusu gerekir.</li>
+      </ul>
+      
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="tips" id="tips">İpuçları</a></h2>
+
+    <p><a href="../dns-caveats.html#tips">DNS konuları</a> sayfasındaki
+      ipuçlarına ilaveten burada da bazı ipuçları bulacaksınız:</p>
+
+    <ul>
+      <li>Ana sunucu tanımlarının hepsini <code>VirtualHost</code>
+        tanımlarının öncesinde bitirin. Bu ayrıca yapılandırmanızın
+        okunabilirliğini de arttırır; <code>VirtualHost</code> tanımlarının
+        sonrasına sarkan yapılandırmaların katıştırılması işlemi tüm sanal
+        konakları etkileyebilen tanımlar bakımından bir
+        karışıklığa/belirsizliğe sebep olabilir.)</li>
+    </ul>
+
+</div></div>
+<div class="bottomlang">
+<p><span>Mevcut Diller: </span><a href="../en/vhosts/details.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/details.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ko/vhosts/details.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/details.html" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Yorum</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/vhosts/details.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br /><a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> altında lisanslıdır.</p>
+<p class="menu"><a href="../mod/">Modüller</a> | <a href="../mod/directives.html">Yönergeler</a> | <a href="http://wiki.apache.org/httpd/FAQ">SSS</a> | <a href="../glossary.html">Terimler</a> | <a href="../sitemap.html">Site Haritası</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

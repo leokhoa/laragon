@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Apache の IP ベースのバーチャルホストサポート - Apache HTTP サーバ バージョン 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="../">バージョン 2.4</a> &gt; <a href="./">バーチャルホスト</a></div><div id="page-content"><div id="preamble"><h1>Apache の IP ベースのバーチャルホストサポート</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="../en/vhosts/ip-based.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/ip-based.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/vhosts/ip-based.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/vhosts/ip-based.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/ip-based.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#requirements">システム要件</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#howto">Apache の設定方法</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#multiple">複数デーモンの設定</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#single">複数のバーチャルホストの設定をした
+デーモンを一つ設定する</a></li>
+</ul><h3>参照</h3><ul class="seealso"><li>
+<a href="name-based.html">名前ベースのバーチャルホストサポート</a>
+</li><li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="requirements" id="requirements">システム要件</a></h2>
+
+    <p><cite>IP ベース</cite> という名前が示すように、サーバには
+    <strong>IP ベースのバーチャルホストそれぞれにつき、別々の IP アドレスが
+    必要です</strong>。複数の物理コネクションを持っているマシンを用意するか、
+    最近のオペレーティングシステムでサポートされているバーチャル
+    インタフェース (詳細はシステムの説明書を読んでください。たいていは
+    "ip エイリアス" と呼ばれていて、設定には普通 "ifconfig" コマンドを
+    使います) を使うかで実現できます。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="howto" id="howto">Apache の設定方法</a></h2>
+
+    <p>複数のホストをサポートするように Apache を設定する方法は
+    二通りあります。別の <code class="program"><a href="../programs/httpd.html">httpd</a></code> デーモンを各ホスト毎に実行するか、
+    すべてのバーチャルホストをサポートするデーモンを一つ実行するかです。</p>
+
+    <p>以下のときには複数のデーモンを使うと良いでしょう:</p>
+
+    <ul>
+      <li>会社1 はウェブ経由以外では会社2 からはデータを読まれたくない、
+      といったセキュリティの分離の問題があるとき。この場合、それぞれ
+      <code class="directive"><a href="../mod/mpm_common.html#user">User</a></code>, <code class="directive"><a href="../mod/mpm_common.html#group">Group</a></code>, <code class="directive"><a href="../mod/mpm_common.html#listen">Listen</a></code>, <code class="directive"><a href="../mod/core.html#serverroot">ServerRoot</a></code> の設定が違う二つのデーモンを
+      実行する必要があります。</li>
+
+      <li>マシンのすべての IP エイリアスを listen するだけの
+      メモリとファイル記述子の余裕があるとき。<code class="directive"><a href="../mod/mpm_common.html#listen">Listen</a></code> は「ワイルドカード」
+      アドレスか、特定のアドレスのみを listen することができます。
+      ですから、何らかの理由で特定のアドレスを listen しなけばならない
+      ときは、その特定のアドレスをすべて listen する必要があります。
+      (ただし、一つの <code class="program"><a href="../programs/httpd.html">httpd</a></code> が N-1 個のアドレスを listen し、
+      別の <code class="program"><a href="../programs/httpd.html">httpd</a></code> が残りのアドレスを listen するといったことは可能です。)</li>
+    </ul>
+
+    <p>以下のときには単独のデーモンを使うと良いでしょう:</p>
+
+    <ul>
+      <li>バーチャルホスト間での httpd の設定を共有してもよいとき。</li>
+
+      <li>マシンが多くのリクエストを扱うため、別デーモンを実行することによる
+      性能の低下の影響が著しいとき。</li>
+    </ul>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="multiple" id="multiple">複数デーモンの設定</a></h2>
+
+    <p>各バーチャルホストに対して別の <code class="program"><a href="../programs/httpd.html">httpd</a></code> のインストールを行ないます。
+    設定ファイル中の <code class="directive"><a href="../mod/mpm_common.html#listen">Listen</a></code> 
+    ディレクティブを使って、
+    各インストールでデーモンが扱う IP アドレス (バーチャルホスト) 
+    を選択します。例えば</p>
+
+    <div class="example"><p><code>
+    Listen www.smallco.com:80
+    </code></p></div>
+
+    <p>ここで、ホスト名の代わりに IP アドレスを使う方が推奨されていることに
+    注意しておいてください
+    (<a href="../dns-caveats.html">DNS の注意事項</a> 参照)。</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="single" id="single">複数のバーチャルホストの設定をした
+デーモンを一つ設定する</a></h2>
+
+    <p>この場合は、一つの <code class="program"><a href="../programs/httpd.html">httpd</a></code> が主サーバとすべてのバーチャルホストのリクエストを
+    処理します。設定ファイルの <code class="directive"><a href="../mod/core.html#virtualhost">VirtualHost</a></code> ディレクティブを使って、
+    <code class="directive"><a href="../mod/core.html#serveradmin">ServerAdmin</a></code>, <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code>, <code class="directive"><a href="../mod/core.html#documentroot">DocumentRoot</a></code>, <code class="directive"><a href="../mod/core.html#errorlog">ErrorLog</a></code>, <code class="directive"><a href="../mod/mod_log_config.html#transferlog">TransferLog</a></code>
+    や <code class="directive"><a href="../mod/mod_log_config.html#customlog">CustomLog</a></code>
+    設定ディレクティブの値が各ホスト毎に異なる値に設定されるようにします。
+    例えば</p>
+
+    <div class="example"><p><code>
+    &lt;VirtualHost www.smallco.com&gt;<br />
+    ServerAdmin webmaster@mail.smallco.com<br />
+    DocumentRoot /groups/smallco/www<br />
+    ServerName www.smallco.com<br />
+    ErrorLog /groups/smallco/logs/error_log<br />
+    TransferLog /groups/smallco/logs/access_log<br />
+    &lt;/VirtualHost&gt;<br />
+    <br />
+    &lt;VirtualHost www.baygroup.org&gt;<br />
+    ServerAdmin webmaster@mail.baygroup.org<br />
+    DocumentRoot /groups/baygroup/www<br />
+    ServerName www.baygroup.org<br />
+    ErrorLog /groups/baygroup/logs/error_log<br />
+    TransferLog /groups/baygroup/logs/access_log<br />
+    &lt;/VirtualHost&gt;
+    </code></p></div>
+
+    <p>ここで、ホスト名の代わりに IP アドレスを使う方が推奨されていることに
+    注意しておいてください
+    (<a href="../dns-caveats.html">DNS の注意事項</a> 参照)。</p>
+
+    <p>プロセス生成を制御するディレクティブやその他のいくつかのディレクティブを
+    除いて、ほぼ<strong>すべて</strong>の設定ディレクティブを VirtualHost
+    ディレクティブの中に書くことができます。ディレクティブが VirtualHost
+    ディレクティブで使用できるかどうかは <a href="../mod/directives.html">ディレクティブ索引</a>を使って<a href="../mod/directive-dict.html#Context">コンテキスト</a>の
+    欄を調べてください。</p>
+
+    <p><a href="../suexec.html">suEXECラッパー</a>を使っている場合は、
+    <code class="directive"><a href="../mod/mod_suexec.html#suexecusergroup">SuexecUserGroup</a></code>
+    ディレクティブを VirtualHost
+    ディレクティブの中で使用することができます。</p>
+
+    <p><em>セキュリティ:</em> ログファイルを書く場所を指定するときは、
+    Apache を起動したユーザ以外がそのディレクトリに書き込み権限を
+    持っている場合にセキュリティ上の危険があることに注意してください。
+    詳細は<a href="../misc/security_tips.html">セキュリティのこつ</a>ドキュメントを
+    参照してください。</p>
+
+</div></div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="../en/vhosts/ip-based.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/ip-based.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/vhosts/ip-based.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/vhosts/ip-based.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/ip-based.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/vhosts/ip-based.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

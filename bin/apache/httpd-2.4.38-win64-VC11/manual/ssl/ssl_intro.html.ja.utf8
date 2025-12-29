@@ -1,0 +1,730 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>SSL/TLS 暗号化: はじめに - Apache HTTP サーバ バージョン 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="../">バージョン 2.4</a> &gt; <a href="./">SSL/TLS</a></div><div id="page-content"><div id="preamble"><h1>SSL/TLS 暗号化: はじめに</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="../en/ssl/ssl_intro.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/ssl/ssl_intro.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/ssl/ssl_intro.html" title="Japanese">&nbsp;ja&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+
+<blockquote>
+<p>標準規格の良い所は、たくさんの規格から選べるということだ。
+そして、もし本当にどの規格も気に入らなければ、
+一年待つだけで探していた規格が現れる。</p>
+
+<p class="cite">-- <cite>A. Tanenbaum</cite>, "Introduction to
+Computer Networks"</p>
+</blockquote>
+
+<p>
+入門ということで、この章は Web、HTTP、Apache に通じている
+読者向けですが、セキュリティ専門家向けではありません。
+SSL プロトコルの決定的な手引きであるつもりはありません。
+また、組織内の認証管理のための特定のテクニックや、
+特許や輸出規制などの重要な法的な問題についても扱いません。
+むしろ、更なる研究への出発点として色々な概念、定義、例を並べることで
+<code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> のユーザに基礎知識を提供する事を目的としています。</p>
+
+<p>ここに示された内容は主に、原著者の許可の下
+The Open Group Research Institute の <a href="http://home.earthlink.net/~fjhirsch/">Frederick J. Hirsch</a>
+ 氏の記事 <a href="http://home.earthlink.net/~fjhirsch/Papers/wwwj/">
+Introducing SSL and Certificates using SSLeay</a> を基にしています。
+氏の記事は <a href="http://www.ora.com/catalog/wjsum97/">Web Security: A Matter of
+Trust</a>, World Wide Web Journal, Volume 2, Issue 3, Summer 1997
+に掲載されました。
+肯定的な意見は <a href="mailto:hirsch@fjhirsch.com">Frederick Hirsch</a> 氏
+ (元記事の著者) へ全ての苦情は <a href="mailto:rse@engelschall.com">Ralf S. Engelschall</a> (
+<code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> の作者) へお願いします。
+<span class="transnote">(<em>訳注:</em> 訳については <a href="mailto:apache-docs@ml.apache.or.jp">
+Apache ドキュメント翻訳プロジェクト</a>
+へお願いします。)</span></p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#cryptographictech">暗号化技術</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#certificates">証明書</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ssl">Secure Sockets Layer (SSL)</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#references">参考文献</a></li>
+</ul><h3>参照</h3><ul class="seealso"><li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="cryptographictech" id="cryptographictech">暗号化技術</a></h2>
+
+<p>SSL を理解するには、暗号アルゴリズム、
+メッセージダイジェスト関数(別名: 一方向関数、ハッシュ関数)、
+電子署名などへの理解が必要です。
+これらの技術は本が丸ごと必要な題目で
+(例えば [<a href="#AC96">AC96</a>] を参照)、
+プライバシー、信用、認証などの技術の基礎となっています。</p>
+
+<h3><a name="cryptographicalgo" id="cryptographicalgo">暗号アルゴリズム</a></h3>
+
+    <p>例えば、アリスが送金のために銀行にメッセージを送りたいとします。
+    口座番号や送金の金額が含まれるため、
+    アリスはそのメッセージを秘密にしたいと思います。
+    解決方法の一つは暗号アルゴリズムを使って、メッセージを
+    復号されるまで読むことができない暗号化された
+    形態に変えてしまうことです。
+    その形態になると、
+    メッセージは秘密の鍵によってのみ復号化することができます。
+    鍵なしでは、メッセージは役に立ちません。
+    良い暗号アルゴリズムは、侵入者が元のテキストを解読することを
+    非常に難しくするため、努力が割に合わなくさせます。</p>
+
+    <p>暗号アルゴリズムには
+    従来型と公開鍵の二つの種類があります。</p>
+
+    <dl>
+    <dt>従来型暗号</dt>
+    <dd>対称暗号としても知られ、
+    送信者と受信者が鍵を共有することが必要です。
+    鍵とは、メッセージを暗号化したり復号するのに使われる秘密
+    の情報のことです。
+    この鍵が秘密になっている限り、送信者と受信者以外は誰もメッセージを読
+    むことができません。
+    もしも、アリスと銀行が秘密の鍵を知っているなら、
+    彼らはお互いに秘密のメッセージを送ることができるでしょう。
+    ただし交信の前に、事前に内密に鍵を共有するという作業自体は難題かもしれません。</dd>
+
+    <dt>公開鍵暗号</dt>
+    <dd>非対称暗号としても知られ、
+    メッセージを暗号化することのできる二つの鍵
+    を使用するアルゴリズムを定義することで鍵のやり取りの問題を解決
+    します。
+    もし、ある鍵が暗号化に使われたなら、
+    もう片方の鍵で復号しなければいけません。
+    この方式によって、一つの鍵を公表して(公開鍵)、
+    もう片方を秘密にしておく(秘密鍵)だけで、
+    安全なメッセージを受け取ることができます。</dd>
+    </dl>
+
+    <p>公開鍵を使って誰もがメッセージを暗号化できますが、秘
+    密鍵の持ち主だけがそれを読むことができます。
+    この方法で、銀行の公開鍵を使って暗号化することで、
+    アリスは秘密のメッセージを送ることができます。
+    銀行のみが送られたメッセージを復号することができます。</p>
+
+
+<h3><a name="messagedigests" id="messagedigests">メッセージダイジェスト</a></h3>
+
+    <p>アリスはメッセージを秘密にすることができますが、
+    誰かが例えば自分に送金するようにメッセージを変更したり、
+    別のものに置き換えてしまうかもしれないという問題があります。
+    アリスのメッセージだという信憑性を保証する方法の一つは、
+    メッセージの簡潔なダイジェストを作って、それも銀行に送るというものです。
+    メッセージを受け取ると銀行側でもダイジェストを作成し、
+    アリスが送ったダイジェストと比べます。もし一致したなら、
+    受け取ったメッセージは無傷だということになります。</p>
+
+    <p>このような要約は<dfn>メッセージダイジェスト</dfn>、
+    <em>一方行関数</em>、または<em>ハッシュ関数</em>と呼ばれます。
+    メッセージダイジェストは長い可変長のメッセージから
+    短い固定長の表現を作るのに使われます。
+    ダイジェストアルゴリズムはメッセージから
+    一意なダイジェストを生成するように作られています。
+    メッセージダイジェストはダイジェストから元のメッセージを
+    判定するのがとても難しいようにできていて、
+    同じ要約を作成する二つのメッセージを探すのは(理論上)不可能です。
+    これによって、要約を変更することなくメッセージを置き換えられる
+    可能性を排除しています。</p>
+
+    <p>アリスへのもう一つの問題は、このダイジェストを安全に送る方法を探すことです。
+    ダイジェストが安全に送られればダイジェストの信憑性が保障されて、
+    ダイジェストの信憑性をもってオリジナルメッセージの信憑性を得ることができます。
+    ダイジェストを安全に送った場合にのみ、そのメッセージの
+    信憑性が得られます。</p>
+
+    <p>ダイジェスト安全に送る方法の一つは、電子署名に含める方法です。</p>
+
+
+<h3><a name="digitalsignatures" id="digitalsignatures">電子署名</a></h3>
+<p>アリスが銀行にメッセージを送ったとき、
+侵入者が彼女になりすまして彼女の口座への取引を申請できないように、
+銀行側ではメッセージが本当に彼女からのものか確実に分かるようにしなければなりません。
+アリスによって作成されて、メッセージに含まれた
+<em>電子署名</em>がここで役に立ちます。</p>
+
+<p>電子署名はメッセージのダイジェストやその他の情報(処理番号など)を
+送信者の秘密鍵で暗号化することで作られます。
+誰もが公開鍵を使って署名を<em>復号</em>することができますが、
+送信者のみが秘密鍵を知っています。
+これは送信者のみが署名しえたことを意味します。
+ダイジェストを電子署名に含むことは、
+その署名がそのメッセージのみに有効であることを意味します。
+これは、誰もダイジェストを変えて署名をすることができないため、
+メッセージの信用も保証します。</p>
+
+<p>侵入者が署名を傍受して後日に再利用するのを防ぐため
+電子署名には一意な処理番号が含まれます。
+これは、アリスがそんなメッセージは送っていないと言う詐欺
+から銀行を守ります。
+彼女だけが署名しえたからです。(否認防止)</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="certificates" id="certificates">証明書</a></h2>
+
+<p>アリスは秘密のメッセージを銀行に送り、
+署名をして、メッセージの信用を保証することができるおうになりましたが、
+通信している相手が本当に銀行なのか確かめなくてはいけません。
+つまり彼女が使おうとしている公開鍵が、銀行の秘密鍵と対になっていて、
+侵入者の秘密鍵と対になっているわけではないことを
+確かめなくてはいけないことを意味しています。
+同様に銀行は、メッセージの署名が本当にアリスの持っている
+秘密鍵で署名された署名かを確認する必要があります。</p>
+
+<p>もし両者に身元を証明し、公開鍵を確認し、また信頼された機関が署名
+した証明書があれば、両者とも通信相手について正しい相手だと
+確信することができます。
+そのような信頼された機関は<em>認証局</em>
+ (Certificate Authority または CA) と呼ばれ、
+証明書 (certificate) が認証 (authentication) に使われます。</p>
+
+<h3><a name="certificatecontents" id="certificatecontents">証明書の内容</a></h3>
+
+    <p>証明書は公開鍵と個人、サーバ、その他の主体の実在の身元を
+    関連付けます。
+    <a href="#table1">表1</a>に示されるように証明対象の情報は
+    身元証明の情報(識別名)と公開鍵が含まれます。
+    証明書はまた、認証局の身元証明と署名、そして証明書の有効期間を
+    含みます。
+    シリアルナンバーなどの認証局の管理上の情報や
+    その他の追加の情報が含まれているかもしれません。</p>
+
+    <h4><a name="table1" id="table1">表1: 証明書情報</a></h4>
+    
+    <table>
+    
+    <tr><th>証明対象</th>
+        <td>識別名、公開鍵</td></tr>
+    <tr><th>発行者</th>
+        <td>識別名、公開鍵</td></tr>
+    <tr><th>有効期間</th>
+        <td>開始日、失効日</td></tr>
+    <tr><th>管理情報</th>
+        <td>バージョン、シリアルナンバー</td></tr>
+    <tr><th>拡張情報</th>
+        <td>基本的な制約、ネットスケープフラッグ、その他</td></tr>
+    </table>
+    
+
+    <p>識別名(ディスティングイッシュ・ネーム)は特定の状況における
+    身分証明を提供するのに使われています。例えば、ある人は
+    私用と会社とで別々の身分証明を持つかもしれません。
+    
+    識別名は X.509 標準規格 [<a href="#X509">X509</a>] で定義されています。
+    X.509 標準規格は、項目、項目名、そして項目の略称を定義しています。(<a href="#table2">表
+    2</a> 参照)</p>
+
+    <h4><a name="table2" id="table2">表 2: 識別名情報</a></h4>
+    
+    <table class="bordered">
+    
+    <tr><th>識別名項目</th>
+        <th>略称</th>
+        <th>説明</th>
+        <th>例</th></tr>
+    <tr><td>Common Name (コモンネーム)</td>
+        <td>CN</td>
+        <td>認証される名前<br />
+        SSL接続するURL</td>
+        <td>CN=www.example.com</td></tr>
+    <tr><td>Organization or Company (組織名)</td>
+        <td>O</td>
+        <td>団体の正式英語組織名</td>
+        <td>O=Example Japan K.K.</td></tr>
+    <tr><td>Organizational Unit (部門名)</td>
+        <td>OU</td>
+        <td>部署名など</td>
+        <td>OU=Customer Service</td></tr>
+    <tr><td>City/Locality (市区町村)</td>
+        <td>L</td>
+        <td>所在してる市区町村</td>
+        <td>L=Sapporo</td></tr>
+    <tr><td>State/Province (都道府県)</td>
+        <td>ST</td>
+        <td>所在してる都道府県</td>
+        <td>ST=Hokkaido</td></tr>
+    <tr><td>Country(国)</td>
+        <td>C</td>
+        <td>所在している国名の ISO コード<br />
+        日本の場合 JP
+        </td>
+        <td>C=JP</td></tr>
+    </table>
+    
+
+    <p>認証局はどの項目が省略可能でどれが必須かの方針を定義する
+    かもしれません。項目の内容についても認証局や証明書のユーザからの
+    要件があるかもしれません。
+    例えばネットスケープのブラウザは、サーバの証明書の
+     Common Name (コモンネーム)がサーバのドメイン名の
+     <code>*.snakeoil.com</code> 
+    というようなワイルドカードのパターンにマッチすること
+    を要求します。</p>
+
+    <p>バイナリ形式の証明書は ASN.1 表記法
+     [<a href="#X208">X208</a>] [<a href="#PKCS">PKCS</a>] で
+    定義されています。
+    この表記法は内容をどのように記述するかを定義し、
+    符号化の規定がこの情報がどのようにバイナリ形式に変換されるかを
+    定義します。
+    証明書のバイナリ符号化は Distinguished Encoding
+    Rules (DER) で定義され、それはより一般的な Basic Encoding Rules
+    (BER) に基づいています。
+    バイナリ形式を扱うことのできない送信では、
+    バイナリ形式は Base64 符号化 [<a href="#MIME">MIME</a>] で
+    ASCII 形式に変換されることがあります。
+    開始デリミタ行と終了デリミタ行で囲まれた、この形式のことを
+    PEM ("Privacy Enhanced Mail") 符号化された証明書と言います。</p>
+
+    <div class="example"><h3>PEM 符号化された証明書の例 (example.crt)</h3><pre>-----BEGIN CERTIFICATE-----
+MIIC7jCCAlegAwIBAgIBATANBgkqhkiG9w0BAQQFADCBqTELMAkGA1UEBhMCWFkx
+FTATBgNVBAgTDFNuYWtlIERlc2VydDETMBEGA1UEBxMKU25ha2UgVG93bjEXMBUG
+A1UEChMOU25ha2UgT2lsLCBMdGQxHjAcBgNVBAsTFUNlcnRpZmljYXRlIEF1dGhv
+cml0eTEVMBMGA1UEAxMMU25ha2UgT2lsIENBMR4wHAYJKoZIhvcNAQkBFg9jYUBz
+bmFrZW9pbC5kb20wHhcNOTgxMDIxMDg1ODM2WhcNOTkxMDIxMDg1ODM2WjCBpzEL
+MAkGA1UEBhMCWFkxFTATBgNVBAgTDFNuYWtlIERlc2VydDETMBEGA1UEBxMKU25h
+a2UgVG93bjEXMBUGA1UEChMOU25ha2UgT2lsLCBMdGQxFzAVBgNVBAsTDldlYnNl
+cnZlciBUZWFtMRkwFwYDVQQDExB3d3cuc25ha2VvaWwuZG9tMR8wHQYJKoZIhvcN
+AQkBFhB3d3dAc25ha2VvaWwuZG9tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKB
+gQDH9Ge/s2zcH+da+rPTx/DPRp3xGjHZ4GG6pCmvADIEtBtKBFAcZ64n+Dy7Np8b
+vKR+yy5DGQiijsH1D/j8HlGE+q4TZ8OFk7BNBFazHxFbYI4OKMiCxdKzdif1yfaa
+lWoANFlAzlSdbxeGVHoT0K+gT5w3UxwZKv2DLbCTzLZyPwIDAQABoyYwJDAPBgNV
+HRMECDAGAQH/AgEAMBEGCWCGSAGG+EIBAQQEAwIAQDANBgkqhkiG9w0BAQQFAAOB
+gQAZUIHAL4D09oE6Lv2k56Gp38OBDuILvwLg1v1KL8mQR+KFjghCrtpqaztZqcDt
+2q2QoyulCgSzHbEGmi0EsdkPfg6mp0penssIFePYNI+/8u9HT4LuKMJX15hxBam7
+dUHzICxBVC1lnHyYGjDuAMhe396lYAn8bCld1/L4NMGBCQ==
+-----END CERTIFICATE-----</pre></div>
+
+
+<h3><a name="certificateauthorities" id="certificateauthorities">認証局</a></h3>
+
+    <p>証明書を承認する前に、証明書要求に記載されている情報を確認し、
+    認証局は鍵の所有者の身元を確認します。
+    例えば、アリスが個人証明書を申請したとすると、
+    認証局はアリスが証明書の申請が主張する通りの
+    当の本人だということを確認しなくてはいけません。</p>
+
+    <h4><a name="certificatechains" id="certificatechains">証明書の連鎖</a></h4>
+    
+        <p>認証局は他の認証局への証明書を発行することができます。
+        未知の証明書を調べる時に、アリスはその証明書の発行者
+        に自信が持てるまで、発行者の証明書を
+        その上位階層の認証局をたどって調べる必要があります。
+        「悪質な」証明書の危険性を減らすため、
+        彼女は限られた連鎖の発行者のみ信頼するように
+        決めることもできます。</p>
+    
+
+    <h4><a name="rootlevelca" id="rootlevelca">最上位認証局の作成</a></h4>
+    
+        <p>前に述べたように、全ての証明書について、
+        最上位の認証局(CA)までそれぞれの発行者が
+        対象の身元証明の有効性を明らかにする必要があります。
+        問題は、誰がその最上位の認証機関の証明書を保証するのか、
+        ということです。
+        このような場合に限り、証明書は「自己署名」されます。
+        ブラウザには、とてもよく知られている認証局が初期登録されていますが、
+        自己署名された証明書を信用する際には
+        細心の注意が必要です。
+        最上位認証局が公開鍵を広く公表することで、
+        その鍵を信頼するリスクを低くすることができます。
+        もし、他人がその認証局になりすました時に、それが露見しや
+        すいからです。</p>
+
+        <p><a href="http://www.thawte.com/">Thawte</a> 
+        や <a href="http://www.verisign.com/">VeriSign</a> 
+        のような多くの会社が認証局として開設しました。
+        このような会社は以下のサービスを提供します:</p>
+
+        <ul>
+        <li>証明書申請の確認</li>
+        <li>証明書申請の処理</li>
+        <li>証明書の発行と管理</li>
+        </ul>
+
+        <p>自分で認証局を作ることも可能です。
+        インターネット環境では危険ですが、
+        個人やサーバの身元証明が簡単に行える組織の
+        イントラネット内では役に立つかもしれません。</p>
+    
+
+    <h4><a name="certificatemanagement" id="certificatemanagement">証明書管理</a></h4>
+    
+        <p>認証局の開設は徹底した管理、技術、運用の体制を必要とする
+        責任のある仕事です。
+        認証局は証明書を発行するだけでなく、
+        管理もしなければなりません。
+        具体的には、証明書がいつまで有効であり続けるかを決定し、更新し、
+        また過去発行されて失効した証明書のリスト
+        (Certificate Revocation Lists または CRL)
+        を管理しなければいけません。</p>
+        
+        <p>例えばアリスが過去、会社の社員であることを証明する証明書を持っていたが、
+        現在は退職していた際、その証明書は失効されなければなりません。
+        証明書は次々と人に渡されていくものなので、
+        証明書そのものから、それが取り消されたか判断することは
+        不可能です。
+        よって、証明書の有効性を調べるときには、
+        認証局に連絡して CRL を照合する必要があります。
+        普通この過程は自動化されているものではありません。</p>
+
+        <div class="note"><h3>注意</h3>
+        <p>ブラウザに信用できる認証局としてデフォルトで登録されていない
+        認証局を使おうとした場合、
+        認証局の証明書をブラウザに読み込んで、
+        ブラウザがその認証局によって署名されたサーバの証明書を
+        有効にする必要があります。
+        一度読み込まれると、その認証局によって署名された全ての
+        証明書を受け入れるため、危険を伴います。</p>
+        </div>
+    
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="ssl" id="ssl">Secure Sockets Layer (SSL)</a></h2>
+
+<p>Secure Sockets Layer プロトコルは信頼性のあるコネクション型の
+ネットワーク層のプロトコル(例えば、TCP/IP)と
+アプリケーション層のプロトコル(例えば、HTTP)
+の間に置くことができます。
+SSL は、相互認証によってサーバとクライアント間の安全な通信を、
+電子署名によってデータの完全性を、
+そして暗号化によってプライバシを提供します。</p>
+
+<p>SSL プロトコルは暗号化、ダイジェスト、電子署名について、
+様々なアルゴリズムをサポートするようにできています。
+こうすることで、法や輸出の規制を考慮に入れて、サーバに合わせた
+アルゴリズムを選ぶことができ、また、新しいアルゴリズムを
+利用していくことも可能にしています。
+アルゴリズムの選択はプロトコルセッション開始時に
+サーバとクライアント間で取り決められます。</p>
+
+<h3><a name="table4" id="table4">表4: SSL プロトコルのバージョン</a></h3>
+
+    <table class="bordered">
+    
+    <tr><th>バージョン</th>
+        <th>出典</th>
+        <th>説明</th>
+        <th>ブラウザのサポート</th></tr>
+    <tr><td>SSL v2.0</td>
+        <td>Vendor Standard (Netscape Corp. より) [<a href="#SSL2">SSL2</a>]</td>
+        <td>実装が現存する初めての SSL プロトコル</td>
+        <td>- NS Navigator 1.x/2.x<br />
+        - MS IE 3.x<br />
+        - Lynx/2.8+OpenSSL</td></tr>
+    <tr><td>SSL v3.0</td>
+        <td>Expired Internet Draft (Netscape Corp. より) [<a href="#SSL3">SSL3</a>]</td>
+        <td>特定のセキュリティ攻撃を防ぐための改訂、
+        非RSA 暗号の追加、証明書階層構造のサポート</td>
+        <td>- NS Navigator 2.x/3.x/4.x<br />
+        - MS IE 3.x/4.x<br />
+        - Lynx/2.8+OpenSSL</td></tr>
+    <tr><td>TLS v1.0</td>
+        <td>Proposed Internet Standard (IETF より) [<a href="#TLS1">TLS1</a>]</td>
+        <td>MAC レイヤを HMAC へ更新、ブロック暗号の block
+        padding、メッセージ順序の標準化、警告文の充実などのため
+        SSL 3.0 を改訂。</td>
+        <td>- Lynx/2.8+OpenSSL</td></tr>
+    </table>
+
+
+<p><a href="#table4">表4</a>に示されるとおり、SSL プロトコルには
+いくつものバージョンがあります。
+表にも書かれているように、SSL 3.0 の利点の一つは
+証明書階層構造をサポートすることです。
+この機能によって、サーバは自分の証明書に加えて、
+発行者の証明書をブラウザに渡すことができます。
+証明書階層構造によって、
+ブラウザに発行者の証明書が直接登録されていなくても、
+階層の中に含まれていれば、
+ブラウザはサーバの証明書を有効化することができます。
+SSL 3.0 は現在 Internet Engineering Task Force (IETF) 
+によって開発されている Transport Layer Security 
+[<a href="#TLS1">TLS</a>] プロトコル標準規格の基礎となっています。</p>
+
+<h3><a name="session" id="session">セッションの確立</a></h3>
+
+    <p><a href="#figure1">図1</a>で示されるように、
+    セッションの確立はクライアントとサーバ間の
+    ハンドシェークシークエンスによって行なわれます。
+    サーバが証明書を提供するか、クライアントの証明書をリクエストするか
+    というサーバの設定により、このシークエンスは異なるものとなります。
+    暗号情報の管理のために、追加のハンドシェーク過程が必要になる
+    場合もありますが、この記事では
+    よくあるシナリオを手短に説明します。
+    全ての可能性についは、SSL 仕様書を参照してください。</p>
+
+    <div class="note"><h3>注意</h3>
+    <p>一度 SSL セッションが確立すると、セッションを再利用することで、
+    セッションを開始するための多くの過程を繰り返すという
+    パフォーマンスの損失を防ぎます。
+    そのため、サーバは全てのセッションに一意なセッション識別名を
+    割り当て、サーバにキャッシュし、クライアントは次回から
+    (識別名がサーバのキャッシュで期限切れになるまでは)
+    ハンドシェークなしで接続することができます。</p>
+    </div>
+
+    <p class="figure">
+    <img src="../images/ssl_intro_fig1.gif" alt="" width="423" height="327" /><br />
+    <a id="figure1" name="figure1"><dfn>図1</dfn></a>: SSL
+    ハンドシェークシークエンス概略</p>
+
+    <p>サーバとクライアントで使われる
+    ハンドシェークシークエンスの要素を以下に示します:</p>
+
+    <ol>
+    <li>データ通信に使われる暗号スイートの取り決め</li>
+    <li>クライアントとサーバ間でのセッション鍵の確立と共有</li>
+    <li>オプションとして、クライアントに対するサーバの認証</li>
+    <li>オプションとして、サーバに対するクライアントの認証</li>
+    </ol>
+
+    <p>第一ステップの暗号スイート取り決めによって、
+    サーバとクライアントはそれぞれにあった
+    暗号スイートを選ぶことができます。
+    SSL3.0 プロトコルの仕様書は 31 の暗号スイートを定義しています。
+    暗号スイートは以下のコンポーネントにより定義されています:</p>
+
+    <ul>
+    <li>鍵の交換手段</li>
+    <li>データ通信の暗号術</li>
+    <li>Message Authentication Code (MAC) 作成のための
+    メッセージダイジェスト</li>
+    </ul>
+
+    <p>これらの三つの要素は以下のセクションで説明されています。</p>
+
+
+<h3><a name="keyexchange" id="keyexchange">鍵の交換手段</a></h3>
+
+    <p>鍵の交換手段はアプリケーションのデータ通信に使われ、
+    共有される対称暗号鍵をどのようにがクライアントとサーバで
+    取り決めるかを定義します。
+    SSL 2.0 は RSA 鍵交換しか使いませんが、
+    SSL 3.0 は (証明書が使われるときの) RSA 鍵交換や、
+    (証明書無しの場合やクライアントとサーバの事前の通信が無い場合の)
+    Diffie-Hellman 鍵交換
+    など様々な鍵交換アルゴリズムをサポートします。</p>
+
+    <p>鍵の交換方法における一つの選択肢は電子署名です。
+    電子署名を使うかどうか、また、
+    どの種類の署名を使うかという選択があります。
+    秘密鍵で署名することで共有鍵を保護し、情報交換する時の
+    マン・イン・ザ・ミドル攻撃を防ぐことができます。
+    [<a href="#AC96">AC96</a>, p516]</p>
+
+
+<h3><a name="ciphertransfer" id="ciphertransfer">データ通信の暗号術</a></h3>
+
+    <p>SSL はセッションのメッセージの暗号化に前述した
+    対称暗号方式を用います。
+    暗号化しないという選択肢も含め九つの暗号方式の選択肢があります:</p>
+
+    <ul>
+    <li>暗号化なし</li>
+    <li>ストリーム暗号
+        <ul>
+        <li>40-bit 鍵での RC4</li>
+        <li>128-bit 鍵での RC4</li>
+        </ul></li>
+    <li>CBC ブロック暗号
+        <ul><li>40 bit 鍵での RC2</li>
+        <li>40 bit 鍵での DES</li>
+        <li>56 bit 鍵での DES</li>
+        <li>168 bit 鍵での Triple-DES</li>
+        <li>Idea (128 bit 鍵)</li>
+        <li>Fortezza (96 bit 鍵)</li>
+        </ul></li>
+    </ul>
+
+    <p>CBC とは暗号ブロック連鎖 (Cipher Block Chaining)
+     の略で、一つ前の暗号化された暗号文の一部が
+    ブロックの暗号化に使われることを意味します。
+    DES はデータ暗号化標準規格 (Data Encryption Standard)
+     [<a href="#AC96">AC96</a>, ch12] の略で、
+    DES40 や 3DES_EDE を含むいくつもの種類があります。
+    Idea は現在最高なものの一つで、暗号術的には現在ある中で
+    最も強力なものです。
+    RC2 は RSA DSI による独占的なアルゴリズムです。
+     [<a href="#AC96">AC96</a>,
+    ch13]</p>
+
+
+<h3><a name="digestfuntion" id="digestfuntion">ダイジェスト関数</a></h3>
+
+    <p>
+    ダイジェスト関数の選択はレコードユニットからどのようにダイジェストが生成されるかを決定します。
+    SSL は以下をサポートします:</p>
+
+    <ul>
+    <li>ダイジェストなし</li>
+    <li>MD5 (128-bit ハッシュ)</li>
+    <li>Secure Hash Algorithm (SHA-1) (160-bit ハッシュ)</li>
+    </ul>
+
+    <p>メッセージダイジェストは Message Authentication Code (MAC) 
+    の生成に使われ、メッセージと共に暗号化され、メッセージの信憑性を
+    確認し、リプレイ攻撃を防ぎます。</p>
+
+
+<h3><a name="handshake" id="handshake">ハンドシェークシークエンスプロトコル</a></h3>
+
+    <p>ハンドシェークシークエンスは三つのプロトコルを使います:</p>
+
+    <ul>
+    <li><dfn>SSL ハンドシェークプロトコル</dfn>は
+    クライアントとサーバ間での SSL セッションの確立に使われます。</li>
+    <li><dfn>SSL 暗号仕様変更プロトコル</dfn>は
+    セッションでの暗号スイートの取り決めに使われます。</li>
+    <li><dfn>SSL 警告プロトコル</dfn>は
+    クライアントサーバ間で SSL エラーを伝達するのに使われます。</li>
+    </ul>
+
+    <p>三つのプロトコルは、アプリケーションプロトコルデータとともに、
+    <a href="#figure2">図2</a>に示すとおり <dfn>SSL レコードプロトコル</dfn>
+    でカプセル化されます。
+    カプセル化されたプロトコルはデータを検査しない
+    下層のプロトコルによってデータとして伝達されます。
+    カプセル化されたプロトコルは下層のプロトコルに関して一切関知しません。</p>
+
+    <p class="figure">
+    <img src="../images/ssl_intro_fig2.gif" alt="" width="428" height="217" /><br />
+    <a id="figure2" name="figure2"><dfn>図2</dfn></a>: SSL プロトコルスタック
+    </p>
+
+    <p>
+    レコードプロトコルで SSL コントロールプロトコルがカプセル化されているということは、
+    アクティブなセッション上で再ネゴシエーションされたときにも、
+    コントロールプロトコルは安全であることを意味します。
+    既存のセッションが無い場合は、Null 暗号スイートが使われ、
+    暗号化は行なわれず、セッションが確立するまでは
+    ダイジェストも無い状態となります。</p>
+
+
+<h3><a name="datatransfer" id="datatransfer">データ通信</a></h3>
+
+    <p><a href="#figure3">図3</a>に示される SSL レコードプロトコル
+    はクライアントとサーバ間のアプリケーションや
+    SSL コントロールデータの通信に使われます。
+    必要に応じてこのデータはより小さいユニットに分けられたり、
+    いくつかの高級プロトコルをまとめて一ユニットとして通信が
+    行なわれることもあります。
+    データを圧縮し、ダイジェスト署名を添付して、
+    これらのユニットを暗号化したのち、ベースとなっている
+    信頼性のあるトランスポートプロトコルを用いるかもしれません。
+    (注意: 現在メジャーな SLL 実装で圧縮をサポートしているものはありません)</p>
+
+    <p class="figure">
+    <img src="../images/ssl_intro_fig3.gif" alt="" width="423" height="323" /><br />
+    <a id="figure3" name="figure3"><dfn>図 3</dfn></a>: SSL レコードプロトコル
+    </p>
+
+
+<h3><a name="securehttp" id="securehttp">HTTP 通信の安全化</a></h3>
+
+    <p>よくある SSL の使い方はブラウザとウェブサーバ間の HTTP 通信
+    の安全化です。
+    これは、従来の安全ではない HTTP の使用を除外するものではありません。
+    安全化されたもの (HTTPS と呼ばれます) は、SSL 上での普通の HTTP で、
+    URL スキームに <code>http</code> の代わりに <code>https</code>
+    を用い、サーバで別のポートを使うことです (デフォルトでは443)。
+    これが主に <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code> が Apache 
+    ウェブサーバに提供する機能です。</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="references" id="references">参考文献</a></h2>
+
+<dl>
+<dt><a id="AC96" name="AC96">[AC96]</a></dt>
+<dd>Bruce Schneier, <q>Applied Cryptography</q>, 2nd Edition, Wiley,
+1996. See <a href="http://www.counterpane.com/">http://www.counterpane.com/</a> for various other materials by Bruce
+Schneier.</dd>
+
+<dt><a id="X208" name="X208">[X208]</a></dt>
+<dd>ITU-T Recommendation X.208, <q>Specification of Abstract Syntax Notation
+One (ASN.1)</q>, 1988. See for instance <a href="http://www.itu.int/rec/recommendation.asp?type=items&amp;lang=e&amp;parent=T-REC-X.208-198811-I">http://www.itu.int/rec/recommendation.asp?type=items&amp;lang=e&amp;parent=T-REC-X.208-198811-I</a>.
+</dd>
+
+<dt><a id="X509" name="X509">[X509]</a></dt>
+<dd>ITU-T Recommendation X.509, <q>The Directory - Authentication
+Framework</q>. See for instance <a href="http://www.itu.int/rec/recommendation.asp?type=folders&amp;lang=e&amp;parent=T-REC-X.509">http://www.itu.int/rec/recommendation.asp?type=folders&amp;lang=e&amp;parent=T-REC-X.509</a>.
+</dd>
+
+<dt><a id="PKCS" name="PKCS">[PKCS]</a></dt>
+<dd><q>Public Key Cryptography Standards (PKCS)</q>, 
+RSA Laboratories Technical Notes, See <a href="http://www.rsasecurity.com/rsalabs/pkcs/">http://www.rsasecurity.com/rsalabs/pkcs/</a>.</dd>
+
+<dt><a id="MIME" name="MIME">[MIME]</a></dt>
+<dd>N. Freed, N. Borenstein, <q>Multipurpose Internet Mail Extensions
+(MIME) Part One: Format of Internet Message Bodies</q>, RFC2045.
+See for instance <a href="http://ietf.org/rfc/rfc2045.txt">http://ietf.org/rfc/rfc2045.txt</a>.</dd>
+
+<dt><a id="SSL2" name="SSL2">[SSL2]</a></dt>
+<dd>Kipp E.B. Hickman, <q>The SSL Protocol</q>, 1995. See <a href="http://www.netscape.com/eng/security/SSL_2.html">http://www.netscape.com/eng/security/SSL_2.html</a>.</dd>
+
+<dt><a id="SSL3" name="SSL3">[SSL3]</a></dt>
+<dd>Alan O. Freier, Philip Karlton, Paul C. Kocher, <q>The SSL Protocol
+Version 3.0</q>, 1996. See <a href="http://www.netscape.com/eng/ssl3/draft302.txt">http://www.netscape.com/eng/ssl3/draft302.txt</a>.</dd>
+
+<dt><a id="TLS1" name="TLS1">[TLS1]</a></dt>
+<dd>Tim Dierks, Christopher Allen, <q>The TLS Protocol Version 1.0</q>,
+1999. See <a href="http://ietf.org/rfc/rfc2246.txt">http://ietf.org/rfc/rfc2246.txt</a>.</dd>
+</dl>
+</div></div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="../en/ssl/ssl_intro.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/ssl/ssl_intro.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/ssl/ssl_intro.html" title="Japanese">&nbsp;ja&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/ssl/ssl_intro.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

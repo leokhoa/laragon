@@ -1,0 +1,644 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Tutoriel Apache : Contenu dynamique basé sur CGI - Serveur HTTP Apache Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p>
+<p class="apache">Serveur HTTP Apache Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">Serveur HTTP</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Recettes et tutoriels</a></div><div id="page-content"><div id="preamble"><h1>Tutoriel Apache : Contenu dynamique basé sur CGI</h1>
+<div class="toplang">
+<p><span>Langues Disponibles: </span><a href="../en/howto/cgi.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../es/howto/cgi.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="../fr/howto/cgi.html" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/howto/cgi.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/howto/cgi.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#intro">Introduction</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#configuring">Configurer Apache pour autoriser CGI</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#writing">Ecrire un programme CGI</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#troubleshoot">Mais ça ne marche toujours pas !</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#behindscenes">Que se passe-t-il en coulisse</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#libraries">Bibliothèques et modules CGI</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#moreinfo">Pour plus d'informations</a></li>
+</ul><h3>Voir aussi</h3><ul class="seealso"><li><a href="#comments_section">Commentaires</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="intro" id="intro">Introduction</a></h2>
+    
+
+    <table class="related"><tr><th>Modules Apparentés</th><th>Directives Apparentées</th></tr><tr><td><ul><li><code class="module"><a href="../mod/mod_alias.html">mod_alias</a></code></li><li><code class="module"><a href="../mod/mod_cgi.html">mod_cgi</a></code></li><li><code class="module"><a href="../mod/mod_cgid.html">mod_cgid</a></code></li></ul></td><td><ul><li><code class="directive"><a href="../mod/mod_mime.html#addhandler">AddHandler</a></code></li><li><code class="directive"><a href="../mod/core.html#options">Options</a></code></li><li><code class="directive"><a href="../mod/mod_alias.html#scriptalias">ScriptAlias</a></code></li></ul></td></tr></table>
+
+    <p>CGI (Common Gateway Interface) définit une méthode d'interaction
+    entre un serveur web et des programmes générateurs de contenu
+    externes, plus souvent appelés programmes CGI ou scripts CGI.
+    Il s'agit d'une méthode simple pour ajouter du contenu dynamique à votre site
+    web en utilisant votre langage de programmation préféré.
+    Ce document est une introduction à la configuration de CGI sur votre
+    serveur web Apache, et une initiation à l'écriture de programmes
+    CGI.</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="configuring" id="configuring">Configurer Apache pour autoriser CGI</a></h2>
+    
+
+    <p>Apache doit être configuré pour permettre l'exécution des
+    programmes CGI, pour que vos programmes CGI puissent fonctionner
+    correctement. Il existe plusieurs méthodes pour y parvenir.</p>
+
+    <div class="warning">Note: si Apache a été compilé avec le support
+    des modules partagés (DSO), vous devez vous assurer que le module CGI est
+    chargé ; vous devez pour cela vérifier que la directive <code class="directive"><a href="../mod/mod_so.html#loadmodule">LoadModule</a></code> correspondante n'a pas été
+    commentée dans votre <code>httpd.conf</code>. Une directive correcte
+    doit ressembler à ceci :
+
+    <pre class="prettyprint lang-config">LoadModule cgid_module modules/mod_cgid.so</pre>
+
+
+
+     Sous Windows, ou si l'on utilise un module MPM non-threadé comme prefork,
+     une directive correctement configurée sera du style :
+
+    <pre class="prettyprint lang-config">LoadModule cgi_module modules/mod_cgi.so</pre>
+</div>
+
+
+    <h3><a name="scriptalias" id="scriptalias">ScriptAlias</a></h3>
+      
+
+      <p>La directive <code class="directive"><a href="../mod/mod_alias.html#scriptalias">ScriptAlias</a></code> indique à Apache qu'un
+      répertoire particulier est dédié aux programmes CGI. Apache
+      considérera que tout fichier situé dans ce répertoire est un
+      programme CGI, et tentera de l'exécuter lorsque cette ressource
+      fera l'objet d'une requête client.</p>
+
+      <p>La directive <code class="directive"><a href="../mod/mod_alias.html#scriptalias">ScriptAlias</a></code> se présente comme suit
+      :</p>
+
+      <pre class="prettyprint lang-config">ScriptAlias "/cgi-bin/" "/usr/local/apache2/cgi-bin/"</pre>
+
+
+      <p>Cet exemple est tiré de votre fichier de configuration
+      <code>httpd.conf</code> par défaut, si vous avez installé Apache
+      dans son répertoire par défaut. La directive <code class="directive"><a href="../mod/mod_alias.html#scriptalias">ScriptAlias</a></code> est similaire à la
+      directive <code class="directive"><a href="../mod/mod_alias.html#alias">Alias</a></code>, qui
+      définit à quel répertoire particulier doit correspondre un préfixe
+      d'URL. <code class="directive">Alias</code> et
+      <code class="directive">ScriptAlias</code> sont généralement utilisés pour
+      accéder à des répertoires situés en dehors du répertoire défini
+      par la directive <code class="directive"><a href="../mod/core.html#documentroot">DocumentRoot</a></code>. La différence entre
+      <code class="directive">Alias</code> et <code class="directive">ScriptAlias</code>
+      réside dans le fait que <code class="directive">ScriptAlias</code> indique
+      en plus que tout ce qui se trouve sous le préfixe d'URL doit être
+      considéré comme un programme CGI. Ainsi, l'exemple ci-dessus
+      indique à Apache que toute requête pour une ressource commençant
+      par <code>/cgi-bin/</code> doit être servie depuis le répertoire
+      <code>/usr/local/apache2/cgi-bin/</code>, et doit être traitée en
+      tant que programme CGI.</p>
+
+      <p>Par exemple, si une requête pour l'URL
+      <code>http://www.example.com/cgi-bin/test.pl</code> est
+      effectuée, Apache tentera d'exécuter le fichier
+      <code>/usr/local/apache2/cgi-bin/test.pl</code> et en renverra la
+      sortie. Bien entendu, le fichier doit exister, être exécutable, et
+      retourner sa sortie d'une manière particulière, sinon Apache
+      renverra un message d'erreur.</p>
+    
+
+    <h3><a name="nonscriptalias" id="nonscriptalias">CGI en dehors des répertoires ScripAlias</a></h3>
+      
+
+      <p>Pour des raisons de sécurité, la localisation des programmes
+      CGI est souvent restreinte aux
+      répertoires définis par <code class="directive"><a href="../mod/mod_alias.html#scriptalias">ScriptAlias</a></code>. De cette manière, les administrateurs
+      peuvent contrôler précisément qui est autorisé à utiliser les
+      programmes CGI. Cependant, si les précautions adéquates quant à
+      la sécurité sont prises, il n'y a aucune raison pour que les
+      programmes CGI ne puissent pas être exécutés depuis d'autres
+      répertoires. Par exemple, vous pouvez autoriser les utilisateurs à
+      enregistrer des contenus web dans leurs répertoires home à l'aide
+      de la directive <code class="directive"><a href="../mod/mod_userdir.html#userdir">UserDir</a></code>. S'ils veulent mettre en
+      oeuvre leurs propres programmes CGI, mais n'ont pas l'autorisation
+      d'accès au répertoire <code>cgi-bin</code> principal, ils devront
+      être en mesure d'exécuter ces programmes depuis un autre
+      répertoire.</p>
+
+      <p>L'autorisation d'exécution des programmes CGI dans un
+      répertoire arbitraire se fait en deux étapes. En premier lieu, le
+      gestionnaire <code>cgi-script</code> doit être activé à l'aide
+      d'une directive <code class="directive"><a href="../mod/mod_mime.html#addhandler">AddHandler</a></code> ou <code class="directive"><a href="../mod/core.html#sethandler">SetHandler</a></code>. En second lieu,
+      <code>ExecCGI</code> doit être spécifié dans la directive <code class="directive"><a href="../mod/core.html#options">Options</a></code>.</p>
+    
+
+    <h3><a name="options" id="options">Utilisation d'options explicites pour permettre l'exécution
+      des programmes CGI</a></h3>
+      
+
+      <p>Vous pouvez utiliser de manière explicite la directive
+      <code class="directive"><a href="../mod/core.html#options">Options</a></code> dans le fichier de
+      configuration de votre serveur principal, pour indiquer que
+      l'exécution des programmes CGI est permise depuis un répertoire
+      particulier :</p>
+
+      <pre class="prettyprint lang-config">&lt;Directory "/usr/local/apache2/htdocs/somedir"&gt;
+    Options +ExecCGI
+&lt;/Directory&gt;</pre>
+
+
+      <p>La directive ci-dessus indique à Apache qu'il doit permettre
+      l'exécution des fichiers CGI. Vous devez aussi indiquer au serveur
+      quels fichiers sont des fichiers CGI. La directive <code class="directive"><a href="../mod/mod_mime.html#addhandler">AddHandler</a></code> suivante indique au
+      serveur qu'il doit traiter tous les fichiers possédant une
+      extension <code>cgi</code> ou <code>pl</code> en tant que
+      programmes CGI :</p>
+
+      <pre class="prettyprint lang-config">AddHandler cgi-script .cgi .pl</pre>
+
+    
+
+    <h3><a name="htaccess" id="htaccess">Fichiers .htaccess</a></h3>
+      
+
+      <p>Le <a href="htaccess.html"><code>tutoriel
+      .htaccess</code></a> montre comment activer les programmes
+      CGI si vous n'avez pas accès au
+      fichier <code>httpd.conf</code>.</p>
+    
+
+    <h3><a name="userdir" id="userdir">Répertoires utilisateurs</a></h3>
+      
+
+      <p>Pour permettre l'exécution en tant que programme CGI de tout
+      fichier possédant l'extension <code>.cgi</code> et situé dans un
+      répertoire utilisateur, vous pouvez utiliser la configuration
+      suivante :</p>
+
+      <pre class="prettyprint lang-config">&lt;Directory "/home/*/public_html"&gt;
+    Options +ExecCGI
+    AddHandler cgi-script .cgi
+&lt;/Directory&gt;</pre>
+
+
+      <p>Pour indiquer un sous-répertoire <code>cgi-bin</code> d'un
+      répertoire utilisateur où tout fichier sera traité en tant que
+      programme CGI, vous pouvez utiliser ceci :</p>
+
+      <pre class="prettyprint lang-config">&lt;Directory "/home/*/public_html/cgi-bin"&gt;
+    Options ExecCGI
+    SetHandler cgi-script
+&lt;/Directory&gt;</pre>
+
+
+    
+
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="writing" id="writing">Ecrire un programme CGI</a></h2>
+    
+
+    <p>Il y a deux différences principales entre la programmation
+    "standard" et la programmation CGI.</p>
+
+    <p>En premier lieu, toute sortie de votre programme CGI doit être
+    précédée d'un en-tête <a class="glossarylink" href="../glossary.html#mime-type" title="voir glossaire">MIME-type</a>. Il s'agit d'un
+    en-tête HTTP qui indique au client quel type de contenu il reçoit.
+    La plupart du temps, il se présente comme suit :</p>
+
+    <div class="example"><p><code>
+      Content-type: text/html
+    </code></p></div>
+
+    <p>En second lieu, votre sortie doit être en HTML, ou tout autre
+    format qu'un navigateur est en mesure d'afficher. La plupart du
+    temps, il s'agira de HTML, mais occasionnellement, vous pouvez être
+    amené à écrire un programme CGI qui renvoie une image gif, ou un
+    autre type de contenu non-HTML.</p>
+
+    <p>A part ces deux différences, un programme CGI ressemblera à tout
+    autre programme que vous pourriez être amené à écrire.</p>
+
+    <h3><a name="firstcgi" id="firstcgi">Votre premier programme CGI</a></h3>
+      
+
+      <p>L'exemple suivant est un exemple de programme CGI qui permet
+      d'afficher une ligne de caractères dans votre navigateur. Ecrivez
+      ce qui suit, enregistrez le dans un fichier nommé
+      <code>premier.pl</code>, et placez le dans votre répertoire
+      <code>cgi-bin</code>.</p>
+
+      <pre class="prettyprint lang-perl">#!/usr/bin/perl
+print "Content-type: text/html\n\n";
+print "Hello, World.";</pre>
+
+
+      <p>Même si Perl ne vous est pas familier, vous devriez être
+      capable de comprendre le fonctionnement de ce programme. La
+      première ligne indique à Apache (ou à toute interface à partir de
+      laquelle le programme s'exécute) que ce programme peut être
+      exécuté en fournissant son fichier à l'interpréteur
+      <code>/usr/bin/perl</code>. La seconde ligne affiche la
+      déclaration du type de contenu considéré, suivie de deux paires
+      "Retour chariot - Nouvelle ligne". Ceci a pour effet d'insérer une
+      ligne vide après l'en-tête pour marquer la fin des en-têtes HTTP,
+      et le début du corps du document. La troisième ligne affiche la
+      chaîne de caractères "Bonjour tout le monde . . .". Et c'est tout
+      ce dont vous avez besoin.</p>
+
+      <p>Si vous ouvrez votre navigateur favori et lui indiquez
+      l'adresse</p>
+
+      <div class="example"><p><code>
+        http://www.example.com/cgi-bin/premier.pl
+      </code></p></div>
+
+      <p>ou toute autre URL correspondant à votre programme CGI, Vous
+      verrez la ligne <code>Bonjour tout le monde . . .</code>
+      s'afficher dans la fenêtre de votre navigateur. Ce n'est pas
+      extraordinaire, mais si vous y êtes parvenu, vous avez de bonnes
+      chances d'y parvenir pour tout autre programme plus
+      sophistiqué.</p>
+    
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="troubleshoot" id="troubleshoot">Mais ça ne marche toujours pas !</a></h2>
+    
+
+    <p>Vous devriez voir au moins une des quatre sorties suivantes dans
+    votre navigateur lorsque vous essayez d'accéder à votre programme
+    CGI depuis le web :</p>
+
+    <dl>
+      <dt>Le flux de sortie de votre programme CGI</dt>
+      <dd>Impeccable ! Cela signifie que tout fonctionne correctement.
+      Si la sortie est correcte mais n'est pas traitée correctement par
+      le navigateur, assurez-vous d'avoir défini
+      <code>Content-Type</code> de manière appropriée dans votre
+      programme CGI.</dd>
+
+      <dt>Le code source de votre programme CGI ou un message "POST
+      Method Not Allowed"</dt>
+      <dd>Cela signifie que vous n'avez pas configuré Apache de manière
+      à ce qu'il puisse traiter votre programme CGI. Relisez la section
+      sur la <a href="#configuring">configuration d'Apache</a>, et
+      essayez de trouver votre erreur.</dd>
+
+      <dt>Un message commençant par "Forbidden"</dt>
+      <dd>Ce type de message est révélateur d'un problème de
+      droits. Consultez le <a href="#errorlogs">journal des erreurs
+      d'Apache</a> et la section ci-dessous sur les <a href="#permissions">droits des fichiers</a>.</dd>
+
+      <dt>Un message contenant "Internal Server Error"</dt>
+      <dd>Si vous consultez le <a href="#errorlogs">journal des erreurs
+      d'Apache</a>, vous y trouverez probablement des messages du type
+      "Premature end of script headers" (Fin prématurée des en-têtes de
+      script), éventuellement accompagnés d'un message d'erreur généré
+      par votre programme CGI. Dans ce cas, il va vous falloir lire
+      chacune des sections ci-dessous pour déterminer ce qui empêche
+      votre programme CGI de générer les en-têtes appropriés.</dd>
+    </dl>
+
+    <h3><a name="permissions" id="permissions">Droits des fichiers</a></h3>
+      
+
+      <p>Souvenez-vous que le serveur ne s'exécute pas sous votre nom.
+      En d'autres termes, lorsque le serveur a démarré, il s'exécute
+      avec les droits d'un utilisateur non privilégié - en général
+      <code>nobody</code>, ou <code>www</code> - et en conséquence, il
+      aura besoin de droits supplémentaires pour pouvoir exécuter des
+      fichiers dont vous êtes le propriétaire. En général, pour qu'un
+      fichier ait des droits suffisants pour être exécutable par
+      <code>nobody</code>, il suffit de lui attribuer des droits
+      d'exécution pour tout le monde :</p>
+
+      <div class="example"><p><code>
+        chmod a+x premier.pl
+      </code></p></div>
+
+      <p>En outre, si votre programme doit pouvoir accéder en lecture
+      et/ou écriture à d'autres fichiers, ces derniers devront avoir les
+      droits appropriés.</p>
+
+    
+
+    <h3><a name="pathinformation" id="pathinformation">Chemin des exécutables (PATH) et variables
+      d'environnement</a></h3>
+      
+
+      <p>Lorsque vous lancez un programme depuis la ligne de commande,
+      certaines informations sont passées au shell sans que vous vous en
+      doutiez. Par exemple, la variable <code>PATH</code> indique au
+      shell où il doit rechercher les exécutables auxquels vous faites
+      référence.</p>
+
+      <p>Lorsqu'un programme s'exécute depuis le serveur web en tant que
+      programme CGI, sa variable <code>PATH</code> n'aura peut-être pas
+      la même valeur. Tout programme que vous invoquez dans votre
+      programme CGI ( comme par exemple <code>sendmail</code>) devra
+      être spécifié par son chemin complet, de façon à ce que le shell
+      puisse le trouver lorsqu'il tentera d'exécuter votre programme
+      CGI.</p>
+
+      <p>Un exemple typique de spécification de programme est le chemin
+      vers l'interpréteur de script (souvent <code>perl</code>) que l'on
+      trouve à la première ligne de votre programme CGI et qui va
+      ressembler à ceci :</p>
+
+      <pre class="prettyprint lang-perl">#!/usr/bin/perl</pre>
+
+
+      <p>Assurez-vous qu'il s'agit bien du chemin correct vers
+      l'interpréteur.</p>
+
+      <div class="warning">
+      Lors de l'édition de scripts CGI sous Windows, il se peut que des
+      caractères de fin de ligne soient ajoutés au chemin de
+      l'interpréteur. Assurez-vous donc que les fichiers sont bien
+      transmis au serveur en mode ASCII. Dans le cas contraire, l'OS
+      pourra envoyer des avertissements "Command not found" à cause des
+      caractères de fin de ligne non reconnus car considérés comme
+      faisant partie du nom de fichier de l'interpréteur.
+      </div>
+
+      
+
+    <h3><a name="missingenv" id="missingenv">Variables d'environnement manquantes</a></h3>
+      
+
+      <p>Si votre programme CGI dépend de <a href="#env">variables
+      d'environnement</a> non standards, vous devrez vous assurez que
+      ces variables lui sont bien transmises par Apache.</p>
+
+      <p>Lorsque des en-têtes HTTP ne sont pas transmis à
+      l'environnement, assurez-vous qu'ils sont bien formatés selon la
+      <a href="http://tools.ietf.org/html/rfc2616">RFC 2616</a>, section
+      4.2 : les noms d'en-têtes doivent commencer par une lettre,
+      elle-même suivie de lettres, chiffres ou traits d'union. Tout
+      en-tête dont le nom viole cette règle sera ignoré.</p>
+
+    
+
+    <h3><a name="syntaxerrors" id="syntaxerrors">Erreurs inhérentes au programme</a></h3>
+      
+
+      <p>La plupart des échecs dans l'exécution d'un programme CGI
+      proviennent du programme lui-même. Ceci est particulièrement vrai
+      lorsque ce satané programme CGI se bloque, alors que vous avez
+      appris à ne plus commettre les deux erreurs précédentes. La
+      première chose à faire est de vous assurer que votre programme
+      s'exécute depuis la ligne de commande, avant de le tester à partir
+      du serveur web. Par exemple, essayez :</p>
+
+      <div class="example"><p><code>
+      cd /usr/local/apache2/cgi-bin<br />
+      ./premier.pl
+      </code></p></div>
+
+      <p>(N'invoquez pas l'interpréteur <code>perl</code>. Le shell et
+      Apache doivent être capable de le déterminer à partir de <a href="#pathinformation">l'information sur le chemin</a> située sur
+      la première ligne du script.)</p>
+
+      <p>La première chose que vous devriez voir affichée par votre
+      programme est un ensemble d'en-têtes HTTP, comprenant entre autres
+      le <code>Content-Type</code>, et suivi d'une ligne vide. Si vous
+      voyez quoi que ce soit d'autre, Apache renverra l'erreur
+      <code>Premature end of script headers</code> si vous tentez
+      d'exécuter le programme depuis le serveur. Voir <a href="#writing">Ecriture d'un programme CGI</a> ci-dessus pour
+      plus de détails.</p>
+    
+
+    <h3><a name="errorlogs" id="errorlogs">Journalisation des erreurs</a></h3>
+      
+
+      <p>Les journaux d'erreurs sont vos amis. Toute anomalie de
+      fonctionnement est consignée dans le journal des erreurs et c'est
+      ici que vous devez regarder en premier en cas de problème. Si
+      l'hébergeur de votre site ne vous donne pas accès au journal des
+      erreurs, vous avez tout intérêt à vous tourner vers quelqu'un
+      d'autre. Apprenez à déchiffrer les journaux d'erreurs, et vous
+      vous apercevrez que la plupart des problèmes seront rapidement
+      identifiés . . . et résolus.</p>
+    
+
+    <h3><a name="suexec" id="suexec">Suexec</a></h3>
+      
+
+      <p>Le programme <a href="../suexec.html">suexec</a> permet
+      d'exécuter les programmes CGI avec des droits différents selon le
+      serveur virtuel ou le répertoire utilisateur dans lequel ils
+      se situent. Suexec effectue une vérification des droits très
+      stricte, et toute anomalie détectée au cours de cette vérification
+      entraînera un echec d'exécution de votre programme CGI avec
+      affichage de l'erreur <code>Premature end of script
+      headers</code>.</p>
+
+      <p>Pour savoir si vous pouvez utiliser suexec, tapez la commande
+      <code>apachectl -V</code>, et regardez le chemin indiqué par
+      <code>SUEXEC_BIN</code>. Si au démarrage d'Apache, ce dernier
+      trouve un exécutable <code class="program"><a href="../programs/suexec.html">suexec</a></code> dans ce chemin,
+      suexec sera activé.</p>
+
+      <p>Si vous ne maîtrisez pas le fonctionnement de suexec, il vous
+      est déconseillé de l'utiliser. Pour désactiver suexec, supprimer
+      simplement (ou renommez) l'exécutable <code class="program"><a href="../programs/suexec.html">suexec</a></code>
+      pointé par <code>SUEXEC_BIN</code> et redémarrez le serveur. Si
+      après une lecture de <a href="../suexec.html">suexec</a>, vous
+      décidez quand-même de l'utiliser, tapez la commande <code>suexec
+      -V</code> pour voir où se situe le journal de suexec, et utilisez
+      ce dernier pour déterminer quelles règles vous violez
+      éventuellement.</p>
+    
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="behindscenes" id="behindscenes">Que se passe-t-il en coulisse</a></h2>
+    
+
+    <p>Lorsque vos compétences en programmation CGI seront plus
+    poussées, il s'avérera intéressant pour vous de mieux comprendre ce
+    qui se passe en coulisse, et en particulier la manière dont le
+    navigateur et le serveur dialoguent entre eux. En effet, bien qu'il
+    soit tout à fait louable d'écrire un programme qui affiche "Bonjour
+    tout le monde . . .", cela ne sert pas à grand chose.</p>
+
+    <h3><a name="env" id="env">Variables d'environnement</a></h3>
+      
+
+      <p>Les variables d'environnement sont des valeurs qui gravitent
+      autour de vous lorsque vous utilisez votre ordinateur. Elles sont
+      très utiles, à l'instar de votre chemin par défaut (où votre
+      ordinateur va rechercher le fichier physique correspondant à la
+      commande que vous avez tapée), votre nom d'utilisateur, le type de
+      votre terminal, etc... Pour obtenir une liste complète des
+      variables d'environnement standards que vous utilisez tous les
+      jours, tapez <code>env</code> dans votre interpréteur
+      de commandes.</p>
+
+      <p>Au cours de la transaction CGI, le serveur et le navigateur
+      définissent aussi des variables d'environnement, de façon à ce
+      qu'ils puissent communiquer entre eux. Ces variables définissent
+      entre autre le type de navigateur (Netscape, IE, Lynx), le type de
+      serveur (Apache, IIS, WebSite), le nom du programme CGI en cours
+      d'exécution, etc...</p>
+
+      <p>Ces variables sont à la disposition du programmeur CGI, et
+      elles constituent 50% de la communication client-serveur. La liste
+      complète des variables requises se trouve à
+      <a href="http://www.ietf.org/rfc/rfc3875">Common Gateway
+      Interface RFC</a>.</p>
+
+      <p>Ce programme CGI basique en Perl permet d'afficher toutes les
+      variables d'environnement qui sont échangées. Deux programmes
+      similaires sont fournis avec la distribution d'Apache et situés
+      dans le répertoire <code>cgi-bin</code>.
+      Notez que certaines variables sont
+      obligatoires, alors que d'autres sont optionnelles, si bien que
+      vous verrez s'afficher certaines variables qui ne font pas partie
+      de la liste officielle. De plus, Apache vous propose de nombreuses
+      méthodes pour <a href="../env.html">ajouter vos propres
+      variables d'environnement</a> aux variables de base fournies par
+      défaut.</p>
+
+      <pre class="prettyprint lang-perl">#!/usr/bin/perl
+use strict;
+use warnings;
+
+print "Content-type: text/html\n\n";
+foreach my $key (keys %ENV) {
+    print "$key --&gt; $ENV{$key}&lt;br&gt;";
+}</pre>
+
+    
+
+    <h3><a name="stdin" id="stdin">STDIN et STDOUT</a></h3>
+      
+
+      <p>L'entrée standard (<code>STDIN</code>) et la sortie standard
+      (<code>STDOUT</code>) constituent d'autres voies de communication
+      entre le client et le serveur. Dans un contexte normal,
+      <code>STDIN</code> correspond au clavier, ou à un fichier fourni
+      au programme à des fins de traitement, et <code>STDOUT</code> à la
+      console ou à l'écran.</p>
+
+      <p>Lorsque vous transmettez un formulaire web à un programme CGI
+      par la méthode <code>POST</code>, les données de ce formulaire
+      sont transcrites dans un format spécial et transmises à votre
+      programme CGI via <code>STDIN</code>. Le programme peut alors les
+      traiter comme si elles provenaient du clavier ou d'un
+      fichier.</p>
+
+      <p>Ce "format spécial" est très simple. Un nom de champ et sa
+      valeur sont reliés entre eux par un signe "égal" (=), et chacune
+      de ces paires nom champ/valeur est séparée de la suivante par un
+      "et" commercial (&amp;). Les caractères
+      spéciaux comme les espaces, les "et" commerciaux, et les signes
+      "égal" sont convertis en leur équivalent hexadécimal pour éviter
+      qu'ils ne gâchent le travail. La chaîne contenant les données doit
+      ressembler à ceci :</p>
+
+      <div class="example"><p><code>
+        name=Rich%20Bowen&amp;city=Lexington&amp;state=KY&amp;sidekick=Squirrel%20Monkey
+      </code></p></div>
+
+      <p>Vous verrez aussi parfois une chaîne de ce type accolée à une
+      URL. Dans ce cas, le serveur enregistre cette chaîne dans la
+      variable d'environnement appelée <code>QUERY_STRING</code>. On a
+      alors affaire à une requête de type <code>GET</code>. Votre
+      formulaire HTML indique laquelle des méthodes <code>GET</code> ou
+      <code>POST</code> est utilisée pour transmettre les données, en
+      définissant l'attribut <code>METHOD</code> au niveau de la balise
+      <code>FORM</code>.</p>
+
+      <p>Votre programme est ensuite chargé d'extraire les informations
+      utiles de cette chaîne. Heureusement, des bibliothèques et des
+      modules sont à votre disposition pour vous aider à traiter ces
+      données, et à gérer les différents aspects de votre programme
+      CGI.</p>
+    
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="libraries" id="libraries">Bibliothèques et modules CGI</a></h2>
+    
+
+    <p>Pour écrire un programme CGI, il vous est conseillé d'utiliser
+    une bibliothèque de code, ou un module, qui effectueront une grande
+    partie du travail de base pour vous. Ceci vous permettra de diminuer
+    le nombre d'erreurs et d'accélérer le développement.</p>
+
+    <p>Si vous écrivez des programmes CGI en Perl, des modules sont à
+    votre disposition à <a href="http://www.cpan.org/">CPAN</a>. A ce
+    sujet, le module le plus populaire est <code>CGI.pm</code>. Vous
+    pouvez aussi essayer <code>CGI::Lite</code>, qui implémente les
+    fonctionnalités strictement nécessaires, mais suffisantes pour
+    la majorité des programmes.</p>
+
+    <p>Si vous écrivez des programmes CGI en C, vous disposez de
+    nombreuses options. L'une d'elles est la bibliothèque
+    <code>CGIC</code> de <a href="http://www.boutell.com/cgic/">http://www.boutell.com/cgic/</a>.</p>
+  </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="moreinfo" id="moreinfo">Pour plus d'informations</a></h2>
+    
+
+    <p>La spécification CGI actuelle est disponible dans la <a href="http://www.ietf.org/rfc/rfc3875">Common Gateway
+    Interface RFC</a>.</p>
+
+    <p>Lorsque vous postez une question à propos d'un problème CGI que
+    vous rencontrez, que ce soit dans une liste de diffusion ou dans un
+    newsgroup, faites en sorte de fournir suffisamment d'informations
+    sur le problème rencontré, ce que vous attendiez exactement, et en
+    quoi ce qui se produit est réellement différent de ce que vous
+    attendiez, quel serveur vous utilisez, en quel langage votre
+    programme CGI a été écrit, et, si possible, son code source. Ceci
+    permettra une résolution plus aisée de votre problème.</p>
+
+    <p>Notez que les questions à propos de problèmes CGI ne doivent
+    <strong>jamais</strong> être postées dans la base de données de
+    bogues d'Apache, à moins que vous ne soyez sûr d'avoir trouvé un
+    problème dans le code source d'Apache.</p>
+  </div></div>
+<div class="bottomlang">
+<p><span>Langues Disponibles: </span><a href="../en/howto/cgi.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../es/howto/cgi.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="../fr/howto/cgi.html" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/howto/cgi.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/howto/cgi.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Commentaires</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/howto/cgi.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Autorisé sous <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

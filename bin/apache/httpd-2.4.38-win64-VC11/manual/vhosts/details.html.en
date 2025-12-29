@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>An In-Depth Discussion of Virtual Host Matching - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Virtual Hosts</a></div><div id="page-content"><div id="preamble"><h1>An In-Depth Discussion of Virtual Host Matching</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/vhosts/details.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/details.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ko/vhosts/details.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/details.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+
+    <p>This document attempts to explain
+    exactly what Apache HTTP Server does when deciding what virtual host to
+    serve a request from.</p>
+
+    <p>Most users should read about <a href="name-based.html#namevip">
+    Name-based vs. IP-based Virtual Hosts</a> to decide which type they
+    want to use, then read more about <a href="name-based.html">name-based</a>
+    or <a href="ip-based.html">IP-based</a> virtualhosts, and then see
+    <a href="examples.html">some examples</a>.</p>
+
+    <p>If you want to understand all the details, then you can
+    come back to this page.</p>
+
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#configparsing">Configuration File</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#hostmatching">Virtual Host Matching</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#tips">Tips</a></li>
+</ul><h3>See also</h3><ul class="seealso"><li><a href="ip-based.html">IP-based Virtual Host Support</a></li><li><a href="name-based.html">Name-based Virtual Hosts Support</a></li><li><a href="examples.html">Virtual Host examples for common setups</a></li><li><a href="mass.html">Dynamically configured mass virtual hosting</a></li><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="configparsing" id="configparsing">Configuration File</a></h2>
+
+    <p>There is a <em>main server</em> which consists of all the
+    definitions appearing outside of
+    <code>&lt;VirtualHost&gt;</code> sections.</p>
+
+    <p>There are virtual
+    servers, called <em>vhosts</em>, which are defined by
+    <code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code>
+    sections.</p>
+
+    <p>Each <code>VirtualHost</code> directive includes one
+    or more addresses and optional ports.</p>
+
+    <p>Hostnames can be used in place of IP addresses in a virtual
+    host definition, but they are resolved at startup and if any name
+    resolutions fail, those virtual host definitions are ignored.
+    This is, therefore, not recommended.</p>
+
+    <p>The address can be specified as
+    <code>*</code>, which will match a request if no
+    other vhost has the explicit address on which the request was
+    received. </p>
+
+    <p>The address appearing in the <code>VirtualHost</code>
+    directive can have an optional port. If the port is unspecified,
+    it is treated as a wildcard port, which can also be indicated
+    explicitly using <code>*</code>.
+    The wildcard port matches any port.</p>
+
+    <p>(Port numbers specified in the <code>VirtualHost</code> directive do
+    not influence what port numbers Apache will listen on, they only control
+    which <code>VirtualHost</code> will be selected to handle a request.
+    Use the <code class="directive"><a href="../mod/mpm_common.html#listen">Listen</a></code> directive to
+    control the addresses and ports on which the server listens.)
+    </p>
+
+    <p>Collectively the
+    entire set of addresses (including multiple
+    results from DNS lookups) are called the vhost's
+    <em>address set</em>.</p>
+
+    <p>Apache automatically discriminates on the
+    basis of the HTTP <code>Host</code> header supplied by the client
+    whenever the most specific match for an IP address and port combination
+    is listed in multiple virtual hosts.</p>
+
+    <p>The
+    <code class="directive"><a href="../mod/core.html#servername">ServerName</a></code> directive
+    may appear anywhere within the definition of a server. However,
+    each appearance overrides the previous appearance (within that
+    server).  If no <code>ServerName</code> is specified, the server
+    attempts to deduce it from the server's IP address.</p>
+
+    <p>The first name-based vhost in the configuration file for a
+    given IP:port pair is significant because it is used for all
+    requests received on that address and port for which no other
+    vhost for that IP:port pair has a matching ServerName or
+    ServerAlias.  It is also used for all SSL connections if the
+    server does not support <a class="glossarylink" href="../glossary.html#servernameindication" title="see glossary">Server Name Indication</a>.</p>
+
+    <p>The complete list of names in the <code>VirtualHost</code>
+    directive are treated just like a (non wildcard) <code>ServerAlias</code>
+    (but are not overridden by any <code>ServerAlias</code> statement).</p>
+
+    <p>For every vhost various default values are set. In
+    particular:</p>
+
+    <ol>
+      <li>If a vhost has no <code class="directive"><a href="../mod/core.html#serveradmin">ServerAdmin</a></code>,
+      <code class="directive"><a href="../mod/core.html#timeout">Timeout</a></code>,
+      <code class="directive"><a href="../mod/core.html#keepalivetimeout">KeepAliveTimeout</a></code>,
+      <code class="directive"><a href="../mod/core.html#keepalive">KeepAlive</a></code>,
+      <code class="directive"><a href="../mod/core.html#maxkeepaliverequests">MaxKeepAliveRequests</a></code>,
+      <code class="directive"><a href="../mod/mpm_common.html#receivebuffersize">ReceiveBufferSize</a></code>,
+      or <code class="directive"><a href="../mod/mpm_common.html#sendbuffersize">SendBufferSize</a></code>
+      directive then the respective value is inherited from the
+      main server. (That is, inherited from whatever the final
+      setting of that value is in the main server.)</li>
+
+      <li>The "lookup defaults" that define the default directory
+      permissions for a vhost are merged with those of the
+      main server. This includes any per-directory configuration
+      information for any module.</li>
+
+      <li>The per-server configs for each module from the
+      main server are merged into the vhost server.</li>
+    </ol>
+
+    <p>Essentially, the main server is treated as "defaults" or a
+    "base" on which to build each vhost. But the positioning of
+    these main server definitions in the config file is largely
+    irrelevant -- the entire config of the main server has been
+    parsed when this final merging occurs. So even if a main server
+    definition appears after a vhost definition it might affect the
+    vhost definition.</p>
+
+    <p>If the main server has no <code>ServerName</code> at this
+    point, then the hostname of the machine that <code class="program"><a href="../programs/httpd.html">httpd</a></code>
+    is running on is used instead. We will call the <em>main server address
+    set</em> those IP addresses returned by a DNS lookup on the
+    <code>ServerName</code> of the main server.</p>
+
+    <p>For any undefined <code>ServerName</code> fields, a
+    name-based vhost defaults to the address given first in the
+    <code>VirtualHost</code> statement defining the vhost.</p>
+
+    <p>Any vhost that includes the magic <code>_default_</code>
+    wildcard is given the same <code>ServerName</code> as the
+    main server.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="hostmatching" id="hostmatching">Virtual Host Matching</a></h2>
+
+    <p>The server determines which vhost to use for a request as
+    follows:</p>
+
+    <h3><a name="hashtable" id="hashtable">IP address lookup</a></h3>
+
+    <p>When the connection is first received on some address and port,
+    the server looks for all the <code>VirtualHost</code> definitions
+    that have the same IP address and port.</p>
+
+    <p>If there are no exact matches for the address and port, then
+    wildcard (<code>*</code>) matches are considered.</p>
+
+    <p>If no matches are found, the request is served by the
+    main server.</p>
+
+    <p>If there are <code>VirtualHost</code> definitions for
+    the IP address, the next step is to decide if we have to
+    deal with an IP-based or a name-based vhost.</p>
+
+    
+
+    <h3><a name="ipbased" id="ipbased">IP-based vhost</a></h3>
+
+    <p>If there is exactly one <code>VirtualHost</code> directive
+    listing the IP address and port combination that was determined
+    to be the best match, no further actions are performed and
+    the request is served from the matching vhost.</p>
+
+    
+
+    <h3><a name="namebased" id="namebased">Name-based vhost</a></h3>
+
+    <p>If there are multiple <code>VirtualHost</code> directives listing
+    the IP address and port combination that was determined to be the
+    best match, the "list" in the remaining steps refers to the list of vhosts
+    that matched, in the order they were in the configuration file.</p>
+
+    <p>If the connection is using SSL, the server supports <a class="glossarylink" href="../glossary.html#servernameindication" title="see glossary">Server Name Indication</a>, and
+    the SSL client handshake includes the TLS extension with the
+    requested hostname, then that hostname is used below just like the
+    <code>Host:</code> header would be used on a non-SSL connection.
+    Otherwise, the first name-based vhost whose address matched is
+    used for SSL connections.  This is significant because the
+    vhost determines which certificate the server will use for the
+    connection.</p>
+
+    <p>If the request contains a <code>Host:</code> header field, the
+    list is searched for the first vhost with a matching
+    <code>ServerName</code> or <code>ServerAlias</code>, and the
+    request is served from that vhost. A <code>Host:</code> header
+    field can contain a port number, but Apache always ignores it and
+    matches against the real port to which the client sent the
+    request.</p>
+
+    <p>The first vhost in the config
+    file with the specified IP address has the highest priority
+    and catches any request to an unknown server name, or a request
+    without a <code>Host:</code> header field (such as a HTTP/1.0
+    request).</p>
+
+    
+
+    <h3><a name="persistent" id="persistent">Persistent connections</a></h3>
+
+    <p>The <em>IP lookup</em> described above is only done <em>once</em> for a
+    particular TCP/IP session while the <em>name lookup</em> is done on
+    <em>every</em> request during a KeepAlive/persistent
+    connection. In other words, a client may request pages from
+    different name-based vhosts during a single persistent
+    connection.</p>
+
+    
+
+    <h3><a name="absoluteURI" id="absoluteURI">Absolute URI</a></h3>
+
+    <p>If the URI from the request is an absolute URI, and its
+    hostname and port match the main server or one of the
+    configured virtual hosts <em>and</em> match the address and
+    port to which the client sent the request, then the
+    scheme/hostname/port prefix is stripped off and the remaining
+    relative URI is served by the corresponding main server or
+    virtual host. If it does not match, then the URI remains
+    untouched and the request is taken to be a proxy request.</p>
+
+
+<h3><a name="observations" id="observations">Observations</a></h3>
+
+    <ul>
+      <li>Name-based virtual hosting is a process applied after
+      the server has selected the best matching IP-based virtual
+      host.</li>
+
+      <li>If you don't care what IP address the client has connected to, use a
+      "*" as the address of every virtual host, and name-based virtual hosting
+      is applied across all configured virtual hosts.</li>
+
+      <li><code>ServerName</code> and <code>ServerAlias</code>
+      checks are never performed for an IP-based vhost.</li>
+
+      <li>Only the ordering of
+      name-based vhosts for a specific address set is significant.
+      The one name-based vhosts that comes first in the
+      configuration file has the highest priority for its
+      corresponding address set.</li>
+
+      <li>Any port in the <code>Host:</code> header field is never used during the
+      matching process. Apache always uses the real port to which
+      the client sent the request.</li>
+
+      <li>If two vhosts have an address in common, those common addresses
+      act as name-based virtual hosts implicitly.  This is new behavior as of
+      2.3.11.</li>
+
+      <li>The main server is only used to serve a request if the IP
+      address and port number to which the client connected
+      does not match any vhost (including a
+      <code>*</code> vhost). In other words, the main server
+      only catches a request for an unspecified address/port
+      combination (unless there is a <code>_default_</code> vhost
+      which matches that port).</li>
+
+      <li>You should never specify DNS names in
+      <code>VirtualHost</code> directives because it will force
+      your server to rely on DNS to boot. Furthermore it poses a
+      security threat if you do not control the DNS for all the
+      domains listed. There's <a href="../dns-caveats.html">more
+      information</a> available on this and the next two
+      topics.</li>
+
+      <li><code>ServerName</code> should always be set for each
+      vhost. Otherwise a DNS lookup is required for each
+      vhost.</li>
+      </ul>
+      
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="tips" id="tips">Tips</a></h2>
+
+    <p>In addition to the tips on the <a href="../dns-caveats.html#tips">DNS Issues</a> page, here are
+    some further tips:</p>
+
+    <ul>
+      <li>Place all main server definitions before any
+      <code>VirtualHost</code> definitions. (This is to aid the
+      readability of the configuration -- the post-config merging
+      process makes it non-obvious that definitions mixed in around
+      virtual hosts might affect all virtual hosts.)</li>
+    </ul>
+
+</div></div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/vhosts/details.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/details.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ko/vhosts/details.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/details.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/vhosts/details.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

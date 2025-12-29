@@ -1,0 +1,657 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+<meta content="text/html; charset=EUC-KR" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>가상호스트 예 - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">가상호스트</a></div><div id="page-content"><div id="preamble"><h1>가상호스트 예</h1>
+<div class="toplang">
+<p><span>가능한 언어: </span><a href="../en/vhosts/examples.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/examples.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ja/vhosts/examples.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/vhosts/examples.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/examples.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">이 문서는 최신판 번역이 아닙니다.
+            최근에 변경된 내용은 영어 문서를 참고하세요.</div>
+
+
+    <p>이 문서는 자주 문의되는 가상호스트
+    질문에 답을 하려고 쓰여졌다. 상황은 <a href="name-based.html">이름기반</a>이나 <a href="ip-based.html">IP기반</a> 가상호스트를 통해 한 서버에서
+    여러 웹사이트를 서비스하려는 경우이다. 한 프록시 서버 뒤에서
+    여러 서버를 사용하여 사이트를 운영하는 경우를 다룬 문서도
+    곧 나올 것이다.</p>
+
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#purename">IP 주소 한개에 여러 이름기반
+    웹사이트 운영하기.</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#twoips">여러 IP 주소에서 이름기반
+    호스트.</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#intraextra">(내부와 외부 주소와 같이)
+    다른 IP 주소로 같은 내용을 서비스하기.</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#port">여러 포트에서 서로 다른 사이트
+    운영하기.</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ip">IP기반 가상호스트</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ipport">포트기반과 ip기반이 혼합된
+    가상호스트</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#mixed">이름기반과 IP기반이 혼합된
+    가상호스트</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#default"><code>_default_</code> 가상호스트
+    사용하기</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#migrate">이름기반 가상호스트를 IP기반
+    가상호스트로 옮기기</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#serverpath"><code>ServerPath</code>
+	지시어 사용하기</a></li>
+</ul><h3>참고</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="purename" id="purename">IP 주소 한개에 여러 이름기반
+    웹사이트 운영하기.</a></h2>
+
+    <p>서버에 IP 주소가 한개 있고, DNS에서 여러 주소(CNAMES)가
+    이 컴퓨터를 가리킨다. 이 컴퓨터에서 <code>www.example.com</code>과
+    <code>www.example.org</code>의 웹서버를 실행하고 싶다.</p>
+
+    <div class="note"><h3>Note</h3><p>아파치 서버에 가상호스트 설정을
+          한다고 그 호스트명에 대한 DNS 항목이 자동이로 생성되지
+          않는다. <em>반드시</em> DNS에 IP 주소를 가리키는
+          이름이 있어야 한다. 안그러면 아무도 웹사이트를 볼
+          수 없다. 검사해보기 위해 <code>hosts</code> 파일에 항목을
+          추가할 수 있지만, 이는 hosts 항목을 가진 컴퓨터에만
+          반영된다.</p>
+    </div>
+
+    <div class="example"><h3>서버 설정</h3><p><code>
+    
+
+    # 아파치가 포트 80을 기다린다<br />
+    Listen 80<br />
+    <br />
+    # 모든 IP 주소에서 가상호스트 요청을 기다린다<br />
+    NameVirtualHost *:80<br />
+    <br />
+    &lt;VirtualHost *:80&gt;<br />
+    <span class="indent">
+      DocumentRoot /www/example1<br />
+      ServerName www.example.com<br />
+      <br />
+      # 다른 지시어들도 있다<br />
+      <br />
+    </span>
+    &lt;/VirtualHost&gt;<br />
+    <br />
+    &lt;VirtualHost *:80&gt;<br />
+    <span class="indent">
+      DocumentRoot /www/example2<br />
+      ServerName www.example.org<br />
+      <br />
+      # 다른 지시어들도 있다<br />
+      <br />
+    </span>
+    &lt;/VirtualHost&gt;
+    </code></p></div>
+
+    <p>별표는 모든 주소를 가리키므로, 주서버는 어떤 요청도
+    서비스하지 않는다. <code>www.example.com</code>이
+    설정파일에 처음으로 나오므로 가장 높은 우선순위를 가지며,
+    <cite>기본</cite>혹은 <cite>초기</cite> 서버가 된다.
+    어떤 <code>ServerName</code> 지시어에도 해당되지않는 요청은
+    첫번째 <code>VirtualHost</code>가 서비스한다.</p>
+
+    <div class="note">
+            <h3>주의</h3>
+
+            <p>원한다면 <code>*</code> 대신 시스템의 실제 IP
+            주소를 사용할 수 있다. 이 경우
+            <code>VirtualHost</code>의 아규먼트는
+            <code>NameVirtualHost</code>의 아규먼트와 일치해야
+            <em>한다</em>:</p>
+
+            <div class="example"><p><code>
+            NameVirtualHost 172.20.30.40<br />
+						<br />
+            &lt;VirtualHost 172.20.30.40&gt;<br />
+ 		        # 생략 ...
+            </code></p></div>
+
+           <p>그러나 ISP에서 동적으로 IP 주소를 가져오는 등
+           IP 주소를 모르는 경우에는 <code>*</code>를 사용하는
+           것이 유용하다. <code>*</code>는 모든 IP 주소에
+           해당하므로, IP 주소가 변경되어도 설정을 변경할
+           필요가 없다.</p>
+    </div>
+
+    <p>거의 대부분의 이름기반 가상호스트 설정은 위와 같다.
+    예외는 다른 IP 주소나 포트로 다른 내용을 서비스하려는
+    경우이다.</p>
+
+	</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="twoips" id="twoips">여러 IP 주소에서 이름기반
+    호스트.</a></h2>
+
+  	<div class="note">
+		  <h3>주의</h3><p>여기서 설명한 방법은 IP 주소가
+          몇개라도 적용가능하다.</p>
+    </div>
+
+    <p>서버는 IP 주소가 두개있다. 하나에서
+    (<code>172.20.30.40</code>) "주" 서버
+    <code>server.domain.com</code>을 서비스하고, 다른 하나에서
+    (<code>172.20.30.50</code>) 여러 가상호스트를 서비스할
+    것이다.</p>
+
+    <div class="example"><h3>서버 설정</h3><p><code>
+    
+
+    Listen 80<br />
+		<br />
+    # 172.20.30.40에서 실행하는 "주"서버이다<br />
+    ServerName server.domain.com<br />
+    DocumentRoot /www/mainserver<br />
+		<br />
+    # 다른 주소다<br />
+    NameVirtualHost 172.20.30.50<br />
+		<br />
+    &lt;VirtualHost 172.20.30.50&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/example1<br />
+        ServerName www.example.com<br />
+   			<br />
+        # 다른 지시어들도 있다 ...<br />
+				<br />
+    </span>
+    &lt;/VirtualHost&gt;<br />
+		<br />
+    &lt;VirtualHost 172.20.30.50&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/example2<br />
+        ServerName www.example.org<br />
+				<br />
+        # 다른 지시어들도 있다 ...<br />
+				<br />
+    </span>
+    &lt;/VirtualHost&gt;
+    </code></p></div>
+
+    <p><code>172.20.30.50</code>이 아닌 주소에 대한 요청은
+    주서버가 서비스한다. 호스트명 없이, 즉 <code>Host:</code>
+    헤더없이 <code>172.20.30.50</code>로 요청하면
+    <code>www.example.com</code>이 서비스한다.</p>
+
+	</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="intraextra" id="intraextra">(내부와 외부 주소와 같이)
+    다른 IP 주소로 같은 내용을 서비스하기.</a></h2>
+
+    <p>서버 컴퓨터에 IP 주소가 두개 (<code>192.168.1.1</code>과
+    <code>172.20.30.40</code>) 있다. 컴퓨터는 내부 (인트라넷)
+    네트웍과 외부 (인터넷) 네트웍 사이에 위치한다. 네트웍 밖에서
+    <code>server.example.com</code>은 외부 주소를
+    (<code>172.20.30.40</code>) 의미하고, 네트웍 내부에서 같은
+    이름을 내부 주소로 (<code>192.168.1.1</code>) 사용한다.</p>
+
+    <p>서버는 <code>VirtualHost</code> 섹션 한개로 내부와 외부
+    응답에 같은 내용을 서비스할 수 있다.</p>
+
+    <div class="example"><h3>서버 설정</h3><p><code>
+    
+
+    NameVirtualHost 192.168.1.1<br />
+    NameVirtualHost 172.20.30.40<br />
+		<br />
+    &lt;VirtualHost 192.168.1.1 172.20.30.40&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/server1<br />
+        ServerName server.example.com<br />
+        ServerAlias server<br />
+    </span>
+    &lt;/VirtualHost&gt;
+    </code></p></div>
+
+    <p>이제 두 네트웍에서 들어온 요청을 같은
+    <code>VirtualHost</code>에서 서비스한다.</p>
+
+    <div class="note">
+          <h3>주의:</h3><p>내부 네트웍에서는 완전한 호스트명
+          <code>server.example.com</code> 대신 이름
+          <code>server</code>도 가능하다.</p>
+
+          <p>또한 위의 예에서 IP 주소 대신 <code>*</code>을
+          사용하여 서버가 모든 주소에 동일하게 동작할 수
+          있다.</p>
+    </div>
+
+	</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="port" id="port">여러 포트에서 서로 다른 사이트
+    운영하기.</a></h2>
+
+    <p>같은 IP의 여러 포트에서 서로 다른 도메인을 서비스한다고
+    가정하자. 이는 "NameVirtualHost" 태그에 포트를 정의하면
+    가능하다. NameVirtualHost name:port없이 &lt;VirtualHost
+    name:port&gt;만 혹은 Listen 지시어만 사용하면 안된다.</p>
+
+    <div class="example"><h3>서버 설정</h3><p><code>
+    
+
+    Listen 80<br />
+    Listen 8080<br />
+		<br />
+    NameVirtualHost 172.20.30.40:80<br />
+    NameVirtualHost 172.20.30.40:8080<br />
+		<br />
+    &lt;VirtualHost 172.20.30.40:80&gt;<br />
+    <span class="indent">
+        ServerName www.example.com<br />
+        DocumentRoot /www/domain-80<br />
+    </span>
+    &lt;/VirtualHost&gt;<br />
+		<br />
+    &lt;VirtualHost 172.20.30.40:8080&gt;<br />
+    <span class="indent">
+        ServerName www.example.com<br />
+        DocumentRoot /www/domain-8080<br />
+    </span>
+    &lt;/VirtualHost&gt;<br />
+		<br />
+    &lt;VirtualHost 172.20.30.40:80&gt;<br />
+    <span class="indent">
+        ServerName www.example.org<br />
+        DocumentRoot /www/otherdomain-80<br />
+    </span>
+    &lt;/VirtualHost&gt;<br />
+		<br />
+    &lt;VirtualHost 172.20.30.40:8080&gt;<br />
+    <span class="indent">
+        ServerName www.example.org<br />
+        DocumentRoot /www/otherdomain-8080<br />
+    </span>
+    &lt;/VirtualHost&gt;
+    </code></p></div>
+
+	</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="ip" id="ip">IP기반 가상호스트</a></h2>
+
+    <p>서버는 각각 <code>www.example.com</code>과
+    <code>www.example.org</code>에 해당하는 두 IP 주소를
+    (<code>172.20.30.40</code>과 <code>172.20.30.50</code>)
+    가진다.</p>
+
+    <div class="example"><h3>서버 설정</h3><p><code>
+    
+
+    Listen 80<br />
+		<br />
+    &lt;VirtualHost 172.20.30.40&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/example1<br />
+        ServerName www.example.com<br />
+    </span>
+    &lt;/VirtualHost&gt;<br />
+		<br />
+    &lt;VirtualHost 172.20.30.50&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/example2<br />
+        ServerName www.example.org<br />
+    </span>
+    &lt;/VirtualHost&gt;
+    </code></p></div>
+
+    <p><code>&lt;VirtualHost&gt;</code> 지시어로 지정한 주소에
+    해당하지않는 주소로 (예를 들어, <code>localhost</code>)
+    요청이 들어오면 주서버가 있는 경우 주서버가 서비스한다.</p>
+
+	</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="ipport" id="ipport">포트기반과 ip기반이 혼합된
+    가상호스트</a></h2>
+
+    <p>서버는 각각 <code>www.example.com</code>과
+    <code>www.example.org</code>에 해당하는 두 IP 주소를
+    (<code>172.20.30.40</code>과 <code>172.20.30.50</code>)
+    가진다. 각 IP의 80번과 8080번 포트에 가상호스트를 돌린다.</p>
+
+    <div class="example"><h3>서버 설정</h3><p><code>
+    
+
+    Listen 172.20.30.40:80<br />
+    Listen 172.20.30.40:8080<br />
+    Listen 172.20.30.50:80<br />
+    Listen 172.20.30.50:8080<br />
+		<br />
+    &lt;VirtualHost 172.20.30.40:80&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/example1-80<br />
+        ServerName www.example.com<br />
+    </span>
+    &lt;/VirtualHost&gt;<br />
+		<br />
+    &lt;VirtualHost 172.20.30.40:8080&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/example1-8080<br />
+        ServerName www.example.com<br />
+		</span>
+    &lt;/VirtualHost&gt;<br />
+		<br />
+    &lt;VirtualHost 172.20.30.50:80&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/example2-80<br />
+        ServerName www.example.org<br />
+    </span>
+    &lt;/VirtualHost&gt;<br />
+		<br />
+    &lt;VirtualHost 172.20.30.50:8080&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/example2-8080<br />
+        ServerName www.example.org<br />
+    </span>
+    &lt;/VirtualHost&gt;
+    </code></p></div>
+
+	</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="mixed" id="mixed">이름기반과 IP기반이 혼합된
+    가상호스트</a></h2>
+
+    <p>주소중 몇몇은 이름기반 가상호스트로, 다른 것은 IP기반
+    가상호스트로 서비스하고 싶다.</p>
+
+    <div class="example"><h3>서버 설정</h3><p><code>
+    
+
+    Listen 80<br />
+		<br />
+    NameVirtualHost 172.20.30.40<br />
+		<br />
+    &lt;VirtualHost 172.20.30.40&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/example1<br />
+        ServerName www.example.com<br />
+    </span>
+    &lt;/VirtualHost&gt;<br />
+		<br />
+    &lt;VirtualHost 172.20.30.40&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/example2<br />
+        ServerName www.example.org<br />
+    </span>
+    &lt;/VirtualHost&gt;<br />
+		<br />
+    &lt;VirtualHost 172.20.30.40&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/example3<br />
+        ServerName www.example3.net<br />
+    </span>
+    &lt;/VirtualHost&gt;<br />
+		<br />
+    # IP-기반<br />
+    &lt;VirtualHost 172.20.30.50&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/example4<br />
+        ServerName www.example4.edu<br />
+    </span>
+    &lt;/VirtualHost&gt;<br />
+		<br />
+    &lt;VirtualHost 172.20.30.60&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/example5<br />
+        ServerName www.example5.gov<br />
+    </span>
+    &lt;/VirtualHost&gt;
+    </code></p></div>
+
+	</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="default" id="default"><code>_default_</code> 가상호스트
+    사용하기</a></h2>
+
+  	<h3><a name="defaultallports" id="defaultallports">모든 포트에 대한
+    <code>_default_</code> 가상호스트</a></h3>
+
+    <p>어떤 가상호스트에도 해당하지않은 IP 주소와 포트에 대한
+    <em>모든</em> 요청을 처리하기.</p>
+
+    <div class="example"><h3>서버 설정</h3><p><code>
+    
+
+    &lt;VirtualHost _default_:*&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/default<br />
+    </span>
+    &lt;/VirtualHost&gt;
+    </code></p></div>
+
+    <p>default(기본) 가상호스트의 포트로 와일드카드를 사용하여 어떤 요청도
+    주서버로 못가도록 만든다.</p>
+
+    <p>default 가상호스트는 절대로 이름기반 가상호스트가 사용하는
+    주소/포트로의 요청을 서비스하지 않는다. 알 수 없거나
+    <code>Host:</code> 헤더가 생략된 요청은 항상 최초의 이름기반
+    가상호스트(설정파일에서
+    주소/포트가 처음으로 나온 가상호스트)가 서비스한다.</p>
+
+    <p><code class="directive"><a href="../mod/mod_alias.html#aliasmatch">AliasMatch</a></code>나
+    <code class="directive"><a href="../mod/mod_rewrite.html#rewriterule">RewriteRule</a></code>을
+    사용하여 어떤 요청을 특정 페이지(혹은 스크립트)로
+    재작성할(rewrite) 수 있다.</p>
+    
+
+    <h3><a name="defaultdifferentports" id="defaultdifferentports">여러 포트에 대한
+    <code>_default_</code> 가상호스트</a></h3>
+
+    <p>위의 경우와 같지만, 서버는 여러 포트를 기다리고 80번
+    포트에 대해서 추가로 <code>_default_</code> 가상호스트를
+    사용하고 싶다.</p>
+
+    <div class="example"><h3>서버 설정</h3><p><code>
+    
+
+    &lt;VirtualHost _default_:80&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/default80<br />
+        # ...<br />
+    </span>
+    &lt;/VirtualHost&gt;<br />
+		<br />
+    &lt;VirtualHost _default_:*&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/default<br />
+        # ...<br />
+    </span>
+    &lt;/VirtualHost&gt;
+    </code></p></div>
+
+    <p>80번 포트에 대한 default 가상호스트는 (<em>반드시</em>
+    와일드카드 포트를 가진 기본 가상호스트 이전에 나와야 한다)
+    지정하지않은 IP 주소로 보내진 모든 요청을 서비스한다.
+    주서버는 절대로 요청을 서비스하지 못한다.</p>
+    
+
+    <h3><a name="defaultoneport" id="defaultoneport">한 포트에 대한
+    <code>_default_</code> 가상호스트</a></h3>
+
+    <p>80번 포트에 대해서만 default 가상호스트를 만들고 싶다.</p>
+
+    <div class="example"><h3>서버 설정</h3><p><code>
+    
+
+    &lt;VirtualHost _default_:80&gt;<br />
+    DocumentRoot /www/default<br />
+    ...<br />
+    &lt;/VirtualHost&gt;
+    </code></p></div>
+
+    <p>포트 80번에 지정하지않은 주소에 대한 요청은 기본
+    가상호스트가 서비스하고, 다른 지정하지않은 주소와 포트를
+    가진 요청은 주 서버가 서비스한다.</p>
+    
+
+	</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="migrate" id="migrate">이름기반 가상호스트를 IP기반
+    가상호스트로 옮기기</a></h2>
+
+    <p>(<a href="#name">이름기반</a>의 첫번째 예에서) 호스트명
+    <code>www.example.org</code>에 대한 이름기반 가상호스트는
+    자신의 IP 주소를 가져야 한다. 이름기반 가상호스트의 이전
+    IP 주소를 캐싱하는 네임서버나 프록시와의 문제를 피하기위해
+    옮기는 동안 둘 모두를 서비스하고 싶다.</p>
+
+    <p>
+     방법은 <code>VirtualHost</code> 지시어에 새 IP 주소만을
+    (<code>172.20.30.50</code>) 추가하면되므로 쉽다.</p>
+
+    <div class="example"><h3>서버 설정</h3><p><code>
+    
+
+    Listen 80<br />
+    ServerName www.example.com<br />
+    DocumentRoot /www/example1<br />
+		<br />
+    NameVirtualHost 172.20.30.40<br />
+		<br />
+    &lt;VirtualHost 172.20.30.40 172.20.30.50&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/example2<br />
+        ServerName www.example.org<br />
+        # ...<br />
+    </span>
+    &lt;/VirtualHost&gt;<br />
+		<br />
+    &lt;VirtualHost 172.20.30.40&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/example3<br />
+        ServerName www.example.net<br />
+        ServerAlias *.example.net<br />
+        # ...<br />
+    </span>
+    &lt;/VirtualHost&gt;
+    </code></p></div>
+
+    <p>이제 (IP기반 가상호스트를 통한) 새로운 주소와 (이름기반
+    가상호스트를 통한) 이전 주소 모두 가상호스트에 접근할
+    수 있다.</p>
+
+	</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="serverpath" id="serverpath"><code>ServerPath</code>
+	지시어 사용하기</a></h2>
+
+    <p>두 이름기반 가상호스트를 가진 서버가 있다. 올바른
+    가상호스트를 선택하기위해 클라이언트는 올바른
+    <code>Host:</code> 헤더를 보내야 한다. 오래된 HTTP/1.0
+    클라이언트가 이 헤더를 보내지 못하면 아파치는 클라이언트가
+    어떤 가상호스트를 보려고하는지 알 수 없다 (그래서 최초의
+    가상호스트가 요청을 서비스한다). 오래된 브라우저와 가능한 호환을
+    유지하기위해 최초의 가상호스트를 만들고, 여기에 이름기반
+    가상호스트의 URL 접두사를 포함하는 링크 목록 페이지를
+    둔다.</p>
+
+    <div class="example"><h3>서버 설정</h3><p><code>
+    
+
+    NameVirtualHost 172.20.30.40<br />
+		<br />
+    &lt;VirtualHost 172.20.30.40&gt;<br />
+    <span class="indent">
+        # primary vhost<br />
+        DocumentRoot /www/subdomain<br />
+        RewriteEngine On<br />
+        RewriteRule ^/.* /www/subdomain/index.html<br />
+        # ...<br />
+    </span>
+    &lt;/VirtualHost&gt;<br />
+		<br />
+    &lt;VirtualHost 172.20.30.40&gt;<br />
+    DocumentRoot /www/subdomain/sub1<br />
+    <span class="indent">
+        ServerName www.sub1.domain.tld<br />
+        ServerPath /sub1/<br />
+        RewriteEngine On<br />
+        RewriteRule ^(/sub1/.*) /www/subdomain$1<br />
+        # ...<br />
+    </span>
+    &lt;/VirtualHost&gt;<br />
+		<br />
+    &lt;VirtualHost 172.20.30.40&gt;<br />
+    <span class="indent">
+        DocumentRoot /www/subdomain/sub2<br />
+        ServerName www.sub2.domain.tld<br />
+        ServerPath /sub2/<br />
+        RewriteEngine On<br />
+        RewriteRule ^(/sub2/.*) /www/subdomain$1<br />
+        # ...<br />
+    </span>
+    &lt;/VirtualHost&gt;
+    </code></p></div>
+
+    <p><code class="directive"><a href="../mod/core.html#serverpath">ServerPath</a></code> 지시어때문에
+    URL <code>http://www.sub1.domain.tld/sub1/</code>에 대한
+    요청은 <em>항상</em> subl-가상호스트가 서비스한다.<br />
+    클라이언트가 올바른 <code>Host:</code> 헤더를 보낸다면,
+    URL <code>http://www.sub1.domain.tld/</code>에 대한 요청은
+    subl-가상호스트에서만 서비스한다. 만약 <code>Host:</code> 헤더를
+    보내지않으면 클라이언트는 최초의 호스트에 있는 정보페이지를
+    보게된다.</p>
+
+    <p>여기에 문제가 있음을 주의하라: 클라이언트가
+    <code>Host:</code> 헤더를 보내지않으면
+    <code>http://www.sub2.domain.tld/sub1/</code>에 대한 요청도
+    subl-가상호스트가 서비스한다.</p>
+
+    <p><code class="directive"><a href="../mod/mod_rewrite.html#rewriterule">RewriteRule</a></code>
+    지시어를 사용하여 올바른 <code>Host:</code> 헤더를 보내는
+    클라이언트는 (<em>예를 들어</em>, URL 전치사가 있거나 없는)
+    두 URL을 모두 사용할 수 있다.</p>
+
+	</div></div>
+<div class="bottomlang">
+<p><span>가능한 언어: </span><a href="../en/vhosts/examples.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/examples.html" hreflang="fr" rel="alternate" title="Fran&#231;ais">&nbsp;fr&nbsp;</a> |
+<a href="../ja/vhosts/examples.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/vhosts/examples.html" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/examples.html" hreflang="tr" rel="alternate" title="T&#252;rk&#231;e">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/vhosts/examples.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">모듈</a> | <a href="../mod/directives.html">지시어들</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">용어</a> | <a href="../sitemap.html">사이트맵</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

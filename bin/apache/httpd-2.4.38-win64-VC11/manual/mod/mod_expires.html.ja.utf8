@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_expires - Apache HTTP サーバ バージョン 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="../">バージョン 2.4</a> &gt; <a href="./">モジュール</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache モジュール mod_expires</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="../en/mod/mod_expires.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_expires.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_expires.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_expires.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+<table class="module"><tr><th><a href="module-dict.html#Description">説明:</a></th><td>ユーザの指定した基準に基づいた <code>Expires</code> と
+<code>Cache-Control</code> HTTP ヘッダの生成</td></tr>
+<tr><th><a href="module-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">モジュール識別子:</a></th><td>expires_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">ソースファイル:</a></th><td>mod_expires.c</td></tr></table>
+<h3>概要</h3>
+
+    <p>このモジュールはサーバ応答の <code>Expires</code> HTTP ヘッダ
+    と <code>Cache-Control</code> ヘッダの <code>max-age</code> ディレクティブの
+    設定を制御します。元のファイルが作成された時刻または
+    クライアントのアクセス時刻のどちらかに基づいて期限切れ日を
+    設定することができます。</p>
+
+    <p>これらのヘッダはクライアントに文書の
+    有効性と継続性を指示します。文書がキャッシュされた場合には、
+    指定時刻に達するまでは、元の場所から取得する代わりに
+    キャッシュされているものを使うことができます。その後は、
+    キャッシュにあるコピーは期限切れ (expired) で無効であるとされ、
+    元の場所から新しいものを取得する必要があります。</p>
+
+    <p><code>max-age</code> 以外 (<a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.9">RFC
+    2616 section 14.9</a> 参照) の <code>Cache-Control</code> のディレクティブを
+    操作するには <code class="directive"><a href="../mod/mod_headers.html#header">Header</a></code> ディレクティブを
+    使うことができます。</p></div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>トピック</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#AltSyn">代替期間指定構文</a></li>
+</ul><h3 class="directives">ディレクティブ</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#expiresactive">ExpiresActive</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#expiresbytype">ExpiresByType</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#expiresdefault">ExpiresDefault</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_expires">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_expires">Report a bug</a></li></ul><h3>参照</h3>
+<ul class="seealso">
+<li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="AltSyn" id="AltSyn">代替期間指定構文</a></h2>
+   
+    <p><code class="directive"><a href="#expiresdefault">ExpiresDefault</a></code> ディレクティブと
+    <code class="directive"><a href="#expiresbytype">ExpiresByType</a></code> ディレクティブは
+    以下のより読み易い構文を使って定義することができます:</p>
+
+    <div class="example"><p><code>
+      ExpiresDefault "&lt;base&gt; [plus] {&lt;num&gt;
+      &lt;type&gt;}*"<br />
+      ExpiresByType type/encoding "&lt;base&gt; [plus]
+      {&lt;num&gt; &lt;type&gt;}*"
+    </code></p></div>
+
+    <p>&lt;base&gt; は以下のどれかです:</p>
+
+    <ul>
+      <li><code>access</code></li>
+
+      <li><code>now</code> ('<code>access</code>' と等価)</li>
+
+      <li><code>modification</code></li>
+    </ul>
+
+    <p><code>plus</code> キーワードは省略可能です。&lt;num&gt;
+    は (<code>atoi()</code> が受け付ける) 整数値、
+    &lt;type&gt; は以下のどれかです:</p>
+
+    <ul>
+      <li><code>years</code></li>
+      <li><code>months</code></li>
+      <li><code>weeks</code></li>
+      <li><code>days</code></li>
+      <li><code>hours</code></li>
+      <li><code>minutes</code></li>
+      <li><code>seconds</code></li>
+    </ul>
+
+    <p>例えば、以下のディレクティブはどれもデフォルトで文書がアクセスの 1 ヶ月後に
+    期限が切れるようにするために使えます:</p>
+
+    <div class="example"><p><code>
+      ExpiresDefault "access plus 1 month"<br />
+      ExpiresDefault "access plus 4 weeks"<br />
+      ExpiresDefault "access plus 30 days"
+    </code></p></div>
+
+    <p>期限切れ時刻はいくつか
+    '&lt;num&gt; &lt;type&gt;' 節を追加することでより細かく
+    制御することができます:</p>
+
+    <div class="example"><p><code>
+      ExpiresByType text/html "access plus 1 month 15
+      days 2 hours"<br />
+      ExpiresByType image/gif "modification plus 5 hours 3
+      minutes"
+    </code></p></div>
+
+    <p>修正時刻に基づいた設定を使用している場合、Expires ヘッダは
+    ディスクのファイル以外のコンテンツには<strong>追加されない</strong>ことに注意
+    してください。そのようなコンテンツには修正時刻は存在しないからです。</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ExpiresActive" id="ExpiresActive">ExpiresActive</a> <a name="expiresactive" id="expiresactive">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td><code>Expires</code> ヘッダの生成を有効にする</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>ExpiresActive On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_expires</td></tr>
+</table>
+    <p>このディレクティブは対応するドキュメントの領域で
+    <code>Expires</code> と <code>Cache-Control</code>ヘッダを
+    有効にするか無効にするかを決めます。
+    (例えば、<code>.htaccess</code> ファイルではそのディレクトリの
+    文書のみに適用されるということです。) <code>Off</code> に
+    設定された場合は対応領域でそれらのヘッダは
+    生成されません (<code>.htaccess</code> がサーバ設定ファイルの設定を
+    上書きする、というような下位レベルでの上書きがされていなければ)。
+    <code>On</code> に設定されていれば、ヘッダは <code class="directive"><a href="#expiresbytype">ExpiresByType</a></code> ディレクティブと
+    <code class="directive"><a href="#expiresdefault">ExpiresDefault</a></code> ディレクティブ
+    の基準に従って文書にヘッダを追加します (各ディレクティブ参照)。</p>
+
+    <p>このディレクティブは <code>Expires</code> と
+    <code>Cache-Control</code> ヘッダの存在を
+    保証するわけではないことに注意してください。基準が満たされて
+    いない場合はヘッダは追加されず、結果としてこのディレクティブが
+    指定されていなかったかのようにさえ見えることになります。</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ExpiresByType" id="ExpiresByType">ExpiresByType</a> <a name="expiresbytype" id="expiresbytype">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>MIME タイプによって設定される <code>Expires</code> ヘッダの値</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>ExpiresByType <var>MIME-type</var>
+<var>&lt;code&gt;seconds</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_expires</td></tr>
+</table>
+    <p>このディレクティブは指定されたタイプのドキュメント
+    (<em>例えば</em> <code>text/html</code>)
+    に対して生成される <code>Expires</code> ヘッダと <code>Cache-Control</code>
+    ヘッダの <code>max-age</code> ディレクティブの値を定義します。
+    二つ目の引数は期限切れの日時を生成するための基準時刻に追加される
+    秒数を設定します。<code>Cache-Control:
+    max-age</code> は期限切れの時刻からリクエスト時刻を引いたものを秒で
+    表すことで生成されます。</p>
+
+    <p>基準時刻はファイルの最終修正時刻か、クライアントのドキュメントへの
+    アクセス時刻です。どちらを使うべきかは <code><var>&lt;code&gt;</var></code>
+    によって指定します。<code>M</code> は基準時刻として
+    ファイルの最終修正時刻をという意味で、<code>A</code> はクライアントの
+    アクセス時刻を使うという意味になります。</p>
+
+    <p>効果には微妙な違いがあります。<code>M</code> が使用された場合は、
+    すべてのキャッシュにある現在のドキュメントキャッシュは同時に期限が
+    切れます。これは同じ URL に毎週常に置かれる報せのようなものには
+    非常に有効です。<code>A</code> が使用された場合は、期限切れの
+    時間は各クライアントよって異なります。これはあまり変更されない
+    画像ファイルなど、特に関連するドキュメント群がすべて同じ画像を
+    参照するとき (<em>すなわち</em>画像が比較的短い期間内に繰り返し
+    アクセスされるとき) に有効です。</p>
+
+    <div class="example"><h3>例:</h3><p><code>
+      # enable expirations<br />
+      ExpiresActive On<br />
+      # expire GIF images after a month in the client's cache<br />
+      ExpiresByType image/gif A2592000<br />
+      # HTML documents are good for a week from the<br />
+      # time they were changed<br />
+      ExpiresByType text/html M604800
+    </code></p></div>
+
+    <p>このディレクティブは <code>ExpiresActive On</code> が指定されている
+    ときのみ有効であることに注意してください。これは、
+    指定された MIME タイプに対して<em>のみ</em> <code class="directive"><a href="#expiresdefault">ExpiresDefault</a></code> ディレクティブで
+    設定された期限切れ期日を上書きします。</p>
+
+    <p>この文書の前の方で説明されている<a href="#AltSyn">代替構文</a>を
+    使って期限切れ期日の計算方法を指定することもできます。</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ExpiresDefault" id="ExpiresDefault">ExpiresDefault</a> <a name="expiresdefault" id="expiresdefault">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>期限切れ期日を計算するデフォルトアルゴリズム</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>ExpiresDefault <var>&lt;code&gt;seconds</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Indexes</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_expires</td></tr>
+</table>
+    <p>このディレクティブは対応する範囲のすべてのドキュメントに対して
+    デフォルトの期限切れ期日の計算アルゴリズムを設定します。<code class="directive"><a href="#expiresbytype">ExpiresByType</a></code> ディレクティブによって
+    タイプ毎に上書きすることができます。引数の構文はそのディレクティブの
+    説明を参照してください。また、<a href="#AltSyn">代替構文</a>も
+    参照してください。</p>
+
+</div>
+</div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="../en/mod/mod_expires.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_expires.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_expires.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/mod/mod_expires.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_expires.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

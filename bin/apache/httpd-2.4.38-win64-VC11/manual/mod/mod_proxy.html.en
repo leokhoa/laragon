@@ -1,0 +1,2074 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_proxy - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Modules</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache Module mod_proxy</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_proxy.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_proxy.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_proxy.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a></p>
+</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">Description:</a></th><td>Multi-protocol proxy/gateway server</td></tr>
+<tr><th><a href="module-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">Module Identifier:</a></th><td>proxy_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">Source File:</a></th><td>mod_proxy.c</td></tr></table>
+<h3>Summary</h3>
+
+    <div class="warning"><h3>Warning</h3>
+      <p>Do not enable proxying with <code class="directive"><a href="#proxyrequests">ProxyRequests</a></code> until you have <a href="#access">secured your server</a>. Open proxy servers are dangerous both to your
+      network and to the Internet at large.</p>
+    </div>
+
+    <p><code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code> and related modules implement a
+    proxy/gateway for Apache HTTP Server, supporting a number of popular
+    protocols as well as several different load balancing algorithms.
+    Third-party modules can add support for additional protocols and
+    load balancing algorithms.</p>
+
+    <p>A set of modules must be loaded into the server to provide the
+    necessary features.  These modules can be included statically at
+    build time or dynamically via the
+    <code class="directive"><a href="../mod/mod_so.html#loadmodule">LoadModule</a></code> directive).
+    The set must include:</p>
+
+    <ul>
+      <li><code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code>, which provides basic proxy
+      capabilities</li>
+
+      <li><code class="module"><a href="../mod/mod_proxy_balancer.html">mod_proxy_balancer</a></code> and one or more
+      balancer modules if load balancing is required.  (See
+      <code class="module"><a href="../mod/mod_proxy_balancer.html">mod_proxy_balancer</a></code> for more information.)</li>
+
+      <li>one or more proxy scheme, or protocol, modules:
+
+        <table class="bordered">
+        <tr><th>Protocol</th><th>Module</th></tr>
+        <tr><td>AJP13 (Apache JServe Protocol version
+          1.3)</td><td><code class="module"><a href="../mod/mod_proxy_ajp.html">mod_proxy_ajp</a></code></td></tr>
+        <tr><td>CONNECT (for
+          SSL)</td><td><code class="module"><a href="../mod/mod_proxy_connect.html">mod_proxy_connect</a></code></td></tr>
+        <tr><td>FastCGI</td><td><code class="module"><a href="../mod/mod_proxy_fcgi.html">mod_proxy_fcgi</a></code></td></tr>
+        <tr><td>ftp</td><td><code class="module"><a href="../mod/mod_proxy_ftp.html">mod_proxy_ftp</a></code></td></tr>
+        <tr><td>HTTP/0.9, HTTP/1.0, and
+          HTTP/1.1</td><td><code class="module"><a href="../mod/mod_proxy_http.html">mod_proxy_http</a></code></td></tr>
+        <tr><td>SCGI</td><td><code class="module"><a href="../mod/mod_proxy_scgi.html">mod_proxy_scgi</a></code></td></tr>
+        <tr><td>WS and WSS (Web-sockets)</td><td><code class="module"><a href="../mod/mod_proxy_wstunnel.html">mod_proxy_wstunnel</a></code></td></tr>
+        </table>
+      </li>
+    </ul>
+
+    <p>In addition, extended features are provided by other modules.
+    Caching is provided by <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code> and related
+    modules.  The ability to contact remote servers using the SSL/TLS
+    protocol is provided by the <code>SSLProxy*</code> directives of
+    <code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code>.  These additional modules will need
+    to be loaded and configured to take advantage of these features.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>Topics</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#forwardreverse">Forward Proxies and Reverse
+       Proxies/Gateways</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#examples">Basic Examples</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#handler">Access via Handler</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#workers">Workers</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#access">Controlling Access to Your Proxy</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#startup">Slow Startup</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#intranet">Intranet Proxy</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#envsettings">Protocol Adjustments</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#request-bodies">Request Bodies</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#x-headers">Reverse Proxy Request Headers</a></li>
+</ul><h3 class="directives">Directives</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#balancergrowth">BalancerGrowth</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#balancerinherit">BalancerInherit</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#balancermember">BalancerMember</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#balancerpersist">BalancerPersist</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#noproxy">NoProxy</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxy">&lt;Proxy&gt;</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyaddheaders">ProxyAddHeaders</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxybadheader">ProxyBadHeader</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyblock">ProxyBlock</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxydomain">ProxyDomain</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyerroroverride">ProxyErrorOverride</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyiobuffersize">ProxyIOBufferSize</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxymatch">&lt;ProxyMatch&gt;</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxymaxforwards">ProxyMaxForwards</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxypass">ProxyPass</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxypassinherit">ProxyPassInherit</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxypassinterpolateenv">ProxyPassInterpolateEnv</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxypassmatch">ProxyPassMatch</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxypassreverse">ProxyPassReverse</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxypassreversecookiedomain">ProxyPassReverseCookieDomain</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxypassreversecookiepath">ProxyPassReverseCookiePath</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxypreservehost">ProxyPreserveHost</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyreceivebuffersize">ProxyReceiveBufferSize</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyremote">ProxyRemote</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyremotematch">ProxyRemoteMatch</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyrequests">ProxyRequests</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyset">ProxySet</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxysourceaddress">ProxySourceAddress</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxystatus">ProxyStatus</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxytimeout">ProxyTimeout</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#proxyvia">ProxyVia</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_proxy">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_proxy">Report a bug</a></li></ul><h3>See also</h3>
+<ul class="seealso">
+<li><code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code></li>
+<li><code class="module"><a href="../mod/mod_proxy_ajp.html">mod_proxy_ajp</a></code></li>
+<li><code class="module"><a href="../mod/mod_proxy_balancer.html">mod_proxy_balancer</a></code></li>
+<li><code class="module"><a href="../mod/mod_proxy_connect.html">mod_proxy_connect</a></code></li>
+<li><code class="module"><a href="../mod/mod_proxy_fcgi.html">mod_proxy_fcgi</a></code></li>
+<li><code class="module"><a href="../mod/mod_proxy_ftp.html">mod_proxy_ftp</a></code></li>
+<li><code class="module"><a href="../mod/mod_proxy_hcheck.html">mod_proxy_hcheck</a></code></li>
+<li><code class="module"><a href="../mod/mod_proxy_http.html">mod_proxy_http</a></code></li>
+<li><code class="module"><a href="../mod/mod_proxy_scgi.html">mod_proxy_scgi</a></code></li>
+<li><code class="module"><a href="../mod/mod_proxy_wstunnel.html">mod_proxy_wstunnel</a></code></li>
+<li><code class="module"><a href="../mod/mod_ssl.html">mod_ssl</a></code></li>
+<li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="forwardreverse" id="forwardreverse">Forward Proxies and Reverse
+       Proxies/Gateways</a></h2>
+      <p>Apache HTTP Server can be configured in both a <dfn>forward</dfn> and
+      <dfn>reverse</dfn> proxy (also known as <dfn>gateway</dfn>) mode.</p>
+
+      <p>An ordinary <dfn>forward proxy</dfn> is an intermediate
+      server that sits between the client and the <em>origin
+      server</em>.  In order to get content from the origin server,
+      the client sends a request to the proxy naming the origin server
+      as the target. The proxy then requests the content from the
+      origin server and returns it to the client.  The client must be
+      specially configured to use the forward proxy to access other
+      sites.</p>
+
+      <p>A typical usage of a forward proxy is to provide Internet
+      access to internal clients that are otherwise restricted by a
+      firewall.  The forward proxy can also use caching (as provided
+      by <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code>) to reduce network usage.</p>
+
+      <p>The forward proxy is activated using the <code class="directive"><a href="#proxyrequests">ProxyRequests</a></code> directive.  Because
+      forward proxies allow clients to access arbitrary sites through
+      your server and to hide their true origin, it is essential that
+      you <a href="#access">secure your server</a> so that only
+      authorized clients can access the proxy before activating a
+      forward proxy.</p>
+
+      <p>A <dfn>reverse proxy</dfn> (or <dfn>gateway</dfn>), by
+      contrast, appears to the client just like an ordinary web
+      server.  No special configuration on the client is necessary.
+      The client makes ordinary requests for content in the namespace
+      of the reverse proxy.  The reverse proxy then decides where to
+      send those requests and returns the content as if it were itself
+      the origin.</p>
+
+      <p>A typical usage of a reverse proxy is to provide Internet
+      users access to a server that is behind a firewall.  Reverse
+      proxies can also be used to balance load among several back-end
+      servers or to provide caching for a slower back-end server.
+      In addition, reverse proxies can be used simply to bring
+      several servers into the same URL space.</p>
+
+      <p>A reverse proxy is activated using the <code class="directive"><a href="#proxypass">ProxyPass</a></code> directive or the
+      <code>[P]</code> flag to the <code class="directive"><a href="../mod/mod_rewrite.html#rewriterule">RewriteRule</a></code> directive.  It is
+      <strong>not</strong> necessary to turn <code class="directive"><a href="#proxyrequests">ProxyRequests</a></code> on in order to
+      configure a reverse proxy.</p>
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="examples" id="examples">Basic Examples</a></h2>
+
+    <p>The examples below are only a very basic idea to help you
+    get started.  Please read the documentation on the individual
+    directives.</p>
+
+    <p>In addition, if you wish to have caching enabled, consult
+    the documentation from <code class="module"><a href="../mod/mod_cache.html">mod_cache</a></code>.</p>
+
+    <div class="example"><h3>Reverse Proxy</h3><pre class="prettyprint lang-config">ProxyPass "/foo" "http://foo.example.com/bar"
+ProxyPassReverse "/foo" "http://foo.example.com/bar"</pre>
+</div>
+
+    <div class="example"><h3>Forward Proxy</h3><pre class="prettyprint lang-config">ProxyRequests On
+ProxyVia On
+
+&lt;Proxy "*"&gt;
+  Require host internal.example.com
+&lt;/Proxy&gt;</pre>
+</div>
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="handler" id="handler">Access via Handler</a></h2>
+
+      <p>You can also force a request to be handled as a reverse-proxy
+        request, by creating a suitable Handler pass-through. The example
+        configuration below will pass all requests for PHP scripts to the
+        specified FastCGI server using reverse proxy:
+      </p>
+
+      <div class="example"><h3>Reverse Proxy PHP scripts</h3><pre class="prettyprint lang-config">&lt;FilesMatch "\.php$"&gt;
+    # Unix sockets require 2.4.7 or later
+    SetHandler  "proxy:unix:/path/to/app.sock|fcgi://localhost/"
+&lt;/FilesMatch&gt;</pre>
+</div>
+
+      <p>This feature is available in Apache HTTP Server 2.4.10 and later.</p>
+
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="workers" id="workers">Workers</a></h2>
+      <p>The proxy manages the configuration of origin servers and their
+      communication parameters in objects called <dfn>workers</dfn>.
+      There are two built-in workers: the default forward proxy worker and the
+      default reverse proxy worker. Additional workers can be configured
+      explicitly.</p>
+
+      <p>The two default workers have a fixed configuration
+      and will be used if no other worker matches the request.
+      They do not use HTTP Keep-Alive or connection reuse.
+      The TCP connections to the origin server will instead be
+      opened and closed for each request.</p>
+
+      <p>Explicitly configured workers are identified by their URL.
+      They are usually created and configured using
+      <code class="directive"><a href="#proxypass">ProxyPass</a></code> or
+      <code class="directive"><a href="#proxypassmatch">ProxyPassMatch</a></code> when used
+      for a reverse proxy:</p>
+
+      <pre class="prettyprint lang-config">ProxyPass "/example" "http://backend.example.com" connectiontimeout=5 timeout=30</pre>
+
+
+      <p>This will create a worker associated with the origin server URL
+      <code>http://backend.example.com</code> that will use the given timeout
+      values. When used in a forward proxy, workers are usually defined
+      via the <code class="directive"><a href="#proxyset">ProxySet</a></code> directive:</p>
+
+      <pre class="prettyprint lang-config">ProxySet "http://backend.example.com" connectiontimeout=5 timeout=30</pre>
+
+
+      <p>or alternatively using <code class="directive"><a href="#proxy">Proxy</a></code>
+      and <code class="directive"><a href="#proxyset">ProxySet</a></code>:</p>
+
+      <pre class="prettyprint lang-config">&lt;Proxy "http://backend.example.com"&gt;
+  ProxySet connectiontimeout=5 timeout=30
+&lt;/Proxy&gt;</pre>
+
+
+      <p>Using explicitly configured workers in the forward mode is
+      not very common, because forward proxies usually communicate with many
+      different origin servers. Creating explicit workers for some of the
+      origin servers can still be useful if they are used very often.
+      Explicitly configured workers have no concept of forward or reverse
+      proxying by themselves. They encapsulate a common concept of
+      communication with origin servers. A worker created by
+      <code class="directive"><a href="#proxypass">ProxyPass</a></code> for use in a
+      reverse proxy will also be used for forward proxy requests whenever
+      the URL to the origin server matches the worker URL, and vice versa.</p>
+
+      <p>The URL identifying a direct worker is the URL of its
+      origin server including any path components given:</p>
+
+     <pre class="prettyprint lang-config">ProxyPass "/examples" "http://backend.example.com/examples"
+ProxyPass "/docs" "http://backend.example.com/docs"</pre>
+
+
+      <p>This example defines two different workers, each using a separate
+      connection pool and configuration.</p>
+
+      <div class="warning"><h3>Worker Sharing</h3>
+        <p>Worker sharing happens if the worker URLs overlap, which occurs when
+        the URL of some worker is a leading substring of the URL of another
+        worker defined later in the configuration file. In the following example</p>
+
+        <pre class="prettyprint lang-config">ProxyPass "/apps" "http://backend.example.com/" timeout=60
+ProxyPass "/examples" "http://backend.example.com/examples" timeout=10</pre>
+
+
+        <p>the second worker isn't actually created. Instead the first
+        worker is used. The benefit is, that there is only one connection pool,
+        so connections are more often reused. Note that all configuration attributes
+        given explicitly for the later worker will be ignored. This will be logged
+        as a warning. In the above example, the resulting timeout value
+        for the URL <code>/examples</code> will be <code>60</code> instead
+        of <code>10</code>!</p>
+
+        <p>If you want to avoid worker sharing, sort your worker definitions
+        by URL length, starting with the longest worker URLs. If you want to maximize
+        worker sharing, use the reverse sort order. See also the related warning about
+        ordering <code class="directive"><a href="#proxypass">ProxyPass</a></code> directives.</p>
+
+      </div> 
+
+      <p>Explicitly configured workers come in two flavors:
+      <dfn>direct workers</dfn> and <dfn>(load) balancer workers</dfn>.
+      They support many important configuration attributes which are
+      described below in the <code class="directive"><a href="#proxypass">ProxyPass</a></code>
+      directive. The same attributes can also be set using
+      <code class="directive"><a href="#proxyset">ProxySet</a></code>.</p>
+
+      <p>The set of options available for a direct worker
+      depends on the protocol which is specified in the origin server URL.
+      Available protocols include <code>ajp</code>, <code>fcgi</code>,
+      <code>ftp</code>, <code>http</code> and <code>scgi</code>.</p>
+
+      <p>Balancer workers are virtual workers that use direct workers known
+      as their members to actually handle the requests. Each balancer can
+      have multiple members. When it handles a request, it chooses a member
+      based on the configured load balancing algorithm.</p>
+
+      <p>A balancer worker is created if its worker URL uses
+      <code>balancer</code> as the protocol scheme.
+      The balancer URL uniquely identifies the balancer worker.
+      Members are added to a balancer using
+      <code class="directive"><a href="#balancermember">BalancerMember</a></code>.</p>
+
+      <div class="note"><h3>DNS resolution for origin domains</h3>
+      <p>DNS resolution happens when the socket to
+        the origin domain is created for the first time.
+        When connection reuse is enabled, each backend domain is resolved 
+        only once per child process, and cached for all further connections 
+        until the child is recycled. This information should to be considered 
+        while planning DNS maintenance tasks involving backend domains. 
+        Please also check <code class="directive"><a href="#proxypass">ProxyPass</a></code>
+        parameters for more details about connection reuse.
+        </p>
+      </div>
+
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="access" id="access">Controlling Access to Your Proxy</a></h2>
+      <p>You can control who can access your proxy via the <code class="directive"><a href="#proxy">&lt;Proxy&gt;</a></code> control block as in
+      the following example:</p>
+
+      <pre class="prettyprint lang-config">&lt;Proxy "*"&gt;
+  Require ip 192.168.0
+&lt;/Proxy&gt;</pre>
+
+
+      <p>For more information on access control directives, see
+      <code class="module"><a href="../mod/mod_authz_host.html">mod_authz_host</a></code>.</p>
+
+      <p>Strictly limiting access is essential if you are using a
+      forward proxy (using the <code class="directive"><a href="#proxyrequests">ProxyRequests</a></code> directive).
+      Otherwise, your server can be used by any client to access
+      arbitrary hosts while hiding his or her true identity.  This is
+      dangerous both for your network and for the Internet at large.
+      When using a reverse proxy (using the <code class="directive"><a href="#proxypass">ProxyPass</a></code> directive with
+      <code>ProxyRequests Off</code>), access control is less
+      critical because clients can only contact the hosts that you
+      have specifically configured.</p>
+
+      <p><strong>See Also</strong> the <a href="mod_proxy_http.html#env">Proxy-Chain-Auth</a> environment variable.</p>
+
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="startup" id="startup">Slow Startup</a></h2>
+      <p>If you're using the <code class="directive"><a href="#proxyblock">ProxyBlock</a></code> directive, hostnames' IP addresses are looked up
+      and cached during startup for later match test. This may take a few
+      seconds (or more) depending on the speed with which the hostname lookups
+      occur.</p>
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="intranet" id="intranet">Intranet Proxy</a></h2>
+      <p>An Apache httpd proxy server situated in an intranet needs to forward
+      external requests through the company's firewall (for this, configure
+      the <code class="directive"><a href="#proxyremote">ProxyRemote</a></code> directive
+      to forward the respective <var>scheme</var> to the firewall proxy).
+      However, when it has to
+      access resources within the intranet, it can bypass the firewall when
+      accessing hosts. The <code class="directive"><a href="#noproxy">NoProxy</a></code>
+      directive is useful for specifying which hosts belong to the intranet and
+      should be accessed directly.</p>
+
+      <p>Users within an intranet tend to omit the local domain name from their
+      WWW requests, thus requesting "http://somehost/" instead of
+      <code>http://somehost.example.com/</code>. Some commercial proxy servers
+      let them get away with this and simply serve the request, implying a
+      configured local domain. When the <code class="directive"><a href="#proxydomain">ProxyDomain</a></code> directive is used and the server is <a href="#proxyrequests">configured for proxy service</a>, Apache httpd can return
+      a redirect response and send the client to the correct, fully qualified,
+      server address. This is the preferred method since the user's bookmark
+      files will then contain fully qualified hosts.</p>
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="envsettings" id="envsettings">Protocol Adjustments</a></h2>
+      <p>For circumstances where <code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code> is sending
+      requests to an origin server that doesn't properly implement
+      keepalives or HTTP/1.1, there are two <a href="../env.html">environment variables</a> that can force the
+      request to use HTTP/1.0 with no keepalive. These are set via the
+      <code class="directive"><a href="../mod/mod_env.html#setenv">SetEnv</a></code> directive.</p>
+
+      <p>These are the <code>force-proxy-request-1.0</code> and
+      <code>proxy-nokeepalive</code> notes.</p>
+
+      <pre class="prettyprint lang-config">&lt;Location "/buggyappserver/"&gt;
+  ProxyPass "http://buggyappserver:7001/foo/"
+  SetEnv force-proxy-request-1.0 1
+  SetEnv proxy-nokeepalive 1
+&lt;/Location&gt;</pre>
+
+
+      <p> In 2.4.26 and later, the "no-proxy" environment variable can be set to disable 
+      <code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code> processing the current request.
+      This variable should be set with <code class="directive"><a href="../mod/mod_setenvif.html#setenvif">SetEnvIf</a></code>, as <code class="directive"><a href="../mod/mod_env.html#setenv">SetEnv</a></code>
+      is not evaluated early enough.</p>
+
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="request-bodies" id="request-bodies">Request Bodies</a></h2>
+
+    <p>Some request methods such as POST include a request body.
+    The HTTP protocol requires that requests which include a body
+    either use chunked transfer encoding or send a
+    <code>Content-Length</code> request header.  When passing these
+    requests on to the origin server, <code class="module"><a href="../mod/mod_proxy_http.html">mod_proxy_http</a></code>
+    will always attempt to send the <code>Content-Length</code>.  But
+    if the body is large and the original request used chunked
+    encoding, then chunked encoding may also be used in the upstream
+    request.  You can control this selection using <a href="../env.html">environment variables</a>.  Setting
+    <code>proxy-sendcl</code> ensures maximum compatibility with
+    upstream servers by always sending the
+    <code>Content-Length</code>, while setting
+    <code>proxy-sendchunked</code> minimizes resource usage by using
+    chunked encoding.</p>
+
+    <p>Under some circumstances, the server must spool request bodies
+    to disk to satisfy the requested handling of request bodies.  For
+    example, this spooling will occur if the original body was sent with
+    chunked encoding (and is large), but the administrator has
+    asked for backend requests to be sent with Content-Length or as HTTP/1.0.
+    This spooling can also occur if the request body already has a
+    Content-Length header, but the server is configured to filter incoming
+    request bodies.</p>
+
+    <p><code class="directive"><a href="../mod/core.html#limitrequestbody">LimitRequestBody</a></code> only applies to
+    request bodies that the server will spool to disk</p>
+
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="x-headers" id="x-headers">Reverse Proxy Request Headers</a></h2>
+
+    <p>When acting in a reverse-proxy mode (using the <code class="directive"><a href="#proxypass">ProxyPass</a></code> directive, for example),
+    <code class="module"><a href="../mod/mod_proxy_http.html">mod_proxy_http</a></code> adds several request headers in
+    order to pass information to the origin server. These headers
+    are:</p>
+
+    <dl>
+      <dt><code>X-Forwarded-For</code></dt>
+      <dd>The IP address of the client.</dd>
+      <dt><code>X-Forwarded-Host</code></dt>
+      <dd>The original host requested by the client in the <code>Host</code>
+       HTTP request header.</dd>
+      <dt><code>X-Forwarded-Server</code></dt>
+      <dd>The hostname of the proxy server.</dd>
+    </dl>
+
+    <p>Be careful when using these headers on the origin server, since
+    they will contain more than one (comma-separated) value if the
+    original request already contained one of these headers. For
+    example, you can use <code>%{X-Forwarded-For}i</code> in the log
+    format string of the origin server to log the original clients IP
+    address, but you may get more than one address if the request
+    passes through several proxies.</p>
+
+    <p>See also the <code class="directive"><a href="#proxypreservehost">ProxyPreserveHost</a></code> and <code class="directive"><a href="#proxyvia">ProxyVia</a></code> directives, which control
+    other request headers.</p>
+
+    <p>Note:  If you need to specify custom request headers to be
+    added to the forwarded request, use the 
+    <code class="directive"><a href="../mod/mod_headers.html#requestheader">RequestHeader</a></code>
+    directive.</p>
+
+   </div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="BalancerGrowth" id="BalancerGrowth">BalancerGrowth</a> <a name="balancergrowth" id="balancergrowth">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Number of additional Balancers that can be added Post-configuration</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>BalancerGrowth <var>#</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>BalancerGrowth 5</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>BalancerGrowth is only available in Apache HTTP Server 2.3.13
+  and later.</td></tr>
+</table>
+    <p>This directive allows for growth potential in the number of
+    Balancers available for a virtualhost in addition to the
+    number pre-configured. It only takes effect if there is at
+    least one pre-configured Balancer.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="BalancerInherit" id="BalancerInherit">BalancerInherit</a> <a name="balancerinherit" id="balancerinherit">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Inherit ProxyPassed Balancers/Workers from the main server</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>BalancerInherit On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>BalancerInherit On</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>BalancerInherit is only available in Apache HTTP Server 2.4.5 and later.</td></tr>
+</table>
+        <p>This directive will cause the current server/vhost to "inherit" ProxyPass
+            Balancers and Workers defined in the main server. This can cause issues and
+            inconsistent behavior if using the Balancer Manager and so should be disabled
+            if using that feature.</p>
+        <p>The setting in the global server defines the default for all vhosts.</p>
+    
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="BalancerMember" id="BalancerMember">BalancerMember</a> <a name="balancermember" id="balancermember">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Add a member to a load balancing group</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>BalancerMember [<var>balancerurl</var>] <var>url</var> [<var>key=value [key=value ...]]</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>BalancerMember is only available in Apache HTTP Server 2.2
+        and later.</td></tr>
+</table>
+        <p>This directive adds a member to a load balancing group. It can be used
+            within a <code>&lt;Proxy <var>balancer://</var>...&gt;</code> container
+            directive and can take any of the key value pair parameters available to
+            <code class="directive"><a href="#proxypass">ProxyPass</a></code> directives.</p>
+        <p>One additional parameter is available only to <code class="directive">BalancerMember</code> directives:
+            <var>loadfactor</var>. This is the member load factor - a decimal number between 1.0
+            (default) and 100.0, which defines the weighted load to be applied to the
+            member in question.</p>
+        <p>The <var>balancerurl</var> is only needed when not within a
+            <code>&lt;Proxy <var>balancer://</var>...&gt;</code>
+            container directive. It corresponds to the url of a balancer defined in
+            <code class="directive"><a href="#proxypass">ProxyPass</a></code> directive.</p>
+        <p>The path component of the balancer URL in any
+            <code>&lt;Proxy <var>balancer://</var>...&gt;</code> container directive
+            is ignored.</p>
+        <p>Trailing slashes should typically be removed from the URL of a
+            <code class="directive">BalancerMember</code>.</p>
+    
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="BalancerPersist" id="BalancerPersist">BalancerPersist</a> <a name="balancerpersist" id="balancerpersist">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Attempt to persist changes made by the Balancer Manager across restarts.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>BalancerPersist On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>BalancerPersist Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>BalancerPersist is only available in Apache HTTP Server 2.4.4 and later.</td></tr>
+</table>
+        <p>This directive will cause the shared memory storage associated
+        with the balancers and balancer members to be persisted across
+        restarts. This allows these local changes to not be lost during the
+        normal restart/graceful state transitions.</p>
+    
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="NoProxy" id="NoProxy">NoProxy</a> <a name="noproxy" id="noproxy">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Hosts, domains, or networks that will be connected to
+directly</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>NoProxy <var>host</var> [<var>host</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+</table>
+    <p>This directive is only useful for Apache httpd proxy servers within
+    intranets.  The <code class="directive">NoProxy</code> directive specifies a
+    list of subnets, IP addresses, hosts and/or domains, separated by
+    spaces. A request to a host which matches one or more of these is
+    always served directly, without forwarding to the configured
+    <code class="directive"><a href="#proxyremote">ProxyRemote</a></code> proxy server(s).</p>
+
+    <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">ProxyRemote  "*"  "http://firewall.example.com:81"
+NoProxy         ".example.com" "192.168.112.0/21"</pre>
+</div>
+
+    <p>The <var>host</var> arguments to the <code class="directive">NoProxy</code>
+    directive are one of the following type list:</p>
+
+    <dl>
+    
+    <dt><var><a name="domain" id="domain">Domain</a></var></dt>
+    <dd>
+    <p>A <dfn>Domain</dfn> is a partially qualified DNS domain name, preceded
+    by a period. It represents a list of hosts which logically belong to the
+    same DNS domain or zone (<em>i.e.</em>, the suffixes of the hostnames are
+    all ending in <var>Domain</var>).</p>
+
+    <div class="example"><h3>Examples</h3><p><code>
+      .com .example.org.
+    </code></p></div>
+
+    <p>To distinguish <var>Domain</var>s from <var><a href="#hostname">Hostname</a></var>s (both syntactically and semantically; a DNS domain can
+    have a DNS A record, too!), <var>Domain</var>s are always written with a
+    leading period.</p>
+
+    <div class="note"><h3>Note</h3>
+      <p>Domain name comparisons are done without regard to the case, and
+      <var>Domain</var>s are always assumed to be anchored in the root of the
+      DNS tree; therefore, the two domains <code>.ExAmple.com</code> and
+      <code>.example.com.</code> (note the trailing period) are considered
+      equal. Since a domain comparison does not involve a DNS lookup, it is much
+      more efficient than subnet comparison.</p>
+    </div></dd>
+
+    
+    <dt><var><a name="subnet" id="subnet">SubNet</a></var></dt>
+    <dd>
+    <p>A <dfn>SubNet</dfn> is a partially qualified internet address in
+    numeric (dotted quad) form, optionally followed by a slash and the netmask,
+    specified as the number of significant bits in the <var>SubNet</var>. It is
+    used to represent a subnet of hosts which can be reached over a common
+    network interface. In the absence of the explicit net mask it is assumed
+    that omitted (or zero valued) trailing digits specify the mask. (In this
+    case, the netmask can only be multiples of 8 bits wide.) Examples:</p>
+
+    <dl>
+    <dt><code>192.168</code> or <code>192.168.0.0</code></dt>
+    <dd>the subnet 192.168.0.0 with an implied netmask of 16 valid bits
+    (sometimes used in the netmask form <code>255.255.0.0</code>)</dd>
+    <dt><code>192.168.112.0/21</code></dt>
+    <dd>the subnet <code>192.168.112.0/21</code> with a netmask of 21
+    valid bits (also used in the form <code>255.255.248.0</code>)</dd>
+    </dl>
+
+    <p>As a degenerate case, a <em>SubNet</em> with 32 valid bits is the
+    equivalent to an <var><a href="#ipaddr">IPAddr</a></var>, while a <var>SubNet</var> with zero
+    valid bits (<em>e.g.</em>, 0.0.0.0/0) is the same as the constant
+    <var>_Default_</var>, matching any IP address.</p></dd>
+
+    
+    <dt><var><a name="ipaddr" id="ipaddr">IPAddr</a></var></dt>
+    <dd>
+    <p>A <dfn>IPAddr</dfn> represents a fully qualified internet address in
+    numeric (dotted quad) form. Usually, this address represents a host, but
+    there need not necessarily be a DNS domain name connected with the
+    address.</p>
+    <div class="example"><h3>Example</h3><p><code>
+      192.168.123.7
+    </code></p></div>
+
+    <div class="note"><h3>Note</h3>
+      <p>An <var>IPAddr</var> does not need to be resolved by the DNS system, so
+      it can result in more effective apache performance.</p>
+    </div></dd>
+
+    
+    <dt><var><a name="hostname" id="hostname">Hostname</a></var></dt>
+    <dd>
+    <p>A <dfn>Hostname</dfn> is a fully qualified DNS domain name which can
+    be resolved to one or more <var><a href="#ipaddr">IPAddrs</a></var> via the
+    DNS domain name service. It represents a logical host (in contrast to
+    <var><a href="#domain">Domain</a></var>s, see above) and must be resolvable
+    to at least one <var><a href="#ipaddr">IPAddr</a></var> (or often to a list
+    of hosts with different <var><a href="#ipaddr">IPAddr</a></var>s).</p>
+
+    <div class="example"><h3>Examples</h3><p><code>
+      prep.ai.example.edu<br />
+      www.example.org
+    </code></p></div>
+
+    <div class="note"><h3>Note</h3>
+      <p>In many situations, it is more effective to specify an <var><a href="#ipaddr">IPAddr</a></var> in place of a <var>Hostname</var> since a
+      DNS lookup can be avoided. Name resolution in Apache httpd can take a remarkable
+      deal of time when the connection to the name server uses a slow PPP
+      link.</p>
+      <p><var>Hostname</var> comparisons are done without regard to the case,
+      and <var>Hostname</var>s are always assumed to be anchored in the root
+      of the DNS tree; therefore, the two hosts <code>WWW.ExAmple.com</code>
+      and <code>www.example.com.</code> (note the trailing period) are
+      considered equal.</p>
+     </div></dd>
+    </dl>
+
+<h3>See also</h3>
+<ul>
+<li><a href="../dns-caveats.html">DNS Issues</a></li>
+</ul>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="Proxy" id="Proxy">&lt;Proxy&gt;</a> <a name="proxy" id="proxy">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Container for directives applied to proxied resources</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>&lt;Proxy <var>wildcard-url</var>&gt; ...&lt;/Proxy&gt;</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+</table>
+    <p>Directives placed in <code class="directive">&lt;Proxy&gt;</code>
+    sections apply only to matching proxied content.  Shell-style wildcards are
+    allowed.</p>
+
+    <p>For example, the following will allow only hosts in
+    <code>yournetwork.example.com</code> to access content via your proxy
+    server:</p>
+
+    <pre class="prettyprint lang-config">&lt;Proxy "*"&gt;
+  Require host yournetwork.example.com
+&lt;/Proxy&gt;</pre>
+
+
+    <p>The following example will process all files in the <code>foo</code>
+    directory of <code>example.com</code> through the <code>INCLUDES</code>
+    filter when they are sent through the proxy server:</p>
+
+   <pre class="prettyprint lang-config">&lt;Proxy "http://example.com/foo/*"&gt;
+  SetOutputFilter INCLUDES
+&lt;/Proxy&gt;</pre>
+
+
+    <div class="note"><h3>Differences from the Location configuration section</h3>
+      <p>A backend URL matches the configuration section if it begins with the 
+      the <var>wildcard-url</var> string, even if the last path segment in the
+      directive only matches a prefix of the backend URL.  For example, 
+      &lt;Proxy "http://example.com/foo"&gt; matches all of 
+      http://example.com/foo, http://example.com/foo/bar, and 
+      http://example.com/foobar.  The matching of the final URL differs
+      from the behavior of the <code class="directive"><a href="../mod/core.html#location">&lt;Location&gt;</a></code> section, which for purposes of this note 
+      treats the final path component as if it ended in a slash.</p>
+      <p>For more control over the matching, see <code class="directive">&lt;ProxyMatch&gt;</code>.</p>
+    </div>
+
+
+<h3>See also</h3>
+<ul>
+<li><code class="directive"><a href="#proxymatch">&lt;ProxyMatch&gt;</a></code></li>
+</ul>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyAddHeaders" id="ProxyAddHeaders">ProxyAddHeaders</a> <a name="proxyaddheaders" id="proxyaddheaders">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Add proxy information in X-Forwarded-* headers</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyAddHeaders Off|On</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyAddHeaders On</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.3.10 and later</td></tr>
+</table>
+    <p>This directive determines whether or not proxy related information should be passed to the
+    backend server through X-Forwarded-For, X-Forwarded-Host and X-Forwarded-Server HTTP headers.</p>
+    <div class="note"><h3>Effectiveness</h3>
+     <p>This option is of use only for HTTP proxying, as handled by <code class="module"><a href="../mod/mod_proxy_http.html">mod_proxy_http</a></code>.</p>
+    </div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyBadHeader" id="ProxyBadHeader">ProxyBadHeader</a> <a name="proxybadheader" id="proxybadheader">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Determines how to handle bad header lines in a
+response</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyBadHeader IsError|Ignore|StartBody</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyBadHeader IsError</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+</table>
+    <p>The <code class="directive">ProxyBadHeader</code> directive determines the
+    behavior of <code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code> if it receives syntactically invalid
+    response header lines (<em>i.e.</em> containing no colon) from the origin
+    server. The following arguments are possible:</p>
+
+    <dl>
+    <dt><code>IsError</code></dt>
+    <dd>Abort the request and end up with a 502 (Bad Gateway) response. This is
+    the default behavior.</dd>
+
+    <dt><code>Ignore</code></dt>
+    <dd>Treat bad header lines as if they weren't sent.</dd>
+
+    <dt><code>StartBody</code></dt>
+    <dd>When receiving the first bad header line, finish reading the headers and
+    treat the remainder as body. This helps to work around buggy backend servers
+    which forget to insert an empty line between the headers and the body.</dd>
+    </dl>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyBlock" id="ProxyBlock">ProxyBlock</a> <a name="proxyblock" id="proxyblock">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Words, hosts, or domains that are banned from being
+proxied</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyBlock *|<var>word</var>|<var>host</var>|<var>domain</var>
+[<var>word</var>|<var>host</var>|<var>domain</var>] ...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+</table>
+    <p>The <code class="directive">ProxyBlock</code> directive specifies a list of
+    words, hosts and/or domains, separated by spaces.  HTTP, HTTPS, and
+    FTP document requests to sites whose names contain matched words,
+    hosts or domains are <em>blocked</em> by the proxy server. The proxy
+    module will also attempt to determine IP addresses of list items which
+    may be hostnames during startup, and cache them for match test as
+    well. That may slow down the startup time of the server.</p>
+
+    <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">ProxyBlock "news.example.com" "auctions.example.com" "friends.example.com"</pre>
+</div>
+
+    <p>Note that <code>example</code> would also be sufficient to match any
+    of these sites.</p>
+
+    <p>Hosts would also be matched if referenced by IP address.</p>
+
+    <p>Note also that</p>
+
+    <pre class="prettyprint lang-config">ProxyBlock "*"</pre>
+
+
+    <p>blocks connections to all sites.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyDomain" id="ProxyDomain">ProxyDomain</a> <a name="proxydomain" id="proxydomain">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Default domain name for proxied requests</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyDomain <var>Domain</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+</table>
+    <p>This directive is only useful for Apache httpd proxy servers within
+    intranets. The <code class="directive">ProxyDomain</code> directive specifies
+    the default domain which the apache proxy server will belong to. If a
+    request to a host without a domain name is encountered, a redirection
+    response to the same host with the configured <var>Domain</var> appended
+    will be generated.</p>
+
+    <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">ProxyRemote  "*"  "http://firewall.example.com:81"
+NoProxy         ".example.com" "192.168.112.0/21"
+ProxyDomain     ".example.com"</pre>
+</div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyErrorOverride" id="ProxyErrorOverride">ProxyErrorOverride</a> <a name="proxyerroroverride" id="proxyerroroverride">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Override error pages for proxied content</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyErrorOverride On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyErrorOverride Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+</table>
+    <p>This directive is useful for reverse-proxy setups where you want to
+    have a common look and feel on the error pages seen by the end user.
+    This also allows for included files (via
+    <code class="module"><a href="../mod/mod_include.html">mod_include</a></code>'s SSI) to get
+    the error code and act accordingly. (Default behavior would display
+    the error page of the proxied server. Turning this on shows the SSI
+    Error message.)</p>
+
+    <p>This directive does not affect the processing of informational (1xx),
+    normal success (2xx), or redirect (3xx) responses.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyIOBufferSize" id="ProxyIOBufferSize">ProxyIOBufferSize</a> <a name="proxyiobuffersize" id="proxyiobuffersize">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Determine size of internal data throughput buffer</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyIOBufferSize <var>bytes</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyIOBufferSize 8192</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+</table>
+    <p>The <code class="directive">ProxyIOBufferSize</code> directive adjusts the size
+    of the internal buffer which is used as a scratchpad for the data between
+    input and output. The size must be at least <code>512</code>.</p>
+
+    <p>In almost every case, there's no reason to change that value.</p>
+
+    <p>If used with AJP, this directive sets the maximum AJP packet size in
+    bytes. Values larger than 65536 are set to 65536. If you change it from
+    the default, you must also change the <code>packetSize</code> attribute of
+    your AJP connector on the Tomcat side! The attribute
+    <code>packetSize</code> is only available in Tomcat <code>5.5.20+</code>
+    and <code>6.0.2+</code></p>
+
+    <p>Normally it is not necessary to change the maximum packet size.
+    Problems with the default value have been reported when sending
+    certificates or certificate chains.</p>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyMatch" id="ProxyMatch">&lt;ProxyMatch&gt;</a> <a name="proxymatch" id="proxymatch">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Container for directives applied to regular-expression-matched
+proxied resources</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>&lt;ProxyMatch <var>regex</var>&gt; ...&lt;/ProxyMatch&gt;</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+</table>
+    <p>The <code class="directive">&lt;ProxyMatch&gt;</code> directive is
+    identical to the <code class="directive"><a href="#proxy">&lt;Proxy&gt;</a></code> directive, except that it matches URLs
+    using <a class="glossarylink" href="../glossary.html#regex" title="see glossary">regular expressions</a>.</p>
+
+    <p>From 2.4.8 onwards, named groups and backreferences are captured and
+    written to the environment with the corresponding name prefixed with
+    "MATCH_" and in upper case. This allows elements of URLs to be referenced
+    from within <a href="../expr.html">expressions</a> and modules like
+    <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>. In order to prevent confusion, numbered
+    (unnamed) backreferences are ignored. Use named groups instead.</p>
+
+<pre class="prettyprint lang-config">&lt;ProxyMatch "^http://(?&lt;sitename&gt;[^/]+)"&gt;
+    Require ldap-group cn=%{env:MATCH_SITENAME},ou=combined,o=Example
+&lt;/ProxyMatch&gt;</pre>
+
+
+<h3>See also</h3>
+<ul>
+<li><code class="directive"><a href="#proxy">&lt;Proxy&gt;</a></code></li>
+</ul>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyMaxForwards" id="ProxyMaxForwards">ProxyMaxForwards</a> <a name="proxymaxforwards" id="proxymaxforwards">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Maximium number of proxies that a request can be forwarded
+through</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyMaxForwards <var>number</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyMaxForwards -1</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Default behaviour changed in 2.2.7</td></tr>
+</table>
+    <p>The <code class="directive">ProxyMaxForwards</code> directive specifies the
+    maximum number of proxies through which a request may pass if there's no
+    <code>Max-Forwards</code> header supplied with the request. This may
+    be set to prevent infinite proxy loops or a DoS attack.</p>
+
+    <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">ProxyMaxForwards 15</pre>
+</div>
+
+    <p>Note that setting <code class="directive">ProxyMaxForwards</code> is a
+    violation of the HTTP/1.1 protocol (RFC2616), which forbids a Proxy
+    setting <code>Max-Forwards</code> if the Client didn't set it.
+    Earlier Apache httpd versions would always set it.  A negative
+    <code class="directive">ProxyMaxForwards</code> value, including the
+    default -1, gives you protocol-compliant behavior but may
+    leave you open to loops.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyPass" id="ProxyPass">ProxyPass</a> <a name="proxypass" id="proxypass">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Maps remote servers into the local server URL-space</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyPass [<var>path</var>] !|<var>url</var> [<var>key=value</var>
+  <var>[key=value</var> ...]] [nocanon] [interpolate] [noquery]</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Unix Domain Socket (UDS) support added in 2.4.7</td></tr>
+</table>
+    <p>This directive allows remote servers to be mapped into the
+    space of the local server. The local server does not act as a
+    proxy in the conventional sense but appears to be a mirror of the
+    remote server. The local server is often called a <dfn>reverse
+    proxy</dfn> or <dfn>gateway</dfn>. The <var>path</var> is the name of
+    a local virtual path; <var>url</var> is a partial URL for the
+    remote server and cannot include a query string.</p>
+
+    <div class="note">It is strongly suggested to review the concept of a
+    <a href="#workers">Worker</a> before proceeding any further
+    with this section.</div>
+
+    <div class="note">This directive is not supported within
+    <code class="directive"><a href="../mod/core.html#directory">&lt;Directory&gt;</a></code>,
+    <code class="directive"><a href="../mod/core.html#if">&lt;If&gt;</a></code> and
+    <code class="directive"><a href="../mod/core.html#files">&lt;Files&gt;</a></code> containers.
+    </div>
+
+    <div class="warning">The <code class="directive"><a href="#proxyrequests">ProxyRequests</a></code> directive should
+    usually be set <strong>off</strong> when using
+    <code class="directive">ProxyPass</code>.</div>
+
+    <p>In 2.4.7 and later, support for using a Unix Domain Socket is available by using a target
+    which prepends <code>unix:/path/lis.sock|</code>. For example, to proxy
+    HTTP and target the UDS at /home/www.socket, you would use
+    <code>unix:/home/www.socket|http://localhost/whatever/</code>.</p>
+
+    <div class="note"><strong>Note:</strong> The path associated with the <code>unix:</code>
+    URL is <code class="directive">DefaultRuntimeDir</code> aware.</div>
+
+    <p>When used inside a <code class="directive"><a href="../mod/core.html#location">&lt;Location&gt;</a></code> section, the first argument is omitted and the local
+    directory is obtained from the <code class="directive"><a href="../mod/core.html#location">&lt;Location&gt;</a></code>. The same will occur inside a
+    <code class="directive"><a href="../mod/core.html#locationmatch">&lt;LocationMatch&gt;</a></code> section;
+    however, ProxyPass does not interpret the regexp as such, so it is necessary
+    to use <code class="directive">ProxyPassMatch</code> in this situation instead.</p>
+
+    <p>Suppose the local server has address <code>http://example.com/</code>;
+    then</p>
+
+    <pre class="prettyprint lang-config">&lt;Location "/mirror/foo/"&gt;
+    ProxyPass "http://backend.example.com/"
+&lt;/Location&gt;</pre>
+
+
+    <p>will cause a local request for
+    <code>http://example.com/mirror/foo/bar</code> to be internally converted
+    into a proxy request to <code>http://backend.example.com/bar</code>.</p>
+
+    <p>If you require a more flexible reverse-proxy configuration, see the
+    <code class="directive"><a href="../mod/mod_rewrite.html#rewriterule">RewriteRule</a></code> directive with the
+    <code>[P]</code> flag.</p>
+
+    <p>The following alternative syntax is possible; however, it can carry a
+    performance penalty when present in very large numbers. The advantage of
+    the below syntax is that it allows for dynamic control via the
+    <a href="mod_proxy_balancer.html#balancer_manager">Balancer Manager</a> interface:</p>
+
+    <pre class="prettyprint lang-config">ProxyPass "/mirror/foo/" "http://backend.example.com/"</pre>
+
+
+    <div class="warning">
+    <p>If the first argument ends with a trailing <strong>/</strong>, the second
+       argument should also end with a trailing <strong>/</strong>, and vice
+       versa. Otherwise, the resulting requests to the backend may miss some
+       needed slashes and do not deliver the expected results.
+    </p>
+    </div>
+
+    <p>The <code>!</code> directive is useful in situations where you don't want
+    to reverse-proxy a subdirectory, <em>e.g.</em></p>
+
+    <pre class="prettyprint lang-config">&lt;Location "/mirror/foo/"&gt;
+    ProxyPass "http://backend.example.com/"
+&lt;/Location&gt;
+&lt;Location "/mirror/foo/i"&gt;
+    ProxyPass "!"
+&lt;/Location&gt;</pre>
+
+
+    <pre class="prettyprint lang-config">ProxyPass "/mirror/foo/i" "!"
+ProxyPass "/mirror/foo" "http://backend.example.com"</pre>
+
+
+    <p>will proxy all requests to <code>/mirror/foo</code> to
+    <code>backend.example.com</code> <em>except</em> requests made to
+    <code>/mirror/foo/i</code>.</p>
+
+    <p>Mixing ProxyPass settings in different contexts does not work:</p>
+    <pre class="prettyprint lang-config">ProxyPass "/mirror/foo/i" "!"
+&lt;Location "/mirror/foo/"&gt;
+    ProxyPass "http://backend.example.com/"
+&lt;/Location&gt;</pre>
+
+    <p>In this case, a request to <code>/mirror/foo/i</code> will get proxied,
+       because the <code class="directive">ProxyPass</code> directive in the Location block will be evaluated
+       first. The fact that <code class="directive">ProxyPass</code> supports both server and directory contexts
+       does not mean that their scope and position in the configuration file will
+       guarantee any ordering or override.</p>
+
+    <div class="warning"><h3>Ordering ProxyPass Directives</h3>
+      <p>The configured <code class="directive"><a href="#proxypass">ProxyPass</a></code>
+      and <code class="directive"><a href="#proxypassmatch">ProxyPassMatch</a></code>
+      rules are checked in the order of configuration. The first rule that
+      matches wins. So usually you should sort conflicting
+      <code class="directive"><a href="#proxypass">ProxyPass</a></code> rules starting with the
+      longest URLs first. Otherwise, later rules for longer URLS will be hidden
+      by any earlier rule which uses a leading substring of the URL. Note that
+      there is some relation with worker sharing.</p>
+    </div>
+    <div class="warning"><h3>Ordering ProxyPass Directives in Locations</h3>
+      <p>Only one <code class="directive"><a href="#proxypass">ProxyPass</a></code> directive
+      can be placed in a <code class="directive"><a href="../mod/core.html#location">Location</a></code> block,
+      and the most specific location will take precedence.</p>
+    </div>
+    <div class="warning"><h3>Exclusions and the no-proxy environment variable</h3>
+      <p>Exclusions must come <em>before</em> the
+      general <code class="directive">ProxyPass</code> directives. In 2.4.26 and later, the "no-proxy"
+      environment variable is an alternative to exclusions, and is the only
+      way to configure an exclusion of a <code class="directive">ProxyPass</code>
+      directive in <code class="directive"><a href="../mod/core.html#location">Location</a></code> context. 
+      This variable should be set with <code class="directive"><a href="../mod/mod_setenvif.html#setenvif">SetEnvIf</a></code>, as <code class="directive"><a href="../mod/mod_env.html#setenv">SetEnv</a></code>
+      is not evaluated early enough.
+      </p>
+
+    </div> 
+
+    <p><strong>ProxyPass <code>key=value</code> Parameters</strong></p>
+
+    <p>In Apache HTTP Server 2.1 and later, mod_proxy supports pooled
+    connections to a backend server.  Connections created on demand
+    can be retained in a pool for future use.  Limits on the pool size
+    and other settings can be coded on
+    the <code class="directive">ProxyPass</code> directive
+    using  <code>key=value</code> parameters, described in the tables
+    below.</p>
+
+    <div class="warning"><h3>Maximum connections to the backend</h3>
+    <p>By default, mod_proxy will allow and retain the maximum number of
+    connections that could be used simultaneously by that web server child
+    process.  Use the <code>max</code> parameter to reduce the number from
+    the default. The pool of connections is maintained per web server child
+    process, and <code>max</code> and other settings are not coordinated
+    among all child processes, except when only one child process is allowed
+    by configuration or MPM design.</p>
+    </div>
+
+    <p>Use the <code>ttl</code> parameter to set an optional
+    time to live; connections which have been unused for at least
+    <code>ttl</code> seconds will be closed.  <code>ttl</code> can be used
+    to avoid using a connection which is subject to closing because of the
+    backend server's keep-alive timeout.</p>
+
+    <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">ProxyPass "/example" "http://backend.example.com" max=20 ttl=120 retry=300</pre>
+</div>
+
+    <table class="bordered"><tr><th>Worker|BalancerMember parameters</th></tr></table>
+    <table>
+    <tr><th>Parameter</th>
+        <th>Default</th>
+        <th>Description</th></tr>
+    <tr><td>min</td>
+        <td>0</td>
+        <td>Minimum number of connection pool entries, unrelated to the
+    actual number of connections.  This only needs to be modified from the
+    default for special circumstances where heap memory associated with the
+    backend connections should be preallocated or retained.</td></tr>
+    <tr><td>max</td>
+        <td>1...n</td>
+        <td>Maximum number of connections that will be allowed to the
+    backend server. The default for this limit is the number of threads
+    per process in the active MPM. In the Prefork MPM, this is always 1,
+    while with other MPMs, it is controlled by the
+    <code class="directive">ThreadsPerChild</code> directive.</td></tr>
+    <tr><td>smax</td>
+        <td>max</td>
+        <td>Retained connection pool entries above this limit are freed
+    during certain operations if they have been unused for longer than
+    the time to live, controlled by the <code>ttl</code> parameter.  If
+    the connection pool entry has an associated connection, it will be
+    closed.  This only needs to be modified from the default for special
+    circumstances where connection pool entries and any associated
+    connections which have exceeded the time to live need to be freed or
+    closed more aggressively.</td></tr>
+    <tr><td>acquire</td>
+        <td>-</td>
+        <td>If set, this will be the maximum time to wait for a free
+    connection in the connection pool, in milliseconds. If there are no free
+    connections in the pool, the Apache httpd will return <code>SERVER_BUSY</code>
+    status to the client.
+    </td></tr>
+    <tr><td>connectiontimeout</td>
+        <td>timeout</td>
+        <td>Connect timeout in seconds.
+        The number of seconds Apache httpd waits for the creation of a connection to
+        the backend to complete. By adding a postfix of ms, the timeout can be
+        also set in milliseconds.
+    </td></tr>
+    <tr><td>disablereuse</td>
+        <td>Off</td>
+        <td>This parameter should be used when you want to force mod_proxy
+    to immediately close a connection to the backend after being used, and
+    thus, disable its persistent connection and pool for that backend.
+    This helps in various situations where a firewall between Apache
+    httpd and
+    the backend server (regardless of protocol) tends to silently
+    drop connections or when backends themselves may be under round-
+    robin DNS.
+    When connection reuse is enabled each backend domain is resolved
+    (with a DNS query) only once per child process and cached for all further
+    connections until the child is recycled. To disable connection reuse,
+    set this property value to <code>On</code>.
+    </td></tr>
+    <tr><td>enablereuse</td>
+        <td>On</td>
+        <td>This is the inverse of 'disablereuse' above, provided as a
+        convenience for scheme handlers that require opt-in for connection
+        reuse (such as <code class="module"><a href="../mod/mod_proxy_fcgi.html">mod_proxy_fcgi</a></code>).  2.4.11 and later only.
+    </td></tr>
+    <tr><td>flushpackets</td>
+        <td>off</td>
+        <td>Determines whether the proxy module will auto-flush the output
+        brigade after each "chunk" of data. 'off' means that it will flush
+        only when needed; 'on' means after each chunk is sent; and
+        'auto' means poll/wait for a period of time and flush if
+        no input has been received for 'flushwait' milliseconds.
+        Currently, this is in effect only for mod_proxy_ajp and mod_proxy_fcgi.
+    </td></tr>
+    <tr><td>flushwait</td>
+        <td>10</td>
+        <td>The time to wait for additional input, in milliseconds, before
+        flushing the output brigade if 'flushpackets' is 'auto'.
+    </td></tr>
+    <tr><td>iobuffersize</td>
+        <td>8192</td>
+        <td>Adjusts the size of the internal scratchpad IO buffer. This allows you
+        to override the <code class="directive">ProxyIOBufferSize</code> for a specific worker.
+        This must be at least 512 or set to 0 for the system default of 8192.
+    </td></tr>
+    <tr><td>responsefieldsize</td>
+        <td>8192</td>
+        <td>Adjust the size of the proxy response field buffer. The buffer size
+            should be at least the size of the largest expected header size from
+            a proxied response. Setting the value to 0 will use the system
+            default of 8192 bytes.<br />
+        Available in Apache HTTP Server 2.4.34 and later.
+    </td></tr>
+    <tr><td>keepalive</td>
+        <td>Off</td>
+        <td><p>This parameter should be used when you have a firewall between your
+    Apache httpd and the backend server, which tends to drop inactive connections.
+    This flag will tell the Operating System to send <code>KEEP_ALIVE</code>
+    messages on inactive connections and thus prevent the firewall from dropping
+    the connection.
+    To enable keepalive, set this property value to <code>On</code>. </p>
+    <p>The frequency of initial and subsequent TCP keepalive probes
+    depends on global OS settings, and may be as high as 2 hours. To be useful,
+    the frequency configured in the OS must be smaller than the threshold used
+    by the firewall.</p>
+    </td></tr>
+    <tr><td>lbset</td>
+        <td>0</td>
+        <td>Sets the load balancer cluster set that the worker is a member
+         of. The load balancer will try all members of a lower numbered
+         lbset before trying higher numbered ones.
+    </td></tr>
+    <tr><td>ping</td>
+        <td>0</td>
+        <td>Ping property tells the webserver to "test" the connection to
+        the backend before forwarding the request. For AJP, it causes
+        <code class="module"><a href="../mod/mod_proxy_ajp.html">mod_proxy_ajp</a></code> to send a <code>CPING</code>
+        request on the ajp13 connection (implemented on Tomcat 3.3.2+, 4.1.28+
+        and 5.0.13+). For HTTP, it causes <code class="module"><a href="../mod/mod_proxy_http.html">mod_proxy_http</a></code>
+        to send a <code>100-Continue</code> to the backend (only valid for
+        HTTP/1.1 - for non HTTP/1.1 backends, this property has no
+        effect). In both cases, the parameter is the delay in seconds to wait
+        for the reply.
+        This feature has been added to avoid problems with hung and
+        busy backends.
+        This will increase the network traffic during the normal operation
+        which could be an issue, but it will lower the
+        traffic in case some of the cluster nodes are down or busy.
+        By adding a postfix of ms, the delay can be also set in
+        milliseconds.
+    </td></tr>
+    <tr><td>receivebuffersize</td>
+        <td>0</td>
+        <td>Adjusts the size of the explicit (TCP/IP) network buffer size for
+        proxied connections. This allows you to override the
+        <code class="directive">ProxyReceiveBufferSize</code> for a specific worker.
+        This must be at least 512 or set to 0 for the system default.
+    </td></tr>
+    <tr><td>redirect</td>
+        <td>-</td>
+        <td>Redirection Route of the worker. This value is usually
+        set dynamically to enable safe removal of the node from
+        the cluster. If set, all requests without session id will be
+        redirected to the BalancerMember that has route parameter
+        equal to this value.
+    </td></tr>
+    <tr><td>retry</td>
+        <td>60</td>
+        <td>Connection pool worker retry timeout in seconds.
+    If the connection pool worker to the backend server is in the error state,
+    Apache httpd will not forward any requests to that server until the timeout
+    expires. This enables to shut down the backend server for maintenance
+    and bring it back online later. A value of 0 means always retry workers
+    in an error state with no timeout.
+    </td></tr>
+    <tr><td>route</td>
+        <td>-</td>
+        <td>Route of the worker when used inside load balancer.
+        The route is a value appended to session id.
+    </td></tr>
+    <tr><td><a name="status_table">status</a></td>
+        <td>-</td>
+        <td>Single letter value defining the initial status of
+        this worker.
+        <table>
+         <tr><td>D: Worker is disabled and will not accept any requests.</td></tr>
+         <tr><td>S: Worker is administratively stopped.</td></tr>
+         <tr><td>I: Worker is in ignore-errors mode and will always be considered available.</td></tr>
+         <tr><td>R: Worker is a hot spare. For each worker in a given lbset that is unusable
+                    (draining, stopped, in error, etc.), a usable hot spare with the same lbset will be used in
+                    its place. Hot spares can help ensure that a specific number of workers are always available
+                    for use by a balancer.</td></tr>
+         <tr><td>H: Worker is in hot-standby mode and will only be used if no other
+                    viable workers or spares are available in the balancer set.</td></tr>
+         <tr><td>E: Worker is in an error state.</td></tr>
+         <tr><td>N: Worker is in drain mode and will only accept existing sticky sessions
+                    destined for itself and ignore all other requests.</td></tr>
+        </table>Status
+        can be set (which is the default) by prepending with '+' or
+        cleared by prepending with '-'.
+        Thus, a setting of 'S-E' sets this worker to Stopped and
+        clears the in-error flag.
+    </td></tr>
+    <tr><td>timeout</td>
+        <td><code class="directive"><a href="#proxytimeout">ProxyTimeout</a></code></td>
+        <td>Connection timeout in seconds.
+        The number of seconds Apache httpd waits for data sent by / to the backend.
+    </td></tr>
+    <tr><td>ttl</td>
+        <td>-</td>
+        <td>Time to live for inactive connections and associated connection
+        pool entries, in seconds.  Once reaching this limit, a
+        connection will not be used again; it will be closed at some
+        later time.
+    </td></tr>
+    <tr><td>flusher</td>
+        <td>flush</td>
+        <td><p>Name of the provider used by <code class="module"><a href="../mod/mod_proxy_fdpass.html">mod_proxy_fdpass</a></code>.
+        See the documentation of this module for more details.</p>
+    </td></tr>
+    <tr><td>secret</td>
+        <td>-</td>
+        <td><p>Value of secret used by <code class="module"><a href="../mod/mod_proxy_ajp.html">mod_proxy_ajp</a></code>.
+        See the documentation of this module for more details.</p>
+    </td></tr>
+    <tr><td>upgrade</td>
+        <td>WebSocket</td>
+        <td><p>Protocol accepted in the Upgrade header by <code class="module"><a href="../mod/mod_proxy_wstunnel.html">mod_proxy_wstunnel</a></code>.
+        See the documentation of this module for more details.</p>
+    </td></tr>
+
+    </table>
+
+    <p>If the Proxy directive scheme starts with the
+    <code>balancer://</code> (eg: <code>balancer://cluster</code>,
+    any path information is ignored), then a virtual worker that does not really
+    communicate with the backend server will be created. Instead, it is responsible
+    for the management of several "real" workers. In that case, the special set of
+    parameters can be added to this virtual worker. 
+    See <code class="module"><a href="../mod/mod_proxy_balancer.html">mod_proxy_balancer</a></code> for more information about how 
+    the balancer works.
+    </p>
+    <table class="bordered"><tr><th>Balancer parameters</th></tr></table>
+    <table>
+    <tr><th>Parameter</th>
+        <th>Default</th>
+        <th>Description</th></tr>
+    <tr><td>lbmethod</td>
+        <td>byrequests</td>
+        <td>Balancer load-balance method. Select the load-balancing scheduler
+        method to use. Either <code>byrequests</code>, to perform weighted
+        request counting; <code>bytraffic</code>, to perform weighted
+        traffic byte count balancing; or <code>bybusyness</code>, to perform
+        pending request balancing. The default is <code>byrequests</code>.
+    </td></tr>
+    <tr><td>maxattempts</td>
+        <td>One less than the number of workers, or 1 with a single worker.</td>
+        <td>Maximum number of failover attempts before giving up.
+    </td></tr>
+    <tr><td>nofailover</td>
+        <td>Off</td>
+        <td>If set to <code>On</code>, the session will break if the worker is in
+        error state or disabled. Set this value to <code>On</code> if backend
+        servers do not support session replication.
+    </td></tr>
+    <tr><td>stickysession</td>
+        <td>-</td>
+        <td>Balancer sticky session name. The value is usually set to something
+        like <code>JSESSIONID</code> or <code>PHPSESSIONID</code>,
+        and it depends on the backend application server that support sessions.
+        If the backend application server uses different name for cookies
+        and url encoded id (like servlet containers) use | to separate them.
+        The first part is for the cookie the second for the path.<br />
+        Available in Apache HTTP Server 2.4.4 and later.
+    </td></tr>
+    <tr><td>stickysessionsep</td>
+        <td>"."</td>
+        <td>Sets the separation symbol in the session cookie. Some backend application servers
+        do not use the '.' as the symbol. For example, the Oracle Weblogic server uses 
+        '!'. The correct symbol can be set using this option. The setting of 'Off'
+        signifies that no symbol is used.
+    </td></tr>
+    <tr><td>scolonpathdelim</td>
+        <td>Off</td>
+        <td>If set to <code>On</code>, the semi-colon character ';' will be
+        used as an additional sticky session path delimiter/separator. This
+        is mainly used to emulate mod_jk's behavior when dealing with paths such
+        as <code>JSESSIONID=6736bcf34;foo=aabfa</code>
+    </td></tr>
+    <tr><td>timeout</td>
+        <td>0</td>
+        <td>Balancer timeout in seconds. If set, this will be the maximum time
+        to wait for a free worker. The default is to not wait.
+    </td></tr>
+    <tr><td>failonstatus</td>
+        <td>-</td>
+        <td>A single or comma-separated list of HTTP status codes. If set, this will
+        force the worker into error state when the backend returns any status code
+        in the list. Worker recovery behaves the same as other worker errors.
+    </td></tr>
+    <tr><td>failontimeout</td>
+        <td>Off</td>
+        <td>If set, an IO read timeout after a request is sent to the backend will
+        force the worker into error state. Worker recovery behaves the same as other
+        worker errors.<br />
+        Available in Apache HTTP Server 2.4.5 and later.
+    </td></tr>
+    <tr><td>nonce</td>
+        <td>&lt;auto&gt;</td>
+        <td>The protective nonce used in the <code>balancer-manager</code> application page.
+        The default is to use an automatically determined UUID-based
+        nonce, to provide for further protection for the page. If set,
+        then the nonce is set to that value. A setting of <code>None</code>
+        disables all nonce checking.
+    <div class="note"><h3>Note</h3>
+      <p>In addition to the nonce, the <code>balancer-manager</code> page
+      should be protected via an ACL.</p>
+    </div>
+     </td></tr>
+    <tr><td>growth</td>
+        <td>0</td>
+        <td>Number of additional BalancerMembers to allow to be added
+        to this balancer in addition to those defined at configuration.
+    </td></tr>
+    <tr><td>forcerecovery</td>
+        <td>On</td>
+        <td>Force the immediate recovery of all workers without considering the
+        retry parameter of the workers if all workers of a balancer are
+        in error state. There might be cases where an already overloaded backend
+        can get into deeper trouble if the recovery of all workers is enforced
+        without considering the retry parameter of each worker. In this case,
+        set to <code>Off</code>.<br />
+        Available in Apache HTTP Server 2.4.2 and later.
+    </td></tr>
+
+    </table>
+    <p>A sample balancer setup:</p>
+    <pre class="prettyprint lang-config">ProxyPass "/special-area" "http://special.example.com" smax=5 max=10
+ProxyPass "/" "balancer://mycluster/" stickysession=JSESSIONID|jsessionid nofailover=On
+&lt;Proxy "balancer://mycluster"&gt;
+    BalancerMember "ajp://1.2.3.4:8009"
+    BalancerMember "ajp://1.2.3.5:8009" loadfactor=20
+    # Less powerful server, don't send as many requests there,
+    BalancerMember "ajp://1.2.3.6:8009" loadfactor=5
+&lt;/Proxy&gt;</pre>
+
+
+    <p>Configuring hot spares can help ensure that a certain number of
+    workers are always available for use per load balancer set:</p>
+    <pre class="prettyprint lang-config">ProxyPass "/" "balancer://sparecluster/"
+&lt;Proxy balancer://sparecluster&gt;
+    BalancerMember ajp://1.2.3.4:8009
+    BalancerMember ajp://1.2.3.5:8009
+    # The servers below are hot spares. For each server above that is unusable
+    # (draining, stopped, unreachable, in error state, etc.), one of these spares
+    # will be used in its place. Two servers will always be available for a request
+    # unless one or more of the spares is also unusable.
+    BalancerMember ajp://1.2.3.6:8009 status=+R
+    BalancerMember ajp://1.2.3.7:8009 status=+R
+&lt;/Proxy&gt;</pre>
+
+
+    <p>Setting up a hot-standby that will only be used if no other
+    members (or spares) are available in the load balancer set:</p>
+    <pre class="prettyprint lang-config">ProxyPass "/" "balancer://hotcluster/"
+&lt;Proxy "balancer://hotcluster"&gt;
+    BalancerMember "ajp://1.2.3.4:8009" loadfactor=1
+    BalancerMember "ajp://1.2.3.5:8009" loadfactor=2.25
+    # The server below is on hot standby
+    BalancerMember "ajp://1.2.3.6:8009" status=+H
+    ProxySet lbmethod=bytraffic
+&lt;/Proxy&gt;</pre>
+
+
+    <p><strong>Additional ProxyPass Keywords</strong></p>
+
+    <p>Normally, mod_proxy will canonicalise ProxyPassed URLs.
+    But this may be incompatible with some backends, particularly those
+    that make use of <var>PATH_INFO</var>.  The optional <var>nocanon</var>
+    keyword suppresses this and passes the URL path "raw" to the
+    backend.  Note that this keyword may affect the security of your backend, 
+	as it removes the normal limited protection against URL-based attacks
+    provided by the proxy.</p>
+
+    <p>Normally, mod_proxy will include the query string when
+    generating the <var>SCRIPT_FILENAME</var> environment variable.
+    The optional <var>noquery</var> keyword (available in
+    httpd 2.4.1 and later) prevents this.</p>
+
+    <p>The optional <var>interpolate</var> keyword, in combination with
+    <code class="directive"><a href="#proxypassinterpolateenv">ProxyPassInterpolateEnv</a></code>, causes the ProxyPass
+    to interpolate environment variables, using the syntax
+    <var>${VARNAME}</var>.  Note that many of the standard CGI-derived
+    environment variables will not exist when this interpolation happens,
+    so you may still have to resort to <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>
+    for complex rules. Also note that interpolation is supported
+    within the scheme/hostname/port portion of a URL only for variables that
+    are available when the directive is parsed 
+    (like <code class="directive"><a href="../mod/core.html#define">Define</a></code>). Dynamic determination of
+    those fields can be accomplished with <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>.
+    The following example describes how to use <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>
+    to dynamically set the scheme to http or https:</p>
+
+    <pre class="prettyprint lang-config">RewriteEngine On
+
+RewriteCond "%{HTTPS}" =off
+RewriteRule "." "-" [E=protocol:http]
+RewriteCond "%{HTTPS}" =on
+RewriteRule "." "-" [E=protocol:https]
+
+RewriteRule "^/mirror/foo/(.*)" "%{ENV:protocol}://backend.example.com/$1" [P]
+ProxyPassReverse  "/mirror/foo/" "http://backend.example.com/"
+ProxyPassReverse  "/mirror/foo/" "https://backend.example.com/"</pre>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyPassInherit" id="ProxyPassInherit">ProxyPassInherit</a> <a name="proxypassinherit" id="proxypassinherit">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Inherit ProxyPass directives defined from the main server</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyPassInherit On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyPassInherit On</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>ProxyPassInherit is only available in Apache HTTP Server 2.4.5 and later.
+        </td></tr>
+</table>
+        <p>This directive will cause the current server/vhost to "inherit"
+            <code class="directive"><a href="#proxypass">ProxyPass</a></code>
+            directives defined in the main server. This can cause issues and
+            inconsistent behavior if using the Balancer Manager for dynamic changes
+            and so should be disabled if using that feature.</p>
+        <p>The setting in the global server defines the default for all vhosts.</p>
+        <p>Disabling ProxyPassInherit also disables <code class="directive"><a href="#balancerinherit">BalancerInherit</a></code>.</p>
+    
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyPassInterpolateEnv" id="ProxyPassInterpolateEnv">ProxyPassInterpolateEnv</a> <a name="proxypassinterpolateenv" id="proxypassinterpolateenv">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Enable Environment Variable interpolation in Reverse Proxy configurations</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyPassInterpolateEnv On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyPassInterpolateEnv Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in httpd 2.2.9 and later</td></tr>
+</table>
+    <p>This directive, together with the <var>interpolate</var> argument to
+    <code class="directive">ProxyPass</code>, <code class="directive">ProxyPassReverse</code>,
+    <code class="directive">ProxyPassReverseCookieDomain</code>, and
+    <code class="directive">ProxyPassReverseCookiePath</code>,
+    enables reverse proxies to be dynamically
+    configured using environment variables which may be set by
+    another module such as <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>.
+    It affects the <code class="directive">ProxyPass</code>,
+    <code class="directive">ProxyPassReverse</code>,
+    <code class="directive">ProxyPassReverseCookieDomain</code>, and
+    <code class="directive">ProxyPassReverseCookiePath</code> directives
+    and causes them to substitute the value of an environment
+    variable <code>varname</code> for the string <code>${varname}</code>
+    in configuration directives if the <var>interpolate</var> option is set.</p>
+    <p>The scheme/hostname/port portion of <code class="directive">ProxyPass</code> may
+    contain variables, but only the ones available when the directive is parsed
+    (for example, using <code class="directive"><a href="../mod/core.html#define">Define</a></code>).
+    For all the other use cases, please consider using
+    <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> instead.</p>
+    <div class="warning"><h3>Performance warning</h3>
+    <p>Keep this turned off unless you need it!
+    Adding variables to <code class="directive">ProxyPass</code> for example may lead to
+    the use of the default mod_proxy's workers configured (that don't allow any fine
+    tuning like connections reuse, etc..).</p>
+    </div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyPassMatch" id="ProxyPassMatch">ProxyPassMatch</a> <a name="proxypassmatch" id="proxypassmatch">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Maps remote servers into the local server URL-space using regular expressions</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyPassMatch [<var>regex</var>] !|<var>url</var> [<var>key=value</var>
+	<var>[key=value</var> ...]]</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+</table>
+    <p>This directive is equivalent to <code class="directive"><a href="#proxypass">ProxyPass</a></code>
+       but makes use of regular expressions instead of simple prefix matching. The
+       supplied regular expression is matched against the <var>url</var>, and if it
+       matches, the server will substitute any parenthesized matches into the given
+       string and use it as a new <var>url</var>.</p>
+
+    <div class="note"><strong>Note: </strong>This directive cannot be used within a 
+    <code>&lt;Directory&gt;</code> context.</div>
+    
+    <p>Suppose the local server has address <code>http://example.com/</code>;
+    then</p>
+
+    <pre class="prettyprint lang-config">ProxyPassMatch "^/(.*\.gif)$" "http://backend.example.com/$1"</pre>
+
+
+    <p>will cause a local request for
+    <code>http://example.com/foo/bar.gif</code> to be internally converted
+    into a proxy request to <code>http://backend.example.com/foo/bar.gif</code>.</p>
+    <div class="note"><h3>Note</h3>
+      <p>The URL argument must be parsable as a URL <em>before</em> regexp
+      substitutions (as well as after).  This limits the matches you can use.
+      For instance, if we had used</p>
+      <pre class="prettyprint lang-config">ProxyPassMatch "^(/.*\.gif)$" "http://backend.example.com:8000$1"</pre>
+
+      <p>in our previous example, it would fail with a syntax error
+      at server startup.  This is a bug (PR 46665 in the ASF bugzilla),
+      and the workaround is to reformulate the match:</p>
+      <pre class="prettyprint lang-config">ProxyPassMatch "^/(.*\.gif)$" "http://backend.example.com:8000/$1"</pre>
+
+    </div>
+    <p>The <code>!</code> directive is useful in situations where you don't want
+    to reverse-proxy a subdirectory.</p>
+
+    <p>When used inside a <code class="directive"><a href="../mod/core.html#locationmatch">&lt;LocationMatch&gt;</a></code> section, the first argument is omitted and the
+    regexp is obtained from the <code class="directive"><a href="../mod/core.html#locationmatch">&lt;LocationMatch&gt;</a></code>.</p>
+
+    <p>If you require a more flexible reverse-proxy configuration, see the
+    <code class="directive"><a href="../mod/mod_rewrite.html#rewriterule">RewriteRule</a></code> directive with the
+    <code>[P]</code> flag.</p>
+
+    <div class="note">
+      <h3>Default Substitution</h3>
+      <p>When the URL parameter doesn't use any backreferences into the regular
+      expression, the original URL will be appended to the URL parameter.
+      </p>
+    </div>
+
+    <div class="warning">
+      <h3>Security Warning</h3>
+      <p>Take care when constructing the target URL of the rule, considering
+        the security impact from allowing the client influence over the set of
+        URLs to which your server will act as a proxy.  Ensure that the scheme
+        and hostname part of the URL is either fixed or does not allow the
+        client undue influence.</p>
+    </div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyPassReverse" id="ProxyPassReverse">ProxyPassReverse</a> <a name="proxypassreverse" id="proxypassreverse">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Adjusts the URL in HTTP response headers sent from a reverse
+proxied server</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyPassReverse [<var>path</var>] <var>url</var>
+[<var>interpolate</var>]</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+</table>
+    <p>This directive lets Apache httpd adjust the URL in the <code>Location</code>,
+    <code>Content-Location</code> and <code>URI</code> headers on HTTP
+    redirect responses. This is essential when Apache httpd is used as a
+    reverse proxy (or gateway) to avoid bypassing the reverse proxy
+    because of HTTP redirects on the backend servers which stay behind
+    the reverse proxy.</p>
+
+    <p>Only the HTTP response headers specifically mentioned above
+    will be rewritten. Apache httpd will not rewrite other response
+    headers, nor will it by default rewrite URL references inside HTML pages.
+    This means that if the proxied content contains absolute URL
+    references, they will bypass the proxy. To rewrite HTML content to
+    match the proxy, you must load and enable <code class="module"><a href="../mod/mod_proxy_html.html">mod_proxy_html</a></code>.
+    </p>
+
+    <p><var>path</var> is the name of a local virtual path; <var>url</var> is a
+    partial URL for the remote server. 
+    These parameters are used the same way as for the
+    <code class="directive"><a href="#proxypass">ProxyPass</a></code> directive.</p>
+
+    <p>For example, suppose the local server has address
+    <code>http://example.com/</code>; then</p>
+
+    <pre class="prettyprint lang-config">ProxyPass         "/mirror/foo/" "http://backend.example.com/"
+ProxyPassReverse  "/mirror/foo/" "http://backend.example.com/"
+ProxyPassReverseCookieDomain  "backend.example.com"  "public.example.com"
+ProxyPassReverseCookiePath  "/"  "/mirror/foo/"</pre>
+
+
+    <p>will not only cause a local request for the
+    <code>http://example.com/mirror/foo/bar</code> to be internally converted
+    into a proxy request to <code>http://backend.example.com/bar</code>
+    (the functionality which <code>ProxyPass</code> provides here). 
+    It also takes care of redirects which the server <code>backend.example.com</code>
+    sends when redirecting <code>http://backend.example.com/bar</code> to
+    <code>http://backend.example.com/quux</code> . Apache httpd adjusts this to
+    <code>http://example.com/mirror/foo/quux</code> before forwarding the HTTP
+    redirect response to the client. Note that the hostname used for
+    constructing the URL is chosen in respect to the setting of the <code class="directive"><a href="../mod/core.html#usecanonicalname">UseCanonicalName</a></code> directive.</p>
+
+    <p>Note that this <code class="directive">ProxyPassReverse</code> directive can
+    also be used in conjunction with the proxy feature
+    (<code>RewriteRule ...  [P]</code>) from <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>
+    because it doesn't depend on a corresponding <code class="directive"><a href="#proxypass">ProxyPass</a></code> directive.</p>
+
+    <p>The optional <var>interpolate</var> keyword, used together with
+    <code class="directive">ProxyPassInterpolateEnv</code>, enables interpolation
+    of environment variables specified using the format <var>${VARNAME}</var>.
+    Note that interpolation is not supported within the scheme portion of a
+    URL.</p>
+
+    <p>When used inside a <code class="directive"><a href="../mod/core.html#location">&lt;Location&gt;</a></code> section, the first argument is omitted and the local
+    directory is obtained from the <code class="directive"><a href="../mod/core.html#location">&lt;Location&gt;</a></code>. The same occurs inside a <code class="directive"><a href="../mod/core.html#locationmatch">&lt;LocationMatch&gt;</a></code> section, but will probably not work as
+    intended, as ProxyPassReverse will interpret the regexp literally as a
+    path; if needed in this situation, specify the ProxyPassReverse outside
+    the section or in a separate <code class="directive"><a href="../mod/core.html#location">&lt;Location&gt;</a></code> section.</p>
+
+    <p>This directive is not supported in <code class="directive"><a href="../mod/core.html#directory">&lt;Directory&gt;</a></code> or <code class="directive"><a href="../mod/core.html#files">&lt;Files&gt;</a></code> sections.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyPassReverseCookieDomain" id="ProxyPassReverseCookieDomain">ProxyPassReverseCookieDomain</a> <a name="proxypassreversecookiedomain" id="proxypassreversecookiedomain">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Adjusts the Domain string in Set-Cookie headers from a reverse-
+proxied server</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyPassReverseCookieDomain <var>internal-domain</var>
+<var>public-domain</var> [<var>interpolate</var>]</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+</table>
+<p>Usage is basically similar to
+<code class="directive"><a href="#proxypassreverse">ProxyPassReverse</a></code>, but instead of
+rewriting headers that are a URL, this rewrites the <code>domain</code>
+string in <code>Set-Cookie</code> headers.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyPassReverseCookiePath" id="ProxyPassReverseCookiePath">ProxyPassReverseCookiePath</a> <a name="proxypassreversecookiepath" id="proxypassreversecookiepath">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Adjusts the Path string in Set-Cookie headers from a reverse-
+proxied server</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyPassReverseCookiePath <var>internal-path</var>
+<var>public-path</var> [<var>interpolate</var>]</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+</table>
+<p>
+Useful in conjunction with
+<code class="directive"><a href="#proxypassreverse">ProxyPassReverse</a></code>
+in situations where backend URL paths are mapped to public paths on the
+reverse proxy. This directive rewrites the <code>path</code> string in
+<code>Set-Cookie</code> headers. If the beginning of the cookie path matches
+<var>internal-path</var>, the cookie path will be replaced with
+<var>public-path</var>.
+</p><p>
+In the example given with 
+<code class="directive"><a href="#proxypassreverse">ProxyPassReverse</a></code>, the directive:
+</p>
+    <pre class="prettyprint lang-config">ProxyPassReverseCookiePath  "/"  "/mirror/foo/"</pre>
+
+<p>
+will rewrite a cookie with backend path <code>/</code> (or
+<code>/example</code> or, in fact, anything) to <code>/mirror/foo/</code>.
+</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyPreserveHost" id="ProxyPreserveHost">ProxyPreserveHost</a> <a name="proxypreservehost" id="proxypreservehost">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Use incoming Host HTTP request header for proxy
+request</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyPreserveHost On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyPreserveHost Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Usable in directory
+context in 2.3.3 and later.</td></tr>
+</table>
+    <p>When enabled, this option will pass the Host: line from the incoming
+    request to the proxied host, instead of the hostname specified in the
+    <code class="directive"><a href="#proxypass">ProxyPass</a></code> line.</p>
+
+    <p>This option should normally be turned <code>Off</code>. It is mostly
+    useful in special configurations like proxied mass name-based virtual
+    hosting, where the original Host header needs to be evaluated by the
+    backend server.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyReceiveBufferSize" id="ProxyReceiveBufferSize">ProxyReceiveBufferSize</a> <a name="proxyreceivebuffersize" id="proxyreceivebuffersize">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Network buffer size for proxied HTTP and FTP
+connections</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyReceiveBufferSize <var>bytes</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyReceiveBufferSize 0</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+</table>
+    <p>The <code class="directive">ProxyReceiveBufferSize</code> directive specifies an
+    explicit (TCP/IP) network buffer size for proxied HTTP and FTP connections,
+    for increased throughput. It has to be greater than <code>512</code> or set
+    to <code>0</code> to indicate that the system's default buffer size should
+    be used.</p>
+
+    <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">ProxyReceiveBufferSize 2048</pre>
+</div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyRemote" id="ProxyRemote">ProxyRemote</a> <a name="proxyremote" id="proxyremote">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Remote proxy used to handle certain requests</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyRemote <var>match</var> <var>remote-server</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+</table>
+    <p>This defines remote proxies to this proxy. <var>match</var> is either the
+    name of a URL-scheme that the remote server supports, or a partial URL
+    for which the remote server should be used, or <code>*</code> to indicate
+    the server should be contacted for all requests. <var>remote-server</var> is
+    a partial URL for the remote server. Syntax:</p>
+
+    <div class="example"><p><code>
+      <dfn>remote-server</dfn> =
+          <var>scheme</var>://<var>hostname</var>[:<var>port</var>]
+    </code></p></div>
+
+    <p><var>scheme</var> is effectively the protocol that should be used to
+    communicate with the remote server; only <code>http</code> and <code>https</code>
+    are supported by this module. When using <code>https</code>, the requests
+    are forwarded through the remote proxy using the HTTP CONNECT method.</p>
+
+    <div class="example"><h3>Example</h3><pre class="prettyprint lang-config">ProxyRemote "http://goodguys.example.com/" "http://mirrorguys.example.com:8000"
+ProxyRemote "*" "http://cleverproxy.localdomain"
+ProxyRemote "ftp" "http://ftpproxy.mydomain:8080"</pre>
+</div>
+
+    <p>In the last example, the proxy will forward FTP requests, encapsulated
+    as yet another HTTP proxy request, to another proxy which can handle
+    them.</p>
+
+    <p>This option also supports reverse proxy configuration; a backend
+    webserver can be embedded within a virtualhost URL space even if that
+    server is hidden by another forward proxy.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyRemoteMatch" id="ProxyRemoteMatch">ProxyRemoteMatch</a> <a name="proxyremotematch" id="proxyremotematch">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Remote proxy used to handle requests matched by regular
+expressions</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyRemoteMatch <var>regex</var> <var>remote-server</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+</table>
+    <p>The <code class="directive">ProxyRemoteMatch</code> is identical to the
+    <code class="directive"><a href="#proxyremote">ProxyRemote</a></code> directive, except that
+    the first argument is a <a class="glossarylink" href="../glossary.html#regex" title="see glossary">regular expression</a>
+    match against the requested URL.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyRequests" id="ProxyRequests">ProxyRequests</a> <a name="proxyrequests" id="proxyrequests">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Enables forward (standard) proxy requests</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyRequests On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyRequests Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+</table>
+    <p>This allows or prevents Apache httpd from functioning as a forward proxy
+    server. (Setting ProxyRequests to <code>Off</code> does not disable use of
+    the <code class="directive"><a href="#proxypass">ProxyPass</a></code> directive.)</p>
+
+    <p>In a typical reverse proxy or gateway configuration, this
+    option should be set to
+    <code>Off</code>.</p>
+
+    <p>In order to get the functionality of proxying HTTP or FTP sites, you
+    need also <code class="module"><a href="../mod/mod_proxy_http.html">mod_proxy_http</a></code> or <code class="module"><a href="../mod/mod_proxy_ftp.html">mod_proxy_ftp</a></code>
+    (or both) present in the server.</p>
+
+    <p>In order to get the functionality of (forward) proxying HTTPS sites, you
+    need <code class="module"><a href="../mod/mod_proxy_connect.html">mod_proxy_connect</a></code> enabled in the server.</p>
+
+    <div class="warning"><h3>Warning</h3>
+      <p>Do not enable proxying with <code class="directive"><a href="#proxyrequests">ProxyRequests</a></code> until you have <a href="#access">secured your server</a>.  Open proxy servers are dangerous
+      both to your network and to the Internet at large.</p>
+    </div>
+
+<h3>See also</h3>
+<ul>
+<li><a href="#forwardreverse">Forward and Reverse Proxies/Gateways</a></li>
+</ul>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxySet" id="ProxySet">ProxySet</a> <a name="proxyset" id="proxyset">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Set various Proxy balancer or member parameters</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxySet <var>url</var> <var>key=value [key=value ...]</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>ProxySet is only available in Apache HTTP Server 2.2
+  and later.</td></tr>
+</table>
+    <p>This directive is used as an alternate method of setting any of the
+    parameters available to Proxy balancers and workers normally done via the
+    <code class="directive"><a href="#proxypass">ProxyPass</a></code> directive. If used
+    within a <code>&lt;Proxy <var>balancer url|worker url</var>&gt;</code>
+    container directive, the <var>url</var> argument is not required. As a side
+    effect the respective balancer or worker gets created. This can be useful
+    when doing reverse proxying via a
+    <code class="directive"><a href="../mod/mod_rewrite.html#rewriterule">RewriteRule</a></code> instead of a
+    <code class="directive"><a href="#proxypass">ProxyPass</a></code> directive.</p>
+
+    <div class="example"><pre class="prettyprint lang-config">&lt;Proxy "balancer://hotcluster"&gt;
+    BalancerMember "http://www2.example.com:8080" loadfactor=1
+    BalancerMember "http://www3.example.com:8080" loadfactor=2
+    ProxySet lbmethod=bytraffic
+&lt;/Proxy&gt;</pre>
+</div>
+
+    <pre class="prettyprint lang-config">&lt;Proxy "http://backend"&gt;
+    ProxySet keepalive=On
+&lt;/Proxy&gt;</pre>
+
+
+    <pre class="prettyprint lang-config">ProxySet "balancer://foo" lbmethod=bytraffic timeout=15</pre>
+
+
+    <pre class="prettyprint lang-config">ProxySet "ajp://backend:7001" timeout=15</pre>
+
+
+   <div class="warning"><h3>Warning</h3>
+      <p>Keep in mind that the same parameter key can have a different meaning
+      depending whether it is applied to a balancer or a worker, as shown by
+      the two examples above regarding timeout.</p>
+   </div>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxySourceAddress" id="ProxySourceAddress">ProxySourceAddress</a> <a name="proxysourceaddress" id="proxysourceaddress">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Set local IP address for outgoing proxy connections</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxySourceAddress <var>address</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.3.9 and later</td></tr>
+</table>
+    <p>This directive allows to set a specific local address to bind to when connecting
+    to a backend server.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyStatus" id="ProxyStatus">ProxyStatus</a> <a name="proxystatus" id="proxystatus">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Show Proxy LoadBalancer status in mod_status</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyStatus Off|On|Full</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyStatus Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibility:</a></th><td>Available in version 2.2 and later</td></tr>
+</table>
+    <p>This directive determines whether or not proxy
+    loadbalancer status data is displayed via the <code class="module"><a href="../mod/mod_status.html">mod_status</a></code>
+    server-status page.</p>
+    <div class="note"><h3>Note</h3>
+      <p><strong>Full</strong> is synonymous with <strong>On</strong></p>
+    </div>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyTimeout" id="ProxyTimeout">ProxyTimeout</a> <a name="proxytimeout" id="proxytimeout">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Network timeout for proxied requests</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyTimeout <var>seconds</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>Value of <code class="directive"><a href="../mod/core.html#timeout">Timeout</a></code></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+</table>
+    <p>This directive allows a user to specifiy a timeout on proxy requests.
+    This is useful when you have a slow/buggy appserver which hangs, and you
+    would rather just return a timeout and fail gracefully instead of waiting
+    however long it takes the server to return.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ProxyVia" id="ProxyVia">ProxyVia</a> <a name="proxyvia" id="proxyvia">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Information provided in the <code>Via</code> HTTP response
+header for proxied requests</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ProxyVia On|Off|Full|Block</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ProxyVia Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Extension</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_proxy</td></tr>
+</table>
+    <p>This directive controls the use of the <code>Via:</code> HTTP
+    header by the proxy. Its intended use is to control the flow of
+    proxy requests along a chain of proxy servers.  See <a href="http://www.ietf.org/rfc/rfc2616.txt">RFC 2616</a> (HTTP/1.1), section
+    14.45 for an explanation of <code>Via:</code> header lines.</p>
+
+    <ul>
+    <li>If set to <code>Off</code>, which is the default, no special processing
+    is performed. If a request or reply contains a <code>Via:</code> header,
+    it is passed through unchanged.</li>
+
+    <li>If set to <code>On</code>, each request and reply will get a
+    <code>Via:</code> header line added for the current host.</li>
+
+    <li>If set to <code>Full</code>, each generated <code>Via:</code> header
+    line will additionally have the Apache httpd server version shown as a
+    <code>Via:</code> comment field.</li>
+
+    <li>If set to <code>Block</code>, every proxy request will have all its
+    <code>Via:</code> header lines removed. No new <code>Via:</code> header will
+    be generated.</li>
+    </ul>
+
+</div>
+</div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_proxy.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_proxy.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_proxy.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_proxy.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

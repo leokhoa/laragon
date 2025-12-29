@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Request Processing in the Apache HTTP Server 2.x - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Developer Documentation</a></div><div id="page-content"><div id="preamble"><h1>Request Processing in the Apache HTTP Server 2.x</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/developer/request.html" title="English">&nbsp;en&nbsp;</a></p>
+</div>
+
+    <div class="warning"><h3>Warning</h3>
+      <p>Warning - this is a first (fast) draft that needs further
+      revision!</p>
+    </div>
+
+    <p>Several changes in 2.0 and above affect the internal request
+    processing mechanics. Module authors need to be aware of these
+    changes so they may take advantage of the optimizations and
+    security enhancements.</p>
+
+    <p>The first major change is to the subrequest and redirect
+    mechanisms. There were a number of different code paths in
+    the Apache HTTP Server 1.3 to attempt to optimize subrequest 
+    or redirect behavior. As patches were introduced to 2.0, these
+    optimizations (and the server behavior) were quickly broken due
+    to this duplication of code. All duplicate code has been folded
+    back into <code>ap_process_request_internal()</code> to prevent
+    the code from falling out of sync again.</p>
+
+    <p>This means that much of the existing code was 'unoptimized'.
+    It is the Apache HTTP Project's first goal to create a robust
+    and correct implementation of the HTTP server RFC. Additional
+    goals include security, scalability and optimization. New
+    methods were sought to optimize the server (beyond the
+    performance of 1.3) without introducing fragile or
+    insecure code.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#processing">The Request Processing Cycle</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#parsing">The Request Parsing Phase</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#security">The Security Phase</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#preparation">The Preparation Phase</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#handler">The Handler Phase</a></li>
+</ul><h3>See also</h3><ul class="seealso"><li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="processing" id="processing">The Request Processing Cycle</a></h2>
+    <p>All requests pass through <code>ap_process_request_internal()</code>
+    in <code>server/request.c</code>, including subrequests and redirects. If a module
+    doesn't pass generated requests through this code, the author is cautioned
+    that the module may be broken by future changes to request
+    processing.</p>
+
+    <p>To streamline requests, the module author can take advantage
+    of the <a href="./modguide.html#hooking">hooks offered</a> to drop 
+    out of the request cycle early, or to bypass core hooks which are 
+    irrelevant (and costly in terms of CPU.)</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="parsing" id="parsing">The Request Parsing Phase</a></h2>
+    <h3><a name="unescape" id="unescape">Unescapes the URL</a></h3>
+      <p>The request's <code>parsed_uri</code> path is unescaped, once and only
+      once, at the beginning of internal request processing.</p>
+
+      <p>This step is bypassed if the proxyreq flag is set, or the
+      <code>parsed_uri.path</code> element is unset. The module has no further
+      control of this one-time unescape operation, either failing to
+      unescape or multiply unescaping the URL leads to security
+      repercussions.</p>
+    
+
+    <h3><a name="strip" id="strip">Strips Parent and This Elements from the
+    URI</a></h3>
+      <p>All <code>/../</code> and <code>/./</code> elements are
+      removed by <code>ap_getparents()</code>. This helps to ensure
+      the path is (nearly) absolute before the request processing
+      continues.</p>
+
+      <p>This step cannot be bypassed.</p>
+    
+
+    <h3><a name="inital-location-walk" id="inital-location-walk">Initial URI Location Walk</a></h3>
+      <p>Every request is subject to an
+      <code>ap_location_walk()</code> call. This ensures that
+      <code class="directive"><a href="../mod/core.html#location">&lt;Location&gt;</a></code> sections
+      are consistently enforced for all requests. If the request is an internal
+      redirect or a sub-request, it may borrow some or all of the processing
+      from the previous or parent request's ap_location_walk, so this step
+      is generally very efficient after processing the main request.</p>
+    
+
+    <h3><a name="translate_name" id="translate_name">translate_name</a></h3>
+      <p>Modules can determine the file name, or alter the given URI
+      in this step. For example, <code class="module"><a href="../mod/mod_vhost_alias.html">mod_vhost_alias</a></code> will
+      translate the URI's path into the configured virtual host,
+      <code class="module"><a href="../mod/mod_alias.html">mod_alias</a></code> will translate the path to an alias path,
+      and if the request falls back on the core, the <code class="directive"><a href="../mod/core.html#documentroot">DocumentRoot</a></code> is prepended to the request resource.</p>
+
+      <p>If all modules <code>DECLINE</code> this phase, an error 500 is
+      returned to the browser, and a "couldn't translate name" error is logged
+      automatically.</p>
+    
+
+    <h3><a name="map_to_storage" id="map_to_storage">Hook: map_to_storage</a></h3>
+      <p>After the file or correct URI was determined, the
+      appropriate per-dir configurations are merged together. For
+      example, <code class="module"><a href="../mod/mod_proxy.html">mod_proxy</a></code> compares and merges the appropriate
+      <code class="directive"><a href="../mod/mod_proxy.html#proxy">&lt;Proxy&gt;</a></code> sections.
+      If the URI is nothing more than a local (non-proxy) <code>TRACE</code>
+      request, the core handles the request and returns <code>DONE</code>.
+      If no module answers this hook with <code>OK</code> or <code>DONE</code>,
+      the core will run the request filename against the <code class="directive"><a href="../mod/core.html#directory">&lt;Directory&gt;</a></code> and <code class="directive"><a href="../mod/core.html#files">&lt;Files&gt;</a></code> sections. If the request
+      'filename' isn't an absolute, legal filename, a note is set for
+      later termination.</p>
+    
+
+    <h3><a name="location-walk" id="location-walk">URI Location Walk</a></h3>
+      <p>Every request is hardened by a second
+      <code>ap_location_walk()</code> call. This reassures that a
+      translated request is still subjected to the configured
+      <code class="directive"><a href="../mod/core.html#location">&lt;Location&gt;</a></code> sections.
+      The request again borrows some or all of the processing from its previous
+      <code>location_walk</code> above, so this step is almost always very
+      efficient unless the translated URI mapped to a substantially different
+      path or Virtual Host.</p>
+    
+
+    <h3><a name="header_parser" id="header_parser">Hook: header_parser</a></h3>
+      <p>The main request then parses the client's headers. This
+      prepares the remaining request processing steps to better serve
+      the client's request.</p>
+    
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="security" id="security">The Security Phase</a></h2>
+    <p>Needs Documentation. Code is:</p>
+
+    <pre class="prettyprint lang-c">if ((access_status = ap_run_access_checker(r)) != 0) {
+    return decl_die(access_status, "check access", r);
+}
+
+if ((access_status = ap_run_check_user_id(r)) != 0) {
+    return decl_die(access_status, "check user", r);
+}
+
+if ((access_status = ap_run_auth_checker(r)) != 0) {
+    return decl_die(access_status, "check authorization", r);
+}</pre>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="preparation" id="preparation">The Preparation Phase</a></h2>
+    <h3><a name="type_checker" id="type_checker">Hook: type_checker</a></h3>
+      <p>The modules have an opportunity to test the URI or filename
+      against the target resource, and set mime information for the
+      request. Both <code class="module"><a href="../mod/mod_mime.html">mod_mime</a></code> and
+      <code class="module"><a href="../mod/mod_mime_magic.html">mod_mime_magic</a></code> use this phase to compare the file
+      name or contents against the administrator's configuration and set the
+      content type, language, character set and request handler. Some modules
+      may set up their filters or other request handling parameters at this
+      time.</p>
+
+      <p>If all modules <code>DECLINE</code> this phase, an error 500 is
+      returned to the browser, and a "couldn't find types" error is logged
+      automatically.</p>
+    
+
+    <h3><a name="fixups" id="fixups">Hook: fixups</a></h3>
+      <p>Many modules are 'trounced' by some phase above. The fixups
+      phase is used by modules to 'reassert' their ownership or force
+      the request's fields to their appropriate values. It isn't
+      always the cleanest mechanism, but occasionally it's the only
+      option.</p>
+    
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="handler" id="handler">The Handler Phase</a></h2>
+    <p>This phase is <strong>not</strong> part of the processing in
+    <code>ap_process_request_internal()</code>. Many
+    modules prepare one or more subrequests prior to creating any
+    content at all. After the core, or a module calls
+    <code>ap_process_request_internal()</code> it then calls
+    <code>ap_invoke_handler()</code> to generate the request.</p>
+
+    <h3><a name="insert_filter" id="insert_filter">Hook: insert_filter</a></h3>
+      <p>Modules that transform the content in some way can insert
+      their values and override existing filters, such that if the
+      user configured a more advanced filter out-of-order, then the
+      module can move its order as need be.  There is no result code,
+      so actions in this hook better be trusted to always succeed.</p>
+    
+
+    <h3><a name="hook_handler" id="hook_handler">Hook: handler</a></h3>
+      <p>The module finally has a chance to serve the request in its
+      handler hook. Note that not every prepared request is sent to
+      the handler hook. Many modules, such as <code class="module"><a href="../mod/mod_autoindex.html">mod_autoindex</a></code>,
+      will create subrequests for a given URI, and then never serve the
+      subrequest, but simply lists it for the user. Remember not to
+      put required teardown from the hooks above into this module,
+      but register pool cleanups against the request pool to free
+      resources as required.</p>
+    
+</div></div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/developer/request.html" title="English">&nbsp;en&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/developer/request.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

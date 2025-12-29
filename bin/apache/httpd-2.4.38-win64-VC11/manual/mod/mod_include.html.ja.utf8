@@ -1,0 +1,901 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_include - Apache HTTP サーバ バージョン 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="../">バージョン 2.4</a> &gt; <a href="./">モジュール</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache モジュール mod_include</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="../en/mod/mod_include.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_include.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_include.html" title="Japanese">&nbsp;ja&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+<table class="module"><tr><th><a href="module-dict.html#Description">説明:</a></th><td>サーバがパースする html ドキュメント (Server Side Includes)</td></tr>
+<tr><th><a href="module-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">モジュール識別子:</a></th><td>include_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">ソースファイル:</a></th><td>mod_include.c</td></tr>
+<tr><th><a href="module-dict.html#Compatibility">互換性:</a></th><td>Apache 2.0 から出力フィルタとして実装されました。</td></tr></table>
+<h3>概要</h3>
+
+    <p>このモジュールはファイルがクライアントに送られる前に処理するフィルタを
+    提供します。処理の内容は<dfn>要素</dfn>と呼ばれる特別な形式の SGML コメントにより
+    制御されます。これらの要素は条件分岐や、他のファイルや
+    プログラムの出力の取り込み、環境変数の設定や表示を行なうことが
+    できます。</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>トピック</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#enabling">Server-Side Includes を有効にする</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#pathinfo">サーバサイドインクルード (SSI) での PATH_INFO</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#elements">基本要素</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#includevars">Include 変数</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#substitution">変数置換</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#flowctrl">フロー制御要素</a></li>
+</ul><h3 class="directives">ディレクティブ</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#ssiendtag">SSIEndTag</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ssierrormsg">SSIErrorMsg</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ssietag">SSIETag</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ssilastmodified">SSILastModified</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ssilegacyexprparser">SSILegacyExprParser</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ssistarttag">SSIStartTag</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ssitimeformat">SSITimeFormat</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#ssiundefinedecho">SSIUndefinedEcho</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#xbithack">XBitHack</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_include">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_include">Report a bug</a></li></ul><h3>参照</h3>
+<ul class="seealso">
+<li><code class="directive"><a href="../mod/core.html#options">Options</a></code></li>
+<li><code class="directive"><a href="../mod/core.html#acceptpathinfo">AcceptPathInfo</a></code></li>
+<li><a href="../filter.html">フィルタ</a></li>
+<li><a href="../howto/ssi.html">SSI チュートリアル</a></li>
+<li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="enabling" id="enabling">Server-Side Includes を有効にする</a></h2>
+    
+
+    <p>Server Side Includes は <code>INCLUDES</code>
+    <a href="../filter.html">フィルタ</a> により実装されています。
+    Server-side include のディレクティブを含むドキュメントの拡張子が
+    .shtml の場合、以下のディレクティブでは Apache がそれらを
+    パースして、その結果できるドキュメントに <code>text/html</code> の
+    MIME タイプを割り当てます:</p>
+
+    <div class="example"><p><code>
+      AddType text/html .shtml<br />
+      AddOutputFilter INCLUDES .shtml
+    </code></p></div>
+
+    <p>以下のディレクティブは shtml ファイルのあるディレクトリで指定されている
+    必要があります (通常は <code class="directive"><a href="../mod/core.html#directory">&lt;Directory&gt;</a></code> セクションで指定しますが、
+    <code class="directive"><a href="../mod/core.html#allowoverride">AllowOverride</a></code> <code>Options</code>
+    が設定されていると、<code>.htaccess</code> ファイルに書くこともできます):</p>
+
+    <div class="example"><p><code>
+      Options +Includes
+    </code></p></div>
+
+    <p>互換性を保つために、<code>server-parsed</code>
+    <a href="../handler.html">ハンドラ</a> も INCLUDES フィルタを
+    有効にします。MIME タイプ <code>text/x-server-parsed-html</code> や
+    <code>text/x-server-parsed-html3</code> のドキュメントに対しても
+    Apache は INCLUDES フィルタを有効にします (出力されるものは
+    MIME タイプ <code>text/html</code> になります)。</p>
+
+    <p>詳しい情報は <a href="../howto/ssi.html">Tutorial on Server Side Includes</a>.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="pathinfo" id="pathinfo">サーバサイドインクルード (SSI) での PATH_INFO</a></h2>
+    
+
+    <p>SSI で処理されるファイルはデフォルトでは <code>PATH_INFO</code>
+    (後続のパス名情報)
+    付きのリクエストを受け入れなくなりました。<code class="directive"><a href="../mod/core.html#acceptpathinfo">AcceptPathInfo</a></code> ディレクティブで
+    <code>PATH_INFO</code> 付きのリクエストを受け入れるようにサーバを
+    設定できます。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="elements" id="elements">基本要素</a></h2>
+    <p>ドキュメントは、SGML のコメントとして特別なコマンドが埋め込まれた
+    HTML ドキュメントとしてパースされます。コマンドの構文は次のように
+    なっています:</p>
+
+    <div class="example"><p><code>
+      &lt;!--#<var>element</var> <var>attribute</var>=<var>value</var>
+      <var>attribute</var>=<var>value</var> ... --&gt;
+    </code></p></div>
+
+    <p>値 <span class="transnote">(<em>訳注:</em> value)</span> は二重引用符で囲むのが一般的ですが、
+    シングルクオート (') とバッククオート (`) も使用できます。
+    多くのコマンドは属性-値 <span class="transnote">(<em>訳注:</em> attribute-value)</span> の組を一つだけ指定できます。
+    コメントの終わり (<code>--&gt;</code>)
+    の前には、SSI の句の一部だと解釈されないようにするために空白を
+    入れてください。最初の <code>&lt;!--#</code> はまとめて<em>一つ</em>の
+    句で、空白をふくんではいけないこと注意してください。</p>
+
+    <p>要素 <span class="transnote">(<em>訳注:</em> element)</span> を以下の表に示します。</p>
+
+    <table class="bordered">
+    <tr><th>要素</th><th>説明</th></tr>
+    <tr><td><code><a href="#element.config">config</a></code></td>
+        <td>configure output formats</td></tr>
+    <tr><td><code><a href="#element.echo">echo</a></code></td>
+        <td>print variables</td></tr>
+    <tr><td><code><a href="#element.exec">exec</a></code></td>
+        <td>execute external programs</td></tr>
+    <tr><td><code><a href="#element.fsize">fsize</a></code></td>
+        <td>print size of a file</td></tr>
+    <tr><td><code><a href="#element.flastmod">flastmod</a></code></td>
+        <td>print last modification time of a file</td></tr>
+    <tr><td><code><a href="#element.include">include</a></code></td>
+        <td>include a file</td></tr>
+    <tr><td><code><a href="#element.printenv">printenv</a></code></td>
+        <td>print all available variables</td></tr>
+    <tr><td><code><a href="#element.set">set</a></code></td>
+        <td>set a value of a variable</td></tr>
+    </table>
+
+    <p>SSI 要素は <code class="module"><a href="../mod/mod_include.html">mod_include</a></code> 以外のモジュールで
+    定義されることもあります。実際、
+    <code><a href="#element.exec">exec</a></code> 要素は
+    <code class="module"><a href="../mod/mod_cgi.html">mod_cgi</a></code> で提供されていて、このモジュールが
+    ロードされる場合にのみ利用可能となります。</p>
+
+    <h3><a name="element.config" id="element.config">config 要素</a></h3>
+      <p>次のコマンドは解析の様々な側面を制御します。属性は次の通りです。</p>
+
+      <dl>
+      <dt><code>echomsg</code> (<em>Apache 2.1 以降</em>)</dt>
+      <dd>指定される値は、<code><a href="#element.echo">echo</a></code>
+      要素が未定義の変数をエコーしようとした際に、
+      クライアントに送られるメッセージになります。
+      <code class="directive"><a href="#ssiundefinedecho">SSIUndefinedEcho</a></code> 
+      ディレクティブを上書きします。</dd>
+
+      <dt><code>errmsg</code></dt>
+      <dd>この値が、ドキュメントの解析中にエラーが発生した時に
+      クライアントに送信されるメッセージになります。
+      <code class="directive"><a href="#ssierrormsg">SSIErrorMsg</a></code>
+      ディレクティブを上書きします。</dd>
+
+      <dt><code>sizefmt</code></dt>
+      <dd>この値は、ファイルのサイズを表示する際に使用する
+      フォーマットを設定します。値は バイトカウントの
+      <code>bytes</code>か、Kb や Mb を優先的に使用する
+      <code>abbrec</code> (例えば 1024 バイトは "1K" と表示されます)
+      です。</dd>
+
+      <dt><code>timefmt</code></dt>
+      <dd>この値は <code>strftime(3)</code> ライブラリルーチンが
+      日時をプリントする際に用いられます。</dd>
+      </dl>
+     
+
+    <h3><a name="element.echo" id="element.echo">echo 要素</a></h3>
+      <p>このコマンドは以下で定義されている <a href="#includevars">include
+      変数</a> を表示します。変数が設定されていない場合は <code class="directive"><a href="#ssiundefinedecho">SSIUndefinedEcho</a></code> ディレクティブで
+      決定される結果となります。日付はその時点での <code>timefmt</code> に従って
+      表示されます。属性は次の通りです。</p>
+
+      <dl>
+      <dt><code>var</code></dt>
+      <dd>値は表示する変数の名前です。</dd>
+
+      <dt><code>encoding</code></dt>
+      <dd><p>変数を出力する前に、変数中の特別文字をどのようにエンコードするかを
+      指定します。<code>none</code> に設定されていると、エンコードは行なわれません。
+      <code>url</code> に設定されていると、URL エンコード (%-エンコードとも
+      呼ばれています。これはリンク等の URL の使用に適切です) が
+      行なわれます。<code>echo</code> 要素の開始時は、デフォルトは
+      <code>entity</code> に設定されています。これはエンティティエンコード
+      (段落やテキストなどのブロックレベルの HTML エレメントのコンテキストに
+      適しています) を行ないます。これは <code>encoding</code> 属性
+      を加えることで変更できます。変更は次の <code>encoding</code> 属性か、
+      要素の終了まで効力を持ちます。</p>
+
+      <p><code>encoding</code> 属性はエンコードの変更をしたい <code>var</code> 
+      の<em>前に</em> ある必要があることに注意してください。
+      また、ISO-8859-1 エンコーディングで
+      定義されている特別な文字だけがエンコードされます。
+      別の文字のエンコーディングの場合は、このエンコーディングは
+      望みの結果にならないかもしれません。</p>
+
+      <div class="warning">
+        クロスサイトスクリプティングの問題を避けるために、
+        <em>常に</em>ユーザからのデータをエンコードすべきです。
+      </div>
+      </dd>
+      </dl>
+     
+
+    <h3><a name="element.exec" id="element.exec">exec 要素</a></h3>
+      <p><code>exec</code> コマンドは指定されたシェルコマンドや CGI スクリプトを
+      実行します。<code class="module"><a href="../mod/mod_cgi.html">mod_cgi</a></code> がサーバに組み込まれているいなければ
+      なりません。<code class="directive"><a href="../mod/core.html#option">Option</a></code> 
+      <code>IncludesNOEXEC</code> はこのコマンドを無効にします。
+      使用可能な属性は次の通りです。</p>
+
+      <dl>
+      <dt><code>cgi</code></dt>
+      <dd><p>値は (%-エンコードされた) URL を指定します。パスが
+      スラッシュ (/) で始まらないときは、ドキュメントからの
+      相対パスとして扱われます。このパスで参照されているドキュメントは
+      サーバが CGI スクリプトとして扱っていなくても CGI スクリプトとして
+      起動されます。ただし、スクリプトのあるディレクトリでは
+      (<code class="directive"><a href="../mod/mod_alias.html#scriptalias">ScriptAlias</a></code>
+      や <code class="directive"><a href="../mod/core.html#option">Option</a></code> <code>ExecCGI</code>
+      によって) CGI スクリプトの使用が許可されている必要があります。</p>
+
+      <p>CGI スクリプトには、クライアントからの元々のリクエストの
+      <code>PATH_INFO</code> とクエリー文字列 (<code>QUERY_STRING</code>) が渡されます。
+      これらは URL パスとして特定<em>できない</em>ものです。
+      スクリプトは標準 <a href="mod_cgi.html">CGI</a> 環境に加えて、include 変数を
+      使用することができます。</p>
+
+      <div class="example"><h3>例</h3><p><code>
+        &lt;!--#exec cgi="/cgi-bin/example.cgi" --&gt;
+      </code></p></div>
+
+      <p>スクリプトが、出力の代わりに <code>Location:</code> ヘッダを返すと、
+      HTML のアンカー <span class="transnote">(<em>訳注:</em> リンク)</span> に変換されます。</p>
+
+      <p><code>exec cgi</code> よりも、
+      <code><a href="#includevirtual">include virtual</a></code>
+      の方を使うようにしてください。特に、CGI への追加の引数を
+      クエリー文字列を使って渡すことは <code>exec cgi</code> は
+      できませんが、<code>include virtual</code> は以下のようにして
+      可能です。</p>
+
+      <div class="example"><p><code>
+        &lt;!--#include virtual="/cgi-bin/example.cgi?argument=value" --&gt;
+      </code></p></div>
+      </dd>
+
+      <dt><code>cmd</code></dt>
+      <dd><p>サーバは指定された文字列を <code>/bin/sh</code> を使って
+      実行します。コマンドは通常の CGI 変数に加えて <a href="#includevars">include 変数</a>も使うことができます。</p>
+
+      <p>ほとんどの場合、<code><a href="#includevirtual">#include 
+      virtual</a></code> を使う方が <code>#exec cgi</code> や <code>#exec
+      cmd</code> を使うよりも良いです。前者 (<code>#include virtual</code>)
+      は標準の Apache のサブリクエスト機構を使ってファイルやスクリプトの
+      出力を取り込みます。
+      こちらの方がよくテストされメンテナンスされた方法です。</p>
+
+      <p>さらに、Win32 のようないくつかのプラットフォームや、<a href="../suexec.html">suexec</a> を使っている unix では、
+      <code>exec</code> ディレクティブのコマンドに
+      引数を渡したり、コマンドに空白を入れることはできません。
+      ですから、以下のものは unix の suexec でない設定では動作しますが、
+      Win32 や suexec を使っている unix では期待した結果にはなりません:</p>
+
+      <div class="example"><p><code>
+        &lt;!--#exec cmd="perl /path/to/perlscript arg1 arg2" --&gt;
+      </code></p></div>
+      </dd>
+      </dl>
+     
+
+    <h3><a name="element.fsize" id="element.fsize">fsize 要素</a></h3>
+      <p>このコマンドは指定されたファイルの大きさを <code>sizefmt</code> の
+      書式指定に基づいて出力します。属性は次の通りです。</p>
+
+      <dl>
+      <dt><code>file</code></dt>
+      <dd>値は解析されているドキュメントの存在するディレクトリからの
+      相対パスです。</dd>
+
+      <dt><code>virtual</code></dt>
+      <dd> 値は (% エンコードされた) URL-path です。スラッシュ (/) で
+      始まらないときはドキュメントからの相対パスとして扱われます。
+      CGI の出力のサイズはプリント<em>されません</em>。CGI
+      スクリプト自体のサイズがプリントされることに注意してください。</dd>
+      </dl>
+     
+
+    <h3><a name="element.flastmod" id="element.flastmod">flastmod 要素</a></h3>
+      <p>このコマンドは指定されたファイルの最終修正時刻を
+      <code>timefmt</code> 書式指定に従って表示します。
+      指定可能な属性は <code>fsize</code> コマンドと同じです。</p>
+     
+
+    <h3><a name="element.include" id="element.include">include 要素</a></h3>
+      <p>このコマンドは別の文書やファイルのテキストを解析しているファイルに
+      挿入します。挿入されるファイルはアクセス制御の管理下にあります。
+      解析しているファイルの存在するディレクトリに
+      <a href="core.html#options">Option</a> <code>IncludesNOEXEC</code>
+      が設定されている場合、text <a class="glossarylink" href="../glossary.html#mime-type" title="用語集を参照">MIME タイプ</a>
+      (<code>text/plain</code>, <code>text/html</code> 等) 
+      のドキュメントのみインクルードが行なわれます。
+      その他の場合は、クエリー文字列も含め、コマンドで指定された
+      完全な URL を使って普通に CGI スクリプトが呼び出されます。</p>
+
+      <p>属性が文書の位置を指定します。include コマンドに与えられたそれぞれの
+      属性に対して挿入作業が行なわれます。有効な属性は次の通りです。</p>
+
+      <dl>
+      <dt><code>file</code></dt>
+      <dd>値は解析されているドキュメントの存在するディレクトリからの
+      相対パスです。
+      <code>../</code> を含んでいたり、絶対パスを指定したりはできません。
+      ですから、ドキュメントルートの外にあるファイルや、ディレクトリ構造で
+      上位にあるファイルを挿入することはできません。
+      常にこの属性よりは、<code>virtual</code> 属性を使うようにしてください。
+      </dd>
+
+      <dt><code><a id="includevirtual" name="includevirtual">virtual</a></code></dt>
+      <dd><p>値は解析されているドキュメントからの (% エンコードされた) URL
+      です。URL にはスキームやホスト名を含めることはできません。パスと、
+      もしあればクエリー文字列を指定できるだけです。スラッシュ (/) から
+      始まらない場合は、ドキュメントからの相対パスとして扱われます。</p>
+
+      <p>URL は属性から作られ、その URL をクライアントがアクセスしたときに
+      出力される内容が解析後の出力に含められます。ですから、挿入される
+      ファイルは入れ子構造にすることができます。</p>
+
+      <p>指定された URL が CGI プログラムであった場合は、
+      プログラムが実行され、その出力が解析しているファイル中の
+      ディレクティブがあった位置に挿入されます。CGI の url に
+      クエリー URL を入れることもできます。</p>
+
+      <div class="example"><p><code>
+        &lt;!--#include virtual="/cgi-bin/example.cgi?argument=value" --&gt;
+      </code></p></div>
+
+      <p>HTML ドキュメントに CGI プログラムの出力を含める方法としては、
+      <code>include virtual</code> の方が <code>exec cgi</code> よりも
+      好ましい方法です。</p>
+
+      <p><code class="directive"><a href="../mod/mod_request.html#keptbodysize">KeptBodySize</a></code>
+      ディレクティブが設定されていて、かつ、この対象ファイルが
+      <span class="transnote">(<em>訳注:</em> POST リクエストを)</span>受け入れできるなら、
+      POST リクエストを受け取ってサブリクエストを発行する際にも
+      POST リクエストが渡されます。
+      このディレクティブが設定されていない場合は、
+      サブリクエストは GET リクエストとして処理されます。</p>
+
+      </dd>
+      </dl>
+     
+
+    <h3><a name="element.printenv" id="element.printenv">printenv 要素</a></h3>
+      <p>これは、存在するすべての変数とその値を表示します。Apache 1.3.12 から、
+      特別な文字は出力される前にエンティティエンコード (詳細は <a href="#element.echo"><code>echo</code></a> 要素を参照)
+      されるようになりました。属性はありません。</p>
+
+      <div class="example"><h3>例</h3><p><code>
+        &lt;!--#printenv --&gt;
+      </code></p></div>
+     
+
+    <h3><a name="element.set" id="element.set">set 要素</a></h3>
+      <p>これは変数の値を設定します。属性は次の通りです。</p>
+
+      <dl>
+      <dt><code>var</code></dt>
+      <dd>設定する変数の名前。</dd>
+
+      <dt><code>value</code></dt>      
+      <dd>変数に設定する値。</dd>
+      </dl>
+
+      <div class="example"><h3>例</h3><p><code>
+        &lt;!--#set var="category" value="help" --&gt;
+      </code></p></div>
+     
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="includevars" id="includevars">Include 変数</a></h2>
+    
+
+    <p>標準 CGI 環境の変数に加えて、<code>echo</code> コマンドや、
+    <code>if</code> や <code>elif</code>, それにドキュメントから呼び出される
+    すべてのプログラムから使用できる変数があります。</p>
+
+    <dl>
+      <dt><code>DATE_GMT</code></dt>
+      <dd>グリニッジ標準時による現在時刻。</dd>
+
+      <dt><code>DATE_LOCAL</code></dt>
+      <dd>ローカルの標準時による現在時刻。</dd>
+
+      <dt><code>DOCUMENT_NAME</code></dt>
+      <dd>ユーザがリクエストした (ディレクトリを除いた) ファイル名。</dd>
+
+      <dt><code>DOCUMENT_URI</code></dt>
+      <dd>ユーザがリクエストした (% エンコードされた) URL-path。
+      挿入ファイルが入れ子になっている場合は、解析されている
+     ドキュメントの URL では<em>ない</em>ことに注意してください。</dd>
+
+      <dt><code>LAST_MODIFIED</code></dt>
+      <dd>ユーザがリクエストしたドキュメントの最終修正時刻。</dd>
+
+      <dt><code>QUERY_STRING_UNESCAPED</code></dt>
+      <dd>クエリー文字列がある場合、この変数には (%-デコードされた)
+      クエリー文字列が代入されていて、shell で使用できるように
+      <em>エスケープ</em>されています (<code>&amp;</code>
+      といった特殊文字にはバックスラッシュが直前に置かれます)。</dd>
+    </dl>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="substitution" id="substitution">変数置換</a></h2>
+
+    <p>変数置換はたいていの場合 SSI ディレクティブの引数として妥当な場所にある
+    引用符で囲まれた文字列中で行なわれます。これに該当するものには、
+    <code>config</code>,
+    <code>exec</code>, <code>flastmod</code>, <code>fsize</code>,
+    <code>include</code>, <code>echo</code>, <code>set</code> の
+    各ディレクティブと、条件分岐用のオペレータへの引数があります。
+    ドル記号はバックスラッシュを使うことで使うことができます:</p>
+
+    <div class="example"><p><code>
+      &lt;!--#if expr="$a = \$test" --&gt;
+    </code></p></div>
+
+    <p>変数名としてみなされる文字列の中で変数への参照を置換する必要があるときは、
+    シェルでの変数置換のように、中括弧で括ることで区別することができます:</p>
+
+    <div class="example"><p><code>
+      &lt;!--#set var="Zed" value="${REMOTE_HOST}_${REQUEST_METHOD}" --&gt;
+    </code></p></div>
+
+    <p>この例では、<code>REMOTE_HOST</code> が
+    "<code>X</code>" で <code>REQUEST_METHOD</code> が
+    "<code>Y</code>" のときに変数 <code>Zed</code> を "<code>X_Y</code>"
+    に設定します。</p>
+
+    <p>以下の例では、<code>DOCUMENT_URI</code> が <code>/foo/file.html</code>
+    のときに "in foo" を、<code>/bar/file.html</code> のときに "in bar" を、
+    どちらでもないときには "in neither" を表示します。</p>
+
+    <div class="example"><p><code>
+      &lt;!--#if expr='"$DOCUMENT_URI" = "/foo/file.html"' --&gt;<br />
+      <span class="indent">
+        in foo<br />
+      </span>
+      &lt;!--#elif expr='"$DOCUMENT_URI" = "/bar/file.html"' --&gt;<br />
+      <span class="indent">
+        in bar<br />
+      </span>
+      &lt;!--#else --&gt;<br />
+      <span class="indent">
+        in neither<br />
+      </span>
+      &lt;!--#endif --&gt;
+    </code></p></div>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="flowctrl" id="flowctrl">フロー制御要素</a></h2>
+    
+
+    <p>基本的なフローコントロール要素は次の通りです。</p>
+
+    <div class="example"><p><code>
+      &lt;!--#if expr="<var>test_condition</var>" --&gt;<br />
+      &lt;!--#elif expr="<var>test_condition</var>" --&gt;<br />
+      &lt;!--#else --&gt;<br />
+      &lt;!--#endif --&gt;
+    </code></p></div>
+
+    <p><code>if</code> 要素はプログラミング言語の
+    if 文と同じように動作します。条件が評価され、結果が真であれば次の
+    <code>elif</code> か <code>else</code> か <code>endif</code>
+    要素までの文字列が出力に挿入されます。</p>
+
+    <p><code>elif</code> や <code>else</code> 文は <var>test_condition</var> 
+    が偽のときにテキストを出力に挿入するために使われます。
+    これらの要素はあってもなくても構いません。</p>
+
+    <p><code>endif</code> 要素は <code>if</code>
+    要素を終了させます。この要素は必須です。</p>
+
+    <p><var>test_condition</var> は以下のどれかです:</p>
+
+    <dl>
+      <dt><code><var>string</var></code></dt>
+      <dd><var>string</var> が空でない場合に真です</dd>
+
+      <dt><code><var>-A string</var></code></dt>
+      <dd><p><span class="transnote">(<em>訳注:</em> httpd の)</span>設定を検査して、
+      文字列で指定した URL にアクセスできる場合 true で、
+      そうでなければ false になります。
+      <code class="directive">SSIAccessEnable</code> が有効のときにのみ
+      この検査は行われます。
+      承認されていないユーザからは隠しておきたい URL についての情報、
+      たとえば URL へのリンクなどがある場合に、便利です。
+      検査では URL へアクセスできるかの権限のみが行われ、URL
+      が存在するかどうかについては検査されないことに注意してください。</p>
+
+      <div class="example"><h3>Example</h3><p><code>
+        &lt;!--#if expr="-A /private" --&gt;<br />
+        <span class="indent">
+          Click &lt;a href="/private"&gt;here&lt;/a&gt; to access private
+          information.<br />
+        </span>
+        &lt;!--#endif --&gt;
+      </code></p></div>
+      </dd>
+
+      <dt><code><var>string1</var> = <var>string2</var><br />
+      <var>string1</var> == <var>string2</var><br />
+      <var>string1</var> != <var>string2</var></code></dt>
+
+      <dd><p><var>string1</var> と <var>string2</var> を比較します。
+      <var>string2</var> が <code>/<var>string</var>/</code>
+      という形式であれば、正規表現として比較されます。正規表現は
+      <a href="http://www.pcre.org">PCRE</a> エンジンで実装されていて、
+      <a href="http://www.perl.com">perl 5</a> と同じ構文を使用します。
+      <code>==</code> は単に <code>=</code> の別名で、まったく同じ動作を
+      します。</p>
+
+      <p>正のマッチング (<code>=</code> または <code>==</code>) の場合は、
+      正規表現でグループ分けされたパーツをキャプチャすることができます。
+      キャプチャされた部分は特殊変数 <code>$1</code> .. <code>$9</code>
+      に格納されます。</p>
+
+      <div class="example"><h3>例</h3><p><code>
+        &lt;!--#if expr="$QUERY_STRING = /^sid=([a-zA-Z0-9]+)/" --&gt;<br />
+        <span class="indent">
+          &lt;!--#set var="session" value="$1" --&gt;<br />
+        </span>
+        &lt;!--#endif --&gt;
+      </code></p></div>
+      </dd>
+
+      <dt><code><var>string1</var> &lt; <var>string2</var><br />
+       <var>string1</var> &lt;= <var>string2</var><br />
+       <var>string1</var> &gt; <var>string2</var><br />
+       <var>string1</var> &gt;= <var>string2</var></code></dt>
+
+      <dd><var>string1</var> と <var>string2</var> を比較します。
+      <em>文字列として</em>比較される (<code>strcmp(3)</code> を使用)
+      ことに注意してください。ですから、文字列 "100" は "20" 
+      よりも小さいことになります。</dd>
+
+      <dt><code>( <var>test_condition</var> )</code></dt>
+      <dd><var>test_condition</var> が真のとき、真</dd>
+
+      <dt><code>! <var>test_condition</var></code></dt>
+      <dd><var>test_condition</var> が偽のとき、真</dd>
+
+      <dt><code><var>test_condition1</var> &amp;&amp;
+        <var>test_condition2</var></code></dt>
+      <dd><var>test_condition1</var> かつ
+      <var>test_condition2</var> が真のとき、真</dd>
+
+      <dt><code><var>test_condition1</var> ||
+        <var>test_condition2</var></code></dt>
+      <dd><var>test_condition1</var> または
+      <var>test_condition2</var> が真のとき、真</dd>
+    </dl>
+
+    <p>"<em>=</em>" と "<em>!=</em>" の方が "<em>&amp;&amp;</em>" より
+    きつく束縛します。"<em>!</em>" の束縛が一番きつくなっています。
+    ですから以下の二つは等価です:</p>
+
+    <div class="example"><p><code>
+      &lt;!--#if expr="$a = test1 &amp;&amp; $b = test2" --&gt;<br />
+      &lt;!--#if expr="($a = test1) &amp;&amp; ($b = test2)" --&gt;
+    </code></p></div>
+
+    <p>真偽値オペレータ <code>&amp;&amp;</code> と <code>||</code>
+    は同じ優先度です。
+    これらのオペレータで一方により強い優先度をつけたい場合には、
+    括弧を使う必要があります。</p>
+
+    <p>変数やオペレータとして認識されないものはすべて文字列として
+    扱われます。文字列は引用符で囲むこともできます: <code>'string'</code>
+    のように。引用符で囲まれていない文字列には空白 (スペースとタブ)
+    を含めることはできません。それらは変数などの句を分離するために
+    使われているからです。複数の文字列が続いているときは、
+    空白を間に入れて一つにくっつけられます。ですから、</p>
+
+    <div class="example"><p><code><var>string1</var>&nbsp;&nbsp;&nbsp;&nbsp;<var>string2</var></code> は <code><var>string1</var>&nbsp;<var>string2</var></code> になります。<br />
+      <br />
+      また、<br />
+      <br />
+      <code>'<var>string1</var>&nbsp;&nbsp;&nbsp;&nbsp;<var>string2</var>'</code> は <code><var>string1</var>&nbsp;&nbsp;&nbsp;&nbsp;<var>string2</var></code>
+      になります。</p></div>
+
+    <div class="note"><h3>真偽値表現の最適化</h3>
+      <p>式がもっと複雑になり、処理の速度低下が顕著になった場合は、
+      評価ルールに従って最適化してみると良いでしょう。</p>
+      <ul>
+      <li>評価は左から右に向かって行われます。</li>
+      <li>二値真偽値オペレータ (<code>&amp;&amp;</code> と <code>||</code>)
+          は、出来る限り短絡評価されます。つまり結果として上記のルールは、
+          <code class="module"><a href="../mod/mod_include.html">mod_include</a></code> が左の評価式を評価します。
+          左側で結果を十分決定できる場合は、評価はそこで停止します。
+          そうでない場合は右側を評価して、左と右の両方から結果を計算します。</li>
+      <li>短絡評価は評価の対象に正規表現が含まれる場合、オフになります。
+          後方参照する変数 (<code>$1</code> .. <code>$9</code>) 
+          を埋めるために、実際に評価する必要があるからです。</li>
+      </ul>
+      <p>特定の式がどのように扱われるかを知りたい場合は、
+      <code>-DDEBUG_INCLUDE</code> コンパイラオプションを付けて
+      <code class="module"><a href="../mod/mod_include.html">mod_include</a></code> をリコンパイルすると良いでしょう。
+      これにより、全てのパースされた式に対して、字句解析情報、
+      パースツリーと、
+      それがどのようにクライアントに送られた出力まで評価されたかを
+      挿入します。</p>
+    </div>
+ 
+    <div class="note"><h3>正規表現内での / のエスケープ</h3>
+    <p>正規表現内でデリミタとして扱いたくない / があれば、それらは全て
+    エスケープしなければなりません。
+    正規表現の意味がどうであろうとエスケープは必要です。</p>
+    </div>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SSIEndTag" id="SSIEndTag">SSIEndTag</a> <a name="ssiendtag" id="ssiendtag">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>include 要素を終了させる文字列</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>SSIEndTag <var>tag</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>SSIEndTag "--&gt;"</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_include</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">互換性:</a></th><td>2.0.30 以降で利用可能</td></tr>
+</table>
+    <p>このディレクティブは <code class="module"><a href="../mod/mod_include.html">mod_include</a></code> が探す、
+    include 要素の終了を示す文字列を変更します。</p>
+
+    <div class="example"><h3>例</h3><p><code>
+      SSIEndTag "%&gt;"
+    </code></p></div>
+
+
+<h3>参照</h3>
+<ul>
+<li><code class="directive"><a href="#ssistarttag">SSIStartTag</a></code></li>
+</ul>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SSIErrorMsg" id="SSIErrorMsg">SSIErrorMsg</a> <a name="ssierrormsg" id="ssierrormsg">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>SSI のエラーがあったときに表示されるエラーメッセージ</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>SSIErrorMsg <var>message</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>SSIErrorMsg "[an error occurred while processing this
+directive]"</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>All</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_include</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">互換性:</a></th><td>バージョン 2.0.30 以降で使用可能</td></tr>
+</table>
+    <p><code class="directive">SSIErrorMsg</code> ディレクティブは <code class="module"><a href="../mod/mod_include.html">mod_include</a></code>
+    がエラーが起こったときに表示するメッセージを変更します。プロダクションサーバでは
+    メッセージがユーザに表示されないようにするために
+    デフォルトエラーメッセージを <code>"&lt;!-- Error --&gt;"</code>
+    に変えるというようなことを考えるかもしれません。</p>
+
+    <p>このディレクティブは <code>&lt;!--#config
+    errmsg=<var>message</var> --&gt;</code> 要素と同じ効果になります。</p>
+
+    <div class="example"><h3>例</h3><p><code>
+      SSIErrorMsg "&lt;!-- Error --&gt;"
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SSIETag" id="SSIETag">SSIETag</a> <a name="ssietag" id="ssietag">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>Controls whether ETags are generated by the server.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>SSIETag on|off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>SSIETag off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_include</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">互換性:</a></th><td>Available in version 2.2.15 and later.</td></tr>
+</table><p>このディレクティブの解説文書は
+            まだ翻訳されていません。英語版をご覧ください。
+            </p></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SSILastModified" id="SSILastModified">SSILastModified</a> <a name="ssilastmodified" id="ssilastmodified">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>Controls whether <code>Last-Modified</code> headers are generated by the
+server.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>SSILastModified on|off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>SSILastModified off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_include</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">互換性:</a></th><td>Available in version 2.2.15 and later.</td></tr>
+</table><p>このディレクティブの解説文書は
+            まだ翻訳されていません。英語版をご覧ください。
+            </p></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SSILegacyExprParser" id="SSILegacyExprParser">SSILegacyExprParser</a> <a name="ssilegacyexprparser" id="ssilegacyexprparser">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>Enable compatibility mode for conditional expressions.</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>SSILegacyExprParser on|off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>SSILegacyExprParser off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_include</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">互換性:</a></th><td>Available in version 2.3.13 and later.</td></tr>
+</table><p>このディレクティブの解説文書は
+            まだ翻訳されていません。英語版をご覧ください。
+            </p></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SSIStartTag" id="SSIStartTag">SSIStartTag</a> <a name="ssistarttag" id="ssistarttag">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>include 要素を開始する文字列</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>SSIStartTag <var>tag</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>SSIStartTag "&lt;!--#"</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_include</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">互換性:</a></th><td>バージョン 2.0.30 以降で使用可能</td></tr>
+</table>
+
+    <p>このディレクティブは <code class="module"><a href="../mod/mod_include.html">mod_include</a></code> が探す、include
+    要素の開始を示す文字列を変更します。</p>
+
+    <p>二つのサーバで (もしかすると別々の段階で) ファイルの出力を解析していて、
+    それぞれに違うコマンドを処理させたい、
+    というようなときにこのオプションを使います。</p>
+
+    <div class="example"><h3>例</h3><p><code>
+      SSIStartTag "&lt;%"<br />
+      SSIEndTag   "%&gt;"
+    </code></p></div>
+
+    <p>上の例のように対応する
+    <code class="directive"><a href="#ssiendtag">SSIEndTag</a></code> を併せて使うと、
+    下に示す例のように SSI ディレクティブを使えます:</p>
+
+    <div class="example"><h3>違う開始と終了のタグを使った SSI ディレクティブ</h3><p><code>
+      &lt;%printenv %&gt;
+    </code></p></div>
+
+<h3>参照</h3>
+<ul>
+<li><code class="directive"><a href="#ssiendtag">SSIEndTag</a></code></li>
+</ul>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SSITimeFormat" id="SSITimeFormat">SSITimeFormat</a> <a name="ssitimeformat" id="ssitimeformat">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>日付けを現す文字列の書式を設定する</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>SSITimeFormat <var>formatstring</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>SSITimeFormat "%A, %d-%b-%Y %H:%M:%S %Z"</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>All</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_include</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">互換性:</a></th><td>2.0.30 以降で使用可能</td></tr>
+</table>
+<p>このディレクティブは <code>DATE</code> 環境変数を echo して日付を現す文字列が
+    表示されるときの書式を変更します。<var>formatstring</var> は
+    C 標準ライブラリの <code>strftime(3)</code> と同じ形式です。</p>
+
+    <p>このディレクティブは <code>&lt;!--#config
+    timefmt=<var>formatstring</var> --&gt;</code> 要素と同じ効果になります。</p>
+
+    <div class="example"><h3>例</h3><p><code>
+      SSITimeFormat "%R, %B %d, %Y"
+    </code></p></div>
+
+    <p>上のディレクティブでは、日付は "22:26, June 14, 2002" という
+    形式で表示されます。</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="SSIUndefinedEcho" id="SSIUndefinedEcho">SSIUndefinedEcho</a> <a name="ssiundefinedecho" id="ssiundefinedecho">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>未定義の変数が echo されたときに表示される文字列</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>SSIUndefinedEcho <var>string</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>SSIUndefinedEcho "(none)"</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>All</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_include</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">互換性:</a></th><td>2.0.34 以降で利用可能</td></tr>
+</table>
+    <p>このディレクティブは変数が定義されていないにも関わらず
+    "echo" されたときに <code class="module"><a href="../mod/mod_include.html">mod_include</a></code>
+    が表示する文字列を変更します。</p>
+
+    <div class="example"><h3>例</h3><p><code>
+      SSIUndefinedEcho "&lt;!-- undef --&gt;"
+    </code></p></div>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="XBitHack" id="XBitHack">XBitHack</a> <a name="xbithack" id="xbithack">ディレクティブ</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">説明:</a></th><td>実行ビットが設定されたファイルの SSI ディレクティブを
+解析する</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">構文:</a></th><td><code>XBitHack on|off|full</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">デフォルト:</a></th><td><code>XBitHack off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">コンテキスト:</a></th><td>サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">上書き:</a></th><td>Options</td></tr>
+<tr><th><a href="directive-dict.html#Status">ステータス:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">モジュール:</a></th><td>mod_include</td></tr>
+</table>
+    <p><code class="directive">XBitHack</code> ディレクティブは通常の HTML
+    ドキュメントの解析を制御します。このディレクティブは <a class="glossarylink" href="../glossary.html#mime-type" title="用語集を参照">MIME タイプ</a>
+    <code>text/html</code> と関連付けられているファイルにのみ影響します。
+    <code class="directive">XBitHack</code> は以下の値をとることができます。</p>
+
+    <dl>
+      <dt><code>off</code></dt>
+      <dd>実行可能ファイルに対して特別な扱いをしません。</dd>
+
+      <dt><code>on</code></dt>
+      <dd>ユーザの実行ビットが設定されている <code>text/html</code>
+      ファイルは全てサーバで解析する html ドキュメントとして扱われます。</dd>
+
+      <dt><code>full</code></dt>
+      <dd><code>on</code> と同様ですが、グループ実行ビットもテストします。
+      もしそれが設定されていれば、返されるファイルの <code>Last-modified</code> の
+      日付をファイルの最終修正時刻にします。それが設定されていないときは、
+      last-modified の日付は送られません。このビットを設定すると、
+      クライアントやプロキシがリクエストをキャッシュできるようになります。
+
+      <div class="note"><strong>注意</strong> 他の CGI を <code>#include</code>
+      するかもしれないものや、各アクセスに対して違う出力を生成する
+      (もしくは後のリクエストで変わるかもしれないもの)
+      すべての SSI スクリプトに対してグループ実行ビットが
+      設定されていないことを確認できない場合は、full は使わない方が良い
+      でしょう。</div>
+      </dd>
+    </dl>
+
+    
+</div>
+</div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="../en/mod/mod_include.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_include.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_include.html" title="Japanese">&nbsp;ja&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_include.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

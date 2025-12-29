@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Arrêt et redémarrage du serveur HTTP Apache - Serveur HTTP Apache Version 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">Modules</a> | <a href="./mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">Glossaire</a> | <a href="./sitemap.html">Plan du site</a></p>
+<p class="apache">Serveur HTTP Apache Version 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">Serveur HTTP</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="./">Version 2.4</a></div><div id="page-content"><div id="preamble"><h1>Arrêt et redémarrage du serveur HTTP Apache</h1>
+<div class="toplang">
+<p><span>Langues Disponibles: </span><a href="./de/stopping.html" hreflang="de" rel="alternate" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="./en/stopping.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./es/stopping.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="./fr/stopping.html" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/stopping.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/stopping.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/stopping.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+
+    <p>Ce document couvre l'arrêt et le redémarrage du
+    serveur HTTP Apache sur
+    les systèmes Unix et similaires. Les utilisateurs de Windows NT, 2000
+    and XP doivent consulter
+    <a href="platform/windows.html#winsvc">Exécuter httpd en tant que
+    service</a> et les utilisateurs de Windows 9x et ME doivent consulter
+    <a href="platform/windows.html#wincons">Exécuter httpd comme une
+    application de type console</a> pour plus d'informations sur le contrôle
+    de httpd à partir de ces plateformes.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#introduction">Introduction</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#term">Arrêter immédiatement</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#graceful">Redémarrage en douceur</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#hup">Redémarrer immédiatement</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#gracefulstop">Arrêt en douceur</a></li>
+</ul><h3>Voir aussi</h3><ul class="seealso"><li><code class="program"><a href="./programs/httpd.html">httpd</a></code></li><li><code class="program"><a href="./programs/apachectl.html">apachectl</a></code></li><li><a href="invoking.html">Démarrage</a></li><li><a href="#comments_section">Commentaires</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="introduction" id="introduction">Introduction</a></h2>
+
+    <p>Afin d'arrêter ou redémarrer le serveur HTTP Apache, vous devez envoyer un signal aux
+    processus <code class="program"><a href="./programs/httpd.html">httpd</a></code> en cours d'exécution.  Les signaux
+    peuvent être envoyés de deux manières. La
+    première méthode consiste à
+    utiliser la commande unix <code>kill</code>
+    pour envoyer directement des signaux aux processus. Vous pouvez remarquer
+    que plusieurs processus <code class="program"><a href="./programs/httpd.html">httpd</a></code> s'exécutent sur votre
+    système, mais il vous suffit d'envoyer les signaux au processus parent,
+    dont le PID est enregistré dans le fichier précisé par la directive
+    <code class="directive"><a href="./mod/mpm_common.html#pidfile">PidFile</a></code>. Autrement dit, vous
+    n'aurez jamais besoin d'envoyer des signaux à aucun des
+    processus enfants, mais seulement au processus parent. Quatre types
+    de signaux peuvent être envoyés au processus parent :
+    <code><a href="#term">TERM</a></code>,
+    <code><a href="#graceful">USR1</a></code>,
+    <code><a href="#hup">HUP</a></code>, et
+    <code><a href="#gracefulstop">WINCH</a></code>, qui
+    seront décrit plus loin.</p>
+
+    <p>Pour envoyer un signal au processus parent, vous devez entrer une commande
+    du style :</p>
+
+<div class="example"><p><code>kill -TERM `cat /usr/local/apache2/logs/httpd.pid`</code></p></div>
+
+    <p>La seconde méthode permettant d'envoyer des signaux aux processus
+    <code class="program"><a href="./programs/httpd.html">httpd</a></code>
+    consiste à utiliser les options <code>stop</code>,
+    <code>restart</code>, <code>graceful</code> et
+    <code>graceful-stop</code> du commutateur <code>-k</code> de la ligne
+    de commande comme décrit ci-dessous.  Ce sont des arguments du binaire
+    <code class="program"><a href="./programs/httpd.html">httpd</a></code>, mais il est recommandé de les utiliser
+    avec le script de contrôle <code class="program"><a href="./programs/apachectl.html">apachectl</a></code>, qui se
+    chargera de les passer à <code class="program"><a href="./programs/httpd.html">httpd</a></code>.</p>
+
+    <p>Après avoir envoyé un signal à <code class="program"><a href="./programs/httpd.html">httpd</a></code>, vous pouvez
+    suivre le cours de son action en entrant :</p>
+
+<div class="example"><p><code>tail -f /usr/local/apache2/logs/error_log</code></p></div>
+
+    <p>Adaptez ces exemples en fonction de la définition de vos directives
+    <code class="directive"><a href="./mod/core.html#serverroot">ServerRoot</a></code> et
+    <code class="directive"><a href="./mod/mpm_common.html#pidfile">PidFile</a></code>.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="term" id="term">Arrêter immédiatement</a></h2>
+
+<dl><dt>Signal: TERM</dt>
+<dd><code>apachectl -k stop</code></dd>
+</dl>
+
+    <p>A la réception du signal <code>TERM</code> ou <code>stop</code>,
+    le processus parent tente immédiatement
+    de tuer tous ses processus enfants. Cela peut durer plusieurs secondes.
+    Après cela, le processus parent lui-même se termine. Toutes les requêtes
+    en cours sont terminées, et plus aucune autre n'est traitée.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="graceful" id="graceful">Redémarrage en douceur</a></h2>
+
+<dl><dt>Signal: USR1</dt>
+<dd><code>apachectl -k graceful</code></dd>
+</dl>
+
+    <p>A la réception du signal <code>USR1</code> ou
+    <code>graceful</code>, le
+    processus parent envoie aux processus enfants
+    <em>l'ordre</em> de se terminer une fois leur requête courante
+    traitée (ou de se terminer immédiatement s'ils n'ont plus rien à traiter).
+    Le processus parent relit ses fichiers de configuration et
+    réouvre ses fichiers de log. Chaque fois qu'un enfant s'éteint, le
+    processus parent le remplace par un processus
+    enfant de la nouvelle <em>génération</em> de la
+    configuration, et celui-ci commence immédiatement à traiter les
+    nouvelles requêtes.</p>
+
+    <p>Ce code est conçu pour toujours respecter la directive de contrôle
+    de processus des modules MPMs, afin que les nombres de processus et de
+    threads
+    disponibles pour traiter les demandes des clients soient maintenus à
+    des valeurs appropriées tout au long du processus de démarrage.
+    En outre, il respecte la directive
+    <code class="directive"><a href="./mod/mpm_common.html#startservers">StartServers</a></code> de la manière
+    suivante : si après une seconde au moins <code class="directive"><a href="./mod/mpm_common.html#startservers">StartServers</a></code> nouveaux processus
+    enfants n'ont pas été créés, un nombre suffisant de processus
+    supplémentaires est créé pour combler le manque. Ainsi le code
+    tente de maintenir à la fois le nombre approprié de processus enfants
+    en fonction de la charge du serveur, et le nombre de processus défini par la
+    directive <code class="directive"><a href="./mod/mpm_common.html#startservers">StartServers</a></code>.</p>
+
+    <p>Les utilisateurs du module <code class="module"><a href="./mod/mod_status.html">mod_status</a></code>
+    noteront que les statistiques du serveur ne sont <strong>pas</strong>
+    remises à zéro quand un signal <code>USR1</code> est envoyé. Le code
+    a été conçu à la fois pour minimiser la durée durant laquelle le
+    serveur ne peut pas traiter de nouvelles requêtes (elle sont mises en
+    file d'attente par le système d'exploitation, et ne sont ainsi jamais
+    perdues) et pour respecter vos paramètres de personnalisation.
+    Pour y parvenir, il doit conserver le
+    <em>tableau</em> utilisé pour garder la trace de tous les processus
+    enfants au cours des différentes générations.</p>
+
+    <p>Dans son état des processus,
+    le module status utilise aussi un caractère <code>G</code> afin d'indiquer
+    quels processus enfants ont encore des traitements de requêtes en cours
+    débutés avant que l'ordre graceful restart ne soit donné.</p>
+
+    <p>Pour l'instant, il est impossible pour un script de rotation
+    des logs utilisant
+    <code>USR1</code> de savoir de manière certaine si tous les processus
+    enfants inscrivant des traces de pré-redémarrage sont terminés.
+    Nous vous suggérons d'attendre un délai suffisant après l'envoi du
+    signal <code>USR1</code>
+    avant de faire quoi que ce soit avec les anciens logs. Par exemple,
+    si la plupart de vos traitements durent moins de 10 minutes pour des
+    utilisateurs empruntant des liaisons à faible bande passante, alors vous
+    devriez attendre 15 minutes avant de faire quoi que ce soit
+    avec les anciens logs.</p>
+
+    <div class="note">
+    <p>Lorsque vous initiez un redémarrage, une vérification de
+    la syntaxe est tout d'abord effectuée, afin de s'assurer qu'il n'y a
+    pas d'erreurs dans les fichiers de configuration. Si votre fichier de
+    configuration comporte des erreurs de syntaxe, vous recevrez un message
+    d'erreur les concernant, et le serveur refusera de redémarrer. Ceci
+    permet d'éviter la situation où un serveur a
+    été arrêté et ne peut plus redémarrer,
+    et où vous vous retrouvez avec un serveur hors-service.</p>
+
+    <p>Ceci ne garantit pas encore que le serveur va redémarrer
+    correctement. Pour vérifier la sémantique des fichiers de configuration
+    en plus de leur syntaxe, vous pouvez essayer de démarrer
+    <code class="program"><a href="./programs/httpd.html">httpd</a></code> sous un utilisateur non root.
+    S'il n'y a pas d'erreur, il tentera d'ouvrir ses sockets et ses fichiers
+    de log et échouera car il n'a pas les privilèges root (ou parce que
+    l'instance actuelle de
+    <code class="program"><a href="./programs/httpd.html">httpd</a></code> est déjà associée à ces ports). S'il échoue
+    pour toute autre raison, il y a probablement une erreur dans le
+    fichier de configuration et celle-ci doit être corrigée avant de lancer
+    le redémarrage en douceur.</p></div>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="hup" id="hup">Redémarrer immédiatement</a></h2>
+
+<dl><dt>Signal: HUP</dt>
+<dd><code>apachectl -k restart</code></dd>
+</dl>
+
+    <p>A la réception du signal <code>HUP</code> ou
+    <code>restart</code>, le
+    processus parent tue ses processus enfants comme pour le signal
+    <code>TERM</code>, mais le processus parent ne se termine pas.
+    Il relit ses fichiers de configuration, et réouvre ses fichiers de log.
+    Puis il donne naissance à un nouveau jeu de processus enfants
+    et continue de traiter les requêtes.</p>
+
+    <p>Les utilisateurs du module <code class="module"><a href="./mod/mod_status.html">mod_status</a></code>
+    noteront que les statistiques du serveur sont remises à zéro quand un
+    signal <code>HUP</code> est envoyé.</p>
+
+<div class="note">Comme dans le cas d'un redémarrage "graceful", une
+vérification de la syntaxe est effectuée avant que le
+redémarrage ne soit tenté. Si votre fichier de configuration comporte
+des erreurs de syntaxe, le redémarrage ne sera pas effectué, et
+vous recevrez un message concernant ces erreurs.</div>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="gracefulstop" id="gracefulstop">Arrêt en douceur</a></h2>
+
+<dl><dt>Signal : WINCH</dt>
+<dd><code>apachectl -k graceful-stop</code></dd>
+</dl>
+
+    <p>A la réception du signal <code>WINCH</code> ou
+    <code>graceful-stop</code>, le
+    processus parent <em>ordonne</em> à ses processus enfants
+    de s'arrêter après le traitement de leur requête en cours
+    (ou de s'arrêter immédiatement s'ils n'ont plus de requête à traiter).
+    Le processus parent va alors supprimer son fichier
+    <code class="directive"><a href="./mod/mpm_common.html#pidfile">PidFile</a></code> et cesser l'écoute
+    de tous ses ports. Le processus parent va continuer à s'exécuter,
+    et va surveiller les processus enfants
+    qui ont encore des requêtes à traiter. Lorsque tous les processus enfants
+    ont terminé leurs traitements et se sont arrêtés ou lorsque le délai
+    spécifié par la directive <code class="directive"><a href="./mod/mpm_common.html#gracefulshutdowntimeout">GracefulShutdownTimeout</a></code> a été atteint,
+    le processus parent s'arrêtera à son tour.  Si ce délai est atteint,
+    tout processus enfant encore en cours d'exécution se verra envoyer
+    le signal <code>TERM</code>
+    afin de le forcer à s'arrêter.</p>
+
+    <p>L'envoi du signal <code>TERM</code> va arrêter immédiatement
+    les processus parent et enfants en état "graceful". Cependant,
+    comme le fichier <code class="directive"><a href="./mod/mpm_common.html#pidfile">PidFile</a></code>
+    aura été supprimé, vous ne pourrez pas utiliser
+    <code>apachectl</code> ou <code>httpd</code> pour envoyer ce signal.</p>
+
+    <div class="note"><p>Le signal <code>graceful-stop</code> vous permet d'exécuter
+    simultanément plusieurs instances de <code class="program"><a href="./programs/httpd.html">httpd</a></code>
+    avec des configurations identiques. Ceci s'avère une fonctionnalité
+    puissante quand vous effectuez des mises à jour "en douceur"
+    de httpd ; cependant, cela peut aussi causer des blocages fatals et des
+    situations de compétition (race conditions)
+    avec certaines configurations.</p>
+
+    <p>On a pris soin de s'assurer que les fichiers sur disque
+    comme les fichiers verrou (<code class="directive"><a href="./mod/core.html#mutex">Mutex</a></code>) et les fichiers socket Unix
+    (<code class="directive"><a href="./mod/mod_cgid.html#scriptsock">ScriptSock</a></code>) contiennent le PID
+    du serveur, et coexistent sans problème. Cependant, si une directive de
+    configuration, un module tiers ou une CGI résidente utilise un autre
+    verrou ou fichier d'état sur disque, il faut prendre soin de s'assurer
+    que chaque instance de <code class="program"><a href="./programs/httpd.html">httpd</a></code> qui s'exécute
+    n'écrase pas les fichiers des autres instances.</p>
+
+    <p>Vous devez aussi prendre garde aux autres situations de compétition,
+    comme l'enregistrement des logs avec un transfert de ceux-ci
+    via un pipe vers le programme <code class="program"><a href="./programs/rotatelogs.html">rotatelogs</a></code>. Plusieurs instances
+    du programme <code class="program"><a href="./programs/rotatelogs.html">rotatelogs</a></code> qui tentent d'effectuer
+    une rotation des mêmes fichiers de log en même temps peuvent détruire
+    mutuellement leurs propres fichiers de log.</p></div>
+</div></div>
+<div class="bottomlang">
+<p><span>Langues Disponibles: </span><a href="./de/stopping.html" hreflang="de" rel="alternate" title="Deutsch">&nbsp;de&nbsp;</a> |
+<a href="./en/stopping.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./es/stopping.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="./fr/stopping.html" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/stopping.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/stopping.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/stopping.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Commentaires</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/stopping.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Autorisé sous <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="./mod/">Modules</a> | <a href="./mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">Glossaire</a> | <a href="./sitemap.html">Plan du site</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

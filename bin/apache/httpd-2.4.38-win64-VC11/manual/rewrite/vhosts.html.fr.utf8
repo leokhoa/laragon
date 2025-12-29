@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Hébergement virtuel de masse avec mod_rewrite - Serveur HTTP Apache Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p>
+<p class="apache">Serveur HTTP Apache Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">Serveur HTTP</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Rewrite</a></div><div id="page-content"><div id="preamble"><h1>Hébergement virtuel de masse avec mod_rewrite</h1>
+<div class="toplang">
+<p><span>Langues Disponibles: </span><a href="../en/rewrite/vhosts.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/rewrite/vhosts.html" title="Français">&nbsp;fr&nbsp;</a></p>
+</div>
+
+
+<p>Ce document est un complément à la <a href="../mod/mod_rewrite.html">documentation de référence</a> du module
+<code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>. Il décrit comment créer des serveurs
+virtuels dynamiquement configurés en utilisant
+<code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code>.</p>
+
+<div class="warning">L'utilisation de mod_rewrite n'est pas la meilleure
+méthode pour configurer des serveurs virtuels. Vous devez dans un
+premier temps tenter de résoudre votre problème via ces  <a href="../vhosts/mass.html">d'autres méthodes</a> avant d'avoir
+recours à mod_rewrite. Voir aussi le document <a href="avoid.html#vhosts">Comment éviter l'utilisation de
+mod_rewrite</a>.</div>
+
+
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#per-hostname">Serveurs virtuels pour des noms d'hôtes arbitraires</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#simple.rewrite">Configuration dynamique de serveurs
+virtuels via <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code></a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#xtra-conf">Utilisation d'un fichier de configuration
+du serveur virtuel séparé</a></li>
+</ul><h3>Voir aussi</h3><ul class="seealso"><li><a href="../mod/mod_rewrite.html">Documentation du module</a></li><li><a href="intro.html">Introduction à mod_rewrite</a></li><li><a href="remapping.html">Redirection et remise en
+correspondance</a></li><li><a href="access.html">Contrôle d'accès</a></li><li><a href="proxy.html">Serveurs mandataires</a></li><li><a href="rewritemap.html">Utilisation de RewriteMap</a></li><li><a href="advanced.html">Techniques avancées</a></li><li><a href="avoid.html">Quand ne pas utiliser mod_rewrite</a></li><li><a href="#comments_section">Commentaires</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="per-hostname" id="per-hostname">Serveurs virtuels pour des noms d'hôtes arbitraires</a></h2>
+
+  
+
+  <dl>
+    <dt>Description :</dt>
+
+    <dd>
+    <p>Nous voulons créer automatiquement un serveur virtuel pour tout
+    nom d'hôte qui peut être résolu dans notre domaine, sans avoir à
+    créer de nouvelle section VirtualHost.</p>
+
+    <p>Dans cet exemple, nous supposons que nous utilisons le nom d'hôte
+    <code>www.<strong>SITE</strong>.example.com</code> pour chaque
+    utilisateur, et que nous servons leur contenu depuis
+    <code>/home/<strong>SITE</strong>/www</code>.</p>
+    </dd>
+
+    <dt>Solution :</dt>
+
+    <dd>
+
+<pre class="prettyprint lang-config">RewriteEngine on
+
+RewriteMap    lowercase int:tolower
+
+RewriteCond   "${lowercase:%{<strong>HTTP_HOST</strong>}}" "^www\.<strong>([^.]+)</strong>\.example\.com$"
+RewriteRule   "^(.*)" "/home/<strong>%1</strong>/www$1"</pre>
+</dd>
+
+<dt>Discussion</dt>
+    <dd>
+
+    <div class="warning">Vous devez vérifier le bon fonctionnement de la
+    résolution DNS - Apache ne gère pas la résolution de nom. Vous
+    devrez créer soit des enregistrements CNAME pour chaque nom d'hôte,
+    soit un enregistrement DNS avec caractères génériques. La création
+    des enregistrements DNS est en dehors du sujet de ce document.</div>
+
+<p>La directive RewriteMap interne <code>tolower</code> permet de
+s'assurer que les noms d'hôtes utilisés seront tous en minuscules, de
+façon à éviter toute ambiguité dans la structure des répertoires qui
+doit être créée.</p>
+
+<p>Les contenus des parenthèses utilisées dans une directive <code class="directive"><a href="../mod/mod_rewrite.html#rewritecond">RewriteCond</a></code> sont enregistrés dans les
+références arrières <code>%1</code>, <code>%2</code>, etc..., alors que
+les contenus des parenthèses utilisées dans une directive <code class="directive"><a href="../mod/mod_rewrite.html#rewriterule">RewriteRule</a></code> le sont dans les
+références arrières <code>$1</code>, <code>$2</code>, etc...</p>
+
+<p>
+Comme c'est le cas pour de nombreuses techniques discutées dans ce
+document, mod_rewrite n'est vraiment pas la meilleure méthode pour
+accomplir cette tâche. Vous devez plutôt vous tourner vers
+<code class="module"><a href="../mod/mod_vhost_alias.html">mod_vhost_alias</a></code>, car ce dernier sera bien plus à même
+de gérer tout ce qui est au delà du domaine des fichiers statiques,
+comme les contenus dynamiques et la résolution des alias.
+</p>
+    </dd>
+  </dl>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="simple.rewrite" id="simple.rewrite">Configuration dynamique de serveurs
+virtuels via <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code></a></h2>
+
+    <p>Cet extrait du fichier <code>httpd.conf</code> permet d'obtenir
+    le même résultat que <a href="#per-hostname">le premier exemple</a>.
+    La première moitié est très similaire à la partie correspondante
+    ci-dessus, excepté quelques modifications requises à des fins de
+    compatibilité ascendante et pour faire en sorte que la partie
+    <code>mod_rewrite</code> fonctionne correctement ; la seconde moitié
+    configure <code>mod_rewrite</code> pour effectuer le travail
+    proprement dit.</p>
+
+    <p>Comme <code>mod_rewrite</code> s'exécute avant tout autre module
+    de traduction d'URI (comme <code>mod_alias</code>), il faut lui
+    ordonner explicitement d'ignorer toute URL susceptible d'être
+    traitée par ces autres modules. Et comme ces règles auraient sinon
+    court-circuité toute directive <code>ScriptAlias</code>, nous devons
+    faire en sorte que <code>mod_rewrite</code> déclare explicitement
+    ces correspondances.</p>
+
+<pre class="prettyprint lang-config"># extrait le nom de serveur de l'en-tête Host:
+UseCanonicalName Off
+
+# journaux dissociables
+LogFormat "%{Host}i %h %l %u %t \"%r\" %s %b" vcommon
+CustomLog "logs/access_log" vcommon
+
+&lt;Directory "/www/hosts"&gt;
+    # ExecCGI est nécessaire ici car on ne peut pas forcer l'exécution
+    # des CGI à la manière de ScriptAlias
+    Options FollowSymLinks ExecCGI
+&lt;/Directory&gt;
+
+RewriteEngine On
+
+# un nom de serveur extrait d'un en-tête Host: peut être dans n'importe
+# quelle casse
+RewriteMap  lowercase  int:tolower
+
+## on s'occupe tout d'abord des documents normaux :<br />
+# permet à Alias "/icons/" de fonctionner - répéter pour les autres
+RewriteCond  "%{REQUEST_URI}"  "!^/icons/"
+# permet aux CGIs de fonctionner
+RewriteCond  "%{REQUEST_URI}"  "!^/cgi-bin/"
+# le coeur du traitement
+RewriteRule  "^/(.*)$"  "/www/hosts/${lowercase:%{SERVER_NAME}}/docs/$1"
+
+## on s'occupe maintenant des CGIs - on doit forcer l'utilisation d'un
+# gestionnaire
+RewriteCond  "%{REQUEST_URI}"  "^/cgi-bin/"
+RewriteRule  "^/(.*)$" "/www/hosts/${lowercase:%{SERVER_NAME}}/cgi-bin/$1"  [H=cgi-script]</pre>
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="xtra-conf" id="xtra-conf">Utilisation d'un fichier de configuration
+du serveur virtuel séparé</a></h2>
+
+    <p>Cette construction utilise des fonctionnalités plus avancées de
+    <code class="module"><a href="../mod/mod_rewrite.html">mod_rewrite</a></code> pour effectuer la traduction depuis le
+    serveur virtuel vers la racine des documents, à partir d'un fichier
+    de configuration séparé. Elle est plus souple mais nécessite une
+    configuration plus compliquée.</p>
+
+    <p>Le fichier <code>vhost.map</code> devrait ressembler à ceci :</p>
+
+<div class="example"><p><code>
+www.client-1.example.com  /www/clients/1<br />
+www.client-2.example.com  /www/clients/2<br />
+# ...<br />
+www.client-N.example.com  /www/clients/N<br />
+</code></p></div>
+
+    <p>On doit ajouter à <code>httpd.conf</code> :</p>
+
+<pre class="prettyprint lang-config">RewriteEngine on
+
+RewriteMap   lowercase  int:tolower
+
+# définit le fichier de correspondances
+RewriteMap   vhost      "txt:/www/conf/vhost.map"
+
+# on s'occupe des alias comme ci-dessus
+RewriteCond  "%{REQUEST_URI}"               "!^/icons/"
+RewriteCond  "%{REQUEST_URI}"               "!^/cgi-bin/"
+RewriteCond  "${lowercase:%{SERVER_NAME}}"  "^(.+)$"
+# on effectue ici la remise en correspondance à base de fichier
+RewriteCond  "${vhost:%1}"                  "^(/.*)$"
+RewriteRule  "^/(.*)$"                      "%1/docs/$1"
+
+RewriteCond  "%{REQUEST_URI}"               "^/cgi-bin/"
+RewriteCond  "${lowercase:%{SERVER_NAME}}"  "^(.+)$"
+RewriteCond  "${vhost:%1}"                  "^(/.*)$"
+RewriteRule  "^/cgi-bin/(.*)$"              "%1/cgi-bin/$1" [H=cgi-script]</pre>
+
+
+</div></div>
+<div class="bottomlang">
+<p><span>Langues Disponibles: </span><a href="../en/rewrite/vhosts.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/rewrite/vhosts.html" title="Français">&nbsp;fr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Commentaires</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/rewrite/vhosts.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Autorisé sous <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

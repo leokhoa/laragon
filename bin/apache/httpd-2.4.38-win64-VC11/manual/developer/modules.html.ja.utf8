@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>モジュールの Apache 1.3 から Apache 2.0 への移植 - Apache HTTP サーバ バージョン 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="../">バージョン 2.4</a> &gt; <a href="./">Developer Documentation</a></div><div id="page-content"><div id="preamble"><h1>モジュールの Apache 1.3 から Apache 2.0 への移植</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="../en/developer/modules.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../ja/developer/modules.html" title="Japanese">&nbsp;ja&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+
+    <p>この文書は <code>mod_mmap_static</code> モジュールを Apache 2.0 用に移植した時に
+    学んだ経験をもとに書いた、最初の手引き書です。まだまだ完全じゃないし、
+    ひょっとすると間違っている部分もあるかもしれませんが、
+    取っ掛りにはなるでしょう。</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#easy">簡単な変更点</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#messy">もっと厄介な変更点…</a></li>
+</ul><h3>参照</h3><ul class="seealso"><li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="easy" id="easy">簡単な変更点</a></h2>
+
+    <h3><a name="cleanup" id="cleanup">クリーンナップ ルーチン</a></h3>
+      <p>クリーンナップルーチンは <code>apr_status_t</code> 型である必要があります。
+      そして、apr_status_t 型の値を返さなくてはなりません。
+      クリーンナップ中のエラーを通知する必要がなければ、返り値は普通、
+      <code>ARP_SUCCESS</code> です。たとえエラーを通知したとしても、
+      すべてのコードがその通知をチェックしたり、
+      エラーに応じた動作をするわけではないことに気をつけてください。</p>
+    
+
+
+    <h3><a name="init" id="init">初期化ルーチン</a></h3>
+
+    <p>初期化ルーチンは処理全体から見てしっくりくるような意味を表すように、
+    名前が変更されました。ですから、<code>mmap_init</code> から <code>mmap_post_config</code>
+    のようにちょっと変更されました。
+    渡される引数は大幅に変更され、次のようになりました。</p>
+
+      <ul>
+        <li><code>apr_pool_t *p</code></li>
+        <li><code>apr_pool_t *plog</code></li>
+        <li><code>apr_pool_t *ptemp</code></li>
+        <li><code>server_rec *s</code></li>
+      </ul>
+    
+
+    <h3><a name="datatypes" id="datatypes">データ型</a></h3>
+      <p>データ型のほとんどは <a href="http://apr.apache.org/">APR</a> に移されました。つまり、
+      いくつかの名前が前述のように変更されています。
+      施すべき変更点の簡単な一覧を以下に示します。</p>
+
+      <ul>
+        <li><code>pool</code> becomes <code>apr_pool_t</code></li>
+        <li><code>table</code> becomes <code>apr_table_t</code></li>
+      </ul>
+    
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="messy" id="messy">もっと厄介な変更点…</a></h2>
+
+    <h3><a name="register-hooks" id="register-hooks">フックの登録</a></h3>
+      <p>新しいアーキテクチャでは作成した関数を呼び出すのに
+      一連のフックを使用します。このフックは、新しい関数
+      <code>static void register_hooks(void)</code> を使って登録するよう、
+      モジュールに書き足さなくてはなりません。
+      この関数は、なにをすべきか一旦理解してしまえば、
+      十分にわかりやすいものです。
+      リクエストの処理のあるステージで呼び出さなくてはならない
+      関数は登録する必要があります。ハンドラは登録する必要はありません。
+      関数を登録できるフェーズはたくさんあります。
+      それぞれのフェーズで、関数を呼び出す相対的な順番は、
+      かなりの程度制御できます。</p>
+
+    <p>以下は、<code>mod_mmap_static</code> に追加したコードです:</p>
+
+      <div class="example"><pre>static void register_hooks(void)
+{
+    static const char * const aszPre[]={ "http_core.c",NULL };
+    ap_hook_post_config(mmap_post_config,NULL,NULL,HOOK_MIDDLE);
+    ap_hook_translate_name(mmap_static_xlat,aszPre,NULL,HOOK_LAST);
+};</pre></div>
+
+    <p>ここでは呼びだすべき二つの関数を登録しています。一つは
+    <code>post_config</code> ステージ用 (ほとんどすべてのモジュール
+    はこれが必要です) で、もう一つは <code>translate_name</code> フェーズ用です。
+    それぞれの関数は名前は違うけれども形式は同じであることに注意してください。
+    それでは、形式はどのようになっているでしょうか?</p>
+
+      <div class="example"><p><code>
+        ap_hook_<var>phase_name</var>(<var>function_name</var>,
+        <var>predecessors</var>, <var>successors</var>, <var>position</var>);
+      </code></p></div>
+
+    <p>三つの位置が定義されています…</p>
+
+      <ul>
+        <li><code>HOOK_FIRST</code></li>
+        <li><code>HOOK_MIDDLE</code></li>
+        <li><code>HOOK_LAST</code></li>
+      </ul>
+
+    <p>位置を定義するには、上記の「位置」を指定し、
+    修飾子である「先行」と「後行」で手を加えます。
+   「先行」「後行」は、呼ばれるべき関数のリストです。
+   「先行」は関数の実行前に呼ばれるもので、
+   「後行」は実行後に呼ばれるものです。</p>
+
+    <p><code>mod_mmap_static</code> の場合、<code>post_config</code>
+    ステージでは必要ありませんが、
+    <code>mmap_static_xlat</code> が core モジュールが名前の変換を実行した後に
+    <strong>呼ばれなければなりません</strong>。
+    そこで aszPre を使って <code>HOOK_LAST</code> の修飾子を定義しています。</p>
+  
+
+    <h3><a name="moddef" id="moddef">モジュールの定義</a></h3>
+      <p>モジュールの定義を作成する際に注意しなければならない
+      ステージの数は激減しています。古い定義は次のようになっていました。</p>
+
+      <div class="example"><pre>module MODULE_VAR_EXPORT <var>module_name</var>_module =
+{
+    STANDARD_MODULE_STUFF,
+    /* initializer */
+    /* dir config creater */
+    /* dir merger --- default is to override */
+    /* server config */
+    /* merge server config */
+    /* command handlers */
+    /* handlers */
+    /* filename translation */
+    /* check_user_id */
+    /* check auth */
+    /* check access */
+    /* type_checker */
+    /* fixups */
+    /* logger */
+    /* header parser */
+    /* child_init */
+    /* child_exit */
+    /* post read-request */
+};</pre></div>
+
+    <p>新しい構造体はとってもシンプルです…</p>
+      <div class="example"><pre>module MODULE_VAR_EXPORT <var>module_name</var>_module =
+{
+    STANDARD20_MODULE_STUFF,
+    /* create per-directory config structures */
+    /* merge per-directory config structures  */
+    /* create per-server config structures    */
+    /* merge per-server config structures     */
+    /* command handlers */
+    /* handlers */
+    /* register hooks */
+};</pre></div>
+
+    <p>このうちのいくつかは古いものから新しいものに直接読み替えられるもので、
+    いくつかはそうではありません。どうすればいいのかを要約してみます。</p>
+
+    <p>直接読み替えられるステージ:</p>
+
+    <dl>
+      <dt><code>/* ディレクトリ設定作成関数 */</code></dt>
+      <dd><code>/* ディレクトリ毎設定構造体作成 */</code></dd>
+
+      <dt><code>/* サーバ設定作成関数 */</code></dt>
+      <dd><code>/* サーバ毎設定構造体作成 */</code></dd>
+
+      <dt><code>/* ディレクトリ設定マージ関数 */</code></dt>
+      <dd><code>/* ディレクトリ毎設定構造体マージ */</code></dd>
+
+      <dt><code>/* サーバ設定マージ関数 */</code></dt>
+      <dd><code>/* サーバ毎設定構造体作成マージ */</code></dd>
+
+      <dt><code>/* コマンド・テーブル */</code></dt>
+      <dd><code>/* コマンド apr_table_t */</code></dd>
+
+      <dt><code>/* ハンドラ */</code></dt>
+      <dd><code>/* ハンドラ */</code></dd>
+    </dl>
+
+    <p>古い関数の残りのものはフックとして登録されるべきです。
+    現時点で次のようなフック・ステージが定義されています…</p>
+
+    <dl>
+      <dt><code>ap_hook_post_config</code></dt>
+      <dd>(以前の <code>_init</code> ルーチンが登録されるべき場所です)</dd>
+
+      <dt><code>ap_hook_http_method</code></dt>
+      <dd>(リクエストから HTTP メソッドを取得します (互換用))</dd>
+
+      <dt><code>ap_hook_open_logs</code></dt>
+      <dd>(特定のログのオープン)</dd>
+
+      <dt><code>ap_hook_auth_checker</code></dt>
+      <dd>(リソースが権限を必要とするかどうかの確認)</dd>
+
+      <dt><code>ap_hook_access_checker</code></dt>
+      <dd>(モジュール固有の制約の確認)</dd>
+
+      <dt><code>ap_hook_check_user_id</code></dt>
+      <dd>(ユーザ ID とパスワードの確認)</dd>
+
+      <dt><code>ap_hook_default_port</code></dt>
+      <dd>(サーバのデフォルト・ポートの取得)</dd>
+
+      <dt><code>ap_hook_pre_connection</code></dt>
+      <dd>(処理の直前に必要なことを実行。ただし accept 直後に呼ばれる)</dd>
+
+      <dt><code>ap_hook_process_connection</code></dt>
+      <dd>(プロトコルの処理)</dd>
+
+      <dt><code>ap_hook_child_init</code></dt>
+      <dd>(子プロセル起動直後)</dd>
+
+      <dt><code>ap_hook_create_request</code></dt>
+      <dd>(??)</dd>
+
+      <dt><code>ap_hook_fixups</code></dt>
+      <dd>(応答内容の生成を変更するラスト・チャンス)</dd>
+
+      <dt><code>ap_hook_handler</code></dt>
+      <dd>(応答内容の生成)</dd>
+
+      <dt><code>ap_hook_header_parser</code></dt>
+      <dd>(モジュールにヘッダの照会をさせる。ほとんどのモジュールでは使われません。post_read_request を使います)</dd>
+
+      <dt><code>ap_hook_insert_filter</code></dt>
+      <dd>(フィルタ・チェインにフィルタを挿入)</dd>
+
+      <dt><code>ap_hook_log_transaction</code></dt>
+      <dd>(リクエストについての情報を記録する)</dd>
+
+      <dt><code>ap_hook_optional_fn_retrieve</code></dt>
+      <dd>(オプションとして登録された関数の取得)</dd>
+
+      <dt><code>ap_hook_post_read_request</code></dt>
+      <dd>(リクエストを読みこんだ後、他のフェーズの前に呼ばれる)</dd>
+
+      <dt><code>ap_hook_quick_handler</code></dt>
+      <dd>リクエストの処理が始まる前に呼ばれる。キャッシュモジュールが
+      使用している</dd>
+
+      <dt><code>ap_hook_translate_name</code></dt>
+      <dd>(URI をファイル名に変換する)</dd>
+
+      <dt><code>ap_hook_type_checker</code></dt>
+      <dd>(文書型の決定と設定。あるいはその片方)</dd>
+    </dl>
+  
+</div></div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="../en/developer/modules.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../ja/developer/modules.html" title="Japanese">&nbsp;ja&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/developer/modules.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

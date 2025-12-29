@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>ファイル記述子の限界 - Apache HTTP サーバ バージョン 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page" class="no-sidebar"><div id="page-header">
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="../">バージョン 2.4</a> &gt; <a href="./">バーチャルホスト</a></div><div id="page-content"><div id="preamble"><h1>ファイル記述子の限界</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="../en/vhosts/fd-limits.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/fd-limits.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/vhosts/fd-limits.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/vhosts/fd-limits.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/fd-limits.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+
+
+    <p>たくさんのバーチャルホストを運用する場合、もし、
+    各バーチャルホストごとに異なるログファイルが指定してあると、
+    Apache がファイル記述子 (<cite>ファイルハンドル</cite>とも呼ばれます)
+    を使い切ってしまうことがあります。Apache が使用するファイル
+    記述子の数は、各エラーログファイルにつき 1 つ、他のログファイルの
+    ディレクティブにつき 1 つ、さらに内部で使用する 10 から 20、
+    の合計になります。Unix オペレーティングシステムではプロセスごとに
+    使用可能なファイル記述子の数を制限しています。たいていの場合は 64 で、
+    普通は大きな値のハードリミットまで増やすことができます。</p>
+
+    <p>Apache は必要に応じて上限を拡大しようと試みますが、
+    以下のような場合にはうまくいかないかもしれません。</p>
+
+    <ol>
+      <li>利用しているシステムで <code>setrlimit()</code>
+      システムコールが提供されていない。</li>
+
+      <li>システム上で <code>setrlimit</code>(RLIMIT_NOFILE) が動作しない
+      (たとえば Solaris 2.3 のように)。</li>
+
+      <li>要求されるファイル記述子の数が
+      ハードリミットを超えてしまう。</li>
+      
+      <li>システムにファイル記述子に関して別の制限が存在してしまっている。
+      たとえば、stdio ストリームではファイル記述子を 256 以上使えない
+      (Solaris 2)、など。</li>
+    </ol>
+
+    <p>問題が発生した時に取り得る対処方法は次のとおり:</p>
+
+    <ul>
+      <li>ログファイルの数を減らす。<code class="directive"><a href="../mod/core.html#virtualhost">&lt;VirtualHost&gt;</a></code>
+      セクションでログファイルを指定せず、メインのログファイルにのみ記録する。
+      (これに関する詳しい情報は以下の<a href="#splitlogs">ログファイルの分割</a>を読んでください。)</li>
+
+      <li>
+        もし、前述の 1 または 2 の場合であれば、
+        Apache を起動する前にファイル記述子を増やします。
+        たとえば次のようなスクリプトを使います。
+
+        <div class="example"><p><code>
+          <code>#!/bin/sh<br />
+           ulimit -S -n 100<br />
+           exec httpd</code>
+        </code></p></div>
+      </li>
+    </ul>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="splitlogs" id="splitlogs">ログファイルの分割</a></h2>
+
+<p>複数のバーチャルホストのログを同じログファイルに収集しようとしているときには、
+各バーチャルホストについて統計的な解析を実行するために後でログファイルを
+分割したくなるかもしれません。これは以下のようにして実現できます。</p>
+
+<p>まず、バーチャルホストの情報をログのエントリに追加する必要があります。
+これは <code class="directive"><a href="../mod/mod_log_config.html#logformat">LogFormat</a></code>
+ディレクティブの <code>%v</code> 変数を使うことでできます。
+これをログのフォーマット文字列の先頭に追加します:</p>
+
+<div class="example"><p><code>
+LogFormat "%v %h %l %u %t \"%r\" %&gt;s %b" vhost<br />
+CustomLog logs/multiple_vhost_log vhost
+</code></p></div>
+
+<p>これは common log format のログを作成しますが、それぞれの行の先頭に
+正規化されたバーチャルホストの名前
+(<code class="directive"><a href="../mod/core.html#servername">ServerName</a></code>
+ディレクティブに書かれているもの) が付加されます。
+(ログファイルのカスタマイズの詳細については <a href="../mod/mod_log_config.html#formats">Custom Log Formats</a> を
+読んでください。)</p>
+
+<p>ログファイルを各部分 (バーチャルホスト毎に 1 ファイル) に分けたいときは、
+<code><a href="../programs/other.html">split-logfile</a></code>
+を使って行なうことができます。プログラムは Apache 配布の 
+<code>support</code> ディレクトリにあります。</p>
+
+<p>以下のようなコマンドでこのプログラムを実行します:</p>
+
+<div class="example"><p><code>
+split-logfile &lt; /logs/multiple_vhost_log
+</code></p></div>
+
+<p>このプログラムはバーチャルホストのログファイルの名前とともに実行され、
+ログファイルに現れるそれぞれのバーチャルホスト毎に一つのファイルを作成します。
+それぞれのファイルは <code>ホスト名.log</code> という名前になります。</p>
+
+</div></div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="../en/vhosts/fd-limits.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/vhosts/fd-limits.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/vhosts/fd-limits.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/vhosts/fd-limits.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="../tr/vhosts/fd-limits.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/vhosts/fd-limits.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

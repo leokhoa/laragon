@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_negotiation - Apache HTTP Server Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p>
+<p class="apache">Apache HTTP Server Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP Server</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Modules</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Apache Module mod_negotiation</h1>
+<div class="toplang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_negotiation.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_negotiation.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_negotiation.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a></p>
+</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">Description:</a></th><td>Provides for <a href="../content-negotiation.html">content negotiation</a></td></tr>
+<tr><th><a href="module-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">Module Identifier:</a></th><td>negotiation_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">Source File:</a></th><td>mod_negotiation.c</td></tr></table>
+<h3>Summary</h3>
+
+    <p>Content negotiation, or more accurately content selection, is
+    the selection of the document that best matches the clients
+    capabilities, from one of several available documents. There
+    are two implementations of this.</p>
+
+    <ul>
+      <li>A type map (a file with the handler
+      <code>type-map</code>) which explicitly lists the files
+      containing the variants.</li>
+
+      <li>A Multiviews search (enabled by the <code>Multiviews</code>
+      <code class="directive"><a href="../mod/core.html#options">Options</a></code>), where the server does
+      an implicit filename pattern match, and choose from amongst the
+      results.</li>
+    </ul>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>Topics</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#typemaps">Type maps</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#multiviews">Multiviews</a></li>
+</ul><h3 class="directives">Directives</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#cachenegotiateddocs">CacheNegotiatedDocs</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#forcelanguagepriority">ForceLanguagePriority</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#languagepriority">LanguagePriority</a></li>
+</ul>
+<h3>Bugfix checklist</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">httpd changelog</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_negotiation">Known issues</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_negotiation">Report a bug</a></li></ul><h3>See also</h3>
+<ul class="seealso">
+<li><code class="directive"><a href="../mod/core.html#options">Options</a></code></li>
+<li><code class="module"><a href="../mod/mod_mime.html">mod_mime</a></code></li>
+<li><a href="../content-negotiation.html">Content
+Negotiation</a></li>
+<li><a href="../env.html">Environment Variables</a></li>
+<li><a href="#comments_section">Comments</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="typemaps" id="typemaps">Type maps</a></h2>
+    <p>A type map has a format similar to RFC822 mail headers. It
+    contains document descriptions separated by blank lines, with
+    lines beginning with a hash character ('#') treated as
+    comments. A document description consists of several header
+    records; records may be continued on multiple lines if the
+    continuation lines start with spaces. The leading space will be
+    deleted and the lines concatenated. A header record consists of
+    a keyword name, which always ends in a colon, followed by a
+    value. Whitespace is allowed between the header name and value,
+    and between the tokens of value. The headers allowed are: </p>
+
+    <dl>
+      <dt><code>Content-Encoding:</code></dt>
+      <dd>The encoding of the file. Apache only recognizes
+      encodings that are defined by an <code class="directive"><a href="../mod/mod_mime.html#addencoding">AddEncoding</a></code> directive.
+      This normally includes the encodings <code>x-compress</code>
+      for compress'd files, and <code>x-gzip</code> for gzip'd
+      files. The <code>x-</code> prefix is ignored for encoding
+      comparisons.</dd>
+
+      <dt><code>Content-Language:</code></dt>
+      <dd>The language(s) of the variant, as an Internet standard
+      language tag (<a href="http://www.ietf.org/rfc/rfc1766.txt">RFC 1766</a>). An example is <code>en</code>,
+      meaning English. If the variant contains more than one
+      language, they are separated by a comma.</dd>
+
+      <dt><code>Content-Length:</code></dt>
+      <dd>The length of the file, in bytes. If this header is not
+      present, then the actual length of the file is used.</dd>
+
+      <dt><code>Content-Type:</code></dt>
+
+      <dd>
+        The <a class="glossarylink" href="../glossary.html#mime-type" title="see glossary">MIME media type</a> of
+        the document, with optional parameters. Parameters are
+        separated from the media type and from one another by a
+        semi-colon, with a syntax of <code>name=value</code>. Common
+        parameters include:
+
+        <dl>
+          <dt><code>level</code></dt>
+          <dd>an integer specifying the version of the media type.
+          For <code>text/html</code> this defaults to 2, otherwise
+          0.</dd>
+
+          <dt><code>qs</code></dt>
+          <dd>a floating-point number with a value in the range 0[.000]
+          to 1[.000], indicating the relative 'quality' of this variant
+          compared to the other available variants, independent of
+          the client's capabilities. For example, a jpeg file is
+          usually of higher source quality than an ascii file if it
+          is attempting to represent a photograph. However, if the
+          resource being represented is ascii art, then an ascii
+          file would have a higher source quality than a jpeg file.
+          All <code>qs</code> values are therefore specific to a given
+          resource.</dd>
+        </dl>
+
+        <div class="example"><h3>Example</h3><p><code>
+          Content-Type: image/jpeg; qs=0.8
+        </code></p></div>
+      </dd>
+
+      <dt><code>URI:</code></dt>
+      <dd>uri of the file containing the variant (of the given
+      media type, encoded with the given content encoding). These
+      are interpreted as URLs relative to the map file; they must
+      be on the same server, and they must refer to files to
+      which the client would be granted access if they were to be
+      requested directly.</dd>
+
+      <dt><code>Body:</code></dt>
+      <dd>The actual content of the resource may
+      be included in the type-map file using the Body header.  This
+      header must contain a string that designates a delimiter for
+      the body content. Then all following lines in the type map
+      file will be considered part of the resource body until the
+      delimiter string is found.
+
+      <div class="example"><h3>Example:</h3><p><code>
+        Body:----xyz----<br />
+        &lt;html&gt;<br />
+        &lt;body&gt;<br />
+        &lt;p&gt;Content of the page.&lt;/p&gt;<br />
+        &lt;/body&gt;<br />
+        &lt;/html&gt;<br />
+        ----xyz----
+      </code></p></div>
+      </dd>
+    </dl>
+
+    <p>Consider, for example, a resource called
+    <code>document.html</code> which is available in English, French,
+    and German. The files for each of these are called
+    <code>document.html.en</code>, <code>document.html.fr</code>, and
+    <code>document.html.de</code>, respectively. The type map file will
+    be called <code>document.html.var</code>, and will contain the
+    following:</p>
+
+    <div class="example"><p><code>
+    URI: document.html<br />
+    <br />
+    Content-language: en<br />
+    Content-type: text/html<br />
+    URI: document.html.en<br />
+    <br />
+    Content-language: fr<br />
+    Content-type: text/html<br />
+    URI: document.html.fr<br />
+    <br />
+    Content-language: de<br />
+    Content-type: text/html<br />
+    URI: document.html.de<br />
+    <br />
+
+    </code></p></div>
+
+    <p>All four of these files should be placed in the same directory,
+    and the <code>.var</code> file should be associated with the
+    <code>type-map</code> handler with an <code class="directive"><a href="../mod/mod_mime.html#addhandler">AddHandler</a></code> directive:</p>
+
+    <pre class="prettyprint lang-config">AddHandler type-map .var</pre>
+
+
+    <p>A request for <code>document.html.var</code> in this directory will
+    result in choosing the variant which most closely matches the language preference
+    specified in the user's <code>Accept-Language</code> request
+    header.</p>
+
+    <p>If <code>Multiviews</code> is enabled, and <code class="directive"><a href="../mod/mod_mime.html#multiviewsmatch">MultiviewsMatch</a></code> is set to "handlers" or "any",  a request to
+    <code>document.html</code> will discover <code>document.html.var</code> and
+    continue negotiating with the explicit type map.</p>
+
+    <p>Other configuration directives, such as <code class="directive"><a href="../mod/mod_alias.html#alias">Alias</a></code> can be used to map <code>document.html</code> to
+    <code>document.html.var</code>.</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="multiviews" id="multiviews">Multiviews</a></h2>
+    <p>A Multiviews search is enabled by the <code>Multiviews</code>
+    <code class="directive"><a href="../mod/core.html#options">Options</a></code>. If the server receives a
+    request for <code>/some/dir/foo</code> and
+    <code>/some/dir/foo</code> does <em>not</em> exist, then the
+    server reads the directory looking for all files named
+    <code>foo.*</code>, and effectively fakes up a type map which
+    names all those files, assigning them the same media types and
+    content-encodings it would have if the client had asked for one
+    of them by name. It then chooses the best match to the client's
+    requirements, and returns that document.</p>
+
+    <p>The <code class="directive"><a href="../mod/mod_mime.html#multiviewsmatch">MultiviewsMatch</a></code>
+    directive configures whether Apache will consider files
+    that do not have content negotiation meta-information assigned
+    to them when choosing files.</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="CacheNegotiatedDocs" id="CacheNegotiatedDocs">CacheNegotiatedDocs</a> <a name="cachenegotiateddocs" id="cachenegotiateddocs">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Allows content-negotiated documents to be
+cached by proxy servers</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>CacheNegotiatedDocs On|Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>CacheNegotiatedDocs Off</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_negotiation</td></tr>
+</table>
+    <p>If set, this directive allows content-negotiated documents
+    to be cached by proxy servers. This could mean that clients
+    behind those proxys could retrieve versions of the documents
+    that are not the best match for their abilities, but it will
+    make caching more efficient.</p>
+
+    <p>This directive only applies to requests which come from
+    HTTP/1.0 browsers. HTTP/1.1 provides much better control over
+    the caching of negotiated documents, and this directive has no
+    effect in responses to HTTP/1.1 requests.</p>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="ForceLanguagePriority" id="ForceLanguagePriority">ForceLanguagePriority</a> <a name="forcelanguagepriority" id="forcelanguagepriority">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Action to take if a single acceptable document is not
+found</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>ForceLanguagePriority None|Prefer|Fallback [Prefer|Fallback]</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Default:</a></th><td><code>ForceLanguagePriority Prefer</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override:</a></th><td>FileInfo</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_negotiation</td></tr>
+</table>
+    <p>The <code class="directive">ForceLanguagePriority</code> directive uses
+    the given <code class="directive"><a href="#languagepriority">LanguagePriority</a></code> to satisfy
+    negotiation where the server could otherwise not return a single
+    matching document.</p>
+
+    <p><code>ForceLanguagePriority Prefer</code> uses
+    <code>LanguagePriority</code> to serve a one valid result, rather
+    than returning an HTTP result 300 (MULTIPLE CHOICES) when there
+    are several equally valid choices.  If the directives below were
+    given, and the user's <code>Accept-Language</code> header assigned
+    <code>en</code> and <code>de</code> each as quality <code>.500</code>
+    (equally acceptable) then the first matching variant, <code>en</code>,
+    will be served.</p>
+
+    <pre class="prettyprint lang-config">LanguagePriority en fr de
+ForceLanguagePriority Prefer</pre>
+
+
+    <p><code>ForceLanguagePriority Fallback</code> uses
+    <code class="directive"><a href="#languagepriority">LanguagePriority</a></code> to
+    serve a valid result, rather than returning an HTTP result 406
+    (NOT ACCEPTABLE). If the directives below were given, and the user's
+    <code>Accept-Language</code> only permitted an <code>es</code>
+    language response, but such a variant isn't found, then the first
+    variant from the <code class="directive"><a href="#languagepriority">LanguagePriority</a></code> list below will be served.</p>
+
+    <pre class="prettyprint lang-config">LanguagePriority en fr de
+ForceLanguagePriority Fallback</pre>
+
+
+    <p>Both options, <code>Prefer</code> and <code>Fallback</code>, may be
+    specified, so either the first matching variant from <code class="directive"><a href="#languagepriority">LanguagePriority</a></code> will be served if
+    more than one variant is acceptable, or first available document will
+    be served if none of the variants matched the client's acceptable list
+    of languages.</p>
+
+<h3>See also</h3>
+<ul>
+<li><code class="directive"><a href="../mod/mod_mime.html#addlanguage">AddLanguage</a></code></li>
+</ul>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="LanguagePriority" id="LanguagePriority">LanguagePriority</a> <a name="languagepriority" id="languagepriority">Directive</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>The precedence of language variants for cases where
+the client does not express a preference</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntax:</a></th><td><code>LanguagePriority <var>MIME-lang</var> [<var>MIME-lang</var>]
+...</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Context:</a></th><td>server config, virtual host, directory, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Override:</a></th><td>FileInfo</td></tr>
+<tr><th><a href="directive-dict.html#Status">Status:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_negotiation</td></tr>
+</table>
+    <p>The <code class="directive">LanguagePriority</code> sets the precedence
+    of language variants for the case where the client does not
+    express a preference, when handling a Multiviews request. The list
+    of <var>MIME-lang</var> are in order of decreasing preference.</p>
+
+    <pre class="prettyprint lang-config">LanguagePriority en fr de</pre>
+
+
+    <p>For a request for <code>foo.html</code>, where
+    <code>foo.html.fr</code> and <code>foo.html.de</code> both
+    existed, but the browser did not express a language preference,
+    then <code>foo.html.fr</code> would be returned.</p>
+
+    <p>Note that this directive only has an effect if a 'best'
+    language cannot be determined by any other means or the <code class="directive"><a href="#forcelanguagepriority">ForceLanguagePriority</a></code> directive
+    is not <code>None</code>. In general, the client determines the
+    language preference, not the server.</p>
+
+<h3>See also</h3>
+<ul>
+<li><code class="directive"><a href="../mod/mod_mime.html#addlanguage">AddLanguage</a></code></li>
+</ul>
+</div>
+</div>
+<div class="bottomlang">
+<p><span>Available Languages: </span><a href="../en/mod/mod_negotiation.html" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_negotiation.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/mod/mod_negotiation.html" hreflang="ja" rel="alternate" title="Japanese">&nbsp;ja&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Comments</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_negotiation.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossary</a> | <a href="../sitemap.html">Sitemap</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

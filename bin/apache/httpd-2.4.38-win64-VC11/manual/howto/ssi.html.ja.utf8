@@ -1,0 +1,515 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>Apache チュートリアル: Server Side Includes 入門 - Apache HTTP サーバ バージョン 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="../">バージョン 2.4</a> &gt; <a href="./">How-To / チュートリアル</a></div><div id="page-content"><div id="preamble"><h1>Apache チュートリアル: Server Side Includes 入門</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="../en/howto/ssi.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../es/howto/ssi.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="../fr/howto/ssi.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/howto/ssi.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/howto/ssi.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+
+<p>サーバサイドインクルードによって、既存の HTML
+ドキュメントに動的なコンテンツを追加することができます。</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="../images/down.gif" /> <a href="#related">はじめに</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#what">SSI とは ?</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#configuring">SSI を許可するためのサーバの設定</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#basic">基本的な SSI ディレクティブ</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#additionalexamples">追加の例</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#config">他に何が設定できるのか ?</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#exec">コマンドの実行</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#advanced">高度な SSI テクニック</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#conclusion">終わりに</a></li>
+</ul><h3>参照</h3><ul class="seealso"><li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="related" id="related">はじめに</a></h2>
+ <table class="related"><tr><th>関連モジュール</th><th>関連ディレクティブ</th></tr><tr><td><ul><li><code class="module"><a href="../mod/mod_include.html">mod_include</a></code></li><li><code class="module"><a href="../mod/mod_cgi.html">mod_cgi</a></code></li><li><code class="module"><a href="../mod/mod_expires.html">mod_expires</a></code></li></ul></td><td><ul><li><code class="directive"><a href="../mod/core.html#options">Options</a></code></li><li><code class="directive"><a href="../mod/mod_include.html#xbithack">XBitHack</a></code></li><li><code class="directive"><a href="../mod/mod_mime.html#addtype">AddType</a></code></li><li><code class="directive"><a href="../mod/core.html#setoutputfilter">SetOutputFilter</a></code></li><li><code class="directive"><a href="../mod/mod_setenvif.html#browsermatchnocase">BrowserMatchNoCase</a></code></li></ul></td></tr></table>
+
+    <p>この記事は、通常は単に SSI と呼ばれる Server Side Includes
+    を扱います。この記事においては、サーバでの SSI を許可するための設定と、
+    現在の HTML ページに動的なコンテンツを加えるためのいくつかの基本的な
+    SSI 技術を紹介します。</p>
+
+    <p>記事の後半では、SSI ディレクティブで SSI
+    と共に実行することができる条件文のような
+    幾分高度な事柄について述べています。</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="what" id="what">SSI とは ?</a></h2>
+
+    <p>SSI (Server Side Includes) は、HTML
+    ページ中に配置されるディレクティブであり、
+    サーバでページを提供する時に評価されます。SSI は、CGI
+    プログラムやその他の動的な技術で全てのページを提供せずに、
+    動的に生成されたコンテンツを現在の HTML ページに加えます。</p>
+
+    <p>どういう場合に SSI を使い、どういう場合にプログラムで
+    ページを完全に生成するかは、ページのうちどの程度が静的であり、
+    ページが提供されるたびに再計算する必要がどの程度あるかで通常は決定します。
+    SSI は現在時刻のような小さい情報を加えるにはうってつけの方法です。
+    しかし、そのページのほとんどの部分が提供時に生成される場合は、
+    他の方法を探す必要があります。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="configuring" id="configuring">SSI を許可するためのサーバの設定</a></h2>
+
+
+    <p>サーバで SSI を許可するには、<code>httpd.conf</code>
+    ファイルまたは <code>.htaccess</code>
+    ファイルに次のディレクティブを指定する必要があります:</p>
+<div class="example"><p><code>
+        Options +Includes
+</code></p></div>
+
+    <p>この指定は、ファイルを SSI
+    ディレクティブで解析させることを許可するということを Apache
+    に伝えます。ほとんどの設定ではお互いを上書きできる、複数の
+    <code class="directive"><a href="../mod/core.html#options">Options</a></code> があることに
+    注意してください。おそらく、設定が最後に評価されることを
+    保証されるために、SSI を使用したいディレクトリに <code>Options</code>
+    ディレクティブを適用する必要があるでしょう。</p>
+
+    <p>全てのファイルが SSI
+    ディレクティブで解析されるというわけではありません。
+    どのファイルが解析されるかを Apache に伝える必要があります。
+    これを行なうには二つ方法があります。
+    次のディレクティブを使うことで、例えば <code>.shtml</code>
+    のような特別なファイル拡張子を持つファイルを解析するよう
+    Apache に伝えることができます:</p>
+<div class="example"><p><code>
+        AddType text/html .shtml<br />
+        AddOutputFilter INCLUDES .shtml
+</code></p></div>
+
+    <p>この方法の欠点は、もし現在のページに SSI ディレクティブを加えたい場合、
+    それらのディレクティブが実行されるように 
+    <code>.shtml</code> 拡張子にするため、そのページの名前と、
+    そのページへの全てのリンクを変更しなければならないことです。</p>
+
+    <p>もう一つの方法は、<code class="directive"><a href="../mod/mod_include.html#xbithack">XBitHack</a></code>
+    ディレクティブを使用することです:</p>
+<div class="example"><p><code>
+        XBitHack on
+</code></p></div>
+
+    <p><code class="directive"><a href="../mod/mod_include.html#xbithack">XBitHack</a></code> 
+    は、ファイルの実行ビットが立っている場合、
+    SSI ディレクティブにより解析することを Apache に伝えます。
+    従って、SSI ディレクティブを現在のページに加えるためには、
+    ファイル名を変更しなくてもよく、単に <code>chmod</code>
+    を使用してファイルを実行可能にするだけで済みます。</p>
+<div class="example"><p><code>
+        chmod +x pagename.html
+</code></p></div>
+
+    <p>行なうべきではないことに関する短いコメント。時々誰かが、全ての
+    <code>.html</code> ファイルを SSI で解析するよう Apache に伝えれば、
+    わざわざ <code>.shtml</code> というファイル名にする必要がないといって
+    薦めるのを見ることでしょう。こういう人たちは、おそらく
+    <code class="directive"><a href="../mod/mod_include.html#xbithack">XBitHack</a></code>
+    について聞いたことがないのでしょう。
+    この方法について注意することは、たとえ SSI
+    ディレクティブを全く含まない場合でも、Apache がクライアントに
+    送る全てのファイルを最後まで読み込ませることになります。
+    この方法はかなり処理を遅くするものであり、良くないアイデアです。</p>
+
+    <p>もちろん、Windows ではそのような実行ビットをセット
+    するようなものはありませんのでオプションが少し制限されています。</p>
+
+    <p>デフォルトの設定では、Apache は SSI ページについて最終変更時刻や
+    コンテンツの長さを HTTP ヘッダに送りません。
+    動的なコンテンツであるため、それらの値を計算するのが難しいからです。
+    このためドキュメントがキャッシュされなくなり、
+    結果としてクライアントの性能が遅くなったように感じさせることになります。
+    これを解決する方法が二つあります:</p>
+
+    <ol>
+      <li><code>XBitHack Full</code> 設定を使用する。
+      この設定により、もともと要求されたファイルの時刻を参照し、
+      読み込まれるファイルの変更時刻を無視して最終変更時刻を決定するよう
+      Apache に伝えます。</li>
+
+      <li><a href="../mod/mod_expires.html">mod_expires</a>
+      で提供されているディレクティブを使用して、
+      ファイルが無効になる時刻を明示します。これにより、
+      ブラウザとプロキシにキャッシュが有効であることを通知します。</li>
+    </ol>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="basic" id="basic">基本的な SSI ディレクティブ</a></h2>
+
+    <p>SSI ディレクティブは以下の文法で記述します:</p>
+<div class="example"><p><code>
+        &lt;!--#element attribute=value attribute=value ... --&gt;
+</code></p></div>
+
+    <p>HTML のコメントのような書式をしているので、もし SSI
+    を正しく動作可能にしなければ、ブラウザはそれを無視するでしょう。
+    しかし、HTML ソース中では見えます。もし SSI を正しく設定したなら、
+    ディレクティブはその結果と置き換えられます。</p>
+
+    <p>element はたくさんあるものから一つ指定することができます。
+    指定できるものの大多数については、次回もう少し詳しく説明します。
+    ここでは、SSI で行なうことができる例をいくつか示します。</p>
+
+<h3><a name="todaysdate" id="todaysdate">今日の日付</a></h3>
+
+<div class="example"><p><code>
+        &lt;!--#echo var="DATE_LOCAL" --&gt;
+</code></p></div>
+
+    <p><code>echo</code> 要素は単に変数の値を出力します。
+    CGI プログラムに利用可能な環境変数の全ての
+    セットを含む多くの標準変数があります。また、<code>set</code>
+    要素を用いることで、独自の変数を定義することができます。
+    </p>
+
+    <p>出力される日付の書式が好きではない場合、その書式を修正するために、
+    <code>config</code> 要素に <code>timefmt</code>
+    属性を使用することができます。</p>
+
+<div class="example"><p><code>
+        &lt;!--#config timefmt="%A %B %d, %Y" --&gt;<br />
+        Today is &lt;!--#echo var="DATE_LOCAL" --&gt;
+</code></p></div>
+
+
+<h3><a name="lastmodified" id="lastmodified">ファイルの変更日</a></h3>
+
+<div class="example"><p><code>
+        This document last modified &lt;!--#flastmod file="index.html" --&gt;
+</code></p></div>
+
+    <p>この要素も <code>timefmt</code>
+    フォーマットの設定に従います。</p>
+
+
+<h3><a name="cgi" id="cgi">CGI プログラムの結果を取り込む</a></h3>
+
+    <p>これは、全ての人のお気に入りである ``ヒットカウンタ'' のような
+    CGI プログラムの結果を出力する SSI
+    のより一般的な使用のうちの一つです。</p>
+
+<div class="example"><p><code>
+        &lt;!--#include virtual="/cgi-bin/counter.pl" --&gt;
+</code></p></div>
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="additionalexamples" id="additionalexamples">追加の例</a></h2>
+
+
+    <p>以下は、SSI を使用して HTML
+    ドキュメントにおいてできることのいくつかの特別な例です。</p>
+
+<h3><a name="docmodified" id="docmodified">いつこのドキュメントは修正されたのか
+?</a></h3>
+
+    <p>先に、ドキュメントが最後に変更されたのはいつかを
+    ユーザに通知するために SSI を使用することができることを述べました。
+    しかしながら、実際の方法は、いくぶん問題のままにしておきました。
+    HTML ドキュメントに配置された次のコードは、ページにそのような
+    タイムスタンプを入れるでしょう。もちろん、上述のように、
+    SSI を正しく動作可能にしておく必要があります。</p>
+<div class="example"><p><code>
+        &lt;!--#config timefmt="%A %B %d, %Y" --&gt;<br />
+        This file last modified &lt;!--#flastmod file="ssi.shtml" --&gt;
+</code></p></div>
+
+    <p>もちろん、<code>ssi.shtml</code>
+    の部分を実際の当該ファイル名と置き換える必要があります。
+    もし、あらゆるファイルに張ることができる一般的なコードを探しているなら、
+    これは不便であるかもしれません。おそらくその場合は、
+    そうする代わりに変数 <code>LAST_MODIFIED</code>
+    を使用したいと考えるでしょう:</p>
+<div class="example"><p><code>
+        &lt;!--#config timefmt="%D" --&gt;<br />
+        This file last modified &lt;!--#echo var="LAST_MODIFIED" --&gt;
+</code></p></div>
+
+    <p><code>timefmt</code>
+    書式についてのより詳細については、お好みの検索サイトに行き、
+    <code>strftime</code> で検索してみてください。文法は同じです。</p>
+
+
+<h3><a name="standard-footer" id="standard-footer">標準のフッタを挿入する</a></h3>
+
+
+    <p>もし数ページを超えるページを持つサイトを管理しているならば、
+    全ページに対して変項を行なうことが本当に苦痛となり得ることが
+    分かるでしょう。全てのページに渡ってある種の標準的な外観を
+    維持しようとしているならば特にそうでしょう。</p>
+
+    <p>ヘッダやフッタ用の挿入用ファイルを使用することで、
+    このような更新にかかる負担を減らすことができます。
+    一つのフッタファイルを作成し、それを <code>include</code>
+    SSI コマンドで各ページに入れるだけで済みます。<code>include</code>
+    要素は、<code>file</code> 属性または <code>virtual</code>
+    属性のいずれかを使用してどのファイルを挿入するかを決めることができます。
+    <code>file</code> 属性は、<em>カレントディレクトリからの相対パスで示された
+    </em>ファイルパスです。
+    それは / で始まる絶対ファイルパスにはできず、また、そのパスの一部に ../
+    を含むことができないことを意味します。<code>virtual</code>
+    属性は、おそらくより便利だと思いますが、提供するドキュメントからの相対
+    URL で指定すべきです。それは / で始めることができますが、
+    提供するファイルと同じサーバ上に存在しなくてはなりません。</p>
+<div class="example"><p><code>
+        &lt;!--#include virtual="/footer.html" --&gt;
+</code></p></div>
+
+    <p>私は最後の二つを組み合わせて、<code>LAST_MODIFIED</code>
+    ディレクティブをフッタファイルの中に置くことがよくあります。
+    SSI ディレクティブは、挿入用のファイルに含ませたり、
+    挿入ファイルのネストをしたりすることができます。すなわち、
+    挿入用のファイルは他のファイルを再帰的に挿入することができます。</p>
+
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="config" id="config">他に何が設定できるのか ?</a></h2>
+
+
+    <p>時刻書式を <code>config</code> で設定できることに加えて、
+    更に二つ <code>config</code> で設定することができます。</p>
+
+    <p>通常、SSI ディレクティブで何かがうまくいかないときは、
+    次のメッセージが出力されます。</p>
+<div class="example"><p><code>
+        [an error occurred while processing this directive]
+</code></p></div>
+
+    <p>このメッセージを他のものにしたい場合、<code>config</code>
+    要素の <code>errmsg</code> 属性で変更することができます:</p>
+<div class="example"><p><code>
+        &lt;!--#config errmsg="[It appears that you don't know how to use SSI]" --&gt;
+</code></p></div>
+
+    <p>おそらく、エンドユーザはこのメッセージを決して見ることはありません。
+    なぜなら、そのサイトが生きた状態になる前に SSI ディレクティブに関する
+    全ての問題を解決しているはずだからです。(そうですよね?)</p>
+
+    <p>そして、<code>config</code> において <code>sizefmt</code>
+    属性を使用することで、
+    返されるファイルサイズの書式を設定することができます。
+    バイト数には <code>bytes</code> を、適当に Kb や Mb
+    に短縮させるには <code>abbrev</code> を指定することができます。</p>
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="exec" id="exec">コマンドの実行</a></h2>
+    
+
+    <p>今後数ヶ月のうちに、小さな CGI プログラムと SSI
+    を使用する記事を出したいと考えています。ここではそれとは別に、
+    <code>exec</code> 要素によって行なうことができることを示します。
+    SSI にシェル (正確には <code>/bin/sh</code>。Win32 ならば DOS シェル)
+    を使用してコマンドを実行させることができます。
+    下記の例では、ディレクトリリスト出力を行ないます。</p>
+<div class="example"><p><code>
+        &lt;pre&gt;<br />
+        &lt;!--#exec cmd="ls" --&gt;<br />
+        &lt;/pre&gt;
+</code></p></div>
+
+    <p>Windows 上では、</p>
+<div class="example"><p><code>
+        &lt;pre&gt;<br />
+        &lt;!--#exec cmd="dir" --&gt;<br />
+        &lt;/pre&gt;
+</code></p></div>
+
+    <p>Windows 上では、このディレクティブによっていくつかの奇妙な
+    書式に気づくでしょう。なぜなら <code>dir</code> の出力が文字列
+    ``&lt;<code>dir</code>&gt;'' を含み、ブラウザを混乱させるからです。</p>
+
+    <p>この機能は非常に危険であり、どんなコードでも <code>exec</code>
+    タグに埋め込まれてしまえば実行することに注意してください。例えば 
+    `` ゲストブック '' のように、もし、
+    ユーザがページの内容を編集できる状況にあるならば、
+    この機能を確実に抑制してください。<code>Options</code>
+    ディレクティブの <code>IncludesNOEXEC</code> 引数を指定することで、
+    SSI は許可するけれど <code>exec</code>
+    機能は許可しないようにすることができます。</p>
+    </div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="advanced" id="advanced">高度な SSI テクニック</a></h2>
+
+
+    <p>コンテンツを出力することに加え、Apache SSI は変数を設定し、
+    そして比較と条件分岐にその変数を使用できる機能を提供しています。
+    </p>
+
+<h3><a name="caveat" id="caveat">警告</a></h3>
+
+    <p>この記事で述べた大部分の機能は、Apache 1.2
+    以降を使用している場合のみ利用可能です。もちろん、もし Apache 1.2
+    以降を使用してない場合、直ちにアップグレードする必要があります。
+    さぁ、今それを行ないなさい。それまで待っています。</p>
+
+
+<h3><a name="variables" id="variables">変数を設定する</a></h3>
+
+    <p><code>set</code> ディレクティブを使用して、
+    後で使用するために変数を設定することができます。
+    これは後の説明で必要になるので、ここでそれについて述べています。
+    文法は以下のとおりです:</p>
+<div class="example"><p><code>
+        &lt;!--#set var="name" value="Rich" --&gt;
+</code></p></div>
+
+    <p>このように単純に文字どおりに設定することに加え、
+    <a href="../env.html">環境変数</a>や上記の変数
+    (例えば <code>LAST_MODIFIED</code> のような)
+    を含む他のあらゆる変数を値を設定するのに使用することができます。
+    変数名の前にドル記号 ($) を使用することで、
+    それがリテラル文字列ではなくて変数であることを示します。</p>
+<div class="example"><p><code>
+        &lt;!--#set var="modified" value="$LAST_MODIFIED" --&gt;
+</code></p></div>
+
+    <p>ドル記号 ($) を文字として変数の値に入れるには、
+    バックスラッシュによってドル記号をエスケープする必要があります。</p>
+<div class="example"><p><code>
+        &lt;!--#set var="cost" value="\$100" --&gt;
+</code></p></div>
+
+    <p>最後になりますが、長い文字列の中に変数を置きたい場合で、
+    変数名が他の文字とぶつかる可能性があり、
+    それらの文字について混乱してしまう場合、この混乱を取り除くため、
+    変数名を中括弧で囲むことができます
+    (これについての良い例を示すのは難しいのですが、
+    おそらく分かっていただけるでしょう)。
+    </p>
+<div class="example"><p><code>
+        &lt;!--#set var="date" value="${DATE_LOCAL}_${DATE_GMT}" --&gt;
+</code></p></div>
+
+
+<h3><a name="conditional" id="conditional">条件式</a></h3>
+
+
+    <p>さて、変数を持っていて、
+    それらの値を設定して比較することができるのですから、
+    条件を表すためにそれらを使用することができます。これにより
+    SSI はある種の小さなプログラミング言語になっています。
+    <code class="module"><a href="../mod/mod_include.html">mod_include</a></code> は条件を表現するために <code>if</code>,
+    <code>elif</code>, <code>else</code>, <code>endif</code>
+    構造を提供しています。これによって、
+    一つの実際のページから複数の論理ページを効果的に生成することができます。</p>
+
+    <p>条件構造は以下のとおりです:</p>
+<div class="example"><p><code>
+    &lt;!--#if expr="test_condition" --&gt;<br />
+    &lt;!--#elif expr="test_condition" --&gt;<br />
+    &lt;!--#else --&gt;<br />
+    &lt;!--#endif --&gt;
+</code></p></div>
+
+    <p><em>test_condition</em>
+    はあらゆる種類の論理的比較をすることができます。
+    値を比較したり、その値が ``真'' かどうかを評価します
+    (空でないなら与えられた文字列は真です)。
+    利用可能な比較演算子の全てのリストについては、
+    <code class="module"><a href="../mod/mod_include.html">mod_include</a></code> ドキュメンテーションを参照してください。
+    ここでは、この構造をどう使用するかの例をいくつか示します。</p>
+
+    <p>設定ファイルで次の行を記述します:</p>
+<div class="example"><p><code>
+        BrowserMatchNoCase macintosh Mac<br />
+        BrowserMatchNoCase MSIE InternetExplorer
+</code></p></div>
+
+    <p>これはクライアントが Macintosh
+    上でインターネットエクスプローラが動いている場合、環境変数
+    ``Mac'' と ``InternetExplorer'' を真と設定します。</p>
+
+    <p>次に、SSI が可能になったドキュメントで以下を行ないます:
+    </p>
+<div class="example"><p><code>
+        &lt;!--#if expr="${Mac} &amp;&amp; ${InternetExplorer}" --&gt;<br />
+        Apologetic text goes here<br />
+        &lt;!--#else --&gt;<br />
+        Cool JavaScript code goes here<br />
+        &lt;!--#endif --&gt;
+</code></p></div>
+
+    <p>Mac 上の IE に対して何か思うところがあるわけでありません。
+    他では実行できているいくつかの JavaScript を Mac 上の IE
+    で実行させるのに、先週数時間苦労したというだけのことです。
+    上の例はその暫定的な対処方法です。</p>
+
+    <p>他のどんな変数 (あなたが定義するもの、
+    または普通の環境変数のいずれか) も、条件文に使用することができます。
+    Apache は <code>SetEnvIf</code> ディレクティブや他の関連
+    ディレクティブを使用して環境変数を設定することができます。
+    この機能により、CGI
+    に頼ることなくかなり複雑な動的なことをさせることができます。</p>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="conclusion" id="conclusion">終わりに</a></h2>
+
+    <p>SSI は確かに CGI
+    や動的なウェブページを生成する他の技術に代わるものではありません。
+    しかし、たくさんの余分な作業をせずに、
+    少量の動的なコンテンツを加えるにはすぐれた方法です。</p>
+</div></div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="../en/howto/ssi.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../es/howto/ssi.html" hreflang="es" rel="alternate" title="Español">&nbsp;es&nbsp;</a> |
+<a href="../fr/howto/ssi.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="../ja/howto/ssi.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="../ko/howto/ssi.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/howto/ssi.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="../mod/">モジュール</a> | <a href="../mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">用語</a> | <a href="../sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

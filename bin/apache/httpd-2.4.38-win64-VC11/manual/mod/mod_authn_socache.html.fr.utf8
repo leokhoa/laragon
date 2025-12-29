@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>mod_authn_socache - Serveur HTTP Apache Version 2.4</title>
+<link href="../style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="../style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="../style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="../style/css/prettify.css" />
+<script src="../style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="../images/favicon.ico" rel="shortcut icon" /></head>
+<body>
+<div id="page-header">
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p>
+<p class="apache">Serveur HTTP Apache Version 2.4</p>
+<img alt="" src="../images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="../images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">Serveur HTTP</a> &gt; <a href="http://httpd.apache.org/docs/">Documentation</a> &gt; <a href="../">Version 2.4</a> &gt; <a href="./">Modules</a></div>
+<div id="page-content">
+<div id="preamble"><h1>Module Apache mod_authn_socache</h1>
+<div class="toplang">
+<p><span>Langues Disponibles: </span><a href="../en/mod/mod_authn_socache.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_authn_socache.html" title="Français">&nbsp;fr&nbsp;</a></p>
+</div>
+<table class="module"><tr><th><a href="module-dict.html#Description">Description:</a></th><td>Gère un cache des données d'authentification pour diminuer
+la charge des serveurs d'arrière-plan</td></tr>
+<tr><th><a href="module-dict.html#Status">Statut:</a></th><td>Base</td></tr>
+<tr><th><a href="module-dict.html#ModuleIdentifier">Identificateur de Module:</a></th><td>authn_socache_module</td></tr>
+<tr><th><a href="module-dict.html#SourceFile">Fichier Source:</a></th><td>mod_authn_socache.c</td></tr>
+<tr><th><a href="module-dict.html#Compatibility">Compatibilité:</a></th><td>Versions 2.3 et ultérieures</td></tr></table>
+<h3>Sommaire</h3>
+
+    <p>Maintient un cache des données d'authentification pour limiter
+    les sollicitations du serveur d'arrière-plan.</p>
+</div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><h3>Sujets</h3>
+<ul id="topics">
+<li><img alt="" src="../images/down.gif" /> <a href="#intro">Mise en cache des données d'authentification</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#usage">Utilisation</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#dev">La mise en cache avec les modules tiers</a></li>
+</ul><h3 class="directives">Directives</h3>
+<ul id="toc">
+<li><img alt="" src="../images/down.gif" /> <a href="#authncachecontext">AuthnCacheContext</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#authncacheenable">AuthnCacheEnable</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#authncacheprovidefor">AuthnCacheProvideFor</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#authncachesocache">AuthnCacheSOCache</a></li>
+<li><img alt="" src="../images/down.gif" /> <a href="#authncachetimeout">AuthnCacheTimeout</a></li>
+</ul>
+<h3>Traitement des bugs</h3><ul class="seealso"><li><a href="https://www.apache.org/dist/httpd/CHANGES_2.4">Journal des modifications de httpd</a></li><li><a href="https://bz.apache.org/bugzilla/buglist.cgi?bug_status=__open__&amp;list_id=144532&amp;product=Apache%20httpd-2&amp;query_format=specific&amp;order=changeddate%20DESC%2Cpriority%2Cbug_severity&amp;component=mod_authn_socache">Problèmes connus</a></li><li><a href="https://bz.apache.org/bugzilla/enter_bug.cgi?product=Apache%20httpd-2&amp;component=mod_authn_socache">Signaler un bug</a></li></ul><h3>Voir aussi</h3>
+<ul class="seealso">
+<li><a href="#comments_section">Commentaires</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="intro" id="intro">Mise en cache des données d'authentification</a></h2>
+    <p>Certains utilisateurs qui mettent en oeuvre une authentification
+    lourde s'appuyant par exemple sur des requêtes SQL
+    (<code class="module"><a href="../mod/mod_authn_dbd.html">mod_authn_dbd</a></code>) ont signalé une charge induite
+    inacceptable sur leur fournisseur d'authentification. Cela se
+    produit typiquement dans le cas où une page HTML contient des
+    centaines d'objets (images, scripts, pages de styles, media,
+    etc...), et où une requête pour cette page génère des centaines de
+    sous-requêtes à effet immédiat pour des contenus supplémentaires
+    authentifiés.</p>
+    <p>Pour résoudre ce problème, mod_authn_socache fournit une solution
+    qui permet de maintenir un cache des données d'authentification.</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="usage" id="usage">Utilisation</a></h2>
+    <p>Le cache d'authentification doit être utilisé lorsque les
+    requêtes d'authentification induisent une charge significative sur le
+    serveur, le serveur d'arrière-plan ou le réseau. Cette mise en cache
+    n'apportera probablement aucune amélioration dans le cas d'une
+    authentification à base de fichier (<code class="module"><a href="../mod/mod_authn_file.html">mod_authn_file</a></code>)
+    ou de base de données dbm (<code class="module"><a href="../mod/mod_authn_dbm.html">mod_authn_dbm</a></code>) car ces
+    méthodes sont de par leur conception rapides et légères (la mise en
+    cache peut cependant s'avérer utile dans le cas où le fichier est
+    situé sur un montage réseau). Les fournisseurs d'authentification
+    basés sur SQL ou LDAP ont plus de chances de tirer parti de cette
+    mise en cache, en particulier lorsqu'un problème de performances est
+    détecté. <code class="module"><a href="../mod/mod_authnz_ldap.html">mod_authnz_ldap</a></code> gérant son propre cache,
+    seul <code class="module"><a href="../mod/mod_authn_dbd.html">mod_authn_dbd</a></code> est concerné par notre sujet.</p>
+    <p>Les principales règles à appliquer pour la mise en cache sont :</p>
+    <ol><li>Inclure le fournisseur pour lequel vous voulez effectuer une
+    mise en cache dans une directive
+    <code class="directive">AuthnCacheProvideFor</code>.</li>
+        <li>Mettre <var>socache</var> avant le fournisseur pour lequel
+	vous voulez effectuer une mise en cache dans votre directive
+	<code class="directive"><a href="../mod/mod_auth_basic.html#authbasicprovider">AuthBasicProvider</a></code>
+	ou <code class="directive"><a href="../mod/mod_auth_digest.html#authdigestprovider">AuthDigestProvider</a></code>.</li>
+    </ol>
+    <p>Voici un exemple simple permettant d'accélérer
+    <code class="module"><a href="../mod/mod_authn_dbd.html">mod_authn_dbd</a></code> et utilisant dbm comme moteur de la
+    mise en cache :</p>
+    <pre class="prettyprint lang-config">    #AuthnCacheSOCache est optionnel. S'il est défini, il l'est pour
+    #l'ensemble du serveur
+AuthnCacheSOCache dbm
+&lt;Directory "/usr/www/myhost/private"&gt;
+    AuthType Basic
+    AuthName "Cached Authentication Example"
+    AuthBasicProvider socache dbd
+    AuthDBDUserPWQuery "SELECT password FROM authn WHERE user = %s"
+    AuthnCacheProvideFor dbd
+    Require valid-user
+    #Optionnel
+    AuthnCacheContext dbd-authn-example
+&lt;/Directory&gt;</pre>
+
+</div><div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="dev" id="dev">La mise en cache avec les modules tiers</a></h2>
+    <p>Les développeurs de modules doivent savoir que la mise en cache
+    avec mod_authn_socache doit être activée dans leurs modules. La
+    fonction de l'API <var>ap_authn_cache_store</var> permet de
+    mettre en cache les données d'authentification qu'un fournisseur
+    vient de rechercher ou de générer. Vous trouverez des exemples
+    d'utilisation à <a href="http://svn.eu.apache.org/viewvc?view=revision&amp;revision=957072">r957072</a>, où trois fournisseurs authn sont activés pour la mise
+    en cache.</p>
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="authncachecontext" id="authncachecontext">Directive</a> <a name="AuthnCacheContext" id="AuthnCacheContext">AuthnCacheContext</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Spécifie une chaîne de contexte à utiliser dans la clé du
+cache</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntaxe:</a></th><td><code>AuthnCacheContext <var>directory|server|chaîne-personnalisée</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Défaut:</a></th><td><code>directory</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Contexte:</a></th><td>répertoire</td></tr>
+<tr><th><a href="directive-dict.html#Status">Statut:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_authn_socache</td></tr>
+</table>
+    <p>Cette directive permet de spécifier une chaîne à utiliser avec le
+    nom d'utilisateur fourni (et le domaine d'authentification - realm -
+    dans le cas d'une authentification à base de condensés) lors de la
+    construction d'une clé de cache. Ceci permet de lever l'ambiguïté
+    entre plusieurs noms d'utilisateurs identiques servant différentes
+    zones d'authentification sur le serveur.</p>
+    <p>Il y a deux valeurs spéciales pour le paramètre : <var>directory</var>,
+    qui utilise le contexte de répertoire de la requête comme chaîne, et
+    <var>server</var>, qui utilise le nom du serveur virtuel.</p>
+    <p>La valeur par défaut est <var>directory</var>, qui est aussi la
+    définition la plus courante. Ceci est cependant loin d'être optimal,
+    car par exemple, <var>$app-base</var>, <var>$app-base/images</var>,
+    <var>$app-base/scripts</var> et <var>$app-base/media</var>
+    possèderont chacun leur propre clé de cache. Il est préférable
+    d'utiliser le fournisseur de mot de passe : par exemple un fichier
+    <var>htpasswd</var> ou une table de base de données.</p>
+    <p>Les contextes peuvent être partagés entre différentes zones du
+    serveur, où les données d'authentification sont partagées. Ceci est
+    cependant susceptible de créer des trous de sécurité de type
+    cross-site ou cross-application, et cette directive n'est donc pas
+    disponible dans les contextes <var>.htaccess</var>.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="authncacheenable" id="authncacheenable">Directive</a> <a name="AuthnCacheEnable" id="AuthnCacheEnable">AuthnCacheEnable</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Active la mise en cache de l'authentification en tout
+endroit</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntaxe:</a></th><td><code>AuthnCacheEnable</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Contexte:</a></th><td>configuration globale</td></tr>
+<tr><th><a href="directive-dict.html#Status">Statut:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_authn_socache</td></tr>
+</table>
+    <p>Normalement, cette directive n'est pas nécessaire : l'activation
+    est implicite si la mise en cache de l'authentification a été
+    activée en tout autre endroit du fichier <var>httpd.conf</var>. Par
+    contre, si cette mise en cache n'a pas été activée, par défaut, elle
+    ne sera pas initialisée, et ne sera donc pas disponible dans un
+    contexte de fichier <var>.htaccess</var>. Cette directive permet
+    d'être sûr que la mise en cache a bien été activée et pourra
+    donc être utilisée dans les fichiers <var>.htaccess</var>.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="authncacheprovidefor" id="authncacheprovidefor">Directive</a> <a name="AuthnCacheProvideFor" id="AuthnCacheProvideFor">AuthnCacheProvideFor</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Spécifie le fournisseur pour lequel on veut effectuer une
+mise en cache</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntaxe:</a></th><td><code>AuthnCacheProvideFor <var>fournisseur-authn</var> [...]</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Défaut:</a></th><td><code>None</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Contexte:</a></th><td>répertoire, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Surcharges autorisées:</a></th><td>AuthConfig</td></tr>
+<tr><th><a href="directive-dict.html#Status">Statut:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_authn_socache</td></tr>
+</table>
+    <p>Cette directive permet de spécifier un ou plusieurs fournisseurs
+    pour le(s)quel(s) on veut effectuer une mise en cache. Les données
+    d'authentification trouvées par un fournisseur non spécifié dans une
+    directive AuthnCacheProvideFor ne seront pas mises en cache.</p>
+
+    <p>Par exemple, pour mettre en cache les données d'authentification
+    trouvées par <code class="module"><a href="../mod/mod_authn_dbd.html">mod_authn_dbd</a></code> ou par un fournisseur
+    personnalisé <var>mon-fournisseur</var>, et ne pas mettre en cache
+    celles trouvées par les fournisseurs légers comme file ou dbm :</p>
+    <pre class="prettyprint lang-config">AuthnCacheProvideFor dbd mon-fournisseur</pre>
+
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="authncachesocache" id="authncachesocache">Directive</a> <a name="AuthnCacheSOCache" id="AuthnCacheSOCache">AuthnCacheSOCache</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Sélectionne le fournisseur socache d'arrière-plan à
+utiliser</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntaxe:</a></th><td><code>AuthnCacheSOCache <var>nom-fournisseur[:arguments-fournisseur]</var></code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Contexte:</a></th><td>configuration globale</td></tr>
+<tr><th><a href="directive-dict.html#Status">Statut:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_authn_socache</td></tr>
+<tr><th><a href="directive-dict.html#Compatibility">Compatibilité:</a></th><td>Les arguments optionnels du fournisseur sont disponibles
+à partir de la version 2.4.7 du serveur HTTP Apache</td></tr>
+</table>
+    <p>Cette définition s'applique à l'ensemble du serveur et permet de
+    sélectionner un fournisseur pour le <a href="../socache.html">cache
+    d'objets partagés</a>, ainsi que des arguments éventuels pour ce
+    fournisseur. Les fournisseurs disponibles sont, entre autres, "dbm",
+    "dc", "memcache", ou "shmcb", chacun d'entre eux nécessitant le chargement
+    du module approprié. Si elle est
+    absente, c'est la valeur par défaut pour votre plate-forme qui sera
+    utilisée.</p>
+
+</div>
+<div class="top"><a href="#page-header"><img alt="top" src="../images/up.gif" /></a></div>
+<div class="directive-section"><h2><a name="authncachetimeout" id="authncachetimeout">Directive</a> <a name="AuthnCacheTimeout" id="AuthnCacheTimeout">AuthnCacheTimeout</a></h2>
+<table class="directive">
+<tr><th><a href="directive-dict.html#Description">Description:</a></th><td>Définit une durée de vie pour les entrées du cache</td></tr>
+<tr><th><a href="directive-dict.html#Syntax">Syntaxe:</a></th><td><code>AuthnCacheTimeout <var>durée-de-vie</var> (secondes)</code></td></tr>
+<tr><th><a href="directive-dict.html#Default">Défaut:</a></th><td><code>300 (5 minutes)</code></td></tr>
+<tr><th><a href="directive-dict.html#Context">Contexte:</a></th><td>répertoire, .htaccess</td></tr>
+<tr><th><a href="directive-dict.html#Override">Surcharges autorisées:</a></th><td>AuthConfig</td></tr>
+<tr><th><a href="directive-dict.html#Status">Statut:</a></th><td>Base</td></tr>
+<tr><th><a href="directive-dict.html#Module">Module:</a></th><td>mod_authn_socache</td></tr>
+</table>
+    <p>La mise en cache des données d'authentification peut constituer
+    un trou de sécurité, bien qu'un mise en cache de courte durée ne
+    posera probablement pas de problème. En général, il est conseillé de
+    conserver les entrées du cache de façon à ce que la charge du serveur
+    d'arrière-plan reste normale, mais pas plus longtemps ;
+    une durée de vie plus longue peut être paramétrée si les
+    changements d'utilisateurs et de mots de passe sont peu fréquents.
+    La durée de vie par défaut de 300 secondes (5 minutes) est à la fois
+    raisonnable et suffisamment importante pour réduire la charge d'un
+    serveur d'arrière-plan comme dbd (requêtes SQL).</p>
+    <p>Cette durée de vie ne doit pas être confondue avec la durée de
+    vie de session qui est un tout autre sujet. Cependant, vous devez
+    utiliser votre logiciel de gestion de session pour vérifier si les
+    données d'authentification mises en cache peuvent allonger
+    accidentellement une session, et en tenir compte lorsque vous
+    définissez la durée de vie.</p>
+
+</div>
+</div>
+<div class="bottomlang">
+<p><span>Langues Disponibles: </span><a href="../en/mod/mod_authn_socache.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="../fr/mod/mod_authn_socache.html" title="Français">&nbsp;fr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="../images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">Commentaires</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/mod/mod_authn_socache.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />Autorisé sous <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p class="menu"><a href="../mod/">Modules</a> | <a href="../mod/directives.html">Directives</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="../glossary.html">Glossaire</a> | <a href="../sitemap.html">Plan du site</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>

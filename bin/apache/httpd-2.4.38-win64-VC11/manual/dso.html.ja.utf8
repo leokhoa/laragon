@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+<!--
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              This file is generated from xml source: DO NOT EDIT
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      -->
+<title>動的共有オブジェクト (DSO) サポート - Apache HTTP サーバ バージョン 2.4</title>
+<link href="./style/css/manual.css" rel="stylesheet" media="all" type="text/css" title="Main stylesheet" />
+<link href="./style/css/manual-loose-100pc.css" rel="alternate stylesheet" media="all" type="text/css" title="No Sidebar - Default font size" />
+<link href="./style/css/manual-print.css" rel="stylesheet" media="print" type="text/css" /><link rel="stylesheet" type="text/css" href="./style/css/prettify.css" />
+<script src="./style/scripts/prettify.min.js" type="text/javascript">
+</script>
+
+<link href="./images/favicon.ico" rel="shortcut icon" /></head>
+<body id="manual-page"><div id="page-header">
+<p class="menu"><a href="./mod/">モジュール</a> | <a href="./mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">用語</a> | <a href="./sitemap.html">サイトマップ</a></p>
+<p class="apache">Apache HTTP サーバ バージョン 2.4</p>
+<img alt="" src="./images/feather.png" /></div>
+<div class="up"><a href="./"><img title="&lt;-" alt="&lt;-" src="./images/left.gif" /></a></div>
+<div id="path">
+<a href="http://www.apache.org/">Apache</a> &gt; <a href="http://httpd.apache.org/">HTTP サーバ</a> &gt; <a href="http://httpd.apache.org/docs/">ドキュメンテーション</a> &gt; <a href="./">バージョン 2.4</a></div><div id="page-content"><div id="preamble"><h1>動的共有オブジェクト (DSO) サポート</h1>
+<div class="toplang">
+<p><span>翻訳済み言語: </span><a href="./en/dso.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/dso.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/dso.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/dso.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/dso.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div>
+<div class="outofdate">この日本語訳はすでに古くなっている
+            可能性があります。
+            最近更新された内容を見るには英語版をご覧下さい。
+        </div>
+
+    <p>Apache HTTP サーバはモジュール化されたプログラムで、
+    管理者がモジュールを選択することでサーバに組み込む機能を選ぶことができます。
+    モジュールはサーバがビルドされるときに <code class="program"><a href="./programs/httpd.html">httpd</a></code> バイナリに
+    静的に組み込むことができます。もしくは、<code class="program"><a href="./programs/httpd.html">httpd</a></code> バイナリとは
+    別に存在する動的共有オブジェクト (訳注: Dynamic Shared Object)
+    (DSO) としてコンパイルすることも
+    できます。DSO モジュールはサーバがビルドされるときにコンパイルしたり、
+    Apache 拡張ツール (<code class="program"><a href="./programs/apxs.html">apxs</a></code>) を
+    使って後でコンパイルして追加したりできます。</p>
+
+    <p>この文書は DSO モジュールの使い方と、仕組みについて
+    説明します。</p>
+  </div>
+<div id="quickview"><a href="https://www.apache.org/foundation/contributing.html" class="badge"><img src="https://www.apache.org/images/SupportApache-small.png" alt="Support Apache!" /></a><ul id="toc"><li><img alt="" src="./images/down.gif" /> <a href="#implementation">実装</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#usage">使用法の概要</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#background">背景</a></li>
+<li><img alt="" src="./images/down.gif" /> <a href="#advantages">利点と欠点</a></li>
+</ul><h3>参照</h3><ul class="seealso"><li><a href="#comments_section">コメント</a></li></ul></div>
+<div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="implementation" id="implementation">実装</a></h2>
+
+<table class="related"><tr><th>関連モジュール</th><th>関連ディレクティブ</th></tr><tr><td><ul><li><code class="module"><a href="./mod/mod_so.html">mod_so</a></code></li></ul></td><td><ul><li><code class="directive"><a href="./mod/mod_so.html#loadmodule">LoadModule</a></code></li></ul></td></tr></table>
+
+    <p>個々の Apache モジュールをロードするための DSO サポートは
+    <code class="module"><a href="./mod/mod_so.c.html">mod_so.c</a></code> というモジュールの機能に基づいています。
+    このモジュール は Apache のコアに静的に組み込まれている必要があります。
+    それは <code class="module"><a href="./mod/core.c.html">core.c</a></code> 以外では DSO にできない唯一の
+    モジュールです。事実上、他のすべての Apache のモジュールは、
+    <a href="install.html">インストールの文書</a>で説明されているように、
+    <code class="program"><a href="./programs/configure.html">configure</a></code> の
+    <code>--enable-<em>module</em>=shared</code> オプションでそれぞれを
+    DSO ビルドにすることにより、DSO モジュールにすることができます。
+    <code>mod_foo.so</code> のような DSO にモジュールがコンパイルされれば、
+    <code>httpd.conf</code> ファイル中で <code class="module"><a href="./mod/mod_so.html">mod_so</a></code> の
+    <code class="directive"><a href="./mod/mod_so.html#loadmodule">LoadModule</a></code>
+    ディレクティブを使うことでサーバの起動や再起動時にこのモジュールを
+    ロードするようにできます。</p>
+
+    <p>Apache モジュール用の (特にサードパーティモジュールの) DSO ファイルの
+    作成を簡単にするために、<code class="program"><a href="./programs/apxs.html">apxs</a></code>
+    (<dfn>APache eXtenSion</dfn>) という新しいサポートプログラムがあります。
+    Apache のソースツリーの<em>外で</em> DSO モジュールをビルドするために
+    使うことができます。発想は単純です: Apache のインストール時の
+    <code class="program"><a href="./programs/configure.html">configure</a></code>、<code>make install</code> のときに Apache の
+    C ヘッダをインストールし、DSO ビルド用のプラットフォーム依存の
+    コンパイラとリンカのフラグを <code class="program"><a href="./programs/apxs.html">apxs</a></code> プログラムに追加します。
+    これにより、ユーザが Apache の配布ソースツリーなしで、さらに
+    DSO サポートのためのプラットフォーム依存のコンパイラやリンカの
+    フラグをいじることなく Apache のモジュールのソースをコンパイル
+    できるようになります。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="usage" id="usage">使用法の概要</a></h2>
+
+    <p>Apache 2.x の DSO 機能の概略を知ることができるための、
+    短く簡潔な概要です:</p>
+
+    <ol>
+      <li>
+        <em>配布されている</em> Apache モジュール、仮に <code>mod_foo.c</code>
+        として、それを DSO <code>mod_foo.so</code> にビルド、インストール: 
+
+<div class="example"><p><code>
+$ ./configure --prefix=/path/to/install --enable-foo=shared<br />
+$ make install
+</code></p></div>
+      </li>
+
+      <li>
+        <em>サードパーティ</em> Apache モジュール、仮に <code>mod_foo.c</code>
+        として、それを DSO <code>mod_foo.so</code> にビルド、インストール:
+
+<div class="example"><p><code>
+$ ./configure --add-module=<var>module_type</var>:/path/to/3rdparty/mod_foo.c \<br />
+<span class="indent">
+  --enable-foo=shared<br />
+</span>
+$ make install
+</code></p></div>
+      </li>
+
+      <li>
+        共有モジュールの <em>後々のインストール</em> のために
+        Apache を設定:
+
+<div class="example"><p><code>
+$ ./configure --enable-so<br />
+$ make install
+</code></p></div>
+      </li>
+
+      <li>
+        <em>サードパーティ</em> Apache モジュール、仮に <code>mod_foo.c</code>
+        として、それを <code class="program"><a href="./programs/apxs.html">apxs</a></code> を使って
+        Apache ソースツリーの<em>外で</em> DSO にビルド、インストール:
+
+<div class="example"><p><code>
+$ cd /path/to/3rdparty<br />
+$ apxs -c mod_foo.c<br />
+$ apxs -i -a -n foo mod_foo.la
+</code></p></div>
+      </li>
+    </ol>
+
+    <p>どの場合においても、共有モジュールをコンパイルした後で、
+    <code>httpd.conf</code> で 
+    <code class="directive"><a href="./mod/mod_so.html#loadmodule">LoadModule</a></code>
+    ディレクティブを使って Apache がモジュールを使用するように
+    しなければなりません。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="background" id="background">背景</a></h2>
+
+    <p>最近の Unix 系の OS には <em>動的共有オブジェクト</em> (DSO)
+    の動的リンク/ロードという気のきいた機構が
+    存在します。これは、実行時にプログラムのアドレス空間に
+    ロードできるような特別な形式でプログラムをビルドすることを
+    可能にします。</p>
+
+    <p>このロードは二つの方法で行なうことができます: 実行プログラムが
+    起動されたときに <code>ld.so</code> というシステムプログラム
+    により自動的に行なわれる方法と、実行プログラム中から、システムコール
+    <code>dlopen()/dlsym()</code> による Unix ローダへの
+    プログラムシステムのインタフェースを使って手動で行なう方法とが
+    あります。</p>
+
+    <p>最初の方法では DSO は普通は<em>共有ライブラリ</em>や <em>DSO
+    ライブラリ</em> と呼ばれていて、DSO の名前は
+    <code>libfoo.so</code> や <code>libfoo.so.1.2</code> のようになっています。
+    これらはシステムディレクトリ (通常 <code>/usr/lib</code>) に存在し、
+    実行プログラムへのリンクはビルド時に <code>-lfoo</code> をリンカに
+    指定することで確立されます。これによりライブラリへの参照が実行プログラムの
+    ファイルに書き込まれて、起動時に Unix のローダが <code>/usr/lib</code> や、
+    リンカの <code>-R</code> のようなオプションによりハードコードされたパス、
+    環境変数 <code>LD_LIBRARY_PATH</code> により設定されたパス、の中から
+    <code>libfoo.so</code> の場所を見つけることができます。それから、
+    実行プログラム中の (まだ未解決の) シンボルを DSO にあるシンボルで
+    解決します。</p>
+
+    <p>普通は実行プログラム中のシンボルは DSO からは参照されません
+    (DSO は一般的なコードによる再利用可能なライブラリですので)。
+    ですから、さらなるシンボルの解決は必要ありません。
+    シンボルは Unix ローダにより完全な解決が行なわれますので、実行ファイル自身は
+    何もする必要がありません。(実際のところ、静的でない方法でリンクされている
+    すべての実行プログラムに組み込まれている開始用のコードの一部に
+    <code>ld.so</code> を起動するコードが含まれています)。よく使われる
+    ライブラリの動的ロードの利点は明らかです。ライブラリのコードは
+    システムライブラリに <code>libc.so</code> のようにして一度保存するだけでよく、
+    プログラムのために必要なディスクの領域を節約することができます。</p>
+
+    <p>二つめの方法では DSO は普通は<em>共有オブジェクト</em>や
+    <em>DSO ファイル</em>と呼ばれていて、任意の拡張子を付けることができます
+    (ただし、標準的な名前は <code>foo.so</code> です)。
+    これらのファイルは通常はプログラム専用のディレクトリに置かれ、
+    これらを使う実行プログラムへのリンクは自動的にはされません。
+    ですので、実行プログラムは <code>dlopen()</code> を使って
+    実行時に手動で DSO をプログラムのアドレス空間にロードする必要があります。
+    この時点では実行プログラムに対して DSO のシンボルの解決は行なわれません。
+    しかし、その代わりに Unix のローダが DSO の (まだ未解決の) シンボルを
+    実行プログラムによりエクスポートされたシンボルと既にロードされた
+    DSO ライブラリによりエクスポートされたシンボル (特に、どこにでもある
+    <code>libc.so</code> のすべてのシンボル) で自動的に解決します。
+    こうすることで、DSO は最初から静的にリンクされていたかのように、
+    実行プログラムのシンボルを知ることができます。</p>
+
+    <p>最後に、DSO の API を利点を生かすために、プログラムは
+    後でディスパッチテーブル<em>など</em>でシンボルを使うことができるように、
+    <code>dlsym()</code> を使っていくつかのシンボルを解決します。
+    すなわち: 実行プログラムは必要なすべてのシンボルを手動で解決しなければ
+    なりません。この機構の利点はプログラムのオプショナルな部分は
+    必要になるまでロードする必要がない (だからメモリも消費しない)
+    ことです。必要ならば、基本プログラムの機能を拡張するために
+    これらの部分を動的にロードすることができます。</p>
+
+    <p>この DSO 機構は簡単なように見えますが、少なくとも一つ難しい点が
+    あります: プログラムを拡張するために DSO を使っているときに、
+    DSO が実行プログラムからシンボルを解決する点です (二番目の方法)。
+    これはなぜでしょうか。それは、DSO のシンボルを実行プログラムの
+    シンボルから「逆解決」するというのはライブラリの設計
+    (ライブラリはそれを使用するプログラムのことは何も
+    知らない) に反していて、この機能はすべてのプラットフォームに
+    あるわけではなく、標準化もされていないからです。
+    実際には実行プログラムのグローバルなシンボルは再エクスポートされることは
+    あまりなく、DSO から使うことができません。リンカにグローバルシンボルすべてを
+    エクスポートするようにさせる方法を見つけることが、実行時にプログラムを
+    拡張するために DSO を使うときの一番の問題です。</p>
+
+    <p>共有ライブラリのアプローチが普通の方法です。DSO 機構はそのために
+    設計されたものですから。したがって、その方法はオペレーティングシステムが
+    提供するほとんどすべての種類のライブラリで使われています。
+    一方、プログラムの拡張のために共有オブジェクトを使用する、という方は
+    あまり使われていません。</p>
+
+    <p>1998 年の時点で、実行時に実際に機能拡張のために DSO 機構を使っている
+    ソフトウェアパッケージは少しだけでした: Perl 5 (XS 機構と DnaLoader モジュール
+    によるもの)、Netscape サーバ<em>など</em>です。Apache はすでに
+    モジュールの概念を使って機能拡張をしていて、内部的にディスパッチリストに
+    基づいた外部モジュールの Apache コア機能へのリンクを行なっていましたので、
+    バージョン 1.3 から、Apache も DSO 機構を使う仲間になりました。
+    Apache は実行時に DSO を使ってモジュールをロードするようにすでに
+    運命付けられていたのです。</p>
+</div><div class="top"><a href="#page-header"><img alt="top" src="./images/up.gif" /></a></div>
+<div class="section">
+<h2><a name="advantages" id="advantages">利点と欠点</a></h2>
+
+    <p>上記の DSO に基づいた機能は以下の利点があります:</p>
+
+    <ul>
+      <li>実際のサーバプロセスを組み立てるために、
+      ビルド時に <code>configure</code> のオプションを使う代わりに
+      実行時に <code>httpd.conf</code> の設定用コマンド
+      <code class="directive"><a href="./mod/mod_so.html#loadmodule">LoadModule</a></code>
+      を使うことができますので、サーバパッケージの柔軟性が高まりました。
+      たとえば、一つの Apache のインストールから
+      違う構成のサーバ (標準版と SSL 版、最小構成と拡張版 [mod_perl, PHP3]
+      <em>など</em>) を実行することができます。</li>
+
+      <li>インストールの後であっても、サーバのパッケージをサードパーティ
+      モジュールで簡単に拡張できるようになりました。これは、Apache コア
+      パッケージと、PHP3, mod_perl, mod_fastcgi <em>など</em> の追加の
+      パッケージを作成できるので、少なくともベンダのパッケージ管理者にとって
+      大きな利点があります。</li>
+
+      <li>Apache モジュールの開発が簡単になります。
+      これは DSO と <code class="program"><a href="./programs/apxs.html">apxs</a></code> の組み合わせにより、Apache ソースツリーの
+      外で作業でき、開発中のモジュールの新しいバージョンを
+      実行中の Apache サーバに組み込むために <code>apxs -i</code> と
+      <code>apachectl restart</code> を行なうだけで良くなるからです。</li>
+    </ul>
+
+    <p>DSO には以下の欠点があります:</p>
+
+    <ul>
+      <li>すべてのオペレーティングシステムがプログラムのアドレス空間に
+      コードを動的ロードすることをサポートしているわではないので、
+      プラットフォームによっては DSO 機構は使えません。</li>
+
+      <li>Unix のローダがシンボルの解決をする必要ができたので、
+      そのオーバヘッドによりサーバの起動時間が約 20% 遅くなっています。</li>
+
+      <li>位置非依存コード (PIC) (訳注 position independent code) は
+      相対アドレスのために複雑なアセンブラのトリックが必要なことがあり、
+      それは必ずしも絶対アドレスと同じくらいの速度がでるわけではありませんので、
+      プラットフォームによってはサーバの実行速度が約 5% 遅くなります。</li>
+
+      <li>DSO モジュールはすべてのプラットフォームで他の DSO に基づいた
+      ライブラリに対してリンクできる (<code>ld -lfoo</code>)
+      というわけではありませんので (たとえば、a.out のプラットフォームでは
+      この機能はありませんが、ELF のプラットフォームにはあります)、
+      すべての種類のモジュールに DSO 機構を使えるわけではありません。
+      言い換えると、DSO ファイルとしてコンパイルされたモジュールの
+      使えるシンボルは、
+      Apache のコアのシンボル、C ライブラリ (<code>libc</code>) と
+      Apache コアが使っている他のすべての静的なライブラリと動的ライブラリの
+      シンボル、PIC による静的なライブラリ (<code>libfoo.a</code>) の
+      シンボルのみに制限されます。その他のコードを使う方法は、
+      Apache コア自身がすでにそのコードへの参照があるようにするか、
+      <code>dlopen ()</code> を使ってコードを自分自身でロードするかの
+     どちらかしかありません。</li>
+    </ul>
+
+</div></div>
+<div class="bottomlang">
+<p><span>翻訳済み言語: </span><a href="./en/dso.html" hreflang="en" rel="alternate" title="English">&nbsp;en&nbsp;</a> |
+<a href="./fr/dso.html" hreflang="fr" rel="alternate" title="Français">&nbsp;fr&nbsp;</a> |
+<a href="./ja/dso.html" title="Japanese">&nbsp;ja&nbsp;</a> |
+<a href="./ko/dso.html" hreflang="ko" rel="alternate" title="Korean">&nbsp;ko&nbsp;</a> |
+<a href="./tr/dso.html" hreflang="tr" rel="alternate" title="Türkçe">&nbsp;tr&nbsp;</a></p>
+</div><div class="top"><a href="#page-header"><img src="./images/up.gif" alt="top" /></a></div><div class="section"><h2><a id="comments_section" name="comments_section">コメント</a></h2><div class="warning"><strong>Notice:</strong><br />This is not a Q&amp;A section. Comments placed here should be pointed towards suggestions on improving the documentation or server, and may be removed again by our moderators if they are either implemented or considered invalid/off-topic. Questions on how to manage the Apache HTTP Server should be directed at either our IRC channel, #httpd, on Freenode, or sent to our <a href="http://httpd.apache.org/lists.html">mailing lists</a>.</div>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var comments_shortname = 'httpd';
+var comments_identifier = 'http://httpd.apache.org/docs/2.4/dso.html';
+(function(w, d) {
+    if (w.location.hostname.toLowerCase() == "httpd.apache.org") {
+        d.write('<div id="comments_thread"><\/div>');
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://comments.apache.org/show_comments.lua?site=' + comments_shortname + '&page=' + comments_identifier;
+        (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(s);
+    }
+    else { 
+        d.write('<div id="comments_thread">Comments are disabled for this page at the moment.<\/div>');
+    }
+})(window, document);
+//--><!]]></script></div><div id="footer">
+<p class="apache">Copyright 2019 The Apache Software Foundation.<br />この文書は <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> のライセンスで提供されています。.</p>
+<p class="menu"><a href="./mod/">モジュール</a> | <a href="./mod/directives.html">ディレクティブ</a> | <a href="http://wiki.apache.org/httpd/FAQ">FAQ</a> | <a href="./glossary.html">用語</a> | <a href="./sitemap.html">サイトマップ</a></p></div><script type="text/javascript"><!--//--><![CDATA[//><!--
+if (typeof(prettyPrint) !== 'undefined') {
+    prettyPrint();
+}
+//--><!]]></script>
+</body></html>
