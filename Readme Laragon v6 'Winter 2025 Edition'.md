@@ -11,7 +11,7 @@
 * apache ( https://www.apachelounge.com/download/ ) ==> httpd-2.4.66-251206-Win64-VS17.zip _(installed and moved from "httpd-2.4.66-251206-Win64-VS17\Apache24" to "httpd-2.4.66-251206-Win64-VS17")_
 * apache => FastCGI ( https://www.apachelounge.com/download/ ) ==> mod_fcgid-2.3.10-win64-VS16.zip _(installed and renamed from "mod_fcgid.so" to "mod_fcgid-2.3.9-Win64-vs17.so" for autosearch)_
 * apache ( https://www.apachelounge.com/download/ ) ==> httpd-2.4.38-win64-VC11.zip _(installed and moved from "httpd-2.4.38-win64-VC11\Apache24" to "httpd-2.4.38-win64-VC11" for PHP5.x)_
-* apache => FastCGI ( https://www.apachelounge.com/download/ ) ==> mod_fcgid-2.3.10-win64-VS16.zip _(installed and renamed from "mod_fcgid.so" to "mod_fcgid-2.3.9-Win64-VC16.so" for autosearch)_
+* apache => FastCGI ( https://www.apachelounge.com/download/ ) ==> mod_fcgid-2.3.9-win64-VC14.zip and mod_fcgid-2.3.9-win64-VC15.zip  _(installed and renamed from "mod_fcgid.so" to "mod_fcgid-2.3.9-Win64-VCxx.so" for autosearch)_
 * cmder ( https://github.com/cmderdev/cmder/releases/ ) ==> cmder_mini.zip Version 1.3.25.328 _(re-install)_
 * cmder => clink ( https://github.com/chrisant996/clink/releases ) ==> clink.1.9.7.b33c45.zip _(installed in "bin\cmder\vendor\clink")_ 
 * composer ( https://getcomposer.org/download/ ) ==> _command line install 29/12/2025_
