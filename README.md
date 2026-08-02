@@ -45,3 +45,62 @@ Here is the GUI of Laragon:
 - Laragon is very easy to install & upgrade. Just download the latest version and click `Next, Next, Next...`
 - Laragon is very easy to use. Most of the time it will work out-of-the-box without the need to touch any configuration files.
 - Laragon is very easy to extend. You can add other services to your current stack by just extracting them to `Laragon's bin` folder.
+
+## PostgreSQL
+
+PostgreSQL is managed by Laragon the same way MySQL is - it runs alongside MySQL on its own port, so you can use both at once.
+
+**Install:** `Menu > Tools > Quick add > postgresql-18.4`
+
+To install it by hand instead, download the binaries zip from
+[EnterpriseDB](https://www.enterprisedb.com/download-postgresql-binaries) and unpack it so that
+`postgres.exe` lands here:
+
+```
+laragon\bin\postgresql\postgresql-18.4\bin\postgres.exe
+```
+
+The folder name must start with `postgresql-` - that is the prefix Laragon uses to build the version list.
+The EDB zip unpacks to a folder called `pgsql`, so rename it.
+
+**Use it:**
+
+| What | Where |
+| --- | --- |
+| Enable the service | `Menu > Preferences > Services & Ports` (default port `5432`) |
+| Switch version | `Menu > PostgreSQL > Version` |
+| Data directory | `Menu > PostgreSQL > DataDir` (defaults to `laragon\data`) |
+| Config / log | `Menu > PostgreSQL > postgresql.conf` / `postgresql.log` |
+| GUI clients | `Menu > PostgreSQL >` HeidiSQL, DBeaver, or pgAdmin 4 |
+
+The first start runs `initdb`, then creates the `postgres` superuser and a `postgres` database. There is no
+password by default, matching Laragon's MySQL behaviour.
+
+### Admin panel
+
+phpMyAdmin only speaks MySQL, so PostgreSQL gets **Adminer** at <http://localhost/adminer> - the aliases in
+`etc\apache2\alias\adminer.conf` and `etc\nginx\alias\adminer.conf` are already wired up. It opens with the
+PostgreSQL driver and `127.0.0.1:5432` pre-selected. MySQL still works from the same page via the driver
+list, or keep using `/phpmyadmin`.
+
+```
+etc\apps\adminer\
+    index.php     # Laragon wrapper: PostgreSQL defaults
+    adminer.php   # Adminer 5.5.1 itself
+```
+
+**One-time setup - give the postgres role a password:**
+
+```
+psql -U postgres -c "ALTER USER postgres WITH PASSWORD 'postgres';"
+```
+
+Unlike phpMyAdmin with MySQL's blank-password `root`, Adminer refuses to connect to an account with an empty
+password, and Laragon's `initdb` creates `postgres` without one. Setting a password is the only way in - it
+also saves you trouble later, since pgAdmin, DBeaver and Laravel all expect one.
+
+For a desktop client instead, **pgAdmin 4** ships inside the PostgreSQL package at
+`bin\postgresql\postgresql-18.4\pgAdmin 4\runtime\pgAdmin4.exe` - reachable from `Menu > PostgreSQL > pgAdmin 4`.
+
+**PHP:** to connect from PHP, enable `pdo_pgsql` and `pgsql` in `Menu > PHP > Extensions`. For Laravel, set
+`DB_CONNECTION=pgsql` and `DB_PORT=5432` in `.env`.
